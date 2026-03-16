@@ -1,0 +1,135 @@
+import { useState, useMemo } from 'react';
+import { format, parseISO } from 'date-fns';
+import { CalendarDays } from 'lucide-react';
+import { mockIncidents } from '@/data/mockData';
+import IncidentCard from '@/components/chronicle/IncidentCard';
+import EmptyState from '@/components/chronicle/EmptyState';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import type { IncidentCategory, IncidentSeverity } from '@/types/incident';
+
+const TimelineScreen = () => {
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterSeverity, setFilterSeverity] = useState<string>('all');
+  const [chronologyMode, setChronologyMode] = useState(false);
+
+  const incidents = useMemo(() => {
+    let filtered = [...mockIncidents];
+    if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
+    if (filterSeverity !== 'all') filtered = filtered.filter(i => i.severity === filterSeverity);
+    return filtered.sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
+  }, [filterCategory, filterSeverity]);
+
+  // Group by month
+  const grouped = useMemo(() => {
+    const groups: Record<string, typeof incidents> = {};
+    incidents.forEach(inc => {
+      const key = format(parseISO(inc.incident_date), 'MMMM yyyy');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(inc);
+    });
+    return groups;
+  }, [incidents]);
+
+  // Pattern detection: 3+ same category in 30 days
+  const patternBanner = useMemo(() => {
+    const categoryCounts: Record<string, number> = {};
+    incidents.forEach(i => { if (i.category) categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1; });
+    const repeated = Object.entries(categoryCounts).find(([, count]) => count >= 3);
+    return repeated ? `Repeated pattern detected — ${repeated[0]} appears in ${repeated[1]} incidents.` : null;
+  }, [incidents]);
+
+  if (incidents.length === 0 && filterCategory === 'all' && filterSeverity === 'all') {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="px-4 pt-6">
+          <h1 className="text-2xl font-bold text-foreground">Timeline</h1>
+        </div>
+        <EmptyState
+          icon={<CalendarDays className="h-12 w-12" />}
+          heading="No incidents yet"
+          body="Your timeline will appear here as you record incidents."
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-20">
+      <div className="px-4 pt-6 pb-2">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-2xl font-bold text-foreground">Timeline</h1>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="chronology" className="text-xs text-muted-foreground">Chronology View</Label>
+            <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">Ordered by incident date, not recording date.</p>
+      </div>
+
+      {/* Filters */}
+      {!chronologyMode && (
+        <div className="px-4 py-2 flex gap-2">
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="bg-card text-xs h-8">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {['Verbal Comment','Written Communication','Safety Concern','Scheduling or Shift Change','Disciplinary Meeting','Management Conduct','Pay or Payroll Issue','Policy Application','Workplace Meeting','Other'].map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterSeverity} onValueChange={setFilterSeverity}>
+            <SelectTrigger className="bg-card text-xs h-8">
+              <SelectValue placeholder="Severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Severity</SelectItem>
+              {['Low','Moderate','Serious','Critical'].map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Pattern Banner */}
+      {patternBanner && !chronologyMode && (
+        <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-severity-serious/10 text-severity-serious text-xs font-medium">
+          {patternBanner}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="px-4 space-y-4">
+        {chronologyMode ? (
+          <div className="space-y-2 pt-2">
+            {incidents.map(inc => (
+              <div key={inc.incident_id} className="text-sm leading-relaxed">
+                <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
+                {' — '}
+                <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          Object.entries(grouped).map(([month, items]) => (
+            <div key={month}>
+              <h2 className="text-sm font-semibold text-foreground mb-2">{month}</h2>
+              <div className="space-y-3">
+                {items.map(inc => (
+                  <IncidentCard key={inc.incident_id} incident={inc} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default TimelineScreen;
