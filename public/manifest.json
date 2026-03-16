@@ -1,0 +1,15 @@
+{
+  "name": "Project Chronicle",
+  "short_name": "Chronicle",
+  "display": "standalone",
+  "start_url": "/",
+  "theme_color": "#1A7A6E",
+  "background_color": "#F9FAFB",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
