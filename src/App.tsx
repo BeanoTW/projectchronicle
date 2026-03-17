@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import OnboardingScreen from "./pages/OnboardingScreen";
+import LoginScreen from "./pages/LoginScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
 import InsightsScreen from "./pages/InsightsScreen";
@@ -23,25 +25,42 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  if (user) return <Navigate to="/timeline" replace />;
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<OnboardingScreen />} />
-          <Route path="/record" element={<AppLayout><RecordScreen /></AppLayout>} />
-          <Route path="/timeline" element={<AppLayout><TimelineScreen /></AppLayout>} />
-          <Route path="/insights" element={<AppLayout><InsightsScreen /></AppLayout>} />
-          <Route path="/evidence" element={<AppLayout><EvidenceScreen /></AppLayout>} />
-          <Route path="/rights" element={<AppLayout><RightsScreen /></AppLayout>} />
-          <Route path="/export" element={<AppLayout><ExportScreen /></AppLayout>} />
-          <Route path="/incident/:id" element={<AppLayout><IncidentDetailScreen /></AppLayout>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<PublicRoute><OnboardingScreen /></PublicRoute>} />
+            <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
+            <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/insights" element={<ProtectedRoute><AppLayout><InsightsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/rights" element={<ProtectedRoute><AppLayout><RightsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

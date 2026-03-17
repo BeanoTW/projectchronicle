@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Paperclip, Image, FileText, Music, Mail } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Paperclip, Image, FileText, Music, Mail, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { mockEvidence, mockIncidents } from '@/data/mockData';
+import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
+import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
-import type { EvidenceType } from '@/types/incident';
+import { useToast } from '@/hooks/use-toast';
 
-const filterTabs: { label: string; value: string }[] = [
+const filterTabs = [
   { label: 'All', value: 'all' },
   { label: 'Photos', value: 'Photo' },
   { label: 'Screenshots', value: 'Screenshot' },
@@ -14,7 +15,7 @@ const filterTabs: { label: string; value: string }[] = [
   { label: 'Emails', value: 'Email' },
 ];
 
-const typeIcons: Record<EvidenceType, typeof FileText> = {
+const typeIcons: Record<string, typeof FileText> = {
   Photo: Image,
   Screenshot: Image,
   Document: FileText,
@@ -25,19 +26,45 @@ const typeIcons: Record<EvidenceType, typeof FileText> = {
 
 const EvidenceScreen = () => {
   const [activeFilter, setActiveFilter] = useState('all');
+  const { data: allEvidence = [], isLoading } = useEvidence();
+  const { data: incidents = [] } = useIncidents();
+  const uploadEvidence = useUploadEvidence();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = activeFilter === 'all'
-    ? mockEvidence
-    : mockEvidence.filter(e => e.file_type === activeFilter);
+    ? allEvidence
+    : allEvidence.filter(e => e.file_type === activeFilter);
 
-  if (mockEvidence.length === 0) {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await uploadEvidence.mutateAsync({ file });
+      toast({ title: 'Evidence uploaded' });
+    } catch {
+      toast({ title: 'Upload failed', variant: 'destructive' });
+    }
+  };
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background pb-20 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  }
+
+  if (allEvidence.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-20">
-        <div className="px-4 pt-6"><h1 className="text-2xl font-bold text-foreground">Evidence</h1></div>
+        <div className="px-4 pt-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground">Evidence</h1>
+          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-md cursor-pointer">
+            <Plus className="h-3 w-3" /> Upload
+            <input type="file" className="hidden" onChange={handleUpload} />
+          </label>
+        </div>
         <EmptyState
           icon={<Paperclip className="h-12 w-12" />}
           heading="No evidence yet"
-          body="No evidence uploaded yet. Open an incident to attach files."
+          body="Upload evidence files to attach to your incidents."
         />
       </div>
     );
@@ -45,11 +72,14 @@ const EvidenceScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-2">
+      <div className="px-4 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Evidence</h1>
+        <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-md cursor-pointer">
+          <Plus className="h-3 w-3" /> Upload
+          <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
+        </label>
       </div>
 
-      {/* Filter Tabs */}
       <div className="px-4 pb-3 overflow-x-auto">
         <div className="flex gap-1.5 min-w-max">
           {filterTabs.map(tab => (
@@ -70,21 +100,21 @@ const EvidenceScreen = () => {
 
       <div className="px-4 space-y-3">
         {filtered.map(ev => {
-          const Icon = typeIcons[ev.file_type] || FileText;
-          const linkedIncident = mockIncidents.find(i => i.incident_id === ev.incident_id);
+          const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
+          const linkedIncident = incidents.find(i => i.id === ev.incident_id);
           return (
-            <div key={ev.file_id} className="bg-card border border-border rounded-lg p-4 flex gap-3">
+            <div key={ev.id} className="bg-card border border-border rounded-lg p-4 flex gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {ev.file_type} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
+                  {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                 </p>
                 {linkedIncident ? (
                   <p className="text-xs text-primary mt-0.5 truncate">
-                    Linked: {linkedIncident.title}
+                    Linked: {linkedIncident.title || 'Untitled'}
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground mt-0.5">Unlinked</p>
