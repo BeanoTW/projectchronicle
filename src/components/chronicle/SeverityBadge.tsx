@@ -10,7 +10,7 @@ interface SeverityBadgeProps {
 }
 
 const SeverityBadge = ({ severity }: SeverityBadgeProps) => {
-  const config = severityConfig[severity];
+  const config = severityConfig[severity] || { bg: 'bg-muted', text: 'text-muted-foreground' };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
       {severity}
