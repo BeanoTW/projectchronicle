@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const onboardingSteps = [
   {
@@ -31,7 +33,7 @@ const onboardingSteps = [
         </div>
         <h2 className="text-xl font-bold text-foreground mb-3">Your Records Stay Private</h2>
         <p className="text-body text-sm mb-8 max-w-xs">
-          Your records stay private on your device. Nothing is shared without your action.
+          Your records stay private and secure. Nothing is shared without your action.
         </p>
         <Button onClick={onNext} className="w-full max-w-xs bg-primary text-primary-foreground h-12">
           Continue
@@ -43,31 +45,42 @@ const onboardingSteps = [
 
 const OnboardingScreen = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
+  const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     const newErrors: Record<string, string> = {};
     if (!email.trim()) newErrors.email = 'Email is required.';
     if (!password) newErrors.password = 'Password is required.';
+    if (password.length < 6) newErrors.password = 'Password must be at least 6 characters.';
     if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match.';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-    // TODO: Register with Lovable Cloud auth
-    setStep(3);
+
+    setLoading(true);
+    const { error } = await signUp(email, password);
+    setLoading(false);
+
+    if (error) {
+      toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Account created', description: 'Check your email to confirm your account, or sign in if email confirmation is disabled.' });
+      setStep(3);
+    }
   };
 
   const handleSkip = () => {
-    localStorage.setItem('chronicle_onboarded', 'true');
     navigate('/timeline');
   };
 
   const handleRecordFirst = () => {
-    localStorage.setItem('chronicle_onboarded', 'true');
     navigate('/record');
   };
 
@@ -78,7 +91,7 @@ const OnboardingScreen = () => {
 
   if (step === 2) {
     return (
-      <div className="flex flex-col min-h-screen px-6 pt-12 bg-background">
+      <div className="flex flex-col min-h-screen px-6 pt-12 bg-background max-w-lg mx-auto">
         <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
           <UserPlus className="h-6 w-6 text-primary" />
         </div>
@@ -109,9 +122,13 @@ const OnboardingScreen = () => {
             </Label>
           </div>
 
-          <Button onClick={handleRegister} className="w-full bg-primary text-primary-foreground h-12">
-            Sign Up
+          <Button onClick={handleRegister} disabled={loading} className="w-full bg-primary text-primary-foreground h-12">
+            {loading ? 'Creating account...' : 'Sign Up'}
           </Button>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{' '}
+            <button onClick={() => navigate('/login')} className="text-primary font-medium">Sign in</button>
+          </p>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import type { Incident } from '@/types/incident';
+import type { Incident } from '@/hooks/useIncidents';
 import SeverityBadge from './SeverityBadge';
 import CategoryBadge from './CategoryBadge';
 import RecordAgeChip from './RecordAgeChip';
@@ -21,7 +21,7 @@ const IncidentCard = ({ incident }: IncidentCardProps) => {
 
   return (
     <button
-      onClick={() => navigate(`/incident/${incident.incident_id}`)}
+      onClick={() => navigate(`/incident/${incident.id}`)}
       className={`w-full text-left bg-card rounded-lg border border-border p-4 shadow-sm hover:shadow-md transition-shadow border-l-4 ${
         incident.severity ? severityBorderColor[incident.severity] : 'border-l-border'
       }`}

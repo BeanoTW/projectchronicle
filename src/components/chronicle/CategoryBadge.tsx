@@ -1,7 +1,5 @@
-import type { IncidentCategory } from '@/types/incident';
-
 interface CategoryBadgeProps {
-  category: IncidentCategory;
+  category: string;
 }
 
 const CategoryBadge = ({ category }: CategoryBadgeProps) => (

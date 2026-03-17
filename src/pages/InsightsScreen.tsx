@@ -1,21 +1,26 @@
-import { useMemo } from 'react';
-import { BarChart3, FileText, Users, AlertTriangle, TrendingUp } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
-import { mockIncidents, mockEvidence, mockFollowUpNotes } from '@/data/mockData';
+import { useIncidents } from '@/hooks/useIncidents';
+import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
+import AILabel from '@/components/chronicle/AILabel';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const InsightsScreen = () => {
-  const incidents = mockIncidents;
+  const { data: incidents = [], isLoading } = useIncidents();
+  const { data: allEvidence = [] } = useEvidence();
+  const { toast } = useToast();
+  const [aiSummaries, setAiSummaries] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  // Overview cards
   const totalIncidents = incidents.length;
   const thisMonth = incidents.filter(i => new Date(i.incident_date).getMonth() === new Date().getMonth()).length;
-  const withEvidence = incidents.filter(i => mockEvidence.some(e => e.incident_id === i.incident_id)).length;
+  const withEvidence = incidents.filter(i => allEvidence.some(e => e.incident_id === i.id)).length;
   const openIncidents = incidents.filter(i => i.status === 'Open').length;
-  const withNotes = incidents.filter(i => mockFollowUpNotes.some(n => n.incident_id === i.incident_id)).length;
   const withWitnesses = incidents.filter(i => i.witnesses.length > 0).length;
 
-  // Pattern detection
   const patterns = useMemo(() => {
     const result: string[] = [];
     const peopleCounts: Record<string, number> = {};
@@ -37,7 +42,23 @@ const InsightsScreen = () => {
     return result;
   }, [incidents]);
 
-  // Chart data
+  const handleAiSummarise = async () => {
+    if (patterns.length === 0) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('summarise-patterns', {
+        body: { patterns },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      setAiSummaries(data.summaries || []);
+    } catch (e) {
+      toast({ title: 'AI summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const chartData = useMemo(() => {
     const months: Record<string, { name: string; count: number; severity: string }> = {};
     incidents.forEach(i => {
@@ -46,7 +67,7 @@ const InsightsScreen = () => {
       const name = d.toLocaleString('default', { month: 'short' });
       if (!months[key]) months[key] = { name, count: 0, severity: 'Low' };
       months[key].count++;
-      if (i.severity === 'Critical' || i.severity === 'Serious') months[key].severity = i.severity;
+      if (i.severity === 'Critical' || i.severity === 'Serious') months[key].severity = i.severity!;
     });
     return Object.values(months);
   }, [incidents]);
@@ -58,17 +79,18 @@ const InsightsScreen = () => {
     Low: 'hsl(160, 87%, 20%)',
   };
 
-  // Strength indicators
   const strengthPrompts = useMemo(() => {
     const result: string[] = [];
-    const noEvidence = incidents.filter(i => !mockEvidence.some(e => e.incident_id === i.incident_id)).length;
+    const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
     if (noEvidence > 0) result.push(`${noEvidence} incidents have no evidence attached.`);
     const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
     if (noWitness > 0) result.push(`Adding witnesses can strengthen the timeline of events.`);
-    const noNotes = incidents.filter(i => !mockFollowUpNotes.some(n => n.incident_id === i.incident_id)).length;
-    if (noNotes > 0) result.push(`Consider adding follow-up notes after meetings.`);
     return result;
-  }, [incidents]);
+  }, [incidents, allEvidence]);
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-background pb-20 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  }
 
   if (incidents.length < 2) {
     return (
@@ -88,7 +110,6 @@ const InsightsScreen = () => {
     { label: 'This Month', value: thisMonth, icon: TrendingUp },
     { label: 'With Evidence', value: withEvidence, icon: FileText },
     { label: 'Open', value: openIncidents, icon: AlertTriangle },
-    { label: 'With Notes', value: withNotes, icon: FileText },
     { label: 'With Witnesses', value: withWitnesses, icon: Users },
   ];
 
@@ -117,6 +138,25 @@ const InsightsScreen = () => {
               <p key={i} className="text-xs text-body">• {p}</p>
             ))}
           </div>
+
+          {aiSummaries.length > 0 ? (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="mb-2"><AILabel /></div>
+              <div className="space-y-1.5">
+                {aiSummaries.map((s, i) => (
+                  <p key={i} className="text-xs text-body">• {s}</p>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={handleAiSummarise}
+              disabled={aiLoading}
+              className="mt-3 text-xs text-primary font-medium flex items-center gap-1"
+            >
+              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Summarising...</> : 'Summarise with AI'}
+            </button>
+          )}
         </div>
       )}
 

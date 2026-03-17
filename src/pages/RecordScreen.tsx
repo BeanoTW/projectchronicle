@@ -1,24 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { IncidentCategory, IncidentSeverity } from '@/types/incident';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateIncident } from '@/hooks/useIncidents';
+import { useCreateEditHistory } from '@/hooks/useEditHistory';
+import { useToast } from '@/hooks/use-toast';
+import AILabel from '@/components/chronicle/AILabel';
+import { supabase } from '@/integrations/supabase/client';
 
-const categories: IncidentCategory[] = [
+const categories = [
   'Verbal Comment', 'Written Communication', 'Safety Concern',
   'Scheduling or Shift Change', 'Disciplinary Meeting',
   'Management Conduct', 'Pay or Payroll Issue',
   'Policy Application', 'Workplace Meeting', 'Other',
 ];
 
-const severities: IncidentSeverity[] = ['Low', 'Moderate', 'Serious', 'Critical'];
+const severities = ['Low', 'Moderate', 'Serious', 'Critical'];
 
 const RecordScreen = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const createIncident = useCreateIncident();
+  const createEditHistory = useCreateEditHistory();
+  const { toast } = useToast();
+
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   const [showManualForm, setShowManualForm] = useState(false);
   const [narrative, setNarrative] = useState('');
@@ -31,7 +41,12 @@ const RecordScreen = () => {
   const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
   const [impactNote, setImpactNote] = useState('');
+  const [title, setTitle] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [analysing, setAnalysing] = useState(false);
+  const [aiSuggested, setAiSuggested] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -41,10 +56,74 @@ const RecordScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleAnalyse = async () => {
+    if (!narrative.trim()) {
+      setErrors({ raw_narrative: 'Please enter your account first.' });
+      return;
+    }
+    setAnalysing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyse-incident', {
+        body: { narrative },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      // Populate fields with AI suggestions (user can review/edit before save)
+      if (data.incident_date && !incidentDate) setIncidentDate(data.incident_date);
+      if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
+      if (data.location && !location) setLocation(data.location);
+      if (data.category && !category) setCategory(data.category);
+      if (data.severity && !severity) setSeverity(data.severity);
+      if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
+      if (data.witnesses?.length && !witnesses) setWitnesses(data.witnesses.join(', '));
+      if (data.exact_words && !exactWords) setExactWords(data.exact_words);
+      if (data.summary) setAiSummary(data.summary);
+      if (data.title && !title) setTitle(data.title);
+
+      setAiSuggested(true);
+      setShowManualForm(true);
+      toast({ title: 'AI analysis complete', description: 'Review the suggested fields below before saving.' });
+    } catch (e) {
+      toast({ title: 'Analysis failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!validate()) return;
-    // TODO: Save to database via Lovable Cloud
-    navigate('/timeline');
+    setSaving(true);
+    try {
+      const result = await createIncident.mutateAsync({
+        raw_narrative: narrative,
+        incident_date: incidentDate,
+        incident_time: incidentTime || null,
+        location: location || null,
+        category: category || null,
+        severity: severity || null,
+        people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
+        witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+        exact_words: exactWords || null,
+        impact_note: impactNote || null,
+        ai_summary: aiSummary || null,
+        title: title || null,
+        record_method: mode,
+      });
+
+      await createEditHistory.mutateAsync({
+        incident_id: result.id,
+        field_changed: 'incident_recorded',
+      });
+
+      toast({ title: 'Incident saved' });
+      navigate('/timeline');
+    } catch (e) {
+      toast({ title: 'Failed to save', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -97,7 +176,7 @@ const RecordScreen = () => {
               <Mic className="h-10 w-10 text-primary-foreground" />
             </button>
             <p className="text-sm text-muted-foreground mt-4">Tap to start recording</p>
-            <p className="text-xs text-muted-foreground mt-1">Voice recording will be available with Lovable Cloud</p>
+            <p className="text-xs text-muted-foreground mt-1">Voice recording coming soon</p>
           </div>
         ) : (
           <>
@@ -120,10 +199,29 @@ const RecordScreen = () => {
               )}
             </div>
 
-            {/* AI button placeholder */}
-            <Button variant="outline" className="w-full border-primary text-primary" disabled>
-              Analyse with AI (coming soon)
+            {/* AI Analysis Button */}
+            <Button
+              variant="outline"
+              className="w-full border-primary text-primary"
+              onClick={handleAnalyse}
+              disabled={analysing || !narrative.trim()}
+            >
+              {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Analyse with AI'}
             </Button>
+
+            {/* AI Summary Preview */}
+            {aiSuggested && aiSummary && (
+              <div className="bg-card border border-border rounded-lg p-4">
+                <div className="mb-2"><AILabel /></div>
+                <p className="text-sm text-body">{aiSummary}</p>
+                <button
+                  onClick={() => { setAiSummary(''); setAiSuggested(false); }}
+                  className="text-xs text-destructive mt-2"
+                >
+                  Remove AI summary
+                </button>
+              </div>
+            )}
 
             <button
               onClick={() => setShowManualForm(!showManualForm)}
@@ -138,6 +236,17 @@ const RecordScreen = () => {
         {/* Manual Form Fields */}
         {(showManualForm || mode === 'voice') && (
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Short title for this incident"
+                className="mt-1 bg-card"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="date" className="text-sm font-medium">Date *</Label>
@@ -257,11 +366,8 @@ const RecordScreen = () => {
         )}
 
         <div className="flex gap-3 pt-2 pb-6">
-          <Button onClick={handleSave} className="flex-1 bg-primary text-primary-foreground h-12">
-            Save Incident
-          </Button>
-          <Button variant="outline" className="flex-1 border-primary text-primary h-12" disabled>
-            Attach Evidence
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12">
+            {saving ? 'Saving...' : 'Save Incident'}
           </Button>
         </div>
       </div>

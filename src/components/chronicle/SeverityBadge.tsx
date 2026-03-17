@@ -1,6 +1,4 @@
-import type { IncidentSeverity } from '@/types/incident';
-
-const severityConfig: Record<IncidentSeverity, { bg: string; text: string }> = {
+const severityConfig: Record<string, { bg: string; text: string }> = {
   Critical: { bg: 'bg-severity-critical/10', text: 'text-severity-critical' },
   Serious: { bg: 'bg-severity-serious/10', text: 'text-severity-serious' },
   Moderate: { bg: 'bg-severity-moderate/10', text: 'text-severity-moderate' },
@@ -8,11 +6,11 @@ const severityConfig: Record<IncidentSeverity, { bg: string; text: string }> = {
 };
 
 interface SeverityBadgeProps {
-  severity: IncidentSeverity;
+  severity: string;
 }
 
 const SeverityBadge = ({ severity }: SeverityBadgeProps) => {
-  const config = severityConfig[severity];
+  const config = severityConfig[severity] || { bg: 'bg-muted', text: 'text-muted-foreground' };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
       {severity}
