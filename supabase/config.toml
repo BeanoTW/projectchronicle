@@ -1,1 +1,7 @@
 project_id = "qjwrnrvzdnyyrtwvrbem"
+
+[functions.analyse-incident]
+verify_jwt = false
+
+[functions.summarise-patterns]
+verify_jwt = false
