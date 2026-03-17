@@ -14,7 +14,240 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      edit_history: {
+        Row: {
+          changed_at: string
+          field_changed: string
+          id: string
+          incident_id: string
+          new_value: string | null
+          old_value: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          field_changed: string
+          id?: string
+          incident_id: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          field_changed?: string
+          id?: string
+          incident_id?: string
+          new_value?: string | null
+          old_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_history_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidence_files: {
+        Row: {
+          capture_date: string | null
+          description: string | null
+          file_hash: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          incident_id: string | null
+          mime_type: string | null
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          capture_date?: string | null
+          description?: string | null
+          file_hash?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          incident_id?: string | null
+          mime_type?: string | null
+          upload_date?: string
+          user_id: string
+        }
+        Update: {
+          capture_date?: string | null
+          description?: string | null
+          file_hash?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          incident_id?: string | null
+          mime_type?: string | null
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_files_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follow_up_notes: {
+        Row: {
+          created_at: string
+          id: string
+          incident_id: string
+          note_text: string
+          note_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          incident_id: string
+          note_text: string
+          note_type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          incident_id?: string
+          note_text?: string
+          note_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_notes_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          ai_summary: string | null
+          category: string | null
+          created_at: string
+          exact_words: string | null
+          excluded_from_rep: boolean
+          id: string
+          impact_note: string | null
+          incident_date: string
+          incident_time: string | null
+          location: string | null
+          locked: boolean
+          people_involved: string[]
+          raw_narrative: string
+          record_method: string | null
+          severity: string | null
+          status: string
+          tags: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+          witnesses: string[]
+        }
+        Insert: {
+          ai_summary?: string | null
+          category?: string | null
+          created_at?: string
+          exact_words?: string | null
+          excluded_from_rep?: boolean
+          id?: string
+          impact_note?: string | null
+          incident_date: string
+          incident_time?: string | null
+          location?: string | null
+          locked?: boolean
+          people_involved?: string[]
+          raw_narrative: string
+          record_method?: string | null
+          severity?: string | null
+          status?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          witnesses?: string[]
+        }
+        Update: {
+          ai_summary?: string | null
+          category?: string | null
+          created_at?: string
+          exact_words?: string | null
+          excluded_from_rep?: boolean
+          id?: string
+          impact_note?: string | null
+          incident_date?: string
+          incident_time?: string | null
+          location?: string | null
+          locked?: boolean
+          people_involved?: string[]
+          raw_narrative?: string
+          record_method?: string | null
+          severity?: string | null
+          status?: string
+          tags?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          witnesses?: string[]
+        }
+        Relationships: []
+      }
+      rights_guidance: {
+        Row: {
+          active: boolean
+          description: string | null
+          display_order: number
+          id: string
+          incident_category: string
+          source: string
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          description?: string | null
+          display_order?: number
+          id?: string
+          incident_category: string
+          source: string
+          title: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          description?: string | null
+          display_order?: number
+          id?: string
+          incident_category?: string
+          source?: string
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
