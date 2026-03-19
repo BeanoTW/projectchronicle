@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import type { Incident } from '@/hooks/useIncidents';
+import { useIncidents } from '@/hooks/useIncidents';
 import SeverityBadge from './SeverityBadge';
 import CategoryBadge from './CategoryBadge';
 import RecordAgeChip from './RecordAgeChip';
 
 interface IncidentCardProps {
   incident: Incident;
+  showPatternLabel?: boolean;
 }
 
 const severityBorderColor: Record<string, string> = {
@@ -16,7 +18,7 @@ const severityBorderColor: Record<string, string> = {
   Low: 'border-l-severity-low',
 };
 
-const IncidentCard = ({ incident }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
   const navigate = useNavigate();
 
   return (
@@ -39,6 +41,11 @@ const IncidentCard = ({ incident }: IncidentCardProps) => {
         {incident.severity && <SeverityBadge severity={incident.severity} />}
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
+        {showPatternLabel && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-severity-serious/10 text-severity-serious">
+            Part of repeated pattern
+          </span>
+        )}
       </div>
 
       <p className="text-xs text-body line-clamp-2 mb-2">

@@ -21,6 +21,26 @@ const TimelineScreen = () => {
     return filtered.sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
   }, [allIncidents, filterCategory, filterSeverity]);
 
+  // Detect which categories are repeated (3+)
+  const repeatedCategories = useMemo(() => {
+    const catCounts: Record<string, number> = {};
+    allIncidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+    return new Set(Object.entries(catCounts).filter(([, c]) => c >= 3).map(([cat]) => cat));
+  }, [allIncidents]);
+
+  // Detect which people are repeated (2+)
+  const repeatedPeople = useMemo(() => {
+    const peopleCounts: Record<string, number> = {};
+    allIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
+    return new Set(Object.entries(peopleCounts).filter(([, c]) => c >= 2).map(([name]) => name));
+  }, [allIncidents]);
+
+  const isPartOfPattern = (inc: typeof allIncidents[0]) => {
+    if (inc.category && repeatedCategories.has(inc.category)) return true;
+    if (inc.people_involved.some(p => repeatedPeople.has(p))) return true;
+    return false;
+  };
+
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
     incidents.forEach(inc => {
@@ -35,8 +55,12 @@ const TimelineScreen = () => {
     const categoryCounts: Record<string, number> = {};
     incidents.forEach(i => { if (i.category) categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1; });
     const repeated = Object.entries(categoryCounts).find(([, count]) => count >= 3);
-    return repeated ? `Repeated pattern detected — ${repeated[0]} appears in ${repeated[1]} incidents.` : null;
-  }, [incidents]);
+    if (repeated) return `Repeated pattern detected — ${repeated[0]} appears in ${repeated[1]} incidents.`;
+    // Check severity escalation
+    const hasMultipleSimilar = repeatedPeople.size > 0;
+    if (hasMultipleSimilar) return 'Repeated incidents detected — overall severity may be higher.';
+    return null;
+  }, [incidents, repeatedPeople]);
 
   if (isLoading) {
     return (
@@ -115,6 +139,9 @@ const TimelineScreen = () => {
                 <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
+                {isPartOfPattern(inc) && (
+                  <span className="ml-2 text-[10px] text-severity-serious font-medium">• pattern</span>
+                )}
               </div>
             ))}
           </div>
@@ -124,7 +151,7 @@ const TimelineScreen = () => {
               <h2 className="text-sm font-semibold text-foreground mb-2">{month}</h2>
               <div className="space-y-3">
                 {items.map(inc => (
-                  <IncidentCard key={inc.id} incident={inc} />
+                  <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />
                 ))}
               </div>
             </div>

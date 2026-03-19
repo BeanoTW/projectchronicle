@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus } from 'lucide-react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -26,7 +28,9 @@ const typeIcons: Record<string, typeof FileText> = {
 
 const EvidenceScreen = () => {
   const [activeFilter, setActiveFilter] = useState('all');
-  const { data: allEvidence = [], isLoading } = useEvidence();
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
+  const { data: allEvidence = [], isLoading, refetch } = useEvidence();
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
   const { toast } = useToast();
@@ -36,14 +40,32 @@ const EvidenceScreen = () => {
     ? allEvidence
     : allEvidence.filter(e => e.file_type === activeFilter);
 
+  const unlinkedCount = allEvidence.filter(e => !e.incident_id).length;
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       await uploadEvidence.mutateAsync({ file });
-      toast({ title: 'Evidence uploaded' });
+      toast({ title: 'Evidence uploaded', description: 'Link it to an incident to strengthen your records.' });
     } catch {
       toast({ title: 'Upload failed', variant: 'destructive' });
+    }
+  };
+
+  const handleLinkEvidence = async (evidenceId: string, incidentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('evidence_files')
+        .update({ incident_id: incidentId })
+        .eq('id', evidenceId);
+      if (error) throw error;
+      toast({ title: 'Evidence linked to incident' });
+      setLinkingId(null);
+      setSelectedIncidentId('');
+      refetch();
+    } catch {
+      toast({ title: 'Failed to link', variant: 'destructive' });
     }
   };
 
@@ -80,6 +102,12 @@ const EvidenceScreen = () => {
         </label>
       </div>
 
+      {unlinkedCount > 0 && (
+        <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-severity-serious/10 text-severity-serious text-xs font-medium">
+          {unlinkedCount} file{unlinkedCount > 1 ? 's' : ''} not yet linked to an incident
+        </div>
+      )}
+
       <div className="px-4 pb-3 overflow-x-auto">
         <div className="flex gap-1.5 min-w-max">
           {filterTabs.map(tab => (
@@ -102,24 +130,66 @@ const EvidenceScreen = () => {
         {filtered.map(ev => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
           const linkedIncident = incidents.find(i => i.id === ev.incident_id);
+          const isLinking = linkingId === ev.id;
+
           return (
-            <div key={ev.id} className="bg-card border border-border rounded-lg p-4 flex gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Icon className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
-                </p>
-                {linkedIncident ? (
-                  <p className="text-xs text-primary mt-0.5 truncate">
-                    Linked: {linkedIncident.title || 'Untitled'}
+            <div key={ev.id} className="bg-card border border-border rounded-lg p-4">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                   </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-0.5">Unlinked</p>
-                )}
-                {ev.description && <p className="text-xs text-body mt-1">{ev.description}</p>}
+                  {linkedIncident ? (
+                    <p className="text-xs text-primary mt-0.5 truncate">
+                      Linked: {linkedIncident.title || 'Untitled'}
+                    </p>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-xs text-severity-serious font-medium">Not yet linked to an incident</p>
+                      {!isLinking ? (
+                        <button
+                          onClick={() => setLinkingId(ev.id)}
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-primary font-medium"
+                        >
+                          <Link2 className="h-3 w-3" /> Link to incident
+                        </button>
+                      ) : (
+                        <div className="mt-1.5 flex gap-2 items-center">
+                          <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
+                            <SelectTrigger className="bg-card text-xs h-8 flex-1">
+                              <SelectValue placeholder="Select incident" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {incidents.slice(0, 20).map(inc => (
+                                <SelectItem key={inc.id} value={inc.id}>
+                                  {inc.title || format(parseISO(inc.incident_date), 'dd MMM yyyy')}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <button
+                            onClick={() => selectedIncidentId && handleLinkEvidence(ev.id, selectedIncidentId)}
+                            disabled={!selectedIncidentId}
+                            className="text-xs text-primary font-medium disabled:opacity-40"
+                          >
+                            Link
+                          </button>
+                          <button
+                            onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }}
+                            className="text-xs text-muted-foreground"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {ev.description && <p className="text-xs text-body mt-1">{ev.description}</p>}
+                </div>
               </div>
             </div>
           );
