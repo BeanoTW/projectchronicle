@@ -25,17 +25,17 @@ const InsightsScreen = () => {
     const result: string[] = [];
     const peopleCounts: Record<string, number> = {};
     incidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    Object.entries(peopleCounts).filter(([, c]) => c >= 2).forEach(([, count]) => {
-      result.push(`The same person appears in ${count} recorded incidents.`);
+    Object.entries(peopleCounts).filter(([, c]) => c >= 2).forEach(([name, count]) => {
+      result.push(`Repeated interaction with the same individual — ${name} (${count} incidents). This may indicate an ongoing issue rather than isolated events.`);
     });
     const catCounts: Record<string, number> = {};
     incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
     const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
-    if (topCat && topCat[1] >= 3) result.push(`Most recorded incidents relate to ${topCat[0]}.`);
+    if (topCat && topCat[1] >= 3) result.push(`The majority of recorded incidents involve ${topCat[0].toLowerCase()} (${topCat[1]} incidents), which may suggest a recurring concern in this area.`);
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
       if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        result.push('Several incidents were recorded within a short period.');
+        result.push('Multiple incidents occurred within a concentrated timeframe, which may reflect an escalation rather than coincidence.');
         break;
       }
     }
@@ -82,9 +82,9 @@ const InsightsScreen = () => {
   const strengthPrompts = useMemo(() => {
     const result: string[] = [];
     const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
-    if (noEvidence > 0) result.push(`${noEvidence} incidents have no evidence attached.`);
-    const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
-    if (noWitness > 0) result.push(`Adding witnesses can strengthen the timeline of events.`);
+    if (noEvidence > 0) result.push(`${noEvidence} incident${noEvidence > 1 ? 's have' : ' has'} no evidence attached. Linking evidence strengthens your records.`);
+    const noWitness = incidents.filter(i => i.witnesses.length === 0 && i.people_involved.length <= 1).length;
+    if (noWitness > 0) result.push(`Adding names of people present can strengthen the timeline of events.`);
     return result;
   }, [incidents, allEvidence]);
 
@@ -132,19 +132,19 @@ const InsightsScreen = () => {
 
       {patterns.length > 0 && (
         <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-foreground mb-2">Pattern Summary</h2>
-          <div className="space-y-1.5">
+          <h2 className="text-sm font-semibold text-foreground mb-2">Pattern Analysis</h2>
+          <div className="space-y-2">
             {patterns.slice(0, 5).map((p, i) => (
-              <p key={i} className="text-xs text-body">• {p}</p>
+              <p key={i} className="text-xs text-body leading-relaxed">• {p}</p>
             ))}
           </div>
 
           {aiSummaries.length > 0 ? (
             <div className="mt-3 pt-3 border-t border-border">
               <div className="mb-2"><AILabel /></div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {aiSummaries.map((s, i) => (
-                  <p key={i} className="text-xs text-body">• {s}</p>
+                  <p key={i} className="text-xs text-body leading-relaxed">• {s}</p>
                 ))}
               </div>
             </div>

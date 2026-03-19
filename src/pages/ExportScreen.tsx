@@ -29,8 +29,11 @@ const ExportScreen = () => {
     <div className="min-h-screen bg-background pb-20">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-2xl font-bold text-foreground">Export</h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          Generate reports from your recorded incidents. All exports include mandatory disclaimers.
+        <p className="text-sm text-muted-foreground mt-1">
+          Generate structured reports ready to share
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Can be used with unions, HR, or legal advisors
         </p>
       </div>
 
@@ -51,7 +54,7 @@ const ExportScreen = () => {
                   disabled
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  Generate (requires Cloud)
+                  Generate
                 </Button>
               </div>
             </div>

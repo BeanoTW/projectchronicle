@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, Loader2 } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCreateIncident } from '@/hooks/useIncidents';
+import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
@@ -22,9 +22,17 @@ const categories = [
 
 const severities = ['Low', 'Moderate', 'Serious', 'Critical'];
 
+const severityDescriptions: Record<string, string> = {
+  Low: 'Minor or isolated issue',
+  Moderate: 'Concerning behaviour — may form part of a pattern',
+  Serious: 'Clear impact — may support a formal complaint',
+  Critical: 'Significant issue — likely requires escalation',
+};
+
 const RecordScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: existingIncidents = [] } = useIncidents();
   const createIncident = useCreateIncident();
   const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
@@ -38,15 +46,46 @@ const RecordScreen = () => {
   const [category, setCategory] = useState<string>('');
   const [severity, setSeverity] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
-  const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
   const [impactNote, setImpactNote] = useState('');
   const [title, setTitle] = useState('');
   const [aiSummary, setAiSummary] = useState('');
+  const [aiRelevance, setAiRelevance] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [analysing, setAnalysing] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Detect existing patterns for context
+  const existingPatterns = useMemo(() => {
+    const result: string[] = [];
+    const peopleCounts: Record<string, number> = {};
+    existingIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
+    Object.entries(peopleCounts).filter(([, c]) => c >= 2).forEach(([name, count]) => {
+      result.push(`${name} appears in ${count} recorded incidents.`);
+    });
+    const catCounts: Record<string, number> = {};
+    existingIncidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+    Object.entries(catCounts).filter(([, c]) => c >= 3).forEach(([cat, count]) => {
+      result.push(`${count} incidents relate to ${cat}.`);
+    });
+    return result;
+  }, [existingIncidents]);
+
+  // Check for similar incidents to show pattern alert
+  const similarPatternAlert = useMemo(() => {
+    if (existingIncidents.length < 2) return null;
+    if (category) {
+      const sameCategory = existingIncidents.filter(i => i.category === category).length;
+      if (sameCategory >= 2) return `Similar incidents have been recorded (${sameCategory} in "${category}"). This may form part of a pattern.`;
+    }
+    const people = peopleInvolved.split(',').map(s => s.trim()).filter(Boolean);
+    for (const person of people) {
+      const count = existingIncidents.filter(i => i.people_involved.some(p => p.toLowerCase() === person.toLowerCase())).length;
+      if (count >= 2) return `${person} appears in ${count} previous incidents. This may indicate a recurring issue.`;
+    }
+    return null;
+  }, [category, peopleInvolved, existingIncidents]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -64,23 +103,22 @@ const RecordScreen = () => {
     setAnalysing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyse-incident', {
-        body: { narrative },
+        body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      // Populate fields with AI suggestions (user can review/edit before save)
       if (data.incident_date && !incidentDate) setIncidentDate(data.incident_date);
       if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
       if (data.location && !location) setLocation(data.location);
       if (data.category && !category) setCategory(data.category);
       if (data.severity && !severity) setSeverity(data.severity);
       if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
-      if (data.witnesses?.length && !witnesses) setWitnesses(data.witnesses.join(', '));
       if (data.exact_words && !exactWords) setExactWords(data.exact_words);
       if (data.summary) setAiSummary(data.summary);
       if (data.title && !title) setTitle(data.title);
+      if (data.potential_relevance?.length) setAiRelevance(data.potential_relevance);
 
       setAiSuggested(true);
       setShowManualForm(true);
@@ -104,7 +142,7 @@ const RecordScreen = () => {
         category: category || null,
         severity: severity || null,
         people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
-        witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+        witnesses: [],
         exact_words: exactWords || null,
         impact_note: impactNote || null,
         ai_summary: aiSummary || null,
@@ -145,7 +183,7 @@ const RecordScreen = () => {
             }`}
           >
             <Mic className="h-4 w-4" />
-            Voice
+            Quick Entry
           </button>
           <button
             onClick={() => setMode('text')}
@@ -154,7 +192,7 @@ const RecordScreen = () => {
             }`}
           >
             <Keyboard className="h-4 w-4" />
-            Text
+            Full Entry
           </button>
         </div>
       </div>
@@ -169,72 +207,85 @@ const RecordScreen = () => {
         </div>
       </div>
 
+      {/* Pattern Alert */}
+      {similarPatternAlert && (
+        <div className="mx-4 mb-4 px-3 py-2.5 rounded-lg bg-severity-serious/10 border border-severity-serious/20 flex items-start gap-2">
+          <AlertTriangle className="h-4 w-4 text-severity-serious flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-severity-serious font-medium">{similarPatternAlert}</p>
+        </div>
+      )}
+
       <div className="px-4 space-y-4">
-        {mode === 'voice' ? (
-          <div className="flex flex-col items-center py-12">
-            <button className="w-24 h-24 rounded-full bg-primary flex items-center justify-center shadow-lg hover:bg-primary/90 transition-colors">
-              <Mic className="h-10 w-10 text-primary-foreground" />
-            </button>
-            <p className="text-sm text-muted-foreground mt-4">Tap to start recording</p>
-            <p className="text-xs text-muted-foreground mt-1">Voice recording coming soon</p>
-          </div>
-        ) : (
-          <>
-            <div>
-              <Label htmlFor="narrative" className="text-sm font-medium text-foreground">
-                Your account of the incident
-              </Label>
-              <Textarea
-                id="narrative"
-                value={narrative}
-                onChange={(e) => setNarrative(e.target.value)}
-                placeholder="What happened? Include when, where, who was involved, and what was said or done."
-                className="mt-1 min-h-[160px] bg-card border-border focus:ring-primary"
-              />
-              {narrative.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{narrative.length} characters</p>
-              )}
-              {errors.raw_narrative && (
-                <p className="text-xs text-destructive mt-1">{errors.raw_narrative}</p>
-              )}
-            </div>
+        {/* Narrative Input — shown for both modes */}
+        <div>
+          <Label htmlFor="narrative" className="text-sm font-medium text-foreground">
+            Your account of the incident
+          </Label>
+          <Textarea
+            id="narrative"
+            value={narrative}
+            onChange={(e) => setNarrative(e.target.value)}
+            placeholder={mode === 'voice'
+              ? 'Describe what happened…'
+              : 'Include what happened, who was present, and anything said.'}
+            className="mt-1 min-h-[160px] bg-card border-border focus:ring-primary"
+          />
+          {narrative.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">{narrative.length} characters</p>
+          )}
+          {errors.raw_narrative && (
+            <p className="text-xs text-destructive mt-1">{errors.raw_narrative}</p>
+          )}
+        </div>
 
-            {/* AI Analysis Button */}
-            <Button
-              variant="outline"
-              className="w-full border-primary text-primary"
-              onClick={handleAnalyse}
-              disabled={analysing || !narrative.trim()}
-            >
-              {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Analyse with AI'}
-            </Button>
+        {/* AI Analysis Button */}
+        <Button
+          variant="outline"
+          className="w-full border-primary text-primary"
+          onClick={handleAnalyse}
+          disabled={analysing || !narrative.trim()}
+        >
+          {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Analyse with AI'}
+        </Button>
 
-            {/* AI Summary Preview */}
-            {aiSuggested && aiSummary && (
-              <div className="bg-card border border-border rounded-lg p-4">
-                <div className="mb-2"><AILabel /></div>
-                <p className="text-sm text-body">{aiSummary}</p>
-                <button
-                  onClick={() => { setAiSummary(''); setAiSuggested(false); }}
-                  className="text-xs text-destructive mt-2"
-                >
-                  Remove AI summary
-                </button>
-              </div>
-            )}
-
+        {/* AI Summary Preview */}
+        {aiSuggested && aiSummary && (
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="mb-2"><AILabel /></div>
+            <p className="text-sm text-body">{aiSummary}</p>
             <button
-              onClick={() => setShowManualForm(!showManualForm)}
-              className="flex items-center gap-1 text-sm text-primary font-medium"
+              onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
+              className="text-xs text-destructive mt-2"
             >
-              {showManualForm ? 'Hide details' : 'Fill in manually'}
-              <ChevronRight className={`h-4 w-4 transition-transform ${showManualForm ? 'rotate-90' : ''}`} />
+              Remove AI summary
             </button>
-          </>
+          </div>
         )}
 
+        {/* AI Potential Relevance */}
+        {aiSuggested && aiRelevance.length > 0 && (
+          <div className="bg-card border border-border rounded-lg p-4">
+            <h3 className="text-xs font-semibold text-foreground mb-2">Potential Relevance</h3>
+            <div className="mb-1"><AILabel /></div>
+            <div className="space-y-1.5">
+              {aiRelevance.map((r, i) => (
+                <p key={i} className="text-xs text-body">• {r}</p>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2">This is not legal advice. These are neutral observations only.</p>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowManualForm(!showManualForm)}
+          className="flex items-center gap-1 text-sm text-primary font-medium"
+        >
+          {showManualForm ? 'Hide details' : 'Fill in manually'}
+          <ChevronRight className={`h-4 w-4 transition-transform ${showManualForm ? 'rotate-90' : ''}`} />
+        </button>
+
         {/* Manual Form Fields */}
-        {(showManualForm || mode === 'voice') && (
+        {showManualForm && (
           <div className="space-y-4">
             <div>
               <Label htmlFor="title" className="text-sm font-medium">Title</Label>
@@ -315,6 +366,9 @@ const RecordScreen = () => {
                   </button>
                 ))}
               </div>
+              {severity && (
+                <p className="text-xs text-muted-foreground mt-1.5">{severityDescriptions[severity]}</p>
+              )}
             </div>
 
             <div>
@@ -323,42 +377,36 @@ const RecordScreen = () => {
                 id="people"
                 value={peopleInvolved}
                 onChange={(e) => setPeopleInvolved(e.target.value)}
-                placeholder="Comma-separated names"
-                className="mt-1 bg-card"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
-              <Input
-                id="witnesses"
-                value={witnesses}
-                onChange={(e) => setWitnesses(e.target.value)}
-                placeholder="Comma-separated names"
+                placeholder="Comma-separated names (including witnesses)"
                 className="mt-1 bg-card"
               />
             </div>
 
             <div>
               <Label htmlFor="exactWords" className="text-sm font-medium">
-                Relevant Wording <span className="font-normal text-muted-foreground">(verbatim where possible)</span>
+                Exact Wording <span className="text-destructive">(important)</span>
               </Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">
+                Include exact phrases, messages, or wording if possible.
+              </p>
               <Textarea
                 id="exactWords"
                 value={exactWords}
                 onChange={(e) => setExactWords(e.target.value)}
                 placeholder="Include any exact spoken words, written wording, message text, or other wording directly relevant to the incident."
-                className="mt-1 min-h-[80px] bg-card"
+                className="min-h-[80px] bg-card"
               />
             </div>
 
             <div>
-              <Label htmlFor="impact" className="text-sm font-medium">Impact Note</Label>
+              <Label htmlFor="impact" className="text-sm font-medium">
+                Impact <span className="font-normal text-muted-foreground">(what changed as a result?)</span>
+              </Label>
               <Textarea
                 id="impact"
                 value={impactNote}
                 onChange={(e) => setImpactNote(e.target.value)}
-                placeholder="How did this affect you?"
+                placeholder="How did this affect you? What changed?"
                 className="mt-1 min-h-[80px] bg-card"
               />
             </div>

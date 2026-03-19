@@ -28,13 +28,18 @@ serve(async (req) => {
 
 RULES:
 - Summarise ONLY the patterns provided. Do not invent patterns.
-- Use simple, neutral, descriptive language.
+- Use interpretive but neutral language — help the user understand what the pattern may mean.
+- Frame repeated behaviour as potentially ongoing issues rather than isolated events.
 - Do NOT provide legal advice.
 - Do NOT classify behaviour as unlawful.
 - Do NOT suggest the user has a legal claim.
 - Do NOT use terms like harassment, discrimination, victimisation, retaliation, or constructive dismissal.
-- Keep each summary to one clear sentence.
-- Return 2-4 plain-language observations.`
+- Each summary should be one clear, interpretive sentence.
+- Return 2-4 observations.
+
+EXAMPLE STYLE:
+Instead of "The same person appears in 6 incidents" use "Repeated interaction with the same individual (6 incidents). This may indicate an ongoing issue rather than isolated events."
+Instead of "Most incidents relate to Management Conduct" use "The majority of recorded incidents involve management conduct, which may suggest a recurring concern in this area."`
           },
           {
             role: "user",
@@ -53,7 +58,7 @@ RULES:
                   summaries: {
                     type: "array",
                     items: { type: "string" },
-                    description: "List of plain-language pattern observations"
+                    description: "List of interpretive but neutral pattern observations"
                   }
                 },
                 required: ["summaries"],

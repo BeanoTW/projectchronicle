@@ -9,9 +9,14 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { narrative } = await req.json();
+    const { narrative, existingPatterns } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    let patternContext = "";
+    if (existingPatterns && existingPatterns.length > 0) {
+      patternContext = `\n\nEXISTING PATTERNS FROM USER'S RECORDS:\n${existingPatterns.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}\n\nUse these to inform the potential_relevance field.`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -32,12 +37,13 @@ RULES:
 - Do NOT classify behaviour as unlawful.
 - Do NOT use legal conclusions such as: harassment, discrimination, victimisation, retaliation, constructive dismissal.
 - Do NOT modify the original narrative in any way.
-- Keep the summary neutral and descriptive.
-- The summary should be a short factual restatement, not an interpretation.`
+- Write the summary in formal, evidence-ready language. Avoid casual phrasing.
+- The summary should be a precise factual restatement suitable for formal documentation, not an interpretation.
+- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use neutral tone — not legal advice.`
           },
           {
             role: "user",
-            content: `Extract structured fields from this workplace incident account:\n\n"${narrative}"`
+            content: `Extract structured fields from this workplace incident account:\n\n"${narrative}"${patternContext}`
           }
         ],
         tools: [
@@ -52,8 +58,7 @@ RULES:
                   incident_date: { type: "string", description: "Date of the incident in YYYY-MM-DD format, or null if not mentioned" },
                   incident_time: { type: "string", description: "Time of the incident in HH:MM format, or null if not mentioned" },
                   location: { type: "string", description: "Where the incident took place, or null if not mentioned" },
-                  people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
-                  witnesses: { type: "array", items: { type: "string" }, description: "Names of witnesses" },
+                  people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved (including witnesses)" },
                   category: {
                     type: "string",
                     enum: ["Verbal Comment", "Written Communication", "Safety Concern", "Scheduling or Shift Change", "Disciplinary Meeting", "Management Conduct", "Pay or Payroll Issue", "Policy Application", "Workplace Meeting", "Other"],
@@ -65,10 +70,15 @@ RULES:
                     description: "Severity level based on impact described"
                   },
                   exact_words: { type: "string", description: "Any verbatim quotes found in the narrative, or null" },
-                  summary: { type: "string", description: "A short neutral factual summary of the incident (2-3 sentences max)" },
-                  title: { type: "string", description: "A short descriptive title for the incident (under 10 words)" }
+                  summary: { type: "string", description: "A formal, evidence-ready factual summary of the incident (2-3 sentences max). Use precise language suitable for documentation." },
+                  title: { type: "string", description: "A short descriptive title for the incident (under 10 words)" },
+                  potential_relevance: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "1-3 neutral observations about possible workplace issue types this may relate to, and pattern relevance if similar incidents exist. Not legal advice."
+                  }
                 },
-                required: ["people_involved", "witnesses", "summary", "title"],
+                required: ["people_involved", "summary", "title", "potential_relevance"],
                 additionalProperties: false
               }
             }
