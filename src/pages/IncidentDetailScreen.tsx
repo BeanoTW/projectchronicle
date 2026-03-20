@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Lock, EyeOff, Trash2, Download, Share2, Plus } from 'lucide-react';
-import { useIncident, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
+import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, TrendingUp } from 'lucide-react';
+import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
@@ -15,8 +15,20 @@ import AILabel from '@/components/chronicle/AILabel';
 import LockBanner from '@/components/chronicle/LockBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { calculateScoring } from '@/lib/scoring';
+
+const recordStrengthStyles: Record<string, string> = {
+  Weak: 'text-destructive bg-destructive/10',
+  Moderate: 'text-severity-serious bg-severity-serious/10',
+  Strong: 'text-severity-low bg-severity-low/10',
+};
+
+const escalationRiskStyles: Record<string, string> = {
+  Low: 'text-severity-low bg-severity-low/10',
+  Medium: 'text-severity-serious bg-severity-serious/10',
+  High: 'text-destructive bg-destructive/10',
+};
 
 const IncidentDetailScreen = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,8 +36,10 @@ const IncidentDetailScreen = () => {
   const { toast } = useToast();
 
   const { data: incident, isLoading } = useIncident(id);
+  const { data: allIncidents = [] } = useIncidents();
   const { data: editHistory = [] } = useEditHistory(id);
   const { data: evidence = [] } = useEvidence(id);
+  const { data: allEvidence = [] } = useEvidence();
   const { data: notes = [] } = useFollowUpNotes(id);
   const updateIncident = useUpdateIncident();
   const deleteIncident = useDeleteIncident();
@@ -37,6 +51,11 @@ const IncidentDetailScreen = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState('Update');
 
+  const scoring = useMemo(() => {
+    if (!incident) return null;
+    return calculateScoring(incident, allIncidents, allEvidence);
+  }, [incident, allIncidents, allEvidence]);
+
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   }
@@ -44,17 +63,6 @@ const IncidentDetailScreen = () => {
   if (!incident) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Incident not found.</p></div>;
   }
-
-  const strengthScore = (
-    (evidence.length >= 1 ? 30 : 0) +
-    (incident.witnesses.length >= 1 ? 20 : 0) +
-    (notes.length >= 1 ? 20 : 0) +
-    15 +
-    (incident.location ? 10 : 0) +
-    (incident.exact_words ? 5 : 0)
-  );
-  const strengthLabel = strengthScore >= 80 ? 'Strong' : strengthScore >= 50 ? 'Moderate' : 'Basic';
-  const strengthColor = strengthScore >= 80 ? 'text-severity-low bg-severity-low/10' : strengthScore >= 50 ? 'text-severity-serious bg-severity-serious/10' : 'text-muted-foreground bg-muted';
 
   const handleLock = async () => {
     await updateIncident.mutateAsync({ id: incident.id, locked: true });
@@ -93,7 +101,6 @@ const IncidentDetailScreen = () => {
     }
   };
 
-  // Map edit history to the shape EditHistoryPanel expects
   const editHistoryMapped = editHistory.map(h => ({
     history_id: h.id,
     incident_id: h.incident_id,
@@ -121,9 +128,6 @@ const IncidentDetailScreen = () => {
           {incident.severity && <SeverityBadge severity={incident.severity} />}
           {incident.category && <CategoryBadge category={incident.category} />}
           <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${strengthColor}`}>
-            Record Strength: {strengthLabel}
-          </span>
         </div>
 
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -142,6 +146,51 @@ const IncidentDetailScreen = () => {
       </div>
 
       <div className="px-4 pt-4 space-y-4">
+        {/* Scoring Panel */}
+        {scoring && (
+          <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Record Strength</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
+                  {scoring.recordStrength}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-foreground">Escalation Risk</span>
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${escalationRiskStyles[scoring.escalationRisk]}`}>
+                  {scoring.escalationRisk}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Impact:</span> <span className="text-foreground font-medium">{scoring.impact}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Frequency:</span> <span className="text-foreground font-medium">{scoring.frequency}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Intent:</span> <span className="text-foreground font-medium">{scoring.intent}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Evidence:</span> <span className="text-foreground font-medium">{scoring.evidenceStrength}</span>
+              </div>
+            </div>
+
+            {scoring.strengthPrompts.length > 0 && (
+              <div className="pt-2 border-t border-border space-y-1">
+                {scoring.strengthPrompts.map((prompt, i) => (
+                  <p key={i} className="text-[11px] text-primary">→ {prompt}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <IntegrityPanel narrative={incident.raw_narrative} savedAt={incident.created_at} />
 
         {incident.exact_words && (
