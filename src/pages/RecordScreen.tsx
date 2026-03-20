@@ -147,7 +147,7 @@ const RecordScreen = () => {
         impact_note: impactNote || null,
         ai_summary: aiSummary || null,
         title: title || null,
-        record_method: mode,
+        record_method: 'text',
       });
 
       await createEditHistory.mutateAsync({
@@ -183,7 +183,7 @@ const RecordScreen = () => {
             }`}
           >
             <Mic className="h-4 w-4" />
-            Quick Entry
+            Voice
           </button>
           <button
             onClick={() => setMode('text')}
@@ -192,10 +192,21 @@ const RecordScreen = () => {
             }`}
           >
             <Keyboard className="h-4 w-4" />
-            Full Entry
+            Text
           </button>
         </div>
       </div>
+
+      {/* Voice Mode - Inactive Mic */}
+      {mode === 'voice' && (
+        <div className="px-4 mb-6 flex flex-col items-center">
+          <div className="w-28 h-28 rounded-full bg-muted border-2 border-border flex items-center justify-center mb-4 opacity-50">
+            <Mic className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
+          <p className="text-xs text-muted-foreground">Use text entry below to record your incident</p>
+        </div>
+      )}
 
       {/* Prompt Cues */}
       <div className="px-4 mb-4">
@@ -216,7 +227,7 @@ const RecordScreen = () => {
       )}
 
       <div className="px-4 space-y-4">
-        {/* Narrative Input — shown for both modes */}
+        {/* Narrative Input */}
         <div>
           <Label htmlFor="narrative" className="text-sm font-medium text-foreground">
             Your account of the incident
@@ -225,9 +236,7 @@ const RecordScreen = () => {
             id="narrative"
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
-            placeholder={mode === 'voice'
-              ? 'Describe what happened…'
-              : 'Include what happened, who was present, and anything said.'}
+            placeholder="Include what happened, who was present, and anything said."
             className="mt-1 min-h-[160px] bg-card border-border focus:ring-primary"
           />
           {narrative.length > 0 && (
