@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.summarise-patterns]
 verify_jwt = false
+
+[functions.generate-case-narrative]
+verify_jwt = false
+
+[functions.generate-export]
+verify_jwt = false
