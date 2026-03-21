@@ -1,12 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
-import SeverityBadge from '@/components/chronicle/SeverityBadge';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import RecordAgeChip from '@/components/chronicle/RecordAgeChip';
 import IntegrityPanel from '@/components/chronicle/IntegrityPanel';
@@ -22,12 +21,6 @@ const recordStrengthStyles: Record<string, string> = {
   Weak: 'text-destructive bg-destructive/10',
   Moderate: 'text-severity-serious bg-severity-serious/10',
   Strong: 'text-severity-low bg-severity-low/10',
-};
-
-const escalationRiskStyles: Record<string, string> = {
-  Low: 'text-severity-low bg-severity-low/10',
-  Medium: 'text-severity-serious bg-severity-serious/10',
-  High: 'text-destructive bg-destructive/10',
 };
 
 const IncidentDetailScreen = () => {
@@ -125,7 +118,6 @@ const IncidentDetailScreen = () => {
         </h1>
 
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {incident.severity && <SeverityBadge severity={incident.severity} />}
           {incident.category && <CategoryBadge category={incident.category} />}
           <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         </div>
@@ -146,38 +138,37 @@ const IncidentDetailScreen = () => {
       </div>
 
       <div className="px-4 pt-4 space-y-4">
-        {/* Scoring Panel */}
+        {/* Serious Incident Flag */}
+        {scoring?.seriousFlag && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive font-medium">{scoring.seriousFlagReason}</p>
+          </div>
+        )}
+
+        {/* Record Strength Panel */}
         {scoring && (
           <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-semibold text-foreground">Record Strength</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
-                  {scoring.recordStrength}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-semibold text-foreground">Escalation Risk</span>
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${escalationRiskStyles[scoring.escalationRisk]}`}>
-                  {scoring.escalationRisk}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground">Record Strength</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
+                {scoring.recordStrength} record
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div className="bg-muted/50 rounded px-2 py-1.5">
-                <span className="text-muted-foreground">Impact:</span> <span className="text-foreground font-medium">{scoring.impact}</span>
-              </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
-                <span className="text-muted-foreground">Frequency:</span> <span className="text-foreground font-medium">{scoring.frequency}</span>
-              </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
-                <span className="text-muted-foreground">Intent:</span> <span className="text-foreground font-medium">{scoring.intent}</span>
-              </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
                 <span className="text-muted-foreground">Evidence:</span> <span className="text-foreground font-medium">{scoring.evidenceStrength}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Witnesses:</span> <span className="text-foreground font-medium">{scoring.witnessSupport}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Detail:</span> <span className="text-foreground font-medium">{scoring.detailCompleteness}</span>
+              </div>
+              <div className="bg-muted/50 rounded px-2 py-1.5">
+                <span className="text-muted-foreground">Occurrence:</span> <span className="text-foreground font-medium">{scoring.repeatOccurrence}</span>
               </div>
             </div>
 
@@ -195,14 +186,14 @@ const IncidentDetailScreen = () => {
 
         {incident.exact_words && (
           <div className="bg-ai-label/30 border border-ai-label-foreground/20 rounded-lg p-4">
-            <p className="text-xs font-semibold text-ai-label-foreground mb-1">Relevant wording recorded</p>
+            <p className="text-xs font-semibold text-ai-label-foreground mb-1">Exact wording recorded</p>
             <p className="text-sm text-foreground italic">"{incident.exact_words}"</p>
           </div>
         )}
 
         {incident.impact_note && (
           <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-xs font-semibold text-foreground mb-1">How this affected you</p>
+            <p className="text-xs font-semibold text-foreground mb-1">Impact (what changed as a result)</p>
             <p className="text-sm text-body">{incident.impact_note}</p>
           </div>
         )}

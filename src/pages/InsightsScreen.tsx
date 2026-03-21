@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2, Shield, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { format, parseISO } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -21,14 +22,23 @@ const InsightsScreen = () => {
   const openIncidents = incidents.filter(i => i.status === 'Open').length;
   const withWitnesses = incidents.filter(i => i.witnesses.length > 0).length;
 
-  // Repeat individuals detection
-  const repeatIndividuals = useMemo(() => {
-    const peopleCounts: Record<string, number> = {};
-    incidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    return Object.entries(peopleCounts)
-      .filter(([, c]) => c >= 2)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, count]) => ({ name, count }));
+  // Key individuals with date ranges
+  const keyIndividuals = useMemo(() => {
+    const peopleData: Record<string, { count: number; firstDate: string; lastDate: string }> = {};
+    const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
+    sorted.forEach(i => {
+      i.people_involved.forEach(p => {
+        if (!peopleData[p]) {
+          peopleData[p] = { count: 0, firstDate: i.incident_date, lastDate: i.incident_date };
+        }
+        peopleData[p].count++;
+        peopleData[p].lastDate = i.incident_date;
+      });
+    });
+    return Object.entries(peopleData)
+      .filter(([, d]) => d.count >= 2)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([name, d]) => ({ name, ...d }));
   }, [incidents]);
 
   // Category pattern recognition
@@ -40,53 +50,45 @@ const InsightsScreen = () => {
       .map(([category, count]) => ({ category, count }));
   }, [incidents]);
 
-  // Escalation trends
-  const escalationTrend = useMemo(() => {
+  // Concentrated periods
+  const concentratedPeriod = useMemo(() => {
     if (incidents.length < 3) return null;
-    const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-    const severityWeight: Record<string, number> = { Low: 1, Moderate: 2, Serious: 3, Critical: 4 };
-    const firstHalf = sorted.slice(0, Math.floor(sorted.length / 2));
-    const secondHalf = sorted.slice(Math.floor(sorted.length / 2));
-    const avgFirst = firstHalf.reduce((s, i) => s + (severityWeight[i.severity || 'Low'] || 1), 0) / firstHalf.length;
-    const avgSecond = secondHalf.reduce((s, i) => s + (severityWeight[i.severity || 'Low'] || 1), 0) / secondHalf.length;
-    if (avgSecond > avgFirst + 0.3) return 'escalating';
-    if (avgFirst > avgSecond + 0.3) return 'de-escalating';
-    return 'stable';
-  }, [incidents]);
-
-  // Data gaps
-  const dataGaps = useMemo(() => {
-    const gaps: { label: string; count: number }[] = [];
-    const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
-    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence });
-    const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
-    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness });
-    const noExactWords = incidents.filter(i => !i.exact_words).length;
-    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords });
-    const noImpact = incidents.filter(i => !i.impact_note).length;
-    if (noImpact > 0) gaps.push({ label: 'Missing impact note', count: noImpact });
-    return gaps;
-  }, [incidents, allEvidence]);
-
-  const patterns = useMemo(() => {
-    const result: string[] = [];
-    repeatIndividuals.forEach(({ name, count }) => {
-      result.push(`Repeated interaction with the same individual — ${name} (${count} incidents). This may indicate an ongoing issue rather than isolated events.`);
-    });
-    const topCat = categoryPatterns[0];
-    if (topCat && topCat.count >= 3) result.push(`The majority of recorded incidents involve ${topCat.category.toLowerCase()} (${topCat.count} incidents), which may suggest a recurring concern in this area.`);
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
       if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        result.push('Multiple incidents occurred within a concentrated timeframe, which may reflect an escalation rather than coincidence.');
-        break;
+        return '3 or more incidents recorded within a 7-day period';
       }
     }
-    if (escalationTrend === 'escalating') {
-      result.push('Incident severity appears to be increasing over time, which may indicate an escalating situation.');
+    return null;
+  }, [incidents]);
+
+  // Data gaps with action prompts
+  const dataGaps = useMemo(() => {
+    const gaps: { label: string; count: number; action: string }[] = [];
+    const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
+    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records' });
+    const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
+    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses' });
+    const noExactWords = incidents.filter(i => !i.exact_words).length;
+    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered' });
+    const noImpact = incidents.filter(i => !i.impact_note).length;
+    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant' });
+    return gaps;
+  }, [incidents, allEvidence]);
+
+  // Factual patterns for AI summarisation input
+  const patterns = useMemo(() => {
+    const result: string[] = [];
+    keyIndividuals.forEach(({ name, count, firstDate, lastDate }) => {
+      result.push(`${name} appears in ${count} recorded incidents between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
+    });
+    const topCat = categoryPatterns[0];
+    if (topCat && topCat.count >= 3) {
+      result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
     }
+    if (concentratedPeriod) result.push(concentratedPeriod);
     return result;
-  }, [repeatIndividuals, categoryPatterns, incidents, escalationTrend]);
+  }, [keyIndividuals, categoryPatterns, concentratedPeriod]);
 
   const handleAiSummarise = async () => {
     if (patterns.length === 0) return;
@@ -106,24 +108,16 @@ const InsightsScreen = () => {
   };
 
   const chartData = useMemo(() => {
-    const months: Record<string, { name: string; count: number; severity: string }> = {};
+    const months: Record<string, { name: string; count: number }> = {};
     incidents.forEach(i => {
       const d = new Date(i.incident_date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const name = d.toLocaleString('default', { month: 'short' });
-      if (!months[key]) months[key] = { name, count: 0, severity: 'Low' };
+      if (!months[key]) months[key] = { name, count: 0 };
       months[key].count++;
-      if (i.severity === 'Critical' || i.severity === 'Serious') months[key].severity = i.severity!;
     });
     return Object.values(months);
   }, [incidents]);
-
-  const severityColors: Record<string, string> = {
-    Critical: 'hsl(0, 72%, 35%)',
-    Serious: 'hsl(32, 88%, 37%)',
-    Moderate: 'hsl(28, 82%, 31%)',
-    Low: 'hsl(160, 87%, 20%)',
-  };
 
   if (isLoading) {
     return <div className="min-h-screen bg-background pb-20 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
@@ -167,23 +161,23 @@ const InsightsScreen = () => {
         ))}
       </div>
 
-      {/* Emerging Patterns Section */}
-      {(patterns.length > 0 || repeatIndividuals.length > 0) && (
+      {/* Emerging Patterns */}
+      {(keyIndividuals.length > 0 || categoryPatterns.length > 0 || concentratedPeriod) && (
         <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
           <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <Eye className="h-4 w-4 text-primary" />
             Emerging Patterns in Your Records
           </h2>
 
-          {/* Repeat Individuals */}
-          {repeatIndividuals.length > 0 && (
+          {/* Key Individuals */}
+          {keyIndividuals.length > 0 && (
             <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Repeat Individuals</p>
-              <div className="flex flex-wrap gap-1.5">
-                {repeatIndividuals.map(({ name, count }) => (
-                  <span key={name} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-severity-serious/10 text-severity-serious">
-                    {name} ({count}×)
-                  </span>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Key Individuals</p>
+              <div className="space-y-1">
+                {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
+                  <p key={name} className="text-xs text-body">
+                    <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
+                  </p>
                 ))}
               </div>
             </div>
@@ -203,28 +197,22 @@ const InsightsScreen = () => {
             </div>
           )}
 
-          {/* Escalation Trend */}
-          {escalationTrend && (
+          {/* Concentrated Period */}
+          {concentratedPeriod && (
             <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1">Escalation Trend</p>
-              <p className={`text-xs font-medium ${
-                escalationTrend === 'escalating' ? 'text-destructive' :
-                escalationTrend === 'de-escalating' ? 'text-severity-low' :
-                'text-muted-foreground'
-              }`}>
-                {escalationTrend === 'escalating' && '↑ Severity appears to be increasing over time'}
-                {escalationTrend === 'de-escalating' && '↓ Severity appears to be decreasing over time'}
-                {escalationTrend === 'stable' && '→ Severity remains consistent'}
-              </p>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1">Activity Concentration</p>
+              <p className="text-xs text-body">{concentratedPeriod}</p>
             </div>
           )}
 
-          {/* Pattern Observations */}
-          <div className="space-y-2 pt-2 border-t border-border">
-            {patterns.slice(0, 5).map((p, i) => (
-              <p key={i} className="text-xs text-body leading-relaxed">• {p}</p>
-            ))}
-          </div>
+          {/* Factual Observations */}
+          {patterns.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              {patterns.map((p, i) => (
+                <p key={i} className="text-xs text-body leading-relaxed">• {p}</p>
+              ))}
+            </div>
+          )}
 
           {aiSummaries.length > 0 ? (
             <div className="mt-3 pt-3 border-t border-border">
@@ -247,18 +235,20 @@ const InsightsScreen = () => {
         </div>
       )}
 
-      {/* Data Gaps */}
+      {/* Data Gaps with Action Prompts */}
       {dataGaps.length > 0 && (
         <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
           <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
             <Shield className="h-4 w-4 text-severity-serious" />
             Data Gaps
           </h2>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {dataGaps.map((gap, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <p className="text-xs text-body">{gap.label}</p>
-                <span className="text-xs font-medium text-severity-serious">{gap.count} incident{gap.count > 1 ? 's' : ''}</span>
+              <div key={i} className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
+                  <p className="text-[11px] text-primary">→ {gap.action}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -273,8 +263,8 @@ const InsightsScreen = () => {
               <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell key={index} fill={severityColors[entry.severity] || severityColors.Low} />
+                {chartData.map((_, index) => (
+                  <Cell key={index} fill="hsl(var(--primary))" />
                 ))}
               </Bar>
             </BarChart>
