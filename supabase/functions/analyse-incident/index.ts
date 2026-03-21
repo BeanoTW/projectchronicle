@@ -39,8 +39,10 @@ RULES:
 - Do NOT modify the original narrative in any way.
 - Write the summary in formal, evidence-ready language using the format: "On [date], it is reported that..."
 - The summary must be a precise factual restatement suitable for formal documentation. Avoid casual, emotional, or interpretive language.
-- Do NOT use phrases like "the worker discovered", "the employee felt" — use neutral phrasing.
-- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use neutral tone — not legal advice.`
+- Use attribution: "The employee reports...", "The record states..."
+- Do NOT state impact as fact without attribution.
+- Do NOT use phrases like "the worker discovered", "the employee felt", or any emotional/interpretive phrasing.
+- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use observational language only — not legal advice. Do NOT use "this may indicate" or "suggests".`
           },
           {
             role: "user",

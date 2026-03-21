@@ -11,24 +11,20 @@ import { Label } from '@/components/ui/label';
 const TimelineScreen = () => {
   const { data: allIncidents = [], isLoading } = useIncidents();
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterSeverity, setFilterSeverity] = useState<string>('all');
   const [chronologyMode, setChronologyMode] = useState(false);
 
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
     if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
-    if (filterSeverity !== 'all') filtered = filtered.filter(i => i.severity === filterSeverity);
     return filtered.sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-  }, [allIncidents, filterCategory, filterSeverity]);
+  }, [allIncidents, filterCategory]);
 
-  // Detect which categories are repeated (3+)
   const repeatedCategories = useMemo(() => {
     const catCounts: Record<string, number> = {};
     allIncidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
     return new Set(Object.entries(catCounts).filter(([, c]) => c >= 3).map(([cat]) => cat));
   }, [allIncidents]);
 
-  // Detect which people are repeated (2+)
   const repeatedPeople = useMemo(() => {
     const peopleCounts: Record<string, number> = {};
     allIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
@@ -51,17 +47,6 @@ const TimelineScreen = () => {
     return groups;
   }, [incidents]);
 
-  const patternBanner = useMemo(() => {
-    const categoryCounts: Record<string, number> = {};
-    incidents.forEach(i => { if (i.category) categoryCounts[i.category] = (categoryCounts[i.category] || 0) + 1; });
-    const repeated = Object.entries(categoryCounts).find(([, count]) => count >= 3);
-    if (repeated) return `Repeated pattern detected — ${repeated[0]} appears in ${repeated[1]} incidents.`;
-    // Check severity escalation
-    const hasMultipleSimilar = repeatedPeople.size > 0;
-    if (hasMultipleSimilar) return 'Repeated incidents detected — overall severity may be higher.';
-    return null;
-  }, [incidents, repeatedPeople]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
@@ -70,7 +55,7 @@ const TimelineScreen = () => {
     );
   }
 
-  if (incidents.length === 0 && filterCategory === 'all' && filterSeverity === 'all') {
+  if (incidents.length === 0 && filterCategory === 'all') {
     return (
       <div className="min-h-screen bg-background pb-20">
         <div className="px-4 pt-6">
@@ -99,7 +84,7 @@ const TimelineScreen = () => {
       </div>
 
       {!chronologyMode && (
-        <div className="px-4 py-2 flex gap-2">
+        <div className="px-4 py-2">
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="bg-card text-xs h-8">
               <SelectValue placeholder="Category" />
@@ -111,23 +96,6 @@ const TimelineScreen = () => {
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-            <SelectTrigger className="bg-card text-xs h-8">
-              <SelectValue placeholder="Severity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Severity</SelectItem>
-              {['Low','Moderate','Serious','Critical'].map(s => (
-                <SelectItem key={s} value={s}>{s}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {patternBanner && !chronologyMode && (
-        <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-severity-serious/10 text-severity-serious text-xs font-medium">
-          {patternBanner}
         </div>
       )}
 

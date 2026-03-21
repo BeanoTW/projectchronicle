@@ -3,55 +3,85 @@ import type { Tables } from '@/integrations/supabase/types';
 type Incident = Tables<'incidents'>;
 type Evidence = Tables<'evidence_files'>;
 
-export type ImpactLevel = 'Minor' | 'Moderate' | 'Significant' | 'Severe';
-export type FrequencyLevel = 'One-off' | 'Repeated';
-export type IntentLevel = 'Accidental' | 'Negligent' | 'Deliberate';
 export type EvidenceStrength = 'None' | 'Weak' | 'Moderate' | 'Strong';
+export type WitnessSupport = 'None' | 'Limited' | 'Present';
+export type DetailCompleteness = 'Basic' | 'Partial' | 'Detailed';
+export type RepeatOccurrence = 'One-off' | 'Repeated';
 export type RecordStrength = 'Weak' | 'Moderate' | 'Strong';
-export type EscalationRisk = 'Low' | 'Medium' | 'High';
 
 export interface ScoringResult {
-  impact: ImpactLevel;
-  frequency: FrequencyLevel;
-  intent: IntentLevel;
   evidenceStrength: EvidenceStrength;
+  witnessSupport: WitnessSupport;
+  detailCompleteness: DetailCompleteness;
+  repeatOccurrence: RepeatOccurrence;
   recordStrength: RecordStrength;
-  escalationRisk: EscalationRisk;
   recordScore: number;
-  escalationScore: number;
   strengthPrompts: string[];
+  seriousFlag: boolean;
+  seriousFlagReason: string | null;
 }
 
-const impactScores: Record<ImpactLevel, number> = {
-  Minor: 1, Moderate: 2, Significant: 3, Severe: 4,
-};
+const SERIOUS_KEYWORDS = [
+  'physical', 'assault', 'attack', 'hit', 'punch', 'shove', 'push', 'grab',
+  'sexual', 'grope', 'touching', 'indecent',
+  'discriminat', 'racist', 'sexist', 'homophob', 'disab',
+  'pregnan', 'maternity', 'paternity',
+  'health and safety', 'danger', 'hazard', 'injury', 'injured',
+  'safeguard', 'child', 'vulnerable',
+  'retaliat', 'reprisal', 'punish', 'victimis',
+  'threat', 'intimidat', 'bully',
+];
 
-const frequencyScores: Record<FrequencyLevel, number> = {
-  'One-off': 1, Repeated: 3,
-};
+function detectSeriousFlag(incident: Incident): { flag: boolean; reason: string | null } {
+  const text = [
+    incident.raw_narrative,
+    incident.exact_words,
+    incident.ai_summary,
+    incident.impact_note,
+  ].filter(Boolean).join(' ').toLowerCase();
 
-const intentScores: Record<IntentLevel, number> = {
-  Accidental: 1, Negligent: 2, Deliberate: 3,
-};
-
-const evidenceScores: Record<EvidenceStrength, number> = {
-  None: 0, Weak: 1, Moderate: 2, Strong: 3,
-};
-
-export function deriveImpact(severity: string | null): ImpactLevel {
-  switch (severity) {
-    case 'Critical': return 'Severe';
-    case 'Serious': return 'Significant';
-    case 'Moderate': return 'Moderate';
-    default: return 'Minor';
+  for (const keyword of SERIOUS_KEYWORDS) {
+    if (text.includes(keyword)) {
+      return { flag: true, reason: 'This record may require urgent review' };
+    }
   }
+  return { flag: false, reason: null };
 }
 
-export function deriveFrequency(
+export function deriveEvidenceStrength(
+  evidence: Evidence[],
+  incident: Incident
+): EvidenceStrength {
+  const linked = evidence.filter(e => e.incident_id === incident.id);
+  if (linked.length >= 3) return 'Strong';
+  if (linked.length >= 1) return 'Moderate';
+  if (incident.exact_words) return 'Weak';
+  return 'None';
+}
+
+export function deriveWitnessSupport(incident: Incident): WitnessSupport {
+  if (incident.witnesses.length >= 2) return 'Present';
+  if (incident.witnesses.length === 1) return 'Limited';
+  return 'None';
+}
+
+export function deriveDetailCompleteness(incident: Incident): DetailCompleteness {
+  let score = 0;
+  if (incident.location) score++;
+  if (incident.incident_time) score++;
+  if (incident.exact_words) score++;
+  if (incident.impact_note) score++;
+  if (incident.category) score++;
+  if (incident.people_involved.length > 0) score++;
+  if (score >= 5) return 'Detailed';
+  if (score >= 3) return 'Partial';
+  return 'Basic';
+}
+
+export function deriveRepeatOccurrence(
   incident: Incident,
   allIncidents: Incident[]
-): FrequencyLevel {
-  // Check if same people or same category appear in 2+ other incidents
+): RepeatOccurrence {
   const sameCategory = allIncidents.filter(
     i => i.id !== incident.id && i.category && i.category === incident.category
   ).length;
@@ -61,66 +91,53 @@ export function deriveFrequency(
   return sameCategory >= 2 || samePeople >= 1 ? 'Repeated' : 'One-off';
 }
 
-export function deriveIntent(severity: string | null, category: string | null): IntentLevel {
-  if (severity === 'Critical' || severity === 'Serious') return 'Deliberate';
-  if (category === 'Safety Concern' || category === 'Scheduling or Shift Change') return 'Negligent';
-  return 'Accidental';
-}
-
-export function deriveEvidenceStrength(
-  evidence: Evidence[],
-  incident: Incident
-): EvidenceStrength {
-  const linkedEvidence = evidence.filter(e => e.incident_id === incident.id);
-  const hasWitnesses = incident.witnesses.length > 0;
-  const hasExactWords = !!incident.exact_words;
-
-  const points = linkedEvidence.length * 2 + (hasWitnesses ? 2 : 0) + (hasExactWords ? 1 : 0);
-  if (points >= 5) return 'Strong';
-  if (points >= 3) return 'Moderate';
-  if (points >= 1) return 'Weak';
-  return 'None';
-}
+const evidenceScores: Record<EvidenceStrength, number> = {
+  None: 0, Weak: 1, Moderate: 2, Strong: 3,
+};
+const witnessScores: Record<WitnessSupport, number> = {
+  None: 0, Limited: 1, Present: 2,
+};
+const detailScores: Record<DetailCompleteness, number> = {
+  Basic: 0, Partial: 1, Detailed: 2,
+};
 
 export function calculateScoring(
   incident: Incident,
   allIncidents: Incident[],
   allEvidence: Evidence[]
 ): ScoringResult {
-  const impact = deriveImpact(incident.severity);
-  const frequency = deriveFrequency(incident, allIncidents);
-  const intent = deriveIntent(incident.severity, incident.category);
   const evidenceStrength = deriveEvidenceStrength(allEvidence, incident);
+  const witnessSupport = deriveWitnessSupport(incident);
+  const detailCompleteness = deriveDetailCompleteness(incident);
+  const repeatOccurrence = deriveRepeatOccurrence(incident, allIncidents);
 
-  // Record Strength: evidence + witnesses + documentation quality
-  const recordScore = evidenceScores[evidenceStrength] * 2 +
-    (incident.witnesses.length >= 1 ? 2 : 0) +
-    (incident.exact_words ? 1 : 0) +
-    (incident.location ? 1 : 0) +
-    (incident.impact_note ? 1 : 0);
-  
+  const recordScore =
+    evidenceScores[evidenceStrength] +
+    witnessScores[witnessSupport] +
+    detailScores[detailCompleteness] +
+    (repeatOccurrence === 'Repeated' ? 1 : 0);
+
   const recordStrength: RecordStrength =
-    recordScore >= 7 ? 'Strong' : recordScore >= 3 ? 'Moderate' : 'Weak';
+    recordScore >= 6 ? 'Strong' : recordScore >= 3 ? 'Moderate' : 'Weak';
 
-  // Escalation Risk: impact + frequency + intent
-  const escalationScore =
-    impactScores[impact] + frequencyScores[frequency] + intentScores[intent];
-  
-  const escalationRisk: EscalationRisk =
-    escalationScore >= 8 ? 'High' : escalationScore >= 5 ? 'Medium' : 'Low';
-
-  // Strength prompts
   const strengthPrompts: string[] = [];
   const linkedEvidence = allEvidence.filter(e => e.incident_id === incident.id);
   if (linkedEvidence.length === 0) strengthPrompts.push('Add evidence to strengthen this record');
   if (incident.witnesses.length === 0) strengthPrompts.push('Add witnesses if available');
-  if (!incident.exact_words) strengthPrompts.push('Record exact wording if possible');
-  if (!incident.impact_note) strengthPrompts.push('Note the impact this had on you');
+  if (!incident.exact_words) strengthPrompts.push('Add exact wording if remembered');
+  if (!incident.impact_note) strengthPrompts.push('Add impact details if relevant');
+
+  const { flag: seriousFlag, reason: seriousFlagReason } = detectSeriousFlag(incident);
 
   return {
-    impact, frequency, intent, evidenceStrength,
-    recordStrength, escalationRisk,
-    recordScore, escalationScore,
+    evidenceStrength,
+    witnessSupport,
+    detailCompleteness,
+    repeatOccurrence,
+    recordStrength,
+    recordScore,
     strengthPrompts,
+    seriousFlag,
+    seriousFlagReason,
   };
 }

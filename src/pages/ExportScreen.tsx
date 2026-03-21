@@ -39,16 +39,15 @@ const ExportScreen = () => {
     return result;
   }, [incidents]);
 
-  const handleExport = async (exportType: string, incidentId?: string) => {
+  const handleExport = async (exportType: string) => {
     setExporting(exportType);
     try {
       const { data, error } = await supabase.functions.invoke('generate-export', {
-        body: { exportType, incidentId },
+        body: { exportType },
       });
 
       if (error) throw error;
 
-      // data is HTML string, create downloadable file
       const blob = new Blob([data], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -78,7 +77,6 @@ const ExportScreen = () => {
         date: i.incident_date,
         title: i.title,
         category: i.category,
-        severity: i.severity,
         summary: i.ai_summary || i.raw_narrative.substring(0, 200),
         people_involved: i.people_involved,
         impact: i.impact_note,
@@ -101,28 +99,28 @@ const ExportScreen = () => {
     {
       key: 'incident',
       title: 'Incident Report',
-      description: 'Export a single incident as a detailed report.',
+      description: 'Single incident report with date, people, narrative, evidence, witnesses, and record strength.',
       icon: FileText,
       disabled: incidents.length === 0,
     },
     {
       key: 'chronology',
       title: 'Chronology',
-      description: 'All incidents in chronological order with monthly grouping.',
+      description: 'All incidents in chronological order, grouped by date.',
       icon: Clock,
       disabled: incidents.length === 0,
     },
     {
       key: 'evidence-index',
       title: 'Evidence Index',
-      description: 'Table of all evidence with E-ref numbers and linked incidents.',
+      description: 'Table of all evidence with reference numbers and linked incidents.',
       icon: Paperclip,
       disabled: evidence.length === 0,
     },
     {
       key: 'full-bundle',
       title: 'Full Case Bundle',
-      description: 'Rep-ready bundle with cover page, timeline, evidence index, and full records.',
+      description: 'Complete bundle: cover page, chronology, case summary, evidence index, and full incident records.',
       icon: Package,
       disabled: incidents.length === 0,
     },
@@ -149,7 +147,7 @@ const ExportScreen = () => {
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground">Case Summary</h3>
-              <p className="text-xs text-body mt-0.5">AI-generated narrative combining all incidents, highlighting patterns and recurring individuals.</p>
+              <p className="text-xs text-body mt-0.5">Structured narrative combining all incidents, highlighting recurring individuals and categories.</p>
               
               {caseNarrative ? (
                 <div className="mt-3 space-y-3">
@@ -181,7 +179,7 @@ const ExportScreen = () => {
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-semibold text-foreground mb-1">Impact Summary</p>
+                    <p className="text-[11px] font-semibold text-foreground mb-1">Reported Impact</p>
                     <p className="text-xs text-body">{caseNarrative.impact_summary}</p>
                   </div>
 
@@ -197,7 +195,7 @@ const ExportScreen = () => {
                   onClick={handleCaseNarrative}
                   disabled={narrativeLoading || incidents.length < 2}
                 >
-                  {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1" /> Generate Case Summary</>}
+                  {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1" /> Generate Summary</>}
                 </Button>
               )}
             </div>
@@ -236,7 +234,7 @@ const ExportScreen = () => {
 
       <div className="mx-4 mt-6 p-3 rounded-lg bg-muted">
         <p className="text-[10px] text-muted-foreground">
-          Project Chronicle provides documentation support only — not legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.
+          This tool supports record-keeping and organisation. It does not provide legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.
         </p>
       </div>
     </div>

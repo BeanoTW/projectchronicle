@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, Loader2, AlertTriangle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -20,15 +20,6 @@ const categories = [
   'Policy Application', 'Workplace Meeting', 'Other',
 ];
 
-const severities = ['Low', 'Moderate', 'Serious', 'Critical'];
-
-const severityDescriptions: Record<string, string> = {
-  Low: 'Minor or isolated issue',
-  Moderate: 'Concerning behaviour — may form part of a pattern',
-  Serious: 'Clear impact — may support a formal complaint',
-  Critical: 'Significant issue — likely requires escalation',
-};
-
 const RecordScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -44,8 +35,8 @@ const RecordScreen = () => {
   const [incidentTime, setIncidentTime] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState<string>('');
-  const [severity, setSeverity] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
+  const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
   const [impactNote, setImpactNote] = useState('');
   const [title, setTitle] = useState('');
@@ -56,7 +47,6 @@ const RecordScreen = () => {
   const [aiSuggested, setAiSuggested] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Detect existing patterns for context
   const existingPatterns = useMemo(() => {
     const result: string[] = [];
     const peopleCounts: Record<string, number> = {};
@@ -72,17 +62,16 @@ const RecordScreen = () => {
     return result;
   }, [existingIncidents]);
 
-  // Check for similar incidents to show pattern alert
   const similarPatternAlert = useMemo(() => {
     if (existingIncidents.length < 2) return null;
     if (category) {
       const sameCategory = existingIncidents.filter(i => i.category === category).length;
-      if (sameCategory >= 2) return `Similar incidents have been recorded (${sameCategory} in "${category}"). This may form part of a pattern.`;
+      if (sameCategory >= 2) return `${sameCategory} previous incidents recorded under "${category}".`;
     }
     const people = peopleInvolved.split(',').map(s => s.trim()).filter(Boolean);
     for (const person of people) {
       const count = existingIncidents.filter(i => i.people_involved.some(p => p.toLowerCase() === person.toLowerCase())).length;
-      if (count >= 2) return `${person} appears in ${count} previous incidents. This may indicate a recurring issue.`;
+      if (count >= 2) return `${person} appears in ${count} previous incidents.`;
     }
     return null;
   }, [category, peopleInvolved, existingIncidents]);
@@ -113,7 +102,6 @@ const RecordScreen = () => {
       if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
       if (data.location && !location) setLocation(data.location);
       if (data.category && !category) setCategory(data.category);
-      if (data.severity && !severity) setSeverity(data.severity);
       if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
       if (data.exact_words && !exactWords) setExactWords(data.exact_words);
       if (data.summary) setAiSummary(data.summary);
@@ -140,9 +128,9 @@ const RecordScreen = () => {
         incident_time: incidentTime || null,
         location: location || null,
         category: category || null,
-        severity: severity || null,
+        severity: null,
         people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
-        witnesses: [],
+        witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
         exact_words: exactWords || null,
         impact_note: impactNote || null,
         ai_summary: aiSummary || null,
@@ -166,11 +154,16 @@ const RecordScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Record Incident</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Capture what happened. Only your account and the date are required.
-        </p>
+      <div className="px-4 pt-6 pb-4 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Record Incident</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Capture what happened. Only your account and the date are required.
+          </p>
+        </div>
+        <button onClick={() => navigate('/settings')} className="p-2 text-muted-foreground hover:text-foreground">
+          <Settings className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Mode Toggle */}
@@ -200,7 +193,7 @@ const RecordScreen = () => {
       {/* Voice Mode - Inactive Mic */}
       {mode === 'voice' && (
         <div className="px-4 mb-6 flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-muted border-2 border-border flex items-center justify-center mb-4 opacity-50">
+          <div className="w-28 h-28 rounded-full bg-muted border-2 border-border flex items-center justify-center mb-4 opacity-50 cursor-not-allowed">
             <Mic className="h-12 w-12 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
@@ -359,34 +352,23 @@ const RecordScreen = () => {
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Severity</Label>
-              <div className="flex gap-2 mt-1">
-                {severities.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setSeverity(severity === s ? '' : s)}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                      severity === s
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card text-body border-border hover:border-primary/50'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-              {severity && (
-                <p className="text-xs text-muted-foreground mt-1.5">{severityDescriptions[severity]}</p>
-              )}
-            </div>
-
-            <div>
               <Label htmlFor="people" className="text-sm font-medium">People Involved</Label>
               <Input
                 id="people"
                 value={peopleInvolved}
                 onChange={(e) => setPeopleInvolved(e.target.value)}
-                placeholder="Comma-separated names (including witnesses)"
+                placeholder="Comma-separated names"
+                className="mt-1 bg-card"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
+              <Input
+                id="witnesses"
+                value={witnesses}
+                onChange={(e) => setWitnesses(e.target.value)}
+                placeholder="Comma-separated names of witnesses"
                 className="mt-1 bg-card"
               />
             </div>

@@ -13,6 +13,7 @@ import InsightsScreen from "./pages/InsightsScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";
 import ExportScreen from "./pages/ExportScreen";
+import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
 import NotFound from "./pages/NotFound";
 
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<ProtectedRoute><AppLayout><RightsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
