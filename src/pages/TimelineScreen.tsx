@@ -12,14 +12,29 @@ import { Label } from '@/components/ui/label';
 
 const TimelineScreen = () => {
   const { data: allIncidents = [], isLoading } = useIncidents();
+  const { data: allEvidence = [] } = useEvidence();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [chronologyMode, setChronologyMode] = useState(false);
+
+  useEffect(() => {
+    const gap = searchParams.get('gap');
+    if (gap) {
+      setGapFilter(gap);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
     if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
+    if (gapFilter === 'no-evidence') filtered = filtered.filter(i => !allEvidence.some(e => e.incident_id === i.id));
+    if (gapFilter === 'no-witnesses') filtered = filtered.filter(i => i.witnesses.length === 0);
+    if (gapFilter === 'no-exact-words') filtered = filtered.filter(i => !i.exact_words);
+    if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
     return filtered.sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-  }, [allIncidents, filterCategory]);
+  }, [allIncidents, filterCategory, gapFilter, allEvidence]);
 
   const repeatedCategories = useMemo(() => {
     const catCounts: Record<string, number> = {};
