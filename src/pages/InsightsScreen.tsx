@@ -24,7 +24,6 @@ const InsightsScreen = () => {
   const openIncidents = incidents.filter(i => i.status === 'Open').length;
   const withWitnesses = incidents.filter(i => i.witnesses.length > 0).length;
 
-  // Key individuals with date ranges
   const keyIndividuals = useMemo(() => {
     const peopleData: Record<string, { count: number; firstDate: string; lastDate: string }> = {};
     const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
@@ -43,7 +42,6 @@ const InsightsScreen = () => {
       .map(([name, d]) => ({ name, ...d }));
   }, [incidents]);
 
-  // Category pattern recognition
   const categoryPatterns = useMemo(() => {
     const catCounts: Record<string, number> = {};
     incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
@@ -52,7 +50,6 @@ const InsightsScreen = () => {
       .map(([category, count]) => ({ category, count }));
   }, [incidents]);
 
-  // Concentrated periods
   const concentratedPeriod = useMemo(() => {
     if (incidents.length < 3) return null;
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
@@ -65,7 +62,6 @@ const InsightsScreen = () => {
     return null;
   }, [incidents]);
 
-  // Data gaps with action prompts
   const dataGaps = useMemo(() => {
     const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
     const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
@@ -79,7 +75,6 @@ const InsightsScreen = () => {
     return gaps;
   }, [incidents, allEvidence]);
 
-  // Factual patterns for AI summarisation input
   const patterns = useMemo(() => {
     const result: string[] = [];
     keyIndividuals.forEach(({ name, count, firstDate, lastDate }) => {
@@ -123,13 +118,13 @@ const InsightsScreen = () => {
   }, [incidents]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background pb-20 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   }
 
   if (incidents.length < 2) {
     return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="px-4 pt-6"><h1 className="text-2xl font-bold text-foreground">Insights</h1></div>
+      <div className="min-h-screen bg-background pb-24">
+        <div className="px-4 pt-6"><h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1></div>
         <EmptyState
           icon={<BarChart3 className="h-12 w-12" />}
           heading="Not enough data yet"
@@ -140,24 +135,25 @@ const InsightsScreen = () => {
   }
 
   const overviewCards = [
-    { label: 'Total Incidents', value: totalIncidents, icon: FileText },
+    { label: 'Total', value: totalIncidents, icon: FileText },
     { label: 'This Month', value: thisMonth, icon: TrendingUp },
-    { label: 'With Evidence', value: withEvidence, icon: FileText },
+    { label: 'Evidence', value: withEvidence, icon: FileText },
     { label: 'Open', value: openIncidents, icon: AlertTriangle },
-    { label: 'With Witnesses', value: withWitnesses, icon: Users },
+    { label: 'Witnesses', value: withWitnesses, icon: Users },
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Insights</h1>
-        <p className="text-xs text-muted-foreground mt-1">Data observations from your recorded incidents. Not legal advice.</p>
+        <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
+        <p className="text-[11px] text-muted-foreground mt-1.5">Data observations from your recorded incidents. Not legal advice.</p>
       </div>
 
+      {/* Overview Stats */}
       <div className="px-4 grid grid-cols-3 gap-2 mb-4">
         {overviewCards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card border border-border rounded-lg p-3 text-center">
-            <Icon className="h-4 w-4 text-primary mx-auto mb-1" />
+          <div key={label} className="bg-card border border-border rounded-xl p-3 text-center shadow-[var(--shadow-card)]">
+            <Icon className="h-4 w-4 text-primary mx-auto mb-1.5 opacity-70" />
             <p className="text-lg font-bold text-foreground">{value}</p>
             <p className="text-[10px] text-muted-foreground">{label}</p>
           </div>
@@ -166,19 +162,18 @@ const InsightsScreen = () => {
 
       {/* Emerging Patterns */}
       {(keyIndividuals.length > 0 || categoryPatterns.length > 0 || concentratedPeriod) && (
-        <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
+        <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
           <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <Eye className="h-4 w-4 text-primary" />
             Emerging Patterns in Your Records
           </h2>
 
-          {/* Key Individuals */}
           {keyIndividuals.length > 0 && (
             <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Key Individuals</p>
-              <div className="space-y-1">
+              <p className="text-[11px] font-medium text-muted-foreground mb-2">Key Individuals</p>
+              <div className="space-y-1.5">
                 {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
-                  <p key={name} className="text-xs text-body">
+                  <p key={name} className="text-xs text-body leading-relaxed">
                     <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
                   </p>
                 ))}
@@ -186,13 +181,12 @@ const InsightsScreen = () => {
             </div>
           )}
 
-          {/* Most Common Types */}
           {categoryPatterns.length > 0 && (
             <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Most Common Incident Types</p>
+              <p className="text-[11px] font-medium text-muted-foreground mb-2">Most Common Incident Types</p>
               <div className="flex flex-wrap gap-1.5">
                 {categoryPatterns.slice(0, 4).map(({ category, count }) => (
-                  <span key={category} className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary">
+                  <span key={category} className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-primary/8 text-primary border border-primary/15">
                     {category} ({count})
                   </span>
                 ))}
@@ -200,17 +194,15 @@ const InsightsScreen = () => {
             </div>
           )}
 
-          {/* Concentrated Period */}
           {concentratedPeriod && (
             <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1">Activity Concentration</p>
-              <p className="text-xs text-body">{concentratedPeriod}</p>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Activity Concentration</p>
+              <p className="text-xs text-body leading-relaxed">{concentratedPeriod}</p>
             </div>
           )}
 
-          {/* Factual Observations */}
           {patterns.length > 0 && (
-            <div className="space-y-2 pt-2 border-t border-border">
+            <div className="space-y-2 pt-3 border-t border-border/60">
               {patterns.map((p, i) => (
                 <p key={i} className="text-xs text-body leading-relaxed">• {p}</p>
               ))}
@@ -218,7 +210,7 @@ const InsightsScreen = () => {
           )}
 
           {aiSummaries.length > 0 ? (
-            <div className="mt-3 pt-3 border-t border-border">
+            <div className="mt-3 pt-3 border-t border-border/60">
               <div className="mb-2"><AILabel /></div>
               <div className="space-y-2">
                 {aiSummaries.map((s, i) => (
@@ -230,7 +222,7 @@ const InsightsScreen = () => {
             <button
               onClick={handleAiSummarise}
               disabled={aiLoading}
-              className="mt-3 text-xs text-primary font-medium flex items-center gap-1"
+              className="mt-3 text-xs text-primary font-medium flex items-center gap-1.5"
             >
               {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
             </button>
@@ -238,10 +230,10 @@ const InsightsScreen = () => {
         </div>
       )}
 
-      {/* Data Gaps with Action Prompts */}
+      {/* Data Gaps */}
       {dataGaps.length > 0 && (
-        <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
-          <h2 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+        <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <h2 className="text-sm font-semibold text-foreground mb-2.5 flex items-center gap-2">
             <Shield className="h-4 w-4 text-severity-serious" />
             Data Gaps
           </h2>
@@ -250,11 +242,11 @@ const InsightsScreen = () => {
               <button
                 key={i}
                 onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/50 rounded p-1 -mx-1 transition-colors"
+                className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2 -mx-1 transition-colors"
               >
                 <div>
                   <p className="text-xs text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
-                  <p className="text-[11px] text-primary">→ {gap.action}</p>
+                  <p className="text-[11px] text-primary mt-0.5">→ {gap.action}</p>
                 </div>
               </button>
             ))}
@@ -262,14 +254,15 @@ const InsightsScreen = () => {
         </div>
       )}
 
-      <div className="mx-4 mb-4 bg-card border border-border rounded-lg p-4">
+      {/* Chart */}
+      <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
         <h2 className="text-sm font-semibold text-foreground mb-3">Incident Activity</h2>
         <div className="h-40">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                 {chartData.map((_, index) => (
                   <Cell key={index} fill="hsl(var(--primary))" />
                 ))}

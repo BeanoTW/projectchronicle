@@ -127,45 +127,45 @@ const ExportScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground">Export</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h1 className="text-xl font-bold text-foreground tracking-tight">Export</h1>
+        <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
           Generate structured reports ready to share
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">
+        <p className="text-[11px] text-muted-foreground mt-0.5">
           Can be used with unions, HR, or legal advisors
         </p>
       </div>
 
       {/* Case Summary */}
       <div className="px-4 mb-4">
-        <div className="bg-card border border-border rounded-lg p-4">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0">
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground">Case Summary</h3>
-              <p className="text-xs text-body mt-0.5">Structured narrative combining all incidents, highlighting recurring individuals and categories.</p>
+              <p className="text-xs text-body mt-0.5 leading-relaxed">Structured narrative combining all incidents, highlighting recurring individuals and categories.</p>
               
               {caseNarrative ? (
                 <div className="mt-3 space-y-3">
                   <div className="mb-1"><AILabel /></div>
                   <h4 className="text-sm font-semibold text-foreground">{caseNarrative.title}</h4>
-                  <p className="text-xs text-body">{caseNarrative.overview}</p>
+                  <p className="text-xs text-body leading-relaxed">{caseNarrative.overview}</p>
                   
                   <div>
                     <p className="text-[11px] font-semibold text-foreground mb-1">Chronology</p>
-                    <p className="text-xs text-body whitespace-pre-line">{caseNarrative.chronology}</p>
+                    <p className="text-xs text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
                   </div>
 
                   {caseNarrative.key_individuals.length > 0 && (
                     <div>
                       <p className="text-[11px] font-semibold text-foreground mb-1">Key Individuals</p>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {caseNarrative.key_individuals.map((ind, i) => (
-                          <p key={i} className="text-xs text-body">
+                          <p key={i} className="text-xs text-body leading-relaxed">
                             <span className="font-medium">{ind.name}</span> ({ind.involvement_count} incidents) — {ind.context}
                           </p>
                         ))}
@@ -175,12 +175,12 @@ const ExportScreen = () => {
 
                   <div>
                     <p className="text-[11px] font-semibold text-foreground mb-1">Patterns</p>
-                    <p className="text-xs text-body">{caseNarrative.patterns_summary}</p>
+                    <p className="text-xs text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
                   </div>
 
                   <div>
                     <p className="text-[11px] font-semibold text-foreground mb-1">Reported Impact</p>
-                    <p className="text-xs text-body">{caseNarrative.impact_summary}</p>
+                    <p className="text-xs text-body leading-relaxed">{caseNarrative.impact_summary}</p>
                   </div>
 
                   <button onClick={() => setCaseNarrative(null)} className="text-xs text-primary font-medium">
@@ -191,7 +191,7 @@ const ExportScreen = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3 text-xs border-primary text-primary h-9"
+                  className="mt-3 text-xs border-primary/30 text-primary h-9 rounded-xl hover:bg-primary/5"
                   onClick={handleCaseNarrative}
                   disabled={narrativeLoading || incidents.length < 2}
                 >
@@ -203,20 +203,20 @@ const ExportScreen = () => {
         </div>
       </div>
 
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-2.5">
         {exportTypes.map(({ key, title, description, icon: Icon, disabled }) => (
-          <div key={key} className="bg-card border border-border rounded-lg p-4">
+          <div key={key} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-                <p className="text-xs text-body mt-0.5">{description}</p>
+                <p className="text-xs text-body mt-0.5 leading-relaxed">{description}</p>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3 text-xs border-primary text-primary h-9"
+                  className="mt-3 text-xs border-primary/30 text-primary h-9 rounded-xl hover:bg-primary/5"
                   disabled={disabled || exporting === key}
                   onClick={() => handleExport(key)}
                 >
@@ -232,8 +232,8 @@ const ExportScreen = () => {
         ))}
       </div>
 
-      <div className="mx-4 mt-6 p-3 rounded-lg bg-muted">
-        <p className="text-[10px] text-muted-foreground">
+      <div className="mx-4 mt-6 p-4 rounded-xl bg-muted/50 border border-border/40">
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
           This tool supports record-keeping and organisation. It does not provide legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.
         </p>
       </div>

@@ -66,7 +66,7 @@ const TimelineScreen = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-20 flex items-center justify-center">
+      <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     );
@@ -74,9 +74,9 @@ const TimelineScreen = () => {
 
   if (incidents.length === 0 && filterCategory === 'all') {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-24">
         <div className="px-4 pt-6">
-          <h1 className="text-2xl font-bold text-foreground">Timeline</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
         </div>
         <EmptyState
           icon={<CalendarDays className="h-12 w-12" />}
@@ -88,20 +88,20 @@ const TimelineScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-2">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold text-foreground">Timeline</h1>
+    <div className="min-h-screen bg-background pb-24">
+      <div className="px-4 pt-6 pb-3">
+        <div className="flex items-center justify-between mb-1.5">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
           <div className="flex items-center gap-2">
-            <Label htmlFor="chronology" className="text-xs text-muted-foreground">Chronology View</Label>
+            <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Ordered by incident date, not recording date.</p>
+        <p className="text-[11px] text-muted-foreground">Ordered by incident date, not recording date.</p>
       </div>
 
       {gapFilter && (
-        <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-between">
+        <div className="mx-4 mb-2.5 px-3 py-2 rounded-xl bg-primary/8 text-primary text-xs font-medium flex items-center justify-between border border-primary/15">
           <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
           <button onClick={() => setGapFilter(null)} className="text-xs underline">Clear</button>
         </div>
@@ -110,7 +110,7 @@ const TimelineScreen = () => {
       {!chronologyMode && (
         <div className="px-4 py-2">
           <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
-            <SelectTrigger className="bg-card text-xs h-8">
+            <SelectTrigger className="bg-card text-xs h-9 rounded-xl">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -125,7 +125,7 @@ const TimelineScreen = () => {
 
       <div className="px-4 space-y-4">
         {chronologyMode ? (
-          <div className="space-y-2 pt-2">
+          <div className="space-y-2.5 pt-2">
             {incidents.map(inc => (
               <div key={inc.id} className="text-sm leading-relaxed">
                 <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
@@ -140,8 +140,8 @@ const TimelineScreen = () => {
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month}>
-              <h2 className="text-sm font-semibold text-foreground mb-2">{month}</h2>
-              <div className="space-y-3">
+              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{month}</h2>
+              <div className="space-y-2.5">
                 {items.map(inc => (
                   <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />
                 ))}
