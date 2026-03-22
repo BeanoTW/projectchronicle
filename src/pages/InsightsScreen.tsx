@@ -56,7 +56,8 @@ const InsightsScreen = () => {
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
       if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        return '3 or more incidents recorded within a 7-day period';
+        const count = sortedDates.slice(i, i + 3).length;
+        return `${count} incidents were recorded within a 7-day period`;
       }
     }
     return null;
