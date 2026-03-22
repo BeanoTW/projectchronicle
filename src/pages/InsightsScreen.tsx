@@ -230,7 +230,7 @@ const InsightsScreen = () => {
               disabled={aiLoading}
               className="mt-3 text-xs text-primary font-medium flex items-center gap-1"
             >
-              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Summarising...</> : 'Summarise with AI'}
+              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
             </button>
           )}
         </div>
