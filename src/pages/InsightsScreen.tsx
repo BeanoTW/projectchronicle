@@ -245,12 +245,16 @@ const InsightsScreen = () => {
           </h2>
           <div className="space-y-2">
             {dataGaps.map((gap, i) => (
-              <div key={i} className="flex items-start justify-between gap-2">
+              <button
+                key={i}
+                onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
+                className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/50 rounded p-1 -mx-1 transition-colors"
+              >
                 <div>
                   <p className="text-xs text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
                   <p className="text-[11px] text-primary">→ {gap.action}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
