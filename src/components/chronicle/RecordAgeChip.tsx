@@ -20,9 +20,12 @@ const RecordAgeChip = ({ incidentDate, createdAt }: RecordAgeChipProps) => {
   } else if (daysGap <= 7) {
     text = `Recorded ${daysGap} days after`;
     colorClass = 'text-severity-serious bg-severity-serious/10';
-  } else {
+  } else if (daysGap <= 30) {
     text = `Recorded ${daysGap} days after`;
     colorClass = 'text-muted-foreground bg-muted';
+  } else {
+    text = `Recorded ${daysGap} days after · Delayed record`;
+    colorClass = 'text-destructive bg-destructive/10';
   }
 
   return (

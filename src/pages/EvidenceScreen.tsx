@@ -139,7 +139,12 @@ const EvidenceScreen = () => {
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                      E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
+                    </span>
+                    <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                   </p>

@@ -67,15 +67,15 @@ const InsightsScreen = () => {
 
   // Data gaps with action prompts
   const dataGaps = useMemo(() => {
-    const gaps: { label: string; count: number; action: string }[] = [];
+    const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
     const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
-    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records' });
+    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records', filterKey: 'no-evidence' });
     const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
-    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses' });
+    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses', filterKey: 'no-witnesses' });
     const noExactWords = incidents.filter(i => !i.exact_words).length;
-    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered' });
+    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered', filterKey: 'no-exact-words' });
     const noImpact = incidents.filter(i => !i.impact_note).length;
-    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant' });
+    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant', filterKey: 'no-impact' });
     return gaps;
   }, [incidents, allEvidence]);
 

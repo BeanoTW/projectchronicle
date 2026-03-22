@@ -42,7 +42,7 @@ RULES:
 - Use attribution: "The employee reports...", "The record states..."
 - Do NOT state impact as fact without attribution.
 - Do NOT use phrases like "the worker discovered", "the employee felt", or any emotional/interpretive phrasing.
-- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use observational language only — not legal advice. Do NOT use "this may indicate" or "suggests".`
+- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use observational language only — not legal advice. Do NOT use "this may indicate", "suggests", "this could reflect", or "appears to show intent". State facts only.`
           },
           {
             role: "user",

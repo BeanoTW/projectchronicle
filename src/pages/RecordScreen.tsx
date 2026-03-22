@@ -247,7 +247,7 @@ const RecordScreen = () => {
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >
-          {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Analyse with AI'}
+          {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
         </Button>
 
         {/* AI Summary Preview */}

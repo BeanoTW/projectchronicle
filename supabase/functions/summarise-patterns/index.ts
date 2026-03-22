@@ -28,22 +28,26 @@ serve(async (req) => {
 
 RULES:
 - Summarise ONLY the patterns provided. Do not invent patterns.
-- Use interpretive but neutral language — help the user understand what the pattern may mean.
-- Frame repeated behaviour as potentially ongoing issues rather than isolated events.
+- Use strictly observational and factual language.
+- State counts, frequencies, date ranges, and recorded facts only.
+- Do NOT interpret, speculate, or draw conclusions.
+- Do NOT use phrases like "this may indicate", "this suggests", "this could reflect", "appears to show intent".
 - Do NOT provide legal advice.
 - Do NOT classify behaviour as unlawful.
 - Do NOT suggest the user has a legal claim.
 - Do NOT use terms like harassment, discrimination, victimisation, retaliation, or constructive dismissal.
-- Each summary should be one clear, interpretive sentence.
+- Each summary should be one clear, factual sentence.
 - Return 2-4 observations.
 
 EXAMPLE STYLE:
-Instead of "The same person appears in 6 incidents" use "Repeated interaction with the same individual (6 incidents). This may indicate an ongoing issue rather than isolated events."
-Instead of "Most incidents relate to Management Conduct" use "The majority of recorded incidents involve management conduct, which may suggest a recurring concern in this area."`
+- "Mark Taylor appears in 5 recorded incidents between January and March 2026."
+- "Management Conduct is the most frequently recorded category (7 incidents)."
+- "3 incidents were recorded within a 7-day period."
+- "4 incidents have no linked evidence files."`
           },
           {
             role: "user",
-            content: `Summarise these detected patterns from a worker's incident records in plain language:\n\n${patterns.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}`
+            content: `Summarise these detected patterns from a worker's incident records using factual, observational language only:\n\n${patterns.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}`
           }
         ],
         tools: [
@@ -51,14 +55,14 @@ Instead of "Most incidents relate to Management Conduct" use "The majority of re
             type: "function",
             function: {
               name: "return_summaries",
-              description: "Return plain-language pattern summaries.",
+              description: "Return factual, observational pattern summaries.",
               parameters: {
                 type: "object",
                 properties: {
                   summaries: {
                     type: "array",
                     items: { type: "string" },
-                    description: "List of interpretive but neutral pattern observations"
+                    description: "List of factual, observational pattern statements"
                   }
                 },
                 required: ["summaries"],

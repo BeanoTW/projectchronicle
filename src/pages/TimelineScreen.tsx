@@ -100,9 +100,16 @@ const TimelineScreen = () => {
         <p className="text-xs text-muted-foreground">Ordered by incident date, not recording date.</p>
       </div>
 
+      {gapFilter && (
+        <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-between">
+          <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
+          <button onClick={() => setGapFilter(null)} className="text-xs underline">Clear</button>
+        </div>
+      )}
+
       {!chronologyMode && (
         <div className="px-4 py-2">
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
             <SelectTrigger className="bg-card text-xs h-8">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
