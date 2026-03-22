@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2, Shield, Eye } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO } from 'date-fns';
@@ -10,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const InsightsScreen = () => {
+  const navigate = useNavigate();
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
   const { toast } = useToast();
@@ -56,7 +58,8 @@ const InsightsScreen = () => {
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
       if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        return '3 or more incidents recorded within a 7-day period';
+        const count = sortedDates.slice(i, i + 3).length;
+        return `${count} incidents were recorded within a 7-day period`;
       }
     }
     return null;
@@ -64,15 +67,15 @@ const InsightsScreen = () => {
 
   // Data gaps with action prompts
   const dataGaps = useMemo(() => {
-    const gaps: { label: string; count: number; action: string }[] = [];
+    const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
     const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
-    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records' });
+    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records', filterKey: 'no-evidence' });
     const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
-    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses' });
+    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses', filterKey: 'no-witnesses' });
     const noExactWords = incidents.filter(i => !i.exact_words).length;
-    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered' });
+    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered', filterKey: 'no-exact-words' });
     const noImpact = incidents.filter(i => !i.impact_note).length;
-    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant' });
+    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant', filterKey: 'no-impact' });
     return gaps;
   }, [incidents, allEvidence]);
 
@@ -229,7 +232,7 @@ const InsightsScreen = () => {
               disabled={aiLoading}
               className="mt-3 text-xs text-primary font-medium flex items-center gap-1"
             >
-              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Summarising...</> : 'Summarise with AI'}
+              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
             </button>
           )}
         </div>
@@ -244,12 +247,16 @@ const InsightsScreen = () => {
           </h2>
           <div className="space-y-2">
             {dataGaps.map((gap, i) => (
-              <div key={i} className="flex items-start justify-between gap-2">
+              <button
+                key={i}
+                onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
+                className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/50 rounded p-1 -mx-1 transition-colors"
+              >
                 <div>
                   <p className="text-xs text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
                   <p className="text-[11px] text-primary">→ {gap.action}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

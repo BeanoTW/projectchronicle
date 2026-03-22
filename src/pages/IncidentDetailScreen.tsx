@@ -239,8 +239,8 @@ const IncidentDetailScreen = () => {
             <div className="space-y-2">
               {evidence.map(ev => (
                 <div key={ev.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-md">
-                  <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center text-primary text-xs font-bold">
-                    {(ev.file_type || 'F').charAt(0)}
+                  <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center text-primary text-[10px] font-bold">
+                    E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{ev.file_name}</p>

@@ -30,12 +30,15 @@ RULES:
 - Write in formal, neutral, third-person language suitable for workplace grievance documentation.
 - Use the format "On [date], it is reported that..." for each incident reference.
 - Identify recurring individuals and note the frequency of their involvement.
-- Highlight patterns across incidents (same category, same people, escalation over time).
-- Summarise the cumulative impact if available.
+- Highlight patterns across incidents (same category, same people) using factual observations only.
+- For impact: always use attributed language such as "The employee reports..." or "The record states..."
+- Do NOT interpret intent or draw conclusions.
+- Do NOT use speculative phrases like "this may indicate", "this suggests", or "this could reflect".
 - Do NOT provide legal advice.
 - Do NOT classify behaviour as unlawful.
 - Do NOT use legal conclusions such as harassment, discrimination, victimisation, retaliation, or constructive dismissal.
-- Keep the narrative factual and evidence-ready.`
+- Keep the narrative factual and evidence-ready.
+- Present facts, counts, and date ranges only.`
           },
           {
             role: "user",
@@ -52,10 +55,10 @@ RULES:
                 type: "object",
                 properties: {
                   title: { type: "string", description: "A formal title for the case summary" },
-                  overview: { type: "string", description: "A 2-3 sentence overview of the case" },
+                  overview: { type: "string", description: "A 2-3 sentence factual overview of the case" },
                   chronology: { type: "string", description: "A chronological narrative of events using formal language" },
-                  patterns_summary: { type: "string", description: "Summary of detected patterns and recurring individuals" },
-                  impact_summary: { type: "string", description: "Summary of cumulative impact across all incidents" },
+                  patterns_summary: { type: "string", description: "Factual summary of detected patterns and recurring individuals — counts and date ranges only" },
+                  impact_summary: { type: "string", description: "Summary of reported impact using attributed language (The employee reports... / The record states...)" },
                   key_individuals: {
                     type: "array",
                     items: {

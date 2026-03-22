@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
+import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,14 +12,29 @@ import { Label } from '@/components/ui/label';
 
 const TimelineScreen = () => {
   const { data: allIncidents = [], isLoading } = useIncidents();
+  const { data: allEvidence = [] } = useEvidence();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [chronologyMode, setChronologyMode] = useState(false);
+
+  useEffect(() => {
+    const gap = searchParams.get('gap');
+    if (gap) {
+      setGapFilter(gap);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
     if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
+    if (gapFilter === 'no-evidence') filtered = filtered.filter(i => !allEvidence.some(e => e.incident_id === i.id));
+    if (gapFilter === 'no-witnesses') filtered = filtered.filter(i => i.witnesses.length === 0);
+    if (gapFilter === 'no-exact-words') filtered = filtered.filter(i => !i.exact_words);
+    if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
     return filtered.sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-  }, [allIncidents, filterCategory]);
+  }, [allIncidents, filterCategory, gapFilter, allEvidence]);
 
   const repeatedCategories = useMemo(() => {
     const catCounts: Record<string, number> = {};
@@ -83,9 +100,16 @@ const TimelineScreen = () => {
         <p className="text-xs text-muted-foreground">Ordered by incident date, not recording date.</p>
       </div>
 
+      {gapFilter && (
+        <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-between">
+          <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
+          <button onClick={() => setGapFilter(null)} className="text-xs underline">Clear</button>
+        </div>
+      )}
+
       {!chronologyMode && (
         <div className="px-4 py-2">
-          <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
             <SelectTrigger className="bg-card text-xs h-8">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
