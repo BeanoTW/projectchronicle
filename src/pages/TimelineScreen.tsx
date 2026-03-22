@@ -1,7 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
+import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
