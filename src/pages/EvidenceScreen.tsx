@@ -70,16 +70,16 @@ const EvidenceScreen = () => {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background pb-20 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   }
 
   if (allEvidence.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-20">
+      <div className="min-h-screen bg-background pb-24">
         <div className="px-4 pt-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Evidence</h1>
-          <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-md cursor-pointer">
-            <Plus className="h-3 w-3" /> Upload
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Evidence</h1>
+          <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-xl cursor-pointer shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
+            <Plus className="h-3.5 w-3.5" /> Upload
             <input type="file" className="hidden" onChange={handleUpload} />
           </label>
         </div>
@@ -93,17 +93,17 @@ const EvidenceScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Evidence</h1>
-        <label className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-md cursor-pointer">
-          <Plus className="h-3 w-3" /> Upload
+    <div className="min-h-screen bg-background pb-24">
+      <div className="px-4 pt-6 pb-3 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-foreground tracking-tight">Evidence</h1>
+        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-xl cursor-pointer shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
+          <Plus className="h-3.5 w-3.5" /> Upload
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
         </label>
       </div>
 
       {unlinkedCount > 0 && (
-        <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-severity-serious/10 text-severity-serious text-xs font-medium">
+        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-severity-serious/8 border border-severity-serious/15 text-severity-serious text-xs font-medium">
           {unlinkedCount} file{unlinkedCount > 1 ? 's' : ''} not yet linked to an incident
         </div>
       )}
@@ -114,10 +114,10 @@ const EvidenceScreen = () => {
             <button
               key={tab.value}
               onClick={() => setActiveFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
                 activeFilter === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
               {tab.label}
@@ -126,34 +126,34 @@ const EvidenceScreen = () => {
         </div>
       </div>
 
-      <div className="px-4 space-y-3">
+      <div className="px-4 space-y-2.5">
         {filtered.map(ev => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
           const linkedIncident = incidents.find(i => i.id === ev.incident_id);
           const isLinking = linkingId === ev.id;
 
           return (
-            <div key={ev.id} className="bg-card border border-border rounded-lg p-4">
+            <div key={ev.id} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
               <div className="flex gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+                    <span className="px-1.5 py-0.5 rounded-md bg-primary/8 text-primary text-[10px] font-bold border border-primary/15">
                       E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                     </span>
                     <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                   </p>
                   {linkedIncident ? (
-                    <p className="text-xs text-primary mt-0.5 truncate">
+                    <p className="text-xs text-primary mt-1 truncate">
                       Linked: {linkedIncident.title || 'Untitled'}
                     </p>
                   ) : (
-                    <div className="mt-1">
+                    <div className="mt-1.5">
                       <p className="text-xs text-severity-serious font-medium">Not yet linked to an incident</p>
                       {!isLinking ? (
                         <button
@@ -163,9 +163,9 @@ const EvidenceScreen = () => {
                           <Link2 className="h-3 w-3" /> Link to incident
                         </button>
                       ) : (
-                        <div className="mt-1.5 flex gap-2 items-center">
+                        <div className="mt-2 flex gap-2 items-center">
                           <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
-                            <SelectTrigger className="bg-card text-xs h-8 flex-1">
+                            <SelectTrigger className="bg-card text-xs h-8 flex-1 rounded-lg">
                               <SelectValue placeholder="Select incident" />
                             </SelectTrigger>
                             <SelectContent>
@@ -193,7 +193,7 @@ const EvidenceScreen = () => {
                       )}
                     </div>
                   )}
-                  {ev.description && <p className="text-xs text-body mt-1">{ev.description}</p>}
+                  {ev.description && <p className="text-xs text-body mt-1.5 leading-relaxed">{ev.description}</p>}
                 </div>
               </div>
             </div>

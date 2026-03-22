@@ -6,9 +6,9 @@
 
 @layer base {
   :root {
-    /* Project Chronicle Design System */
-    --background: 210 20% 98%;        /* #F9FAFB */
-    --foreground: 215 25% 15%;        /* #1A2332 approx */
+    /* Project Chronicle Design System — Refined */
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
     --card-foreground: 215 25% 15%;
@@ -29,42 +29,48 @@
     --secondary: 168 32% 95%;
     --secondary-foreground: 173 65% 29%;
 
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 10% 62%;   /* #9CA3AF */
+    --muted: 210 18% 95%;
+    --muted-foreground: 215 10% 55%;
 
-    --accent: 170 30% 92%;            /* #E8F4F2 */
+    --accent: 170 28% 93%;
     --accent-foreground: 173 65% 29%;
 
-    --destructive: 0 72% 35%;          /* #991B1B */
+    --destructive: 0 72% 35%;
     --destructive-foreground: 0 0% 100%;
 
     /* Severity tokens */
-    --severity-critical: 0 72% 35%;       /* #991B1B */
-    --severity-serious: 32 88% 37%;       /* #B45309 */
-    --severity-moderate: 28 82% 31%;      /* #92400E */
-    --severity-low: 160 87% 20%;          /* #065F46 */
+    --severity-critical: 0 72% 35%;
+    --severity-serious: 32 88% 37%;
+    --severity-moderate: 28 82% 31%;
+    --severity-low: 160 87% 20%;
 
     /* Integrity tokens */
-    --integrity: 145 79% 90%;             /* #D1FAE5 */
-    --integrity-foreground: 160 87% 20%;  /* #065F46 */
-    --integrity-border: 152 68% 67%;      /* #6EE7B7 */
+    --integrity: 145 79% 90%;
+    --integrity-foreground: 160 87% 20%;
+    --integrity-border: 152 68% 67%;
 
     /* Rep access tokens */
-    --rep: 214 100% 97%;                  /* #EFF6FF */
-    --rep-foreground: 224 64% 40%;        /* #1E40AF */
+    --rep: 214 100% 97%;
+    --rep-foreground: 224 64% 40%;
 
     /* AI label tokens */
-    --ai-label: 46 100% 95%;             /* #FFFBEB */
-    --ai-label-foreground: 32 88% 37%;   /* #B45309 */
+    --ai-label: 46 100% 95%;
+    --ai-label-foreground: 32 88% 37%;
 
-    /* Body text: #4B5563 */
+    /* Body text */
     --body: 220 9% 34%;
 
-    --border: 172 30% 85%;              /* #D1E8E5 */
-    --input: 172 30% 85%;
+    --border: 210 18% 90%;
+    --input: 210 18% 90%;
     --ring: 173 65% 29%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;
+
+    /* Shadows */
+    --shadow-card: 0 1px 3px 0 hsl(215 25% 15% / 0.04), 0 1px 2px -1px hsl(215 25% 15% / 0.03);
+    --shadow-card-hover: 0 4px 12px -2px hsl(215 25% 15% / 0.08), 0 2px 4px -2px hsl(215 25% 15% / 0.04);
+    --shadow-nav: 0 -1px 12px 0 hsl(215 25% 15% / 0.06);
+    --shadow-elevated: 0 8px 24px -4px hsl(215 25% 15% / 0.1), 0 2px 6px -2px hsl(215 25% 15% / 0.05);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -72,7 +78,7 @@
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 168 32% 95%;
     --sidebar-accent-foreground: 173 65% 29%;
-    --sidebar-border: 172 30% 85%;
+    --sidebar-border: 210 18% 90%;
     --sidebar-ring: 173 65% 29%;
   }
 
@@ -93,7 +99,7 @@
     --secondary-foreground: 210 20% 95%;
 
     --muted: 215 30% 16%;
-    --muted-foreground: 215 10% 62%;
+    --muted-foreground: 215 10% 55%;
 
     --accent: 215 30% 16%;
     --accent-foreground: 210 20% 95%;
@@ -104,6 +110,11 @@
     --border: 215 30% 20%;
     --input: 215 30% 20%;
     --ring: 173 55% 40%;
+
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.2);
+    --shadow-card-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.3);
+    --shadow-nav: 0 -1px 12px 0 hsl(0 0% 0% / 0.3);
+    --shadow-elevated: 0 8px 24px -4px hsl(0 0% 0% / 0.4);
 
     --sidebar-background: 215 30% 10%;
     --sidebar-foreground: 210 20% 95%;

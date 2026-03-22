@@ -153,26 +153,26 @@ const RecordScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="px-4 pt-6 pb-4 flex items-start justify-between">
+    <div className="min-h-screen bg-background pb-24">
+      <div className="px-4 pt-6 pb-5 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Record Incident</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
+          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
             Capture what happened. Only your account and the date are required.
           </p>
         </div>
-        <button onClick={() => navigate('/settings')} className="p-2 text-muted-foreground hover:text-foreground">
+        <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
           <Settings className="h-5 w-5" />
         </button>
       </div>
 
       {/* Mode Toggle */}
-      <div className="px-4 mb-4">
-        <div className="flex bg-muted rounded-lg p-1">
+      <div className="px-4 mb-5">
+        <div className="flex bg-muted/70 rounded-xl p-1 gap-1">
           <button
             onClick={() => setMode('voice')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
-              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Mic className="h-4 w-4" />
@@ -180,8 +180,8 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
-              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Keyboard className="h-4 w-4" />
@@ -193,33 +193,33 @@ const RecordScreen = () => {
       {/* Voice Mode - Inactive Mic */}
       {mode === 'voice' && (
         <div className="px-4 mb-6 flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-muted border-2 border-border flex items-center justify-center mb-4 opacity-50 cursor-not-allowed">
+          <div className="w-28 h-28 rounded-full bg-muted/60 border-2 border-border/50 flex items-center justify-center mb-4 opacity-40 cursor-not-allowed">
             <Mic className="h-12 w-12 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
-          <p className="text-xs text-muted-foreground">Use text entry below to record your incident</p>
+          <p className="text-xs text-muted-foreground/70">Use text entry below to record your incident</p>
         </div>
       )}
 
       {/* Prompt Cues */}
       <div className="px-4 mb-4">
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="bg-muted px-2 py-1 rounded">When it happened</span>
-          <span className="bg-muted px-2 py-1 rounded">Where</span>
-          <span className="bg-muted px-2 py-1 rounded">Who was involved</span>
-          <span className="bg-muted px-2 py-1 rounded">What was said or done</span>
+        <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">When it happened</span>
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Where</span>
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Who was involved</span>
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What was said or done</span>
         </div>
       </div>
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-4 mb-4 px-3 py-2.5 rounded-lg bg-severity-serious/10 border border-severity-serious/20 flex items-start gap-2">
+        <div className="mx-4 mb-4 px-3 py-2.5 rounded-xl bg-severity-serious/8 border border-severity-serious/15 flex items-start gap-2.5">
           <AlertTriangle className="h-4 w-4 text-severity-serious flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-severity-serious font-medium">{similarPatternAlert}</p>
+          <p className="text-xs text-severity-serious font-medium leading-relaxed">{similarPatternAlert}</p>
         </div>
       )}
 
-      <div className="px-4 space-y-4">
+      <div className="px-4 space-y-5">
         {/* Narrative Input */}
         <div>
           <Label htmlFor="narrative" className="text-sm font-medium text-foreground">
@@ -230,10 +230,10 @@ const RecordScreen = () => {
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Include what happened, who was present, and anything said."
-            className="mt-1 min-h-[160px] bg-card border-border focus:ring-primary"
+            className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary"
           />
           {narrative.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">{narrative.length} characters</p>
+            <p className="text-[11px] text-muted-foreground mt-1.5">{narrative.length} characters</p>
           )}
           {errors.raw_narrative && (
             <p className="text-xs text-destructive mt-1">{errors.raw_narrative}</p>
@@ -243,7 +243,7 @@ const RecordScreen = () => {
         {/* AI Analysis Button */}
         <Button
           variant="outline"
-          className="w-full border-primary text-primary"
+          className="w-full border-primary/30 text-primary hover:bg-primary/5 rounded-xl h-11"
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >
@@ -252,12 +252,12 @@ const RecordScreen = () => {
 
         {/* AI Summary Preview */}
         {aiSuggested && aiSummary && (
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <div className="mb-2"><AILabel /></div>
-            <p className="text-sm text-body">{aiSummary}</p>
+            <p className="text-sm text-body leading-relaxed">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-              className="text-xs text-destructive mt-2"
+              className="text-xs text-destructive mt-2.5 font-medium"
             >
               Remove AI summary
             </button>
@@ -266,24 +266,24 @@ const RecordScreen = () => {
 
         {/* AI Potential Relevance */}
         {aiSuggested && aiRelevance.length > 0 && (
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <h3 className="text-xs font-semibold text-foreground mb-2">Potential Relevance</h3>
-            <div className="mb-1"><AILabel /></div>
+            <div className="mb-1.5"><AILabel /></div>
             <div className="space-y-1.5">
               {aiRelevance.map((r, i) => (
-                <p key={i} className="text-xs text-body">• {r}</p>
+                <p key={i} className="text-xs text-body leading-relaxed">• {r}</p>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">This is not legal advice. These are neutral observations only.</p>
+            <p className="text-[10px] text-muted-foreground mt-2.5">This is not legal advice. These are neutral observations only.</p>
           </div>
         )}
 
         <button
           onClick={() => setShowManualForm(!showManualForm)}
-          className="flex items-center gap-1 text-sm text-primary font-medium"
+          className="flex items-center gap-1.5 text-sm text-primary font-medium py-1"
         >
           {showManualForm ? 'Hide details' : 'Fill in manually'}
-          <ChevronRight className={`h-4 w-4 transition-transform ${showManualForm ? 'rotate-90' : ''}`} />
+          <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${showManualForm ? 'rotate-90' : ''}`} />
         </button>
 
         {/* Manual Form Fields */}
@@ -296,7 +296,7 @@ const RecordScreen = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Short title for this incident"
-                className="mt-1 bg-card"
+                className="mt-1.5 bg-card rounded-xl"
               />
             </div>
 
@@ -308,7 +308,7 @@ const RecordScreen = () => {
                   type="date"
                   value={incidentDate}
                   onChange={(e) => setIncidentDate(e.target.value)}
-                  className="mt-1 bg-card"
+                  className="mt-1.5 bg-card rounded-xl"
                 />
                 {errors.incident_date && (
                   <p className="text-xs text-destructive mt-1">{errors.incident_date}</p>
@@ -321,7 +321,7 @@ const RecordScreen = () => {
                   type="time"
                   value={incidentTime}
                   onChange={(e) => setIncidentTime(e.target.value)}
-                  className="mt-1 bg-card"
+                  className="mt-1.5 bg-card rounded-xl"
                 />
               </div>
             </div>
@@ -333,14 +333,14 @@ const RecordScreen = () => {
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Where did it happen?"
-                className="mt-1 bg-card"
+                className="mt-1.5 bg-card rounded-xl"
               />
             </div>
 
             <div>
               <Label className="text-sm font-medium">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="mt-1 bg-card">
+                <SelectTrigger className="mt-1.5 bg-card rounded-xl">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -358,7 +358,7 @@ const RecordScreen = () => {
                 value={peopleInvolved}
                 onChange={(e) => setPeopleInvolved(e.target.value)}
                 placeholder="Comma-separated names"
-                className="mt-1 bg-card"
+                className="mt-1.5 bg-card rounded-xl"
               />
             </div>
 
@@ -369,7 +369,7 @@ const RecordScreen = () => {
                 value={witnesses}
                 onChange={(e) => setWitnesses(e.target.value)}
                 placeholder="Comma-separated names of witnesses"
-                className="mt-1 bg-card"
+                className="mt-1.5 bg-card rounded-xl"
               />
             </div>
 
@@ -377,7 +377,7 @@ const RecordScreen = () => {
               <Label htmlFor="exactWords" className="text-sm font-medium">
                 Exact Wording <span className="text-destructive">(important)</span>
               </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">
                 Include exact phrases, messages, or wording if possible.
               </p>
               <Textarea
@@ -385,7 +385,7 @@ const RecordScreen = () => {
                 value={exactWords}
                 onChange={(e) => setExactWords(e.target.value)}
                 placeholder="Include any exact spoken words, written wording, message text, or other wording directly relevant to the incident."
-                className="min-h-[80px] bg-card"
+                className="min-h-[80px] bg-card rounded-xl"
               />
             </div>
 
@@ -398,14 +398,14 @@ const RecordScreen = () => {
                 value={impactNote}
                 onChange={(e) => setImpactNote(e.target.value)}
                 placeholder="How did this affect you? What changed?"
-                className="mt-1 min-h-[80px] bg-card"
+                className="mt-1.5 min-h-[80px] bg-card rounded-xl"
               />
             </div>
           </div>
         )}
 
-        <div className="flex gap-3 pt-2 pb-6">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12">
+        <div className="flex gap-3 pt-3 pb-6">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-card)]">
             {saving ? 'Saving...' : 'Save Incident'}
           </Button>
         </div>

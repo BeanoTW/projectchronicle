@@ -3,7 +3,7 @@ interface CategoryBadgeProps {
 }
 
 const CategoryBadge = ({ category }: CategoryBadgeProps) => (
-  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent text-accent-foreground">
+  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/80 text-accent-foreground border border-accent-foreground/10">
     {category}
   </span>
 );
