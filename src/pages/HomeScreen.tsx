@@ -1,23 +1,20 @@
-import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
-import { useIncidents } from '@/hooks/useIncidents';
-import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
+import { Heart } from 'lucide-react';
 
 const supportiveMessages = [
   "You don't need everything — just start with what you remember",
-  "Small details matter later",
-  "You can always come back and add more",
   "There's no wrong way to begin",
+  "Small details matter later",
   "Writing things down can help you think more clearly",
+  "You can always come back and add more",
 ];
 
 const contextStatements = [
+  "Having dates and specifics helps others understand your experience",
   "Clear records can make it easier to explain what happened",
   "Details written at the time are often more reliable than memory later",
-  "Having dates and specifics helps others understand your experience",
 ];
 
 const processNotes = [
@@ -27,17 +24,13 @@ const processNotes = [
 ];
 
 const HomeScreen = () => {
-  const navigate = useNavigate();
-  const { data: incidents } = useIncidents();
-  const recentIncidents = incidents?.slice(0, 2) ?? [];
-
-  // Pick consistent messages per session using date-based seed
   const picked = useMemo(() => {
     const day = new Date().getDate();
     return {
-      reminders: [
-        supportiveMessages[day % supportiveMessages.length],
-        supportiveMessages[(day + 2) % supportiveMessages.length],
+      primary: supportiveMessages[day % supportiveMessages.length],
+      supporting: [
+        supportiveMessages[(day + 1) % supportiveMessages.length],
+        supportiveMessages[(day + 3) % supportiveMessages.length],
       ],
       context: contextStatements[day % contextStatements.length],
       process: processNotes[day % processNotes.length],
@@ -54,75 +47,56 @@ const HomeScreen = () => {
     <div className="min-h-screen bg-background pb-28 page-enter">
       <PageHeader title="Project Chronicle" hideHome />
 
-      {/* Welcome */}
-      <motion.div className="px-5 mb-6" {...fade(0)}>
-        <p className="text-[15px] text-foreground/80 leading-relaxed">
+      {/* Welcome subtitle */}
+      <motion.div className="px-5 mb-8" {...fade(0)}>
+        <p className="text-[15px] text-muted-foreground leading-relaxed">
           A quiet space to build your record, at your own pace.
         </p>
       </motion.div>
 
-      {/* Supportive reminders */}
-      <motion.div className="px-5 mb-6" {...fade(0.08)}>
-        <div className="space-y-2.5">
-          {picked.reminders.map((msg, i) => (
-            <div
-              key={i}
-              className="px-4 py-3.5 rounded-xl bg-card border border-border shadow-[var(--shadow-card)] text-[13px] text-foreground/70 leading-relaxed"
-            >
-              {msg}
-            </div>
-          ))}
+      {/* Primary message — highlighted */}
+      <motion.div className="px-5 mb-3" {...fade(0.06)}>
+        <div className="px-5 py-5 rounded-xl bg-primary/[0.06] border border-primary/12 shadow-[var(--shadow-card)]">
+          <p className="text-[15px] text-foreground leading-relaxed font-medium">
+            {picked.primary}
+          </p>
         </div>
       </motion.div>
 
-      {/* Reality context */}
-      <motion.div className="px-5 mb-6" {...fade(0.14)}>
-        <div className="px-4 py-3.5 rounded-xl bg-primary/[0.04] border border-primary/10 shadow-[var(--shadow-card)]">
-          <p className="text-[13px] text-foreground/70 leading-relaxed">
+      {/* Supporting messages */}
+      <motion.div className="px-5 mb-3 space-y-2.5" {...fade(0.12)}>
+        {picked.supporting.map((msg, i) => (
+          <div
+            key={i}
+            className="px-4 py-3.5 rounded-xl bg-card border border-border shadow-[var(--shadow-card)] text-[13px] text-foreground/70 leading-relaxed"
+          >
+            {msg}
+          </div>
+        ))}
+      </motion.div>
+
+      {/* Contextual message — muted */}
+      <motion.div className="px-5 mb-10" {...fade(0.18)}>
+        <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
             {picked.context}
           </p>
         </div>
       </motion.div>
 
-      {/* Process context */}
-      <motion.div className="px-5 mb-8" {...fade(0.2)}>
-        <div className="px-4 py-3.5 rounded-xl bg-info/[0.04] border border-info/10 shadow-[var(--shadow-card)]">
-          <p className="text-[12px] text-muted-foreground leading-relaxed">
-            {picked.process}
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Recent records */}
-      {recentIncidents.length > 0 && (
-        <motion.div className="px-5 mb-8" {...fade(0.26)}>
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
-              Recent
-            </h2>
-            <button
-              onClick={() => navigate('/timeline')}
-              className="flex items-center gap-0.5 text-[11px] font-medium text-primary"
-            >
-              View all
-              <ChevronRight className="h-3 w-3" />
-            </button>
+      {/* Support section */}
+      <motion.div className="px-5" {...fade(0.24)}>
+        <div className="text-center py-6 space-y-2">
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <Heart className="h-3.5 w-3.5 text-primary/50" strokeWidth={1.5} />
+            <p className="text-[12px] font-medium text-foreground/50">
+              Built with care
+            </p>
           </div>
-          <div className="space-y-2">
-            {recentIncidents.map(incident => (
-              <IncidentCard key={incident.id} incident={incident} compact />
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Community / support */}
-      <motion.div className="px-5" {...fade(0.32)}>
-        <div className="text-center py-5">
-          <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-            Built with care · Supported by early backers
+          <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+            Supported by early backers
           </p>
-          <p className="text-[10px] text-muted-foreground/35 mt-1">
+          <p className="text-[11px] text-muted-foreground/45">
             Thank you for being part of Project Chronicle
           </p>
         </div>
