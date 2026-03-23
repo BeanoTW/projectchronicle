@@ -254,7 +254,7 @@ const RecordScreen = () => {
         {aiSuggested && aiSummary && (
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground mb-3">A structured version of your account — review and edit before saving.</p>
+            <p className="text-[11px] text-muted-foreground mb-3">Review and edit before saving.</p>
             <p className="text-[15px] text-body leading-relaxed">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
@@ -369,7 +369,7 @@ const RecordScreen = () => {
 
             <div>
               <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Add names if anyone saw or heard this.</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present? Even if unnamed, this can help later.</p>
               <Input
                 id="witnesses"
                 value={witnesses}

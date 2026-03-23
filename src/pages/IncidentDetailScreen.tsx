@@ -203,10 +203,9 @@ const IncidentDetailScreen = () => {
 
         {/* AI Summary — secondary/supporting */}
         {incident.ai_summary && (
-          <div className="bg-muted/30 border border-border rounded-xl p-4">
-            <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground mb-2.5">A structured version of your account — for review only.</p>
-            <p className="text-[14px] text-body leading-relaxed">{incident.ai_summary}</p>
+          <div className="bg-muted/20 border border-border/60 rounded-xl p-4">
+            <div className="mb-1"><AILabel /></div>
+            <p className="text-[13px] text-body/80 leading-relaxed">{incident.ai_summary}</p>
           </div>
         )}
 

@@ -38,12 +38,17 @@ RULES:
 - Do NOT use legal conclusions such as: harassment, discrimination, victimisation, retaliation, constructive dismissal.
 - Do NOT modify the original narrative in any way.
 - Write the summary as a lightly structured version of the user's own words. Stay close to their original phrasing.
+- PREFER slight reordering of the user's words over rewriting them. Keep their vocabulary intact.
+- Keep exact phrases and key wording from the original account — especially anything in quotes or with strong phrasing.
+- Do NOT replace first-person ("me", "my", "I") with third-person ("the employee") unless absolutely necessary for clarity.
 - Use direct, natural phrasing: "On [date], [what happened]." or "During [context], [what happened]."
-- Do NOT use distancing phrases like "it is reported that", "the employee reports", "the employee states that", or "the worker discovered".
-- The summary should feel like cleaned-up notes, not a formal report or retelling from a third party.
-- Keep key phrases and important wording from the original account intact.
+- Do NOT use distancing phrases like "it is reported that", "the employee reports", "the employee states that", "the worker discovered", "continued to question you after".
+- The summary should feel like cleaned-up notes written by the person themselves, not a formal report or retelling from a third party.
 - Keep summaries concise and factual. Avoid emotional, interpretive, or overly polished language.
-- For the title: make it short, natural, and specific. Write it the way a person would describe the incident in conversation (e.g. "Manager questioned staff food" not "Interaction with Manager A regarding staff food authorisation").
+- For the title: make it short, specific, and include exact wording if available. Write it the way a person would describe the incident in conversation.
+  GOOD titles: "Manager A said I was 'too slow' in front of customers", "Colleague made comments about me in car"
+  BAD titles: "Interaction with Manager A regarding work pace", "Report of colleague conduct and verbal comments"
+  Avoid vague words like "interaction", "regarding", "report of", "incident involving".
 - For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern) and note if similar incidents exist. State facts only — no interpretation.`
           },
           {
@@ -75,8 +80,8 @@ RULES:
                     description: "Severity level based on impact described"
                   },
                   exact_words: { type: "string", description: "Any verbatim quotes found in the narrative, or null" },
-                  summary: { type: "string", description: "A lightly structured version of the user's account, staying close to their original wording. 2-3 sentences max." },
-                  title: { type: "string", description: "A short, natural title for the incident (under 8 words). Write it the way a person would say it." },
+                  summary: { type: "string", description: "A lightly structured version of the user's account using their own words. Prefer reordering over rewriting. Keep key phrases intact. 2-3 sentences max." },
+                  title: { type: "string", description: "A short, specific title (under 12 words). Include exact wording in quotes if available. Avoid vague words like 'interaction', 'regarding', 'report of'." },
                   potential_relevance: {
                     type: "array",
                     items: { type: "string" },
