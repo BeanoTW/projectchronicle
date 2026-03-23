@@ -15,6 +15,8 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
   const nodeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const rafRef = useRef<number>(0);
   const [mounted, setMounted] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
   useEffect(() => {
     setMounted(true);
