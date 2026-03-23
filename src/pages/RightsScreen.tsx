@@ -104,7 +104,7 @@ const RightsScreen = () => {
   const suggestedNextSteps = useMemo(() => {
     const steps: string[] = [];
     if (incidents.length >= 1) steps.push('Continue recording incidents as they happen');
-    if (incidents.length >= 3) steps.push('Review the Insights tab to see what's showing up in your records');
+    if (incidents.length >= 3) steps.push('Review the Insights tab to see what\'s showing up in your records');
     if (incidents.length >= 2) steps.push('Consider speaking to a union representative or workplace adviser');
     if (incidents.length >= 5) steps.push('Use the Export feature to create a structured summary you can share');
     return steps;
