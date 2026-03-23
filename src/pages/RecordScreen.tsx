@@ -396,9 +396,16 @@ const RecordScreen = () => {
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-5 mb-4 px-4 py-3 rounded-lg bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5 animate-fade-in">
-          <AlertTriangle className="h-4 w-4 text-warm-accent flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-warm-accent-foreground font-medium leading-relaxed">{similarPatternAlert}</p>
+        <div className="mx-5 mb-4 px-4 py-3.5 rounded-xl bg-warm-accent/[0.08] border border-warm-accent/25 flex items-start gap-2.5 shadow-sm animate-fade-in">
+          <div className="w-6 h-6 rounded-full bg-warm-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-warm-accent" />
+          </div>
+          <div>
+            <p className="text-[13px] text-warm-accent-foreground font-semibold leading-snug">
+              {similarPatternAlert.replace('incidents', 'records')}
+            </p>
+            <p className="text-[11px] text-warm-accent-foreground/60 mt-0.5">Pattern detected from your existing records</p>
+          </div>
         </div>
       )}
 
