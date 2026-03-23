@@ -1,7 +1,6 @@
-import { LogOut, Info, ShieldCheck, FileText, Download, HelpCircle, ChevronRight, Lock, Eye, Fingerprint } from 'lucide-react';
+import { LogOut, Info, ShieldCheck, Download, HelpCircle, ChevronRight, Lock, Eye, Fingerprint } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -29,142 +28,137 @@ const SettingsScreen = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Settings</h1>
+    <div className="min-h-screen bg-background pb-24 page-enter">
+      <div className="px-5 pt-8 pb-6">
+        <h1>Settings</h1>
       </div>
 
-      <div className="px-4 space-y-3">
-        {/* Your Record Summary */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-            </div>
-            Your record
-          </h2>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Total incidents</span>
-              <span className="text-sm font-medium text-foreground">{totalIncidents}</span>
-            </div>
-            {firstRecord && (
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">First record</span>
-                <span className="text-sm font-medium text-foreground">{format(new Date(firstRecord), 'd MMM yyyy')}</span>
-              </div>
-            )}
-            {lastUpdated && (
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Last updated</span>
-                <span className="text-sm font-medium text-foreground">{format(new Date(lastUpdated), 'd MMM yyyy')}</span>
-              </div>
-            )}
+      {/* Hero — Your Record */}
+      <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
+        <h2 className="text-[18px] font-bold text-foreground mb-1">Your record</h2>
+        <p className="text-[13px] text-muted-foreground mb-4">Your records are private and under your control.</p>
+        <div className="space-y-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[13px] text-muted-foreground">Total incidents</span>
+            <span className="text-[20px] font-bold text-foreground tabular-nums">{totalIncidents}</span>
           </div>
-        </div>
-
-        {/* Privacy & Control */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+          {firstRecord && (
+            <div className="flex justify-between items-baseline">
+              <span className="text-[13px] text-muted-foreground">First record</span>
+              <span className="text-[14px] font-medium text-foreground">{format(new Date(firstRecord), 'd MMM yyyy')}</span>
             </div>
-            Privacy & control
-          </h2>
-          <p className="text-xs text-muted-foreground mb-4">Your records are private and under your control.</p>
-          <div className="space-y-4">
+          )}
+          {lastUpdated && (
+            <div className="flex justify-between items-baseline">
+              <span className="text-[13px] text-muted-foreground">Last updated</span>
+              <span className="text-[14px] font-medium text-foreground">{format(new Date(lastUpdated), 'd MMM yyyy')}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Control */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">Control</p>
+
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* Privacy */}
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              <span className="text-[14px] font-semibold text-foreground">Privacy & control</span>
+            </div>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Lock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">Lock records after saving</span>
+                <span className="text-[14px] text-foreground">Lock records after saving</span>
               </div>
               <Switch />
             </div>
-            <div className="flex items-center justify-between opacity-50">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between opacity-40">
+              <div className="flex items-center gap-2.5">
                 <Fingerprint className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">Require PIN or biometric access</span>
+                <span className="text-[14px] text-foreground">Require PIN or biometric</span>
               </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Coming soon</span>
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
             </div>
-            <div className="flex items-center justify-between opacity-50">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between opacity-40">
+              <div className="flex items-center gap-2.5">
                 <Eye className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">Hide sensitive previews</span>
+                <span className="text-[14px] text-foreground">Hide sensitive previews</span>
               </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Coming soon</span>
+              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
             </div>
           </div>
-        </div>
 
-        {/* Export & Backup */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <Download className="h-3.5 w-3.5 text-primary" />
+          <div className="border-t border-border" />
+
+          {/* Export */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Download className="h-4 w-4 text-primary" />
+              <span className="text-[14px] font-semibold text-foreground">Export & backup</span>
             </div>
-            Export & backup
-          </h2>
-          <p className="text-xs text-muted-foreground mb-3">Your data belongs to you. Export it at any time.</p>
-          <div className="space-y-1">
+            <p className="text-[12px] text-muted-foreground mb-2">Your data belongs to you.</p>
             {['Export full record', 'Export timeline', 'Export individual incidents'].map((label) => (
               <button
                 key={label}
                 onClick={() => navigate('/export')}
-                className="w-full flex items-center justify-between py-2.5 text-sm text-foreground hover:bg-muted/50 rounded-lg px-2 transition-colors"
+                className="w-full flex items-center justify-between py-2.5 text-[14px] text-foreground hover:bg-muted/30 rounded-lg px-1 transition-colors"
               >
                 {label}
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
               </button>
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Guidance & Support */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <HelpCircle className="h-3.5 w-3.5 text-primary" />
+      {/* Support */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">Support</p>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <button
+            onClick={() => navigate('/rights')}
+            className="w-full flex items-center justify-between p-4 text-[14px] text-foreground hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex items-center gap-2.5">
+              <HelpCircle className="h-4 w-4 text-primary" />
+              <span>Rights & guidance</span>
             </div>
-            Guidance & support
-          </h2>
-          <p className="text-xs text-muted-foreground mb-3">Get help understanding your situation.</p>
-          <div className="space-y-1">
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          </button>
+        </div>
+      </div>
+
+      {/* Account */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">Account</p>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="p-4">
+            <p className="text-[12px] text-muted-foreground mb-0.5">Logged in as</p>
+            <p className="text-[14px] text-foreground font-medium">{user?.email}</p>
+          </div>
+          <div className="border-t border-border">
             <button
-              onClick={() => navigate('/rights')}
-              className="w-full flex items-center justify-between py-2.5 text-sm text-foreground hover:bg-muted/50 rounded-lg px-2 transition-colors"
+              onClick={handleLogout}
+              className="w-full flex items-center gap-2 p-4 text-[14px] text-destructive hover:bg-destructive/4 transition-colors"
             >
-              Rights & guidance
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <LogOut className="h-4 w-4" />
+              Log out
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Account */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Account</h2>
-          <p className="text-[11px] text-muted-foreground mb-1">Logged in as</p>
-          <p className="text-sm text-foreground font-medium mb-4">{user?.email}</p>
-          <Button
-            variant="ghost"
-            className="w-full text-muted-foreground h-10 rounded-xl hover:text-destructive hover:bg-destructive/5"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4 mr-2" /> Log out
-          </Button>
-        </div>
-
-        {/* About */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-              <Info className="h-3.5 w-3.5 text-primary" />
-            </div>
-            About
-          </h2>
-          <p className="text-xs text-muted-foreground leading-relaxed">This tool helps you capture and organise events clearly, as they happen.</p>
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1">It does not provide legal advice.</p>
-          <p className="text-[11px] text-muted-foreground mt-2">Project Chronicle · v0.1.0</p>
+      {/* About */}
+      <div className="mx-5 mb-8">
+        <p className="section-group-title">About</p>
+        <div className="px-1 space-y-1">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
+            This tool helps you capture and organise events clearly, as they happen. It does not provide legal advice.
+          </p>
+          <p className="text-[12px] text-muted-foreground/60">Project Chronicle · v0.1.0</p>
         </div>
       </div>
     </div>

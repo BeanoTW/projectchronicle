@@ -42,9 +42,7 @@ const ExportScreen = () => {
   const handleExport = async (exportType: string) => {
     setExporting(exportType);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-export', {
-        body: { exportType },
-      });
+      const { data, error } = await supabase.functions.invoke('generate-export', { body: { exportType } });
       if (error) throw error;
       const blob = new Blob([data], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
@@ -100,97 +98,98 @@ const ExportScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-4">
-        <h1 className="text-lg font-bold text-foreground tracking-tight">Export</h1>
+      <div className="px-5 pt-8 pb-5">
+        <h1>Export</h1>
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
 
       {/* Case Summary */}
-      <div className="px-5 mb-4">
-        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-          <div className="flex items-start gap-3">
-            <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-foreground">Your situation so far</h3>
-              <p className="text-[13px] text-body mt-0.5 leading-relaxed">A structured narrative combining all your incidents.</p>
-              
-              {caseNarrative ? (
-                <div className="mt-3 space-y-3">
-                  <div className="mb-1"><AILabel /></div>
-                  <h4 className="text-[14px] font-semibold text-foreground">{caseNarrative.title}</h4>
-                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.overview}</p>
-                  
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground mb-1">What happened over time</p>
-                    <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
-                  </div>
-
-                  {caseNarrative.key_individuals.length > 0 && (
-                    <div>
-                      <p className="text-[12px] font-semibold text-foreground mb-1">People involved</p>
-                      <div className="space-y-1.5">
-                        {caseNarrative.key_individuals.map((ind, i) => (
-                          <p key={i} className="text-[13px] text-body leading-relaxed">
-                            <span className="font-medium">{ind.name}</span> ({ind.involvement_count} incidents) — {ind.context}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground mb-1">Things that come up more than once</p>
-                    <p className="text-[13px] text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground mb-1">How this has affected you</p>
-                    <p className="text-[13px] text-body leading-relaxed">{caseNarrative.impact_summary}</p>
-                  </div>
-
-                  <button onClick={() => setCaseNarrative(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
+      <div className="mx-5 mb-5 bg-card border border-border rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-[15px] font-semibold text-foreground">Your situation so far</h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured narrative combining all your incidents.</p>
+            
+            {caseNarrative ? (
+              <div className="mt-3 space-y-3">
+                <div className="mb-1"><AILabel /></div>
+                <h4 className="text-[14px] font-semibold text-foreground">{caseNarrative.title}</h4>
+                <p className="text-[13px] text-body leading-relaxed">{caseNarrative.overview}</p>
+                
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground mb-1">What happened over time</p>
+                  <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
                 </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
-                  onClick={handleCaseNarrative}
-                  disabled={narrativeLoading || incidents.length < 2}
-                >
-                  {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate Summary</>}
-                </Button>
-              )}
-            </div>
+
+                {caseNarrative.key_individuals.length > 0 && (
+                  <div>
+                    <p className="text-[12px] font-semibold text-foreground mb-1">People involved</p>
+                    <div className="space-y-1.5">
+                      {caseNarrative.key_individuals.map((ind, i) => (
+                        <p key={i} className="text-[13px] text-body leading-relaxed">
+                          <span className="font-medium">{ind.name}</span> ({ind.involvement_count} incidents) — {ind.context}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground mb-1">Things that come up more than once</p>
+                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
+                </div>
+
+                <div>
+                  <p className="text-[12px] font-semibold text-foreground mb-1">How this has affected you</p>
+                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.impact_summary}</p>
+                </div>
+
+                <button onClick={() => setCaseNarrative(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
+                onClick={handleCaseNarrative}
+                disabled={narrativeLoading || incidents.length < 2}
+              >
+                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate Summary</>}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="px-5 space-y-2">
-        {exportTypes.map(({ key, title, description, icon: Icon, disabled }) => (
-          <div key={key} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <div className="flex items-start gap-3">
-              <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
-                <p className="text-[13px] text-body mt-0.5 leading-relaxed">{description}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
-                  disabled={disabled || exporting === key}
-                  onClick={() => handleExport(key)}
-                >
-                  {exporting === key ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
-                </Button>
+      <div className="mx-5">
+        <p className="section-group-title">Export options</p>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {exportTypes.map(({ key, title, description, icon: Icon, disabled }, i) => (
+            <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+              <div className="flex items-start gap-3">
+                <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
+                  <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
+                    disabled={disabled || exporting === key}
+                    onClick={() => handleExport(key)}
+                  >
+                    {exporting === key ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="mx-5 mt-6 mb-4 p-4 rounded-lg bg-muted/40 border border-border/50">
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+      <div className="mx-5 mt-6 mb-4 px-1">
+        <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
           This tool supports record-keeping and organisation. It does not provide legal advice.
         </p>
       </div>
