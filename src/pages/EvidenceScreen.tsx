@@ -36,10 +36,7 @@ const EvidenceScreen = () => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = activeFilter === 'all'
-    ? allEvidence
-    : allEvidence.filter(e => e.file_type === activeFilter);
-
+  const filtered = activeFilter === 'all' ? allEvidence : allEvidence.filter(e => e.file_type === activeFilter);
   const unlinkedCount = allEvidence.filter(e => !e.incident_id).length;
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,10 +52,7 @@ const EvidenceScreen = () => {
 
   const handleLinkEvidence = async (evidenceId: string, incidentId: string) => {
     try {
-      const { error } = await supabase
-        .from('evidence_files')
-        .update({ incident_id: incidentId })
-        .eq('id', evidenceId);
+      const { error } = await supabase.from('evidence_files').update({ incident_id: incidentId }).eq('id', evidenceId);
       if (error) throw error;
       toast({ title: 'Evidence linked to incident' });
       setLinkingId(null);
@@ -70,15 +64,15 @@ const EvidenceScreen = () => {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
 
   if (allEvidence.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
         <div className="px-5 pt-8 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-foreground tracking-tight">Evidence</h1>
-          <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg cursor-pointer shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow">
+          <h1>Evidence</h1>
+          <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-[12px] font-medium rounded-lg cursor-pointer shadow-[var(--shadow-card)] active:scale-[0.97] transition-transform">
             <Plus className="h-3.5 w-3.5" /> Upload
             <input type="file" className="hidden" onChange={handleUpload} />
           </label>
@@ -95,26 +89,26 @@ const EvidenceScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <div className="px-5 pt-8 pb-3 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-foreground tracking-tight">Evidence</h1>
-        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg cursor-pointer shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow active:scale-[0.97]">
+        <h1>Evidence</h1>
+        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-[12px] font-medium rounded-lg cursor-pointer shadow-[var(--shadow-card)] active:scale-[0.97] transition-transform">
           <Plus className="h-3.5 w-3.5" /> Upload
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
         </label>
       </div>
 
       {unlinkedCount > 0 && (
-        <div className="mx-5 mb-4 px-4 py-2.5 rounded-lg bg-warm-accent-light border border-warm-accent/10 text-warm-accent-foreground text-xs font-medium">
+        <div className="mx-5 mb-4 px-4 py-2.5 rounded-lg bg-warm-accent-light border border-warm-accent/15 text-warm-accent-foreground text-[12px] font-medium">
           {unlinkedCount} file{unlinkedCount > 1 ? 's' : ''} not yet linked to an incident
         </div>
       )}
 
       <div className="px-5 pb-3 overflow-x-auto">
-        <div className="flex gap-1.5 min-w-max">
+        <div className="flex gap-1 min-w-max">
           {filterTabs.map(tab => (
             <button
               key={tab.value}
               onClick={() => setActiveFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded text-[12px] font-medium transition-colors ${
                 activeFilter === tab.value
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
@@ -126,16 +120,16 @@ const EvidenceScreen = () => {
         </div>
       </div>
 
-      <div className="px-5 space-y-2">
-        {filtered.map(ev => {
+      <div className="mx-5 bg-card border border-border rounded-xl overflow-hidden">
+        {filtered.map((ev, i) => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
-          const linkedIncident = incidents.find(i => i.id === ev.incident_id);
+          const linkedIncident = incidents.find(inc => inc.id === ev.incident_id);
           const isLinking = linkingId === ev.id;
 
           return (
-            <div key={ev.id} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <div key={ev.id} className={`p-4 ${i > 0 ? 'border-t border-border' : ''}`}>
               <div className="flex gap-3">
-                <div className="w-9 h-9 bg-muted/60 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -143,29 +137,26 @@ const EvidenceScreen = () => {
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/8 text-primary border border-primary/12">
                       E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                     </span>
-                    <p className="text-sm font-medium text-foreground truncate">{ev.file_name}</p>
+                    <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
                     {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                   </p>
                   {linkedIncident ? (
-                    <p className="text-xs text-primary mt-1 truncate">
+                    <p className="text-[12px] text-primary mt-1 truncate">
                       Linked: {linkedIncident.title || 'Untitled'}
                     </p>
                   ) : (
                     <div className="mt-1.5">
-                      <p className="text-xs text-warm-accent-foreground font-medium">Not yet linked to an incident</p>
+                      <p className="text-[12px] text-warm-accent-foreground font-medium">Not yet linked</p>
                       {!isLinking ? (
-                        <button
-                          onClick={() => setLinkingId(ev.id)}
-                          className="mt-1 inline-flex items-center gap-1 text-xs text-primary font-medium"
-                        >
+                        <button onClick={() => setLinkingId(ev.id)} className="mt-1 inline-flex items-center gap-1 text-[12px] text-primary font-medium">
                           <Link2 className="h-3 w-3" /> Link to incident
                         </button>
                       ) : (
                         <div className="mt-2 flex gap-2 items-center">
                           <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
-                            <SelectTrigger className="bg-card text-xs h-8 flex-1 rounded-lg">
+                            <SelectTrigger className="bg-card text-[12px] h-8 flex-1 rounded-lg">
                               <SelectValue placeholder="Select incident" />
                             </SelectTrigger>
                             <SelectContent>
@@ -176,13 +167,13 @@ const EvidenceScreen = () => {
                               ))}
                             </SelectContent>
                           </Select>
-                          <button onClick={() => selectedIncidentId && handleLinkEvidence(ev.id, selectedIncidentId)} disabled={!selectedIncidentId} className="text-xs text-primary font-medium disabled:opacity-40">Link</button>
-                          <button onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }} className="text-xs text-muted-foreground">Cancel</button>
+                          <button onClick={() => selectedIncidentId && handleLinkEvidence(ev.id, selectedIncidentId)} disabled={!selectedIncidentId} className="text-[12px] text-primary font-medium disabled:opacity-40">Link</button>
+                          <button onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }} className="text-[12px] text-muted-foreground">Cancel</button>
                         </div>
                       )}
                     </div>
                   )}
-                  {ev.description && <p className="text-xs text-body mt-1.5 leading-relaxed">{ev.description}</p>}
+                  {ev.description && <p className="text-[12px] text-body mt-1.5 leading-relaxed">{ev.description}</p>}
                 </div>
               </div>
             </div>

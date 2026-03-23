@@ -27,9 +27,7 @@ const InsightsScreen = () => {
     const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
     sorted.forEach(i => {
       i.people_involved.forEach(p => {
-        if (!peopleData[p]) {
-          peopleData[p] = { count: 0, firstDate: i.incident_date, lastDate: i.incident_date };
-        }
+        if (!peopleData[p]) peopleData[p] = { count: 0, firstDate: i.incident_date, lastDate: i.incident_date };
         peopleData[p].count++;
         peopleData[p].lastDate = i.incident_date;
       });
@@ -43,18 +41,14 @@ const InsightsScreen = () => {
   const categoryPatterns = useMemo(() => {
     const catCounts: Record<string, number> = {};
     incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
-    return Object.entries(catCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([category, count]) => ({ category, count }));
+    return Object.entries(catCounts).sort((a, b) => b[1] - a[1]).map(([category, count]) => ({ category, count }));
   }, [incidents]);
 
   const concentratedPeriod = useMemo(() => {
     if (incidents.length < 3) return null;
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
-      if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        return '3 incidents were recorded within a 7-day period';
-      }
+      if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) return '3 incidents were recorded within a 7-day period';
     }
     return null;
   }, [incidents]);
@@ -78,9 +72,7 @@ const InsightsScreen = () => {
       result.push(`These records include ${count} incidents involving ${name} between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
     });
     const topCat = categoryPatterns[0];
-    if (topCat && topCat.count >= 3) {
-      result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
-    }
+    if (topCat && topCat.count >= 3) result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
     if (concentratedPeriod) result.push(concentratedPeriod);
     return result;
   }, [keyIndividuals, categoryPatterns, concentratedPeriod]);
@@ -89,9 +81,7 @@ const InsightsScreen = () => {
     if (patterns.length === 0) return;
     setAiLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('summarise-patterns', {
-        body: { patterns },
-      });
+      const { data, error } = await supabase.functions.invoke('summarise-patterns', { body: { patterns } });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
       setAiSummaries(data.summaries || []);
@@ -115,59 +105,52 @@ const InsightsScreen = () => {
   }, [incidents]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
 
   if (incidents.length < 2) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8"><h1 className="text-lg font-bold text-foreground tracking-tight">Insights</h1></div>
-        <EmptyState
-          icon={<BarChart3 className="h-10 w-10" />}
-          heading="Not enough data yet"
-          body="Record more incidents to see what's showing up in your records."
-        />
+        <div className="px-5 pt-8"><h1>Insights</h1></div>
+        <EmptyState icon={<BarChart3 className="h-10 w-10" />} heading="Not enough data yet" body="Record more incidents to see what's showing up in your records." />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-4">
-        <h1 className="text-lg font-bold text-foreground tracking-tight">Insights</h1>
+      <div className="px-5 pt-8 pb-5">
+        <h1>Insights</h1>
         <p className="text-[13px] text-muted-foreground mt-1">A summary of what you've recorded so far.</p>
       </div>
 
       {/* Overview — structured findings */}
-      <div className="px-5 mb-6">
-        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)] space-y-2.5">
-          <div className="flex items-center gap-2 text-[14px]">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-foreground"><span className="font-semibold">{totalIncidents}</span> incidents recorded</span>
+      <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-[22px] font-bold text-foreground tabular-nums">{totalIncidents}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">incidents</p>
           </div>
-          <div className="flex items-center gap-2 text-[14px]">
-            <FileText className="h-4 w-4 text-muted-foreground" />
-            <span className="text-foreground"><span className="font-semibold">{withEvidence}</span> include evidence</span>
+          <div>
+            <p className="text-[22px] font-bold text-foreground tabular-nums">{withEvidence}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">with evidence</p>
           </div>
-          <div className="flex items-center gap-2 text-[14px]">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-foreground"><span className="font-semibold">{withWitnesses}</span> include witnesses</span>
+          <div>
+            <p className="text-[22px] font-bold text-foreground tabular-nums">{withWitnesses}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">with witnesses</p>
           </div>
         </div>
       </div>
 
-      <div className="px-5 space-y-4">
+      <div className="mx-5 space-y-4">
         {/* People involved */}
         {keyIndividuals.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              People involved
-            </h2>
-            <div className="space-y-2.5">
+          <div>
+            <p className="section-group-title">People involved</p>
+            <div className="bg-card border border-border rounded-xl p-4 space-y-2.5">
               {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
                 <p key={name} className="text-[14px] text-body leading-relaxed">
-                  <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
+                  <span className="font-medium text-foreground">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
                 </p>
               ))}
             </div>
@@ -176,92 +159,82 @@ const InsightsScreen = () => {
 
         {/* Patterns */}
         {categoryPatterns.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              Things showing up in your records
-            </h2>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {categoryPatterns.slice(0, 5).map(({ category, count }) => (
-                <span key={category} className="px-2.5 py-1 rounded-md text-[12px] font-medium bg-primary/6 text-primary border border-primary/12">
-                  {category} ({count})
-                </span>
-              ))}
-            </div>
-
-            {concentratedPeriod && (
-              <p className="text-[14px] text-body leading-relaxed mb-3">{concentratedPeriod}</p>
-            )}
-
-            {patterns.length > 0 && (
-              <div className="space-y-2 pt-3 border-t border-border">
-                {patterns.map((p, i) => (
-                  <p key={i} className="text-[14px] text-body leading-relaxed">{p}</p>
+          <div>
+            <p className="section-group-title">Things showing up in your records</p>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {categoryPatterns.slice(0, 5).map(({ category, count }) => (
+                  <span key={category} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/6 text-primary border border-primary/12">
+                    {category} ({count})
+                  </span>
                 ))}
               </div>
-            )}
 
-            {aiSummaries.length > 0 ? (
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="mb-2"><AILabel /></div>
-                <div className="space-y-2">
-                  {aiSummaries.map((s, i) => (
-                    <p key={i} className="text-[14px] text-body leading-relaxed">{s}</p>
+              {concentratedPeriod && (
+                <p className="text-[13px] text-body leading-relaxed mb-3">{concentratedPeriod}</p>
+              )}
+
+              {patterns.length > 0 && (
+                <div className="space-y-2 pt-3 border-t border-border">
+                  {patterns.map((p, i) => (
+                    <p key={i} className="text-[13px] text-body leading-relaxed">{p}</p>
                   ))}
                 </div>
-              </div>
-            ) : patterns.length > 0 ? (
-              <button
-                onClick={handleAiSummarise}
-                disabled={aiLoading}
-                className="mt-3 text-[13px] text-primary font-medium flex items-center gap-1.5"
-              >
-                {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
-              </button>
-            ) : null}
+              )}
+
+              {aiSummaries.length > 0 ? (
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="mb-2"><AILabel /></div>
+                  <div className="space-y-2">
+                    {aiSummaries.map((s, i) => (
+                      <p key={i} className="text-[13px] text-body leading-relaxed">{s}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : patterns.length > 0 ? (
+                <button onClick={handleAiSummarise} disabled={aiLoading} className="mt-3 text-[13px] text-primary font-medium flex items-center gap-1.5">
+                  {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
 
         {/* When things are happening */}
         {chartData.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              When things are happening
-            </h2>
-            <div className="h-40">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {chartData.map((_, index) => (
-                      <Cell key={index} fill="hsl(var(--primary))" />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+          <div>
+            <p className="section-group-title">When things are happening</p>
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="h-36">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
+                    <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                      {chartData.map((_, index) => (
+                        <Cell key={index} fill="hsl(var(--primary))" />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
 
         {/* Gaps */}
         {dataGaps.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-muted-foreground" />
-              Things you could add
-              <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
-            </h2>
-            <div className="space-y-2">
+          <div>
+            <p className="section-group-title">Things you could add <span className="font-normal normal-case tracking-normal">(optional)</span></p>
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
               {dataGaps.map((gap, i) => (
                 <button
                   key={i}
                   onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                  className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2.5 -mx-1 transition-colors"
+                  className={`w-full flex items-start justify-between gap-2 text-left p-4 hover:bg-muted/30 transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
                 >
                   <div>
-                    <p className="text-[14px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label}</p>
+                    <p className="text-[14px] text-foreground">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label}</p>
                     <p className="text-[12px] text-primary mt-0.5 flex items-center gap-1">
                       <ArrowRight className="h-3 w-3" /> {gap.action}
                     </p>

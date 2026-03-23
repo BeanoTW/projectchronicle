@@ -67,7 +67,7 @@ const TimelineScreen = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground text-[14px]">Loading...</p>
       </div>
     );
   }
@@ -76,7 +76,7 @@ const TimelineScreen = () => {
     return (
       <div className="min-h-screen bg-background pb-24">
         <div className="px-5 pt-8">
-          <h1 className="text-lg font-bold text-foreground tracking-tight">Timeline</h1>
+          <h1>Timeline</h1>
         </div>
         <EmptyState
           icon={<CalendarDays className="h-10 w-10" />}
@@ -89,9 +89,9 @@ const TimelineScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-4">
+      <div className="px-5 pt-8 pb-5">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-lg font-bold text-foreground tracking-tight">Timeline</h1>
+          <h1>Timeline</h1>
           <div className="flex items-center gap-2">
             <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
@@ -101,14 +101,14 @@ const TimelineScreen = () => {
       </div>
 
       {gapFilter && (
-        <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-primary/6 text-primary text-[13px] font-medium flex items-center justify-between border border-primary/12">
+        <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
           <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
           <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
         </div>
       )}
 
       {!chronologyMode && (
-        <div className="px-5 pb-3">
+        <div className="px-5 pb-4">
           <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
             <SelectTrigger className="bg-card text-[13px] h-10 rounded-lg border-border">
               <SelectValue placeholder="Category" />
@@ -128,11 +128,11 @@ const TimelineScreen = () => {
           <div className="pl-6 timeline-spine space-y-3 pt-2">
             {incidents.map(inc => (
               <div key={inc.id} className="timeline-node text-[14px] leading-relaxed pl-3 py-1">
-                <span className="text-muted-foreground text-[12px]">{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
-                <span className="mx-1.5 text-muted-foreground/40">—</span>
+                <span className="text-muted-foreground/70 text-[12px]">{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
+                <span className="mx-1.5 text-muted-foreground/30">—</span>
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
-                  <span className="ml-2 text-[11px] text-warm-accent-foreground font-medium">• Repeated behaviour</span>
+                  <span className="ml-2 text-[11px] text-warm-accent-foreground font-medium">· Repeated behaviour</span>
                 )}
               </div>
             ))}
