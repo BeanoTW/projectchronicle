@@ -76,10 +76,10 @@ const InsightsScreen = () => {
   const patterns = useMemo(() => {
     const result: string[] = [];
     keyIndividuals.forEach(({ name, count, firstDate, lastDate }) => {
-      result.push(`These records include ${count} incidents involving ${name} between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
+      result.push(`${name} appears in ${count} incidents (${format(parseISO(firstDate), 'MMM yyyy')} – ${format(parseISO(lastDate), 'MMM yyyy')}).`);
     });
     const topCat = categoryPatterns[0];
-    if (topCat && topCat.count >= 3) result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
+    if (topCat && topCat.count >= 3) result.push(`${topCat.category} appears most frequently in your records.`);
     if (concentratedPeriod) result.push(concentratedPeriod);
     return result;
   }, [keyIndividuals, categoryPatterns, concentratedPeriod]);
@@ -126,14 +126,14 @@ const InsightsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Insights" subtitle="A summary of what you've recorded so far." />
+      <PageHeader title="Insights" subtitle="What your records show so far." />
 
       {/* Overview stats */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-[22px] font-bold text-foreground tabular-nums">{totalIncidents}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">incidents</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">recorded</p>
           </div>
           <div>
             <p className="text-[22px] font-bold text-foreground tabular-nums">{withEvidence}</p>
@@ -144,6 +144,12 @@ const InsightsScreen = () => {
             <p className="text-[11px] text-muted-foreground mt-0.5">with witnesses</p>
           </div>
         </div>
+        {/* Evidence nudge */}
+        {withEvidence < totalIncidents && (
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-3 pt-3 border-t border-border/50">
+            {totalIncidents - withEvidence} incident{totalIncidents - withEvidence > 1 ? 's' : ''} currently {totalIncidents - withEvidence > 1 ? 'have' : 'has'} no evidence attached
+          </p>
+        )}
       </div>
 
       {/* Accordion sections */}
