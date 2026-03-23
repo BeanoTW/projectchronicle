@@ -16,6 +16,8 @@ import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/S
 import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
+import { useUploadEvidence } from '@/hooks/useEvidence';
 
 const categories = [
   'Verbal Comment', 'Written Communication', 'Safety Concern',
