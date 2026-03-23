@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
