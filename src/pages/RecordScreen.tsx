@@ -229,7 +229,7 @@ const RecordScreen = () => {
             id="narrative"
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
-            placeholder="Include what happened, who was present, and anything said."
+            placeholder="Write what happened in your own words — include anything said, done, or noticed."
             className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary text-[15px] leading-relaxed"
           />
           {narrative.length > 0 && (
