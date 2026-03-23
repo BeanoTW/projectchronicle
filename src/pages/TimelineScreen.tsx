@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
