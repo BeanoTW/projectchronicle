@@ -88,7 +88,7 @@ const TimelineScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-timeline pb-24">
       <div className="px-4 pt-6 pb-3">
         <div className="flex items-center justify-between mb-1.5">
           <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
