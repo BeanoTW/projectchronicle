@@ -33,6 +33,8 @@ const RecordScreen = () => {
   const createIncident = useCreateIncident();
   const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
+  const uploadEvidence = useUploadEvidence();
+  const [transcribing, setTranscribing] = useState(false);
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   const [showManualForm, setShowManualForm] = useState(false);
