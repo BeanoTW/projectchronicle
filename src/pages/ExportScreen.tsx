@@ -165,22 +165,31 @@ const ExportScreen = () => {
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {exportTypes.map(({ key, title, description, icon: Icon, disabled }, i) => (
-            <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''}`}>
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon }, i) => (
+            <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
                   <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
-                    disabled={disabled || exporting === key}
-                    onClick={() => handleExport(key)}
-                  >
-                    {exporting === key ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
-                  </Button>
+                  {comingSoon ? (
+                    <div className="mt-3">
+                      <span className="inline-flex items-center text-[12px] text-muted-foreground font-medium bg-muted px-3 py-1.5 rounded-lg">
+                        Coming soon
+                      </span>
+                      <p className="text-[11px] text-muted-foreground/50 mt-1.5">This feature is still being built</p>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
+                      disabled={exporting === key}
+                      onClick={() => handleExport(key)}
+                    >
+                      {exporting === key ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

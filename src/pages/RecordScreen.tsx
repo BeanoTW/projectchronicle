@@ -333,8 +333,16 @@ const RecordScreen = () => {
           <div className="w-24 h-24 rounded-full bg-muted/30 border border-border flex items-center justify-center mb-4 opacity-30 cursor-not-allowed">
             <Mic className="h-10 w-10 text-muted-foreground" />
           </div>
-          <p className="text-[13px] text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
-          <p className="text-[12px] text-muted-foreground/50">Use text entry to record your incident</p>
+          <p className="text-[13px] text-muted-foreground font-medium mb-1">Voice recording coming soon</p>
+          <p className="text-[12px] text-muted-foreground/50 mb-3">Use text entry to record your incident</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[13px]"
+            onClick={() => setMode('text')}
+          >
+            <Keyboard className="h-3.5 w-3.5 mr-1.5" /> Switch to text
+          </Button>
         </div>
       )}
 
