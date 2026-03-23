@@ -93,24 +93,24 @@ const TimelineScreen = () => {
         <div className="flex items-center justify-between mb-1.5">
           <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
           <div className="flex items-center gap-2">
-            <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
+            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">Sort by incident date (when events happened).</p>
+        <p className="text-[12px] text-muted-foreground">Sorted by when events happened.</p>
       </div>
 
       {gapFilter && (
-        <div className="mx-4 mb-2.5 px-3 py-2 rounded-xl bg-primary/8 text-primary text-xs font-medium flex items-center justify-between border border-primary/15">
+        <div className="mx-4 mb-3 px-3.5 py-2.5 rounded-xl bg-primary/8 text-primary text-[13px] font-medium flex items-center justify-between border border-primary/15">
           <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
-          <button onClick={() => setGapFilter(null)} className="text-xs underline">Clear</button>
+          <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
         </div>
       )}
 
       {!chronologyMode && (
         <div className="px-4 py-2">
           <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
-            <SelectTrigger className="bg-card text-xs h-9 rounded-xl">
+            <SelectTrigger className="bg-card text-[13px] h-10 rounded-xl">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -125,14 +125,14 @@ const TimelineScreen = () => {
 
       <div className="px-4 space-y-4">
         {chronologyMode ? (
-          <div className="space-y-2.5 pt-2">
+          <div className="space-y-3 pt-2">
             {incidents.map(inc => (
-              <div key={inc.id} className="text-sm leading-relaxed">
+              <div key={inc.id} className="text-[14px] leading-relaxed">
                 <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
-                  <span className="ml-2 text-[10px] text-severity-serious font-medium">• Repeated behaviour</span>
+                  <span className="ml-2 text-[11px] text-severity-serious font-medium">• Repeated behaviour</span>
                 )}
               </div>
             ))}
@@ -140,7 +140,7 @@ const TimelineScreen = () => {
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month}>
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{month}</h2>
+              <h2 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">{month}</h2>
               <div className="space-y-2.5">
                 {items.map(inc => (
                   <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />

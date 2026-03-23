@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2, Shield, Eye, ArrowRight } from 'lucide-react';
+import { BarChart3, FileText, Users, TrendingUp, Loader2, Shield, Eye, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -68,13 +68,13 @@ const InsightsScreen = () => {
   const dataGaps = useMemo(() => {
     const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
     const noEvidence = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
-    if (noEvidence > 0) gaps.push({ label: 'Missing evidence', count: noEvidence, action: 'Add evidence to strengthen records', filterKey: 'no-evidence' });
+    if (noEvidence > 0) gaps.push({ label: 'missing evidence', count: noEvidence, action: 'Add evidence to strengthen records', filterKey: 'no-evidence' });
     const noWitness = incidents.filter(i => i.witnesses.length === 0).length;
-    if (noWitness > 0) gaps.push({ label: 'Missing witnesses', count: noWitness, action: 'Consider adding witnesses', filterKey: 'no-witnesses' });
+    if (noWitness > 0) gaps.push({ label: 'missing witnesses', count: noWitness, action: 'Add witnesses if available', filterKey: 'no-witnesses' });
     const noExactWords = incidents.filter(i => !i.exact_words).length;
-    if (noExactWords > 0) gaps.push({ label: 'Missing exact wording', count: noExactWords, action: 'Add exact wording if remembered', filterKey: 'no-exact-words' });
+    if (noExactWords > 0) gaps.push({ label: 'missing exact wording', count: noExactWords, action: 'Add exact wording if remembered', filterKey: 'no-exact-words' });
     const noImpact = incidents.filter(i => !i.impact_note).length;
-    if (noImpact > 0) gaps.push({ label: 'Missing impact notes', count: noImpact, action: 'Add impact details if relevant', filterKey: 'no-impact' });
+    if (noImpact > 0) gaps.push({ label: 'missing impact notes', count: noImpact, action: 'Add impact details if relevant', filterKey: 'no-impact' });
     return gaps;
   }, [incidents, allEvidence]);
 
@@ -138,48 +138,48 @@ const InsightsScreen = () => {
   }
 
   const overviewCards = [
-    { label: 'Total', value: totalIncidents, icon: FileText },
+    { label: 'Total incidents', value: totalIncidents, icon: FileText },
     { label: 'With evidence', value: withEvidence, icon: FileText },
     { label: 'With witnesses', value: withWitnesses, icon: Users },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="px-4 pt-6 pb-2">
+      <div className="px-4 pt-6 pb-3">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[13px] text-muted-foreground mt-1.5">A summary of what's showing up in your records.</p>
+        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">What's showing up across your records.</p>
       </div>
 
       {/* Overview */}
-      <div className="px-4 grid grid-cols-3 gap-2 mb-4">
+      <div className="px-4 grid grid-cols-3 gap-2.5 mb-5">
         {overviewCards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-3 text-center shadow-[var(--shadow-card)]">
-            <Icon className="h-4 w-4 text-primary mx-auto mb-1.5 opacity-70" />
-            <p className="text-lg font-bold text-foreground">{value}</p>
-            <p className="text-[11px] text-muted-foreground">{label}</p>
+          <div key={label} className="bg-card border border-border rounded-xl p-3.5 text-center shadow-[var(--shadow-card)]">
+            <Icon className="h-4 w-4 text-primary mx-auto mb-2 opacity-70" />
+            <p className="text-xl font-bold text-foreground">{value}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Accordion sections */}
       <div className="mx-4 mb-4">
-        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2">
+        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2.5">
 
           {/* People involved */}
           {keyIndividuals.length > 0 && (
             <AccordionItem value="people" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <Users className="h-4 w-4 text-primary flex-shrink-0" />
                   People involved
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4">
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
                     <div key={name} className="flex items-start gap-2.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
-                      <p className="text-[13px] text-body leading-relaxed">
+                      <p className="text-[14px] text-body leading-relaxed">
                         <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
                       </p>
                     </div>
@@ -192,7 +192,7 @@ const InsightsScreen = () => {
           {/* Types of situations */}
           {categoryPatterns.length > 0 && (
             <AccordionItem value="patterns" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <Eye className="h-4 w-4 text-primary flex-shrink-0" />
                   Things showing up in your records
@@ -201,23 +201,23 @@ const InsightsScreen = () => {
               <AccordionContent className="px-3 pb-4">
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {categoryPatterns.slice(0, 5).map(({ category, count }) => (
-                    <span key={category} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/8 text-primary border border-primary/15">
+                    <span key={category} className="px-2.5 py-1 rounded-full text-[12px] font-medium bg-primary/8 text-primary border border-primary/15">
                       {category} ({count})
                     </span>
                   ))}
                 </div>
 
                 {concentratedPeriod && (
-                  <p className="text-[13px] text-body leading-relaxed mb-3">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block mr-2 relative top-[-1px]" />
+                  <p className="text-[14px] text-body leading-relaxed mb-3 flex items-start gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
                     {concentratedPeriod}
                   </p>
                 )}
 
                 {patterns.length > 0 && (
-                  <div className="space-y-2 pt-3 border-t border-border/60">
+                  <div className="space-y-2.5 pt-3 border-t border-border/60">
                     {patterns.map((p, i) => (
-                      <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
+                      <p key={i} className="text-[14px] text-body leading-relaxed flex items-start gap-2.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
                         {p}
                       </p>
@@ -228,9 +228,9 @@ const InsightsScreen = () => {
                 {aiSummaries.length > 0 ? (
                   <div className="mt-3 pt-3 border-t border-border/60">
                     <div className="mb-2"><AILabel /></div>
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {aiSummaries.map((s, i) => (
-                        <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
+                        <p key={i} className="text-[14px] text-body leading-relaxed flex items-start gap-2.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-ai-label/60 flex-shrink-0 mt-[7px]" />
                           {s}
                         </p>
@@ -253,18 +253,18 @@ const InsightsScreen = () => {
           {/* When things are happening */}
           {chartData.length > 0 && (
             <AccordionItem value="timing" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
                   When things are happening
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4">
-                <div className="h-40">
+                <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} width={24} />
                       <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                         {chartData.map((_, index) => (
                           <Cell key={index} fill="hsl(var(--primary))" />
@@ -280,11 +280,11 @@ const InsightsScreen = () => {
           {/* Gaps in your records */}
           {dataGaps.length > 0 && (
             <AccordionItem value="gaps" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <Shield className="h-4 w-4 text-severity-serious flex-shrink-0" />
                   Things you could add
-                  <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                  <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4">
@@ -293,11 +293,11 @@ const InsightsScreen = () => {
                     <button
                       key={i}
                       onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                      className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2.5 -mx-1 transition-colors"
+                      className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-xl p-3 -mx-1 transition-colors"
                     >
                       <div>
-                        <p className="text-[13px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
-                        <p className="text-[12px] text-primary mt-0.5 flex items-center gap-1">
+                        <p className="text-[14px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label}</p>
+                        <p className="text-[12px] text-primary mt-1 flex items-center gap-1.5">
                           <ArrowRight className="h-3 w-3" /> {gap.action}
                         </p>
                       </div>

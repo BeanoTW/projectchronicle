@@ -29,7 +29,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a workplace incident structuring assistant for Project Chronicle. Your job is to extract factual structured data from a worker's narrative account of a workplace incident.
+            content: `You are a workplace incident structuring assistant for Project Chronicle. Your job is to extract factual structured data from a worker's account of a workplace incident.
 
 RULES:
 - Extract facts only. Return null or blank where uncertain — do not guess.
@@ -37,13 +37,14 @@ RULES:
 - Do NOT classify behaviour as unlawful.
 - Do NOT use legal conclusions such as: harassment, discrimination, victimisation, retaliation, constructive dismissal.
 - Do NOT modify the original narrative in any way.
-- Write the summary using direct, neutral phrasing. Use the format: "On [date], [event description]." or "During this incident, [what happened]."
-- Do NOT use distancing phrases like "it is reported that", "the employee reports", or "the worker discovered".
-- The summary should read as a clear, direct account — not a retelling from a third party.
-- Keep summaries concise, factual, and suitable for formal documentation. Avoid casual, emotional, or interpretive language.
-- Do NOT state impact as fact without context from the narrative.
-- Do NOT use phrases like "the worker discovered", "the employee felt", or any emotional/interpretive phrasing.
-- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use observational language only — not legal advice. Do NOT use "this may indicate", "suggests", "this could reflect", or "appears to show intent". State facts only.`
+- Write the summary as a lightly structured version of the user's own words. Stay close to their original phrasing.
+- Use direct, natural phrasing: "On [date], [what happened]." or "During [context], [what happened]."
+- Do NOT use distancing phrases like "it is reported that", "the employee reports", "the employee states that", or "the worker discovered".
+- The summary should feel like cleaned-up notes, not a formal report or retelling from a third party.
+- Keep key phrases and important wording from the original account intact.
+- Keep summaries concise and factual. Avoid emotional, interpretive, or overly polished language.
+- For the title: make it short, natural, and specific. Write it the way a person would describe the incident in conversation (e.g. "Manager questioned staff food" not "Interaction with Manager A regarding staff food authorisation").
+- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern) and note if similar incidents exist. State facts only — no interpretation.`
           },
           {
             role: "user",
@@ -62,7 +63,7 @@ RULES:
                   incident_date: { type: "string", description: "Date of the incident in YYYY-MM-DD format, or null if not mentioned" },
                   incident_time: { type: "string", description: "Time of the incident in HH:MM format, or null if not mentioned" },
                   location: { type: "string", description: "Where the incident took place, or null if not mentioned" },
-                  people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved (including witnesses)" },
+                  people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
                   category: {
                     type: "string",
                     enum: ["Verbal Comment", "Written Communication", "Safety Concern", "Scheduling or Shift Change", "Disciplinary Meeting", "Management Conduct", "Pay or Payroll Issue", "Policy Application", "Workplace Meeting", "Other"],
@@ -74,12 +75,12 @@ RULES:
                     description: "Severity level based on impact described"
                   },
                   exact_words: { type: "string", description: "Any verbatim quotes found in the narrative, or null" },
-                  summary: { type: "string", description: "A formal, evidence-ready factual summary of the incident (2-3 sentences max). Use precise language suitable for documentation." },
-                  title: { type: "string", description: "A short descriptive title for the incident (under 10 words)" },
+                  summary: { type: "string", description: "A lightly structured version of the user's account, staying close to their original wording. 2-3 sentences max." },
+                  title: { type: "string", description: "A short, natural title for the incident (under 8 words). Write it the way a person would say it." },
                   potential_relevance: {
                     type: "array",
                     items: { type: "string" },
-                    description: "1-3 neutral observations about possible workplace issue types this may relate to, and pattern relevance if similar incidents exist. Not legal advice."
+                    description: "1-3 neutral factual observations about possible workplace issue types this relates to. Not legal advice."
                   }
                 },
                 required: ["people_involved", "summary", "title", "potential_relevance"],
