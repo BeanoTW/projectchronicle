@@ -153,7 +153,7 @@ const RecordScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-record pb-24">
       <div className="px-4 pt-6 pb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
