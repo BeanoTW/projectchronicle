@@ -3,6 +3,7 @@ import { Shield, ExternalLink, ArrowRight, BookOpen, FileText, MessageCircle, Sh
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
+import PageHeader from '@/components/chronicle/PageHeader';
 import {
   Accordion,
   AccordionContent,
@@ -145,9 +146,7 @@ const RightsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-2">
-        <h1>Rights & Guidance</h1>
-      </div>
+      <PageHeader title="Rights & Guidance" />
 
       {/* Intro */}
       <div className="mx-5 mt-3 mb-3 bg-card border border-border rounded-xl p-4">

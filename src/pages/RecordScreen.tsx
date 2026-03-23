@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Settings } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
 import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/SplitIncidentModal';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 
 const categories = [
@@ -252,17 +253,10 @@ const RecordScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-5 flex items-start justify-between">
-        <div>
-          <h1>Record Incident</h1>
-          <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed max-w-[280px]">
-            Take your time — write this in your own words.
-          </p>
-        </div>
-        <button onClick={() => navigate('/settings')} className="p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/40">
-          <Settings className="h-5 w-5" />
-        </button>
-      </div>
+      <PageHeader
+        title="Record Incident"
+        subtitle="Take your time — write this in your own words."
+      />
 
       {/* Mode Toggle */}
       <div className="px-5 mb-5">

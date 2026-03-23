@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { motion } from 'framer-motion';
 
 const guidanceItems = [
@@ -34,17 +35,15 @@ const HomeScreen = () => {
   const recentIncidents = incidents?.slice(0, 2) ?? [];
 
   return (
-    <div className="min-h-screen bg-background pb-28">
-      <div className="px-5 pt-12 pb-6">
+    <div className="min-h-screen bg-background pb-28 page-enter">
+      <PageHeader title="Welcome" hideHome />
+      <div className="px-5">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <h1 className="text-[26px] font-bold text-foreground tracking-tight">
-            Welcome
-          </h1>
-          <p className="text-[15px] text-muted-foreground mt-1.5 leading-relaxed">
+          <p className="text-[15px] text-muted-foreground leading-relaxed">
             Capture what happened, as it happens.
             <br />
             <span className="text-muted-foreground/70">You can always add more later.</span>

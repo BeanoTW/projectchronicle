@@ -7,6 +7,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
 import AILabel from '@/components/chronicle/AILabel';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -125,10 +126,7 @@ const InsightsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-5">
-        <h1>Insights</h1>
-        <p className="text-[13px] text-muted-foreground mt-1">A summary of what you've recorded so far.</p>
-      </div>
+      <PageHeader title="Insights" subtitle="A summary of what you've recorded so far." />
 
       {/* Overview stats */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">

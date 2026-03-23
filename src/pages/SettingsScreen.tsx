@@ -1,4 +1,5 @@
 import { LogOut, Info, ShieldCheck, Download, HelpCircle, ChevronRight, Lock, Eye, Fingerprint } from 'lucide-react';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
@@ -29,9 +30,7 @@ const SettingsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-6">
-        <h1>Settings</h1>
-      </div>
+      <PageHeader title="Settings" hideSettings />
 
       {/* Hero — Your Record */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
