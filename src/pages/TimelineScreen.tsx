@@ -88,16 +88,16 @@ const TimelineScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tint-timeline pb-24">
-      <div className="px-4 pt-6 pb-3">
+    <div className="min-h-screen bg-tint-timeline pb-24 page-enter">
+      <div className="px-5 pt-7 pb-3">
         <div className="flex items-center justify-between mb-1.5">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
+          <h1 className="text-[22px] font-bold text-foreground tracking-tight">Timeline</h1>
           <div className="flex items-center gap-2">
-            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground">Chronology</Label>
+            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground/70">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground">Sorted by when events happened.</p>
+        <p className="text-[12px] text-muted-foreground/60">Sorted by when events happened.</p>
       </div>
 
       {gapFilter && (
