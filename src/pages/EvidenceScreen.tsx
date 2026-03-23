@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight } from 'lucide-react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import EvidencePreview from '@/components/chronicle/EvidencePreview';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -45,6 +46,7 @@ const typeTintBg: Record<string, string> = {
 };
 
 const EvidenceScreen = () => {
+  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
@@ -78,6 +80,18 @@ const EvidenceScreen = () => {
       refetch();
     } catch {
       toast({ title: 'Failed to link', variant: 'destructive' });
+    }
+  };
+
+  const handleRemoveEvidence = async (evidenceId: string, filePath: string) => {
+    try {
+      await supabase.storage.from('evidence').remove([filePath]);
+      const { error } = await supabase.from('evidence_files').delete().eq('id', evidenceId);
+      if (error) throw error;
+      toast({ title: 'Evidence removed' });
+      refetch();
+    } catch {
+      toast({ title: 'Failed to remove', variant: 'destructive' });
     }
   };
 
@@ -152,7 +166,8 @@ const EvidenceScreen = () => {
           return (
             <div
               key={ev.id}
-              className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] ${accentClass}`}
+              className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer ${accentClass}`}
+              onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
             >
               <div className="flex gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tintBg || 'bg-muted/50'}`}>
@@ -177,14 +192,14 @@ const EvidenceScreen = () => {
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                    {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
+                    {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')} · Stored securely
                   </p>
                   {linkedIncident ? (
                     <p className="text-[12px] text-primary mt-1.5 truncate">
                       → {linkedIncident.title || 'Untitled'}
                     </p>
                   ) : (
-                    <div className="mt-2">
+                    <div className="mt-2" onClick={e => e.stopPropagation()}>
                       {!isLinking ? (
                         <button
                           onClick={() => setLinkingId(ev.id)}
@@ -215,12 +230,37 @@ const EvidenceScreen = () => {
                     </div>
                   )}
                   {ev.description && <p className="text-[12px] text-body mt-1.5 leading-relaxed">{ev.description}</p>}
+                  
+                  {/* Actions row */}
+                  <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 active:scale-[0.97] transition-all"
+                    >
+                      <Eye className="h-3 w-3" /> View
+                    </button>
+                    <button
+                      onClick={() => handleRemoveEvidence(ev.id, ev.file_path)}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive active:scale-[0.97] transition-all"
+                    >
+                      <Trash2 className="h-3 w-3" /> Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {previewFile && (
+        <EvidencePreview
+          filePath={previewFile.filePath}
+          fileName={previewFile.fileName}
+          mimeType={previewFile.mimeType}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 };
