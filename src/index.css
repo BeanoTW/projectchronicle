@@ -6,34 +6,40 @@
 
 @layer base {
   :root {
-    /* Project Chronicle Design System — Refined */
-    --background: 210 20% 98%;
+    /* Project Chronicle Design System — Warm & Calm */
+    --background: 160 12% 97%;
     --foreground: 215 25% 15%;
 
-    --card: 0 0% 100%;
+    --card: 160 8% 99%;
     --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    /* Primary: #1A7A6E → hsl(173, 65%, 29%) */
-    --primary: 173 65% 29%;
+    /* Primary: soft green (trust / control) */
+    --primary: 168 45% 32%;
     --primary-foreground: 0 0% 100%;
 
-    /* Primary Dark: #1A2332 → hsl(215, 30%, 15%) */
+    /* Primary Dark */
     --primary-dark: 215 30% 15%;
 
-    /* Primary Light: #F0F7F6 → hsl(168, 32%, 95%) */
-    --primary-light: 168 32% 95%;
+    /* Primary Light — warm tinted background */
+    --primary-light: 160 25% 96%;
 
-    --secondary: 168 32% 95%;
-    --secondary-foreground: 173 65% 29%;
+    /* Secondary: muted blue (calm / guidance) */
+    --secondary: 210 30% 96%;
+    --secondary-foreground: 210 35% 35%;
 
     --muted: 210 18% 95%;
-    --muted-foreground: 215 10% 55%;
+    --muted-foreground: 215 10% 50%;
 
-    --accent: 170 28% 93%;
-    --accent-foreground: 173 65% 29%;
+    --accent: 165 22% 94%;
+    --accent-foreground: 168 45% 32%;
+
+    /* Warm accent: amber (patterns / attention) */
+    --warm-accent: 38 80% 55%;
+    --warm-accent-light: 40 70% 96%;
+    --warm-accent-foreground: 30 60% 30%;
 
     --destructive: 0 72% 35%;
     --destructive-foreground: 0 0% 100%;
@@ -60,26 +66,26 @@
     /* Body text */
     --body: 220 9% 34%;
 
-    --border: 210 18% 90%;
-    --input: 210 18% 90%;
-    --ring: 173 65% 29%;
+    --border: 210 15% 91%;
+    --input: 210 15% 91%;
+    --ring: 168 45% 32%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    /* Shadows */
-    --shadow-card: 0 1px 3px 0 hsl(215 25% 15% / 0.04), 0 1px 2px -1px hsl(215 25% 15% / 0.03);
-    --shadow-card-hover: 0 4px 12px -2px hsl(215 25% 15% / 0.08), 0 2px 4px -2px hsl(215 25% 15% / 0.04);
-    --shadow-nav: 0 -1px 12px 0 hsl(215 25% 15% / 0.06);
-    --shadow-elevated: 0 8px 24px -4px hsl(215 25% 15% / 0.1), 0 2px 6px -2px hsl(215 25% 15% / 0.05);
+    /* Shadows — softer */
+    --shadow-card: 0 1px 4px 0 hsl(215 25% 15% / 0.03), 0 1px 2px -1px hsl(215 25% 15% / 0.02);
+    --shadow-card-hover: 0 4px 16px -4px hsl(215 25% 15% / 0.07), 0 2px 4px -2px hsl(215 25% 15% / 0.03);
+    --shadow-nav: 0 -2px 20px 0 hsl(215 25% 15% / 0.08);
+    --shadow-elevated: 0 8px 30px -6px hsl(215 25% 15% / 0.1), 0 2px 8px -2px hsl(215 25% 15% / 0.04);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 173 65% 29%;
+    --sidebar-primary: 168 45% 32%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 168 32% 95%;
-    --sidebar-accent-foreground: 173 65% 29%;
-    --sidebar-border: 210 18% 90%;
-    --sidebar-ring: 173 65% 29%;
+    --sidebar-accent: 165 22% 94%;
+    --sidebar-accent-foreground: 168 45% 32%;
+    --sidebar-border: 210 15% 91%;
+    --sidebar-ring: 168 45% 32%;
   }
 
   .dark {
@@ -92,8 +98,12 @@
     --popover: 215 30% 12%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 173 55% 40%;
+    --primary: 168 40% 42%;
     --primary-foreground: 0 0% 100%;
+
+    --warm-accent: 38 75% 50%;
+    --warm-accent-light: 40 50% 18%;
+    --warm-accent-foreground: 38 60% 75%;
 
     --secondary: 215 30% 16%;
     --secondary-foreground: 210 20% 95%;
@@ -109,7 +119,7 @@
 
     --border: 215 30% 20%;
     --input: 215 30% 20%;
-    --ring: 173 55% 40%;
+    --ring: 168 40% 42%;
 
     --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.2);
     --shadow-card-hover: 0 4px 12px -2px hsl(0 0% 0% / 0.3);
@@ -118,12 +128,12 @@
 
     --sidebar-background: 215 30% 10%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 173 55% 40%;
+    --sidebar-primary: 168 40% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 215 30% 16%;
     --sidebar-accent-foreground: 210 20% 95%;
     --sidebar-border: 215 30% 20%;
-    --sidebar-ring: 173 55% 40%;
+    --sidebar-ring: 168 40% 42%;
   }
 }
 
@@ -135,8 +145,8 @@
   body {
     @apply bg-background text-body font-sans;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

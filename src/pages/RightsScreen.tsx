@@ -150,7 +150,7 @@ const RightsScreen = () => {
           <div>
             <p className="text-[14px] font-semibold text-foreground mb-1">Understanding your situation</p>
             <p className="text-[13px] text-body leading-relaxed">
-              This helps you understand what your records may relate to and what you can do next. It's here to support you in organising your thoughts.
+              This section helps you make sense of what you've recorded and consider possible next steps. It's here to support you in organising your thoughts.
             </p>
           </div>
         </div>

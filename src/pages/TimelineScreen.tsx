@@ -81,7 +81,7 @@ const TimelineScreen = () => {
         <EmptyState
           icon={<CalendarDays className="h-12 w-12" />}
           heading="No incidents yet"
-          body="Your timeline will appear here as you record incidents."
+          body="You're starting to build a picture — your timeline will appear here as you record more."
         />
       </div>
     );
@@ -132,7 +132,7 @@ const TimelineScreen = () => {
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
-                  <span className="ml-2 text-[11px] text-severity-serious font-medium">• Repeated behaviour</span>
+                  <span className="ml-2 text-[11px] text-warm-accent-foreground font-medium">• Repeated behaviour</span>
                 )}
               </div>
             ))}

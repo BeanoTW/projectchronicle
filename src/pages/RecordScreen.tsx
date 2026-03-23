@@ -158,7 +158,7 @@ const RecordScreen = () => {
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
           <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
-            Capture what happened in your own words. Only your account and the date are required.
+            Take your time — write this in your own words. It doesn't need to be perfect.
           </p>
         </div>
         <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
@@ -207,7 +207,7 @@ const RecordScreen = () => {
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">When it happened</span>
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Where</span>
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Who was involved</span>
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What was said or done</span>
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What happened? (include anything said or done)</span>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ const RecordScreen = () => {
             id="narrative"
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
-            placeholder="Include what happened, who was present, and anything said."
+            placeholder="Write what happened in your own words — include anything said, done, or noticed."
             className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary text-[15px] leading-relaxed"
           />
           {narrative.length > 0 && (
@@ -414,8 +414,8 @@ const RecordScreen = () => {
         )}
 
         <div className="flex gap-3 pt-3 pb-6">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-card)]">
-            {saving ? 'Saving...' : 'Save Incident'}
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-transform">
+            {saving ? 'Saving...' : 'Save Record'}
           </Button>
         </div>
       </div>

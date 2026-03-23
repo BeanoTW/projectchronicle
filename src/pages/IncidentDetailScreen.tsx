@@ -132,7 +132,7 @@ const IncidentDetailScreen = () => {
 
         {incident.excluded_from_rep && (
           <div className="mt-2.5 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium">
-            This incident is excluded from your rep view.
+            This record is excluded from your rep view.
           </div>
         )}
       </div>
@@ -239,7 +239,7 @@ const IncidentDetailScreen = () => {
         <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
           <p className="text-[13px] font-semibold text-foreground mb-2.5">Evidence ({evidence.length})</p>
           {evidence.length === 0 ? (
-            <p className="text-[13px] text-muted-foreground">No evidence attached yet.</p>
+            <p className="text-[13px] text-muted-foreground">No evidence added yet — you can upload screenshots, photos, or documents if you have them.</p>
           ) : (
             <div className="space-y-2">
               {evidence.map(ev => (

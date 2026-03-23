@@ -81,7 +81,7 @@ const InsightsScreen = () => {
   const patterns = useMemo(() => {
     const result: string[] = [];
     keyIndividuals.forEach(({ name, count, firstDate, lastDate }) => {
-      result.push(`${name} appears in ${count} recorded incidents between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
+      result.push(`These records include ${count} incidents involving ${name} between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
     });
     const topCat = categoryPatterns[0];
     if (topCat && topCat.count >= 3) {
@@ -147,7 +147,7 @@ const InsightsScreen = () => {
     <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-6 pb-3">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">What's showing up across your records.</p>
+        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
       </div>
 
       {/* Overview */}
