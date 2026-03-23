@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Mic, Square, Play, Pause, Loader2, MicOff, Keyboard, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Mic, Square, Play, Pause, Loader2, MicOff, Keyboard, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
-type RecordingState = 'idle' | 'requesting' | 'recording' | 'processing' | 'done' | 'denied';
+type RecordingState = "idle" | "requesting" | "recording" | "processing" | "done" | "denied";
 
 interface VoiceRecorderProps {
   onAudioCaptured: (blob: Blob, duration: number) => void;
@@ -11,7 +11,7 @@ interface VoiceRecorderProps {
 }
 
 const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) => {
-  const [state, setState] = useState<RecordingState>('idle');
+  const [state, setState] = useState<RecordingState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,28 +27,28 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     };
   }, [audioUrl]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    return `${m}:${String(s).padStart(2, "0")}`;
   };
 
   const startRecording = useCallback(async () => {
-    setState('requesting');
+    setState("requesting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
       // Prefer webm/opus, fall back to whatever is available
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : 'audio/mp4';
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/mp4";
 
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
@@ -63,20 +63,20 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         onAudioCaptured(blob, elapsed);
-        stream.getTracks().forEach(t => t.stop());
-        setState('done');
+        stream.getTracks().forEach((t) => t.stop());
+        setState("done");
       };
 
       recorder.start(1000); // Collect data every second
-      setState('recording');
+      setState("recording");
       setElapsed(0);
-      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
     } catch (err: unknown) {
       const error = err as DOMException;
-      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        setState('denied');
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        setState("denied");
       } else {
-        setState('idle');
+        setState("idle");
       }
     }
   }, [elapsed, onAudioCaptured]);
@@ -86,7 +86,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    setState('processing');
+    setState("processing");
     mediaRecorderRef.current?.stop();
   }, []);
 
@@ -105,7 +105,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setElapsed(0);
-    setState('idle');
+    setState("idle");
     setIsPlaying(false);
   }, [audioUrl]);
 
@@ -113,7 +113,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
     <div className="px-5 mb-6 flex flex-col items-center">
       <AnimatePresence mode="wait">
         {/* IDLE — Ready to record */}
-        {state === 'idle' && (
+        {state === "idle" && (
           <motion.div
             key="idle"
             initial={{ opacity: 0, y: 8 }}
@@ -128,12 +128,12 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
               <Mic className="h-8 w-8 text-primary" />
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
-            <p className="text-[12px] text-muted-foreground">Speak naturally — we'll save the audio</p>
+            <p className="text-[12px] text-muted-foreground">we’ll turn it into a clear record</p>
           </motion.div>
         )}
 
         {/* REQUESTING — Waiting for permission */}
-        {state === 'requesting' && (
+        {state === "requesting" && (
           <motion.div
             key="requesting"
             initial={{ opacity: 0 }}
@@ -150,7 +150,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
         )}
 
         {/* RECORDING — Active capture */}
-        {state === 'recording' && (
+        {state === "recording" && (
           <motion.div
             key="recording"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -163,7 +163,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
               <motion.div
                 className="absolute inset-0 rounded-full bg-destructive/10"
                 animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 style={{ width: 80, height: 80 }}
               />
               <button
@@ -182,7 +182,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
         )}
 
         {/* PROCESSING — Saving */}
-        {state === 'processing' && (
+        {state === "processing" && (
           <motion.div
             key="processing"
             initial={{ opacity: 0 }}
@@ -199,7 +199,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
         )}
 
         {/* DONE — Playback preview */}
-        {state === 'done' && audioUrl && (
+        {state === "done" && audioUrl && (
           <motion.div
             key="done"
             initial={{ opacity: 0, y: 8 }}
@@ -213,38 +213,24 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
                   onClick={togglePlayback}
                   className="w-11 h-11 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 active:scale-[0.95] transition-transform"
                 >
-                  {isPlaying
-                    ? <Pause className="h-5 w-5 text-primary" />
-                    : <Play className="h-5 w-5 text-primary ml-0.5" />
-                  }
+                  {isPlaying ? (
+                    <Pause className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Play className="h-5 w-5 text-primary ml-0.5" />
+                  )}
                 </button>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-foreground">Voice note</p>
                   <p className="text-[11px] text-muted-foreground">{formatTime(elapsed)} · Saved</p>
                 </div>
               </div>
-              <audio
-                ref={audioRef}
-                src={audioUrl}
-                onEnded={() => setIsPlaying(false)}
-                className="hidden"
-              />
+              <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-[13px]"
-                onClick={resetRecording}
-              >
+              <Button variant="outline" size="sm" className="text-[13px]" onClick={resetRecording}>
                 Record again
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-[13px]"
-                onClick={onSwitchToText}
-              >
+              <Button variant="outline" size="sm" className="text-[13px]" onClick={onSwitchToText}>
                 <Keyboard className="h-3.5 w-3.5 mr-1.5" /> Add text notes
               </Button>
             </div>
@@ -252,7 +238,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
         )}
 
         {/* DENIED — No permission */}
-        {state === 'denied' && (
+        {state === "denied" && (
           <motion.div
             key="denied"
             initial={{ opacity: 0, y: 8 }}
@@ -268,20 +254,10 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
               To use voice recording, allow microphone access in your browser settings and try again.
             </p>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-[13px]"
-                onClick={() => setState('idle')}
-              >
+              <Button variant="outline" size="sm" className="text-[13px]" onClick={() => setState("idle")}>
                 Try again
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-[13px]"
-                onClick={onSwitchToText}
-              >
+              <Button variant="outline" size="sm" className="text-[13px]" onClick={onSwitchToText}>
                 <Keyboard className="h-3.5 w-3.5 mr-1.5" /> Use text instead
               </Button>
             </div>
