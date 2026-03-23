@@ -126,7 +126,7 @@ const EvidenceScreen = () => {
         </div>
       </div>
 
-      <div className="px-4 space-y-2.5">
+      <div className="px-5 space-y-3">
         {filtered.map(ev => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
           const linkedIncident = incidents.find(i => i.id === ev.incident_id);
