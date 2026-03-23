@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
