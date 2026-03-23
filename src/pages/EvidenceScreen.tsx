@@ -252,6 +252,15 @@ const EvidenceScreen = () => {
           );
         })}
       </div>
+
+      {previewFile && (
+        <EvidencePreview
+          filePath={previewFile.filePath}
+          fileName={previewFile.fileName}
+          mimeType={previewFile.mimeType}
+          onClose={() => setPreviewFile(null)}
+        />
+      )}
     </div>
   );
 };
