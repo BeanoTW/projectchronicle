@@ -128,7 +128,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
               <Mic className="h-8 w-8 text-primary" />
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
-            <p className="text-[12px] text-muted-foreground">we’ll turn it into a clear record</p>
+            <p className="text-[12px] text-muted-foreground">Speak naturally — we’ll turn it into a clear record</p>
           </motion.div>
         )}
 
