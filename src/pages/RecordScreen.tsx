@@ -268,18 +268,18 @@ const RecordScreen = () => {
 
         {/* AI Potential Relevance */}
         {aiSuggested && aiRelevance.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <div className="bg-card/80 border border-border/60 rounded-2xl p-5 shadow-[var(--shadow-card)]">
             <h3 className="text-xs font-semibold text-foreground mb-2">Potential Relevance</h3>
             <div className="mb-1.5"><AILabel /></div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {aiRelevance.map((r, i) => (
-                <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
+                <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/30 flex-shrink-0 mt-[7px]" />
                   {r}
                 </p>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-3">This is not legal advice. These are neutral observations only.</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-3">This is not legal advice. These are neutral observations only.</p>
           </div>
         )}
 
