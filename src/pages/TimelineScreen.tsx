@@ -97,7 +97,7 @@ const TimelineScreen = () => {
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">Ordered by incident date, not recording date.</p>
+        <p className="text-[11px] text-muted-foreground">Sort by incident date (when events happened).</p>
       </div>
 
       {gapFilter && (
