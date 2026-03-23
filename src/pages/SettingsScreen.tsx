@@ -30,9 +30,7 @@ const SettingsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-6">
-        <h1>Settings</h1>
-      </div>
+      <PageHeader title="Settings" hideSettings />
 
       {/* Hero — Your Record */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
