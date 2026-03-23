@@ -155,7 +155,7 @@ const TimelineScreen = () => {
                 <div className="space-y-2.5">
                   {items.map(inc => (
                     <div key={inc.id} className="timeline-node">
-                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact />
+                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact expandable />
                     </div>
                   ))}
                 </div>

@@ -44,14 +44,14 @@ const BottomNav = () => {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-200 ease-out ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground/40 hover:text-muted-foreground/60'
-                }`}
-              >
-                <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2 : 1.5} />
-                <span className={`text-[10px] mt-0.5 ${isActive ? 'font-semibold' : 'font-medium'}`}>{label}</span>
+              className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-250 ease-out ${
+                isActive
+                  ? 'text-primary scale-105'
+                  : 'text-muted-foreground/40 hover:text-muted-foreground/60 scale-100'
+              }`}
+            >
+              <Icon className={`h-[18px] w-[18px] transition-all duration-250`} strokeWidth={isActive ? 2 : 1.5} />
+              <span className={`text-[10px] mt-0.5 transition-all duration-250 ${isActive ? 'font-semibold' : 'font-medium'}`}>{label}</span>
               </button>
             );
           })}
