@@ -173,28 +173,45 @@
 
 /* Record button glow */
 @keyframes record-glow {
-  0%, 100% { box-shadow: 0 0 8px 2px hsl(var(--primary) / 0.15); }
-  50% { box-shadow: 0 0 16px 4px hsl(var(--primary) / 0.1); }
+  0%, 100% {
+    box-shadow: 0 0 8px 2px hsl(var(--primary) / 0.18);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px 5px hsl(var(--primary) / 0.12);
+    transform: scale(1.02);
+  }
 }
 
 .record-glow {
-  animation: record-glow 3s ease-in-out infinite;
+  animation: record-glow 3.5s ease-in-out infinite;
 }
 
 /* Page transition */
 .page-enter {
-  animation: fade-in 0.15s ease-out;
+  animation: fade-in 0.2s ease-out;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(2px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* Writing focus */
+.writing-focus {
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
 .writing-focus:focus-within {
-  border-color: hsl(var(--primary) / 0.25);
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.06);
+  border-color: hsl(var(--primary) / 0.3);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
+}
+
+/* Card tap feedback */
+.card-interactive {
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background-color 0.15s ease-out;
+}
+.card-interactive:active {
+  transform: scale(0.985);
 }
 
 /* Timeline spine */
