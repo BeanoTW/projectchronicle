@@ -243,7 +243,7 @@ const RecordScreen = () => {
         {/* AI Analysis Button */}
         <Button
           variant="outline"
-          className="w-full border-primary/30 text-primary hover:bg-primary/5 rounded-xl h-11"
+          className="w-full border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 rounded-xl h-11 font-medium shadow-sm"
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >

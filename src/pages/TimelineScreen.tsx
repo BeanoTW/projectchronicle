@@ -140,7 +140,7 @@ const TimelineScreen = () => {
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month}>
-              <h2 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">{month}</h2>
+              <h2 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 bg-muted/40 inline-block px-3 py-1 rounded-lg">{month}</h2>
               <div className="space-y-2.5">
                 {items.map(inc => (
                   <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />

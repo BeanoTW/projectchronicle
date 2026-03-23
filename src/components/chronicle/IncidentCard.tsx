@@ -15,7 +15,7 @@ const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className="w-full text-left bg-card rounded-xl border border-border p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-200 active:scale-[0.99]"
+      className="w-full text-left bg-card rounded-xl border border-border p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-200 active:scale-[0.99] border-l-[3px] border-l-primary/20"
     >
       <div className="flex items-start justify-between mb-2.5">
         <h3 className="text-sm font-semibold text-foreground line-clamp-1 flex-1">

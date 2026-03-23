@@ -93,7 +93,7 @@ const EvidenceScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-evidence pb-24">
       <div className="px-4 pt-6 pb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Evidence</h1>
         <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-xl cursor-pointer shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">

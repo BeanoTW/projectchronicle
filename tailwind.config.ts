@@ -85,6 +85,13 @@ export default {
           light: "hsl(var(--warm-accent-light))",
           foreground: "hsl(var(--warm-accent-foreground))",
         },
+        tint: {
+          record: "hsl(var(--tint-record))",
+          insights: "hsl(var(--tint-insights))",
+          rights: "hsl(var(--tint-rights))",
+          evidence: "hsl(var(--tint-evidence))",
+          timeline: "hsl(var(--tint-timeline))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
