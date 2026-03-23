@@ -160,10 +160,14 @@ const IncidentDetailScreen = () => {
               </div>
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-muted-foreground">Evidence:</span> <span className="text-foreground font-medium">{scoring.evidenceStrength}</span>
+                  <span className="text-foreground font-medium">
+                    {scoring.evidenceStrength === 'None' ? 'No evidence attached yet' : `Evidence: ${scoring.evidenceStrength}`}
+                  </span>
                 </div>
                 <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-muted-foreground">Witnesses:</span> <span className="text-foreground font-medium">{scoring.witnessSupport}</span>
+                  <span className="text-foreground font-medium">
+                    {scoring.witnessSupport === 'None' ? 'No witnesses recorded' : `Witnesses: ${scoring.witnessSupport}`}
+                  </span>
                 </div>
                 <div className="bg-muted/40 rounded-lg px-3 py-2">
                   <span className="text-muted-foreground">Detail:</span> <span className="text-foreground font-medium">{scoring.detailCompleteness}</span>
