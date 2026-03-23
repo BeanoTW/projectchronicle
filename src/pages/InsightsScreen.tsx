@@ -126,7 +126,7 @@ const InsightsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Insights" subtitle="A summary of what you've recorded so far." />
+      <PageHeader title="Insights" subtitle="What your records show so far." />
 
       {/* Overview stats */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
