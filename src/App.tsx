@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import LoginScreen from "./pages/LoginScreen";
+import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
 import InsightsScreen from "./pages/InsightsScreen";
@@ -36,7 +37,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (user) return <Navigate to="/timeline" replace />;
+  if (user) return <Navigate to="/home" replace />;
   return <>{children}</>;
 };
 
@@ -50,6 +51,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<PublicRoute><OnboardingScreen /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
+            <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/insights" element={<ProtectedRoute><AppLayout><InsightsScreen /></AppLayout></ProtectedRoute>} />
