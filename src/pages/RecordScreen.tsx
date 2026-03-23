@@ -473,9 +473,9 @@ const RecordScreen = () => {
         {aiSuggested && (
           <motion.div
             className="space-y-5"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* AI Summary */}
             {aiSummary && (
