@@ -166,7 +166,8 @@ const EvidenceScreen = () => {
           return (
             <div
               key={ev.id}
-              className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] ${accentClass}`}
+              className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer ${accentClass}`}
+              onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
             >
               <div className="flex gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tintBg || 'bg-muted/50'}`}>
@@ -191,14 +192,14 @@ const EvidenceScreen = () => {
                     )}
                   </div>
                   <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                    {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
+                    {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')} · Stored securely
                   </p>
                   {linkedIncident ? (
                     <p className="text-[12px] text-primary mt-1.5 truncate">
                       → {linkedIncident.title || 'Untitled'}
                     </p>
                   ) : (
-                    <div className="mt-2">
+                    <div className="mt-2" onClick={e => e.stopPropagation()}>
                       {!isLinking ? (
                         <button
                           onClick={() => setLinkingId(ev.id)}
@@ -229,6 +230,22 @@ const EvidenceScreen = () => {
                     </div>
                   )}
                   {ev.description && <p className="text-[12px] text-body mt-1.5 leading-relaxed">{ev.description}</p>}
+                  
+                  {/* Actions row */}
+                  <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 active:scale-[0.97] transition-all"
+                    >
+                      <Eye className="h-3 w-3" /> View
+                    </button>
+                    <button
+                      onClick={() => handleRemoveEvidence(ev.id, ev.file_path)}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive active:scale-[0.97] transition-all"
+                    >
+                      <Trash2 className="h-3 w-3" /> Remove
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
