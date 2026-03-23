@@ -192,9 +192,11 @@ const IncidentDetailScreen = () => {
 
         {/* Exact Wording */}
         {incident.exact_words && (
-          <div className="bg-ai-label/30 border border-ai-label-foreground/15 rounded-xl p-4">
-            <p className="text-[12px] font-semibold text-ai-label-foreground mb-1.5">Exact wording recorded</p>
-            <p className="text-[14px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
+          <div className="bg-ai-label/40 border border-ai-label-foreground/20 rounded-xl p-4">
+            <p className="text-[12px] font-semibold text-ai-label-foreground mb-2">Exact wording recorded</p>
+            <div className="border-l-[3px] border-ai-label-foreground/30 pl-3.5">
+              <p className="text-[15px] text-foreground italic leading-relaxed font-medium">"{incident.exact_words}"</p>
+            </div>
           </div>
         )}
 

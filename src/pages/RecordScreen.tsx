@@ -610,7 +610,7 @@ const RecordScreen = () => {
                   </div>
                   {detailFields}
                   <div className="pt-4 pb-8">
-                    <Button
+                     <Button
                       onClick={handleSave}
                       disabled={saving || saved || !canSave}
                       className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
@@ -626,6 +626,20 @@ const RecordScreen = () => {
                     {!canSave && hasText && !incidentDate && (
                       <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
                     )}
+                    <AnimatePresence>
+                      {saved && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.35 }}
+                          className="mt-4 text-center space-y-1"
+                        >
+                          <p className="text-[14px] text-primary font-semibold">Record saved</p>
+                          <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </CollapsibleContent>
