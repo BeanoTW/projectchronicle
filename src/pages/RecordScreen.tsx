@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import AILabel from '@/components/chronicle/AILabel';
 import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/SplitIncidentModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const categories = [
   'Verbal Comment', 'Written Communication', 'Safety Concern',
@@ -50,11 +51,52 @@ const RecordScreen = () => {
   const [analysing, setAnalysing] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
   const [splitHighlights, setSplitHighlights] = useState<string[]>([]);
   const [splitDrafts, setSplitDrafts] = useState<IncidentDraft[]>([]);
   const [splitCount, setSplitCount] = useState(1);
   const [splitChecked, setSplitChecked] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
+
+  // Auto-save draft to localStorage
+  const saveDraft = useCallback(() => {
+    if (narrative.trim()) {
+      localStorage.setItem('chronicle-draft', JSON.stringify({
+        narrative, incidentDate, incidentTime, location, category,
+        peopleInvolved, witnesses, exactWords, impactNote, title,
+      }));
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2000);
+    }
+  }, [narrative, incidentDate, incidentTime, location, category, peopleInvolved, witnesses, exactWords, impactNote, title]);
+
+  // Load draft on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('chronicle-draft');
+    if (stored) {
+      try {
+        const draft = JSON.parse(stored);
+        if (draft.narrative) setNarrative(draft.narrative);
+        if (draft.incidentDate) setIncidentDate(draft.incidentDate);
+        if (draft.incidentTime) setIncidentTime(draft.incidentTime);
+        if (draft.location) setLocation(draft.location);
+        if (draft.category) setCategory(draft.category);
+        if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
+        if (draft.witnesses) setWitnesses(draft.witnesses);
+        if (draft.exactWords) setExactWords(draft.exactWords);
+        if (draft.impactNote) setImpactNote(draft.impactNote);
+        if (draft.title) setTitle(draft.title);
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // Auto-save every 5s when narrative has content
+  useEffect(() => {
+    if (!narrative.trim()) return;
+    const timer = setTimeout(saveDraft, 5000);
+    return () => clearTimeout(timer);
+  }, [narrative, saveDraft]);
 
   const existingPatterns = useMemo(() => {
     const result: string[] = [];
@@ -117,9 +159,9 @@ const RecordScreen = () => {
       setAiSuggested(true);
       setShowManualForm(false);
       setMoreDetailsOpen(false);
-      toast({ title: 'Analysis complete', description: 'Review the suggested fields below before saving.' });
+      toast({ title: 'Summary created', description: 'Review and adjust anything before saving.' });
     } catch (e) {
-      toast({ title: 'Analysis failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
     } finally {
       setAnalysing(false);
     }
@@ -167,10 +209,12 @@ const RecordScreen = () => {
         incident_id: result.id,
         field_changed: 'incident_recorded',
       });
-      toast({ title: 'Incident saved' });
-      navigate('/timeline');
+      localStorage.removeItem('chronicle-draft');
+      setSaved(true);
+      toast({ title: 'Record saved', description: 'You can add evidence to this later.' });
+      setTimeout(() => navigate('/timeline'), 1200);
     } catch (e) {
-      toast({ title: 'Failed to save', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -193,10 +237,11 @@ const RecordScreen = () => {
           field_changed: 'incident_recorded',
         });
       }
-      toast({ title: `${drafts.length} incidents saved`, description: 'Your records have been split and saved separately.' });
+      localStorage.removeItem('chronicle-draft');
+      toast({ title: `${drafts.length} records saved`, description: 'Your records have been split and saved separately.' });
       navigate('/timeline');
     } catch (e) {
-      toast({ title: 'Failed to save', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -205,7 +250,6 @@ const RecordScreen = () => {
   const hasText = narrative.trim().length > 0;
   const canSave = hasText && !!incidentDate;
 
-  // Shared detail fields component
   const detailFields = (
     <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)] mt-2">
       <div>
@@ -226,7 +270,7 @@ const RecordScreen = () => {
         </Select>
       </div>
       <div>
-        <Label htmlFor="people" className="text-[13px] font-medium">People Involved</Label>
+        <Label htmlFor="people" className="text-[13px] font-medium">People involved</Label>
         <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
       </div>
       <div>
@@ -238,14 +282,14 @@ const RecordScreen = () => {
         <Label htmlFor="exactWords" className="text-[13px] font-medium">
           Exact wording <span className="text-primary font-normal">(important)</span>
         </Label>
-        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases if you remember them.</p>
         <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[14px]" />
       </div>
       <div>
         <Label htmlFor="impact" className="text-[13px] font-medium">
           Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
         </Label>
-        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work</p>
         <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[14px]" />
       </div>
     </div>
@@ -254,7 +298,7 @@ const RecordScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader
-        title="Record Incident"
+        title="Record"
         subtitle="Take your time — write this in your own words."
       />
 
@@ -325,35 +369,73 @@ const RecordScreen = () => {
             placeholder="Write what happened — include anything said, done, or noticed."
             className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
           />
-          {narrative.length > 0 && (
-            <p className="text-[11px] text-muted-foreground/40 px-4 pb-2">{narrative.length} characters</p>
-          )}
+          <div className="flex items-center justify-between px-4 pb-2">
+            {narrative.length > 0 && (
+              <p className="text-[11px] text-muted-foreground/40">{narrative.length} characters</p>
+            )}
+            <AnimatePresence>
+              {draftSaved && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[11px] text-primary/60 font-medium ml-auto"
+                >
+                  Draft saved
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
         {errors.raw_narrative && (
           <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
         )}
 
-        {/* Generate Summary — appears when user has typed */}
+        {/* Reassurance text */}
+        {hasText && !aiSuggested && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-[12px] text-muted-foreground/60 text-center -mt-2"
+          >
+            Approximate is fine · You can edit this later
+          </motion.p>
+        )}
+
+        {/* Structure button — appears when user has typed */}
         {hasText && (
-          <div className="animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+          >
             <Button
               className="w-full rounded-xl h-11 text-[13px] font-medium bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
               onClick={() => { handleAnalyse(); handleDetectMulti(); }}
               disabled={analysing}
             >
-              {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
+              {analysing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring...</>
+              ) : (
+                'Structure this for you'
+              )}
             </Button>
-          </div>
+          </motion.div>
         )}
 
         {/* === POST-ANALYSIS SECTION === */}
         {aiSuggested && (
-          <div className="space-y-5 animate-fade-in">
+          <motion.div
+            className="space-y-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+          >
             {/* AI Summary */}
             {aiSummary && (
               <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
                 <div className="mb-1"><AILabel /></div>
-                <p className="text-[12px] text-muted-foreground mb-2">Structured summary (for review)</p>
+                <p className="text-[12px] text-muted-foreground mb-2">Structured summary — review before saving</p>
                 <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
                 <button
                   onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
@@ -367,7 +449,7 @@ const RecordScreen = () => {
             {/* AI Relevance */}
             {aiRelevance.length > 0 && (
               <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential Relevance</h3>
+                <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential relevance</h3>
                 <div className="mb-1"><AILabel /></div>
                 <div className="space-y-2">
                   {aiRelevance.map((r, i) => (
@@ -378,16 +460,17 @@ const RecordScreen = () => {
               </div>
             )}
 
-            {/* Date & Time — revealed after analysis */}
+            {/* Date & Time */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
-                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
                 {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
               </div>
               <div>
                 <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
                 <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
               </div>
             </div>
@@ -398,7 +481,7 @@ const RecordScreen = () => {
                 {showManualForm || moreDetailsOpen ? (
                   <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
                 ) : (
-                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Add details manually</>
+                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually</>
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
@@ -410,24 +493,37 @@ const RecordScreen = () => {
             <div className="pt-4 pb-8">
               <Button
                 onClick={handleSave}
-                disabled={saving || !canSave}
+                disabled={saving || saved || !canSave}
                 className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
               >
-                {saving ? 'Saving...' : 'Save Record'}
+                {saved ? (
+                  <><Check className="h-4 w-4 mr-2" /> Saved</>
+                ) : saving ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                ) : (
+                  'Save record'
+                )}
               </Button>
+              {!canSave && hasText && !incidentDate && (
+                <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
+              )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Fallback manual path — skip analysis */}
         {!aiSuggested && hasText && (
-          <div className="animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
               <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
                 {showManualForm || moreDetailsOpen ? (
                   <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
                 ) : (
-                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Skip analysis — add details manually</>
+                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually instead</>
                 )}
               </CollapsibleTrigger>
               <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
@@ -435,12 +531,13 @@ const RecordScreen = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="date-manual" className="text-[13px] font-medium">Date *</Label>
-                      <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                      <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
                       {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
                     </div>
                     <div>
                       <Label htmlFor="time-manual" className="text-[13px] font-medium">Time</Label>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
                       <Input id="time-manual" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
                     </div>
                   </div>
@@ -448,16 +545,25 @@ const RecordScreen = () => {
                   <div className="pt-4 pb-8">
                     <Button
                       onClick={handleSave}
-                      disabled={saving || !canSave}
+                      disabled={saving || saved || !canSave}
                       className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
                     >
-                      {saving ? 'Saving...' : 'Save Record'}
+                      {saved ? (
+                        <><Check className="h-4 w-4 mr-2" /> Saved</>
+                      ) : saving ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                      ) : (
+                        'Save record'
+                      )}
                     </Button>
+                    {!canSave && hasText && !incidentDate && (
+                      <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
+                    )}
                   </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          </div>
+          </motion.div>
         )}
       </div>
 

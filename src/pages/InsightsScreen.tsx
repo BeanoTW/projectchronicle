@@ -133,7 +133,7 @@ const InsightsScreen = () => {
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-[22px] font-bold text-foreground tabular-nums">{totalIncidents}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">incidents</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">recorded</p>
           </div>
           <div>
             <p className="text-[22px] font-bold text-foreground tabular-nums">{withEvidence}</p>
@@ -144,6 +144,12 @@ const InsightsScreen = () => {
             <p className="text-[11px] text-muted-foreground mt-0.5">with witnesses</p>
           </div>
         </div>
+        {/* Evidence nudge */}
+        {withEvidence < totalIncidents && (
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-3 pt-3 border-t border-border/50">
+            {totalIncidents - withEvidence} incident{totalIncidents - withEvidence > 1 ? 's' : ''} currently {totalIncidents - withEvidence > 1 ? 'have' : 'has'} no evidence attached
+          </p>
+        )}
       </div>
 
       {/* Accordion sections */}
