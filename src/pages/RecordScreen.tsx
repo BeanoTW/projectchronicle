@@ -242,7 +242,7 @@ const RecordScreen = () => {
         });
       }
       localStorage.removeItem('chronicle-draft');
-      toast({ title: `${drafts.length} records saved`, description: 'Your records have been split and saved separately.' });
+      toast({ title: `${drafts.length} incidents saved`, description: 'Your entry has been split and added to your timeline.' });
       navigate('/timeline');
     } catch (e) {
       toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
