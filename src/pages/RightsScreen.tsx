@@ -27,6 +27,8 @@ const guidanceSections = [
     id: 'understanding',
     icon: BookOpen,
     title: 'Understanding your situation',
+    tint: 'bg-primary/[0.04] border-primary/15',
+    iconBg: 'bg-primary/10 text-primary',
     points: [
       'Your records help you see what has been happening over time',
       'Look for things that come up more than once — people, types of situations, or timeframes',
@@ -37,6 +39,8 @@ const guidanceSections = [
     id: 'documenting',
     icon: FileText,
     title: 'How to document clearly',
+    tint: 'bg-info/[0.04] border-info/15',
+    iconBg: 'bg-info/10 text-info',
     points: [
       'Write down what happened as soon as possible after each event',
       'Include dates, times, locations, and who was present',
@@ -49,6 +53,8 @@ const guidanceSections = [
     id: 'grievance',
     icon: MessageCircle,
     title: 'Raising a concern or grievance',
+    tint: 'bg-warm-accent/[0.04] border-warm-accent/15',
+    iconBg: 'bg-warm-accent/10 text-warm-accent',
     points: [
       'Most workplaces have a grievance or complaints procedure',
       'You can usually raise concerns informally first, then formally if needed',
@@ -61,6 +67,8 @@ const guidanceSections = [
     id: 'protection',
     icon: ShieldCheck,
     title: 'Protection from unfair treatment',
+    tint: 'bg-severity-low/[0.04] border-severity-low/15',
+    iconBg: 'bg-severity-low/10 text-severity-low',
     points: [
       'Employees have legal protections against unfair treatment at work',
       'If you raise a concern in good faith, you should not be treated worse as a result',
@@ -72,6 +80,8 @@ const guidanceSections = [
     id: 'speaking',
     icon: Briefcase,
     title: 'Preparing to speak to someone',
+    tint: 'bg-rep/80 border-rep-foreground/15',
+    iconBg: 'bg-rep-foreground/10 text-rep-foreground',
     points: [
       'Before meeting HR, a union rep, or an adviser, organise your records',
       'Use the Export feature to create a structured summary of your incidents',
@@ -154,24 +164,26 @@ const RightsScreen = () => {
         </p>
       </div>
 
-      {/* Guidance sections */}
+      {/* Guidance sections — each with distinct colour */}
       <div className="mx-5 mb-5">
-        <Accordion type="multiple" className="space-y-1.5">
+        <Accordion type="multiple" className="space-y-2">
           {guidanceSections.map(section => {
             const Icon = section.icon;
             return (
-              <AccordionItem key={section.id} value={section.id} className="bg-card border border-border rounded-xl overflow-hidden">
-                <AccordionTrigger className="px-4 py-3 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                  <span className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <AccordionItem key={section.id} value={section.id} className={`border rounded-xl overflow-hidden ${section.tint}`}>
+                <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+                  <span className="flex items-center gap-3">
+                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${section.iconBg}`}>
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
                     {section.title}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
-                  <ul className="space-y-2.5">
+                  <ul className="space-y-2.5 ml-10">
                     {section.points.map((point, i) => (
-                      <li key={i} className="text-[13px] text-body leading-relaxed pl-6 relative">
-                        <span className="absolute left-0 top-[8px] w-1.5 h-1.5 rounded-full bg-primary/25" />
+                      <li key={i} className="text-[13px] text-body leading-relaxed pl-4 relative">
+                        <span className="absolute left-0 top-[8px] w-1.5 h-1.5 rounded-full bg-muted-foreground/25" />
                         {point}
                       </li>
                     ))}

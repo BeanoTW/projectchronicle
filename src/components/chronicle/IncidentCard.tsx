@@ -9,13 +9,26 @@ interface IncidentCardProps {
   showPatternLabel?: boolean;
 }
 
+const categoryCardTints: Record<string, string> = {
+  'Management Conduct': 'border-l-primary/40 bg-primary/[0.02]',
+  'Verbal Comment': 'border-l-warm-accent/40 bg-warm-accent/[0.03]',
+  'Safety Concern': 'border-l-severity-serious/40 bg-severity-serious/[0.02]',
+  'Written Communication': 'border-l-info/30 bg-info/[0.02]',
+  'Scheduling or Shift Change': 'border-l-muted-foreground/25 bg-muted/30',
+  'Disciplinary Meeting': 'border-l-destructive/30 bg-destructive/[0.02]',
+  'Pay or Payroll Issue': 'border-l-warm-accent/35 bg-warm-accent/[0.02]',
+  'Policy Application': 'border-l-info/25 bg-info/[0.02]',
+  'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
+};
+
 const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
   const navigate = useNavigate();
+  const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
 
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className="w-full text-left bg-card rounded-xl border border-border p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.99]"
+      className={`w-full text-left rounded-xl border border-border border-l-[3px] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.99] ${tint}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
