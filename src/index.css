@@ -257,5 +257,12 @@
 
 /* Section row */
 .section-row {
-  @apply flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer;
+  @apply flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/40 transition-all duration-150 ease-out cursor-pointer active:scale-[0.98];
+}
+
+/* Input focus glow */
+input:focus, textarea:focus {
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.3);
 }
