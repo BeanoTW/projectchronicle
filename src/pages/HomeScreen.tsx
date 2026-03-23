@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { motion } from 'framer-motion';
 
 const guidanceItems = [
