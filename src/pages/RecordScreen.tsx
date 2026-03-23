@@ -369,7 +369,7 @@ const RecordScreen = () => {
 
             <div>
               <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Add names if anyone saw or heard this.</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present? Even if unnamed, this can help later.</p>
               <Input
                 id="witnesses"
                 value={witnesses}
