@@ -306,10 +306,13 @@ const RecordScreen = () => {
       <div className="px-5 mb-5">
         <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
           <button
-            onClick={() => setMode('voice')}
+            onClick={() => {
+              setMode('voice');
+              toast({ title: 'Voice recording coming soon', description: 'You can use text to record your incident for now.' });
+            }}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-colors ${
               mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            }`}
+            } opacity-50`}
           >
             <Mic className="h-4 w-4" /> Voice
           </button>
@@ -330,8 +333,16 @@ const RecordScreen = () => {
           <div className="w-24 h-24 rounded-full bg-muted/30 border border-border flex items-center justify-center mb-4 opacity-30 cursor-not-allowed">
             <Mic className="h-10 w-10 text-muted-foreground" />
           </div>
-          <p className="text-[13px] text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
-          <p className="text-[12px] text-muted-foreground/50">Use text entry to record your incident</p>
+          <p className="text-[13px] text-muted-foreground font-medium mb-1">Voice recording coming soon</p>
+          <p className="text-[12px] text-muted-foreground/50 mb-3">Use text entry to record your incident</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[13px]"
+            onClick={() => setMode('text')}
+          >
+            <Keyboard className="h-3.5 w-3.5 mr-1.5" /> Switch to text
+          </Button>
         </div>
       )}
 
