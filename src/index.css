@@ -6,11 +6,11 @@
 
 @layer base {
   :root {
-    /* Project Chronicle Design System — Refined */
-    --background: 210 20% 98%;
+    /* Project Chronicle Design System — Warm & Calm */
+    --background: 160 12% 97%;
     --foreground: 215 25% 15%;
 
-    --card: 0 0% 100%;
+    --card: 160 8% 99%;
     --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
