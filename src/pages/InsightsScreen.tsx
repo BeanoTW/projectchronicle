@@ -153,7 +153,7 @@ const InsightsScreen = () => {
       {/* Overview */}
       <div className="px-4 grid grid-cols-3 gap-2.5 mb-5">
         {overviewCards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-3.5 text-center shadow-[var(--shadow-card)]">
+          <div key={label} className="bg-card/80 border border-border/50 rounded-2xl p-4 text-center shadow-[var(--shadow-card)]">
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
               <Icon className="h-4 w-4 text-secondary-foreground" />
             </div>
