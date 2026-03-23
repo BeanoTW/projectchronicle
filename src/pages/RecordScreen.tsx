@@ -12,6 +12,7 @@ import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
+import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/SplitIncidentModal';
 import { supabase } from '@/integrations/supabase/client';
 
 const categories = [
@@ -48,6 +49,11 @@ const RecordScreen = () => {
   const [analysing, setAnalysing] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [splitHighlights, setSplitHighlights] = useState<string[]>([]);
+  const [splitDrafts, setSplitDrafts] = useState<IncidentDraft[]>([]);
+  const [splitCount, setSplitCount] = useState(1);
+  const [splitChecked, setSplitChecked] = useState(false);
 
   const existingPatterns = useMemo(() => {
     const result: string[] = [];
@@ -117,6 +123,25 @@ const RecordScreen = () => {
     }
   };
 
+  const handleDetectMulti = async () => {
+    if (!narrative.trim() || narrative.length < 80 || splitChecked) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('detect-multi-incident', {
+        body: { narrative },
+      });
+      if (error || data?.error) return;
+      setSplitChecked(true);
+      if (data.is_multi && data.confidence !== 'low') {
+        setSplitHighlights(data.highlight_phrases || []);
+        setSplitDrafts(data.drafts || []);
+        setSplitCount(data.suggested_count || 2);
+        setSplitModalOpen(true);
+      }
+    } catch {
+      // Silent fail — splitting is optional
+    }
+  };
+
   const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
@@ -141,6 +166,32 @@ const RecordScreen = () => {
         field_changed: 'incident_recorded',
       });
       toast({ title: 'Incident saved' });
+      navigate('/timeline');
+    } catch (e) {
+      toast({ title: 'Failed to save', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSplit = async (drafts: IncidentDraft[]) => {
+    setSplitModalOpen(false);
+    setSaving(true);
+    try {
+      for (const draft of drafts) {
+        const result = await createIncident.mutateAsync({
+          raw_narrative: draft.narrative,
+          incident_date: draft.incident_date || incidentDate,
+          incident_time: draft.incident_time || null,
+          title: draft.title || null,
+          record_method: 'text',
+        });
+        await createEditHistory.mutateAsync({
+          incident_id: result.id,
+          field_changed: 'incident_recorded',
+        });
+      }
+      toast({ title: `${drafts.length} incidents saved`, description: 'Your records have been split and saved separately.' });
       navigate('/timeline');
     } catch (e) {
       toast({ title: 'Failed to save', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
@@ -258,7 +309,7 @@ const RecordScreen = () => {
               ? 'border-primary/30 text-primary bg-primary/5 hover:bg-primary/8'
               : 'border-border text-muted-foreground/40'
           }`}
-          onClick={handleAnalyse}
+          onClick={() => { handleAnalyse(); handleDetectMulti(); }}
           disabled={analysing || !narrative.trim()}
         >
           {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
@@ -360,6 +411,17 @@ const RecordScreen = () => {
           </Button>
         </div>
       </div>
+
+      <SplitIncidentModal
+        open={splitModalOpen}
+        onClose={() => setSplitModalOpen(false)}
+        narrative={narrative}
+        highlights={splitHighlights}
+        suggestedCount={splitCount}
+        drafts={splitDrafts}
+        onKeepSingle={() => setSplitModalOpen(false)}
+        onSaveSplit={handleSaveSplit}
+      />
     </div>
   );
 };
