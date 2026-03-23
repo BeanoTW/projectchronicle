@@ -43,7 +43,7 @@ const IncidentCard = ({ incident, showPatternLabel, compact }: IncidentCardProps
         <div className="flex items-center gap-1.5 mt-1.5">
           {incident.category && <CategoryBadge category={incident.category} />}
           {showPatternLabel && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
               Repeated
             </span>
           )}
