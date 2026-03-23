@@ -396,9 +396,16 @@ const RecordScreen = () => {
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-5 mb-4 px-4 py-3 rounded-lg bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5 animate-fade-in">
-          <AlertTriangle className="h-4 w-4 text-warm-accent flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-warm-accent-foreground font-medium leading-relaxed">{similarPatternAlert}</p>
+        <div className="mx-5 mb-4 px-4 py-3.5 rounded-xl bg-warm-accent/[0.08] border border-warm-accent/25 flex items-start gap-2.5 shadow-sm animate-fade-in">
+          <div className="w-6 h-6 rounded-full bg-warm-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <AlertTriangle className="h-3.5 w-3.5 text-warm-accent" />
+          </div>
+          <div>
+            <p className="text-[13px] text-warm-accent-foreground font-semibold leading-snug">
+              {similarPatternAlert.replace('incidents', 'records')}
+            </p>
+            <p className="text-[11px] text-warm-accent-foreground/60 mt-0.5">Pattern detected from your existing records</p>
+          </div>
         </div>
       )}
 
@@ -461,7 +468,7 @@ const RecordScreen = () => {
               disabled={analysing}
             >
               {analysing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring...</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
               ) : (
                 'Structure this for you'
               )}
@@ -473,9 +480,9 @@ const RecordScreen = () => {
         {aiSuggested && (
           <motion.div
             className="space-y-5"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             {/* AI Summary */}
             {aiSummary && (
@@ -553,6 +560,20 @@ const RecordScreen = () => {
               {!canSave && hasText && !incidentDate && (
                 <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
               )}
+              <AnimatePresence>
+                {saved && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="mt-4 text-center space-y-1"
+                  >
+                    <p className="text-[14px] text-primary font-semibold">Record saved</p>
+                    <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
@@ -589,7 +610,7 @@ const RecordScreen = () => {
                   </div>
                   {detailFields}
                   <div className="pt-4 pb-8">
-                    <Button
+                     <Button
                       onClick={handleSave}
                       disabled={saving || saved || !canSave}
                       className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
@@ -605,6 +626,20 @@ const RecordScreen = () => {
                     {!canSave && hasText && !incidentDate && (
                       <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
                     )}
+                    <AnimatePresence>
+                      {saved && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.35 }}
+                          className="mt-4 text-center space-y-1"
+                        >
+                          <p className="text-[14px] text-primary font-semibold">Record saved</p>
+                          <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </CollapsibleContent>
