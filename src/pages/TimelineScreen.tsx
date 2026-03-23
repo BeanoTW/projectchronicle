@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
+import ChronologyTimeline from '@/components/chronicle/ChronologyTimeline';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { Switch } from '@/components/ui/switch';
