@@ -12,6 +12,7 @@ import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
+import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/SplitIncidentModal';
 import { supabase } from '@/integrations/supabase/client';
 
 const categories = [
