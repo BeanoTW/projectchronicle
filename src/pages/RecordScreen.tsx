@@ -49,6 +49,12 @@ const RecordScreen = () => {
   const [analysing, setAnalysing] = useState(false);
   const [aiSuggested, setAiSuggested] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [splitModalOpen, setSplitModalOpen] = useState(false);
+  const [splitHighlights, setSplitHighlights] = useState<string[]>([]);
+  const [splitDrafts, setSplitDrafts] = useState<IncidentDraft[]>([]);
+  const [splitCount, setSplitCount] = useState(1);
+  const [splitChecked, setSplitChecked] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const existingPatterns = useMemo(() => {
     const result: string[] = [];
