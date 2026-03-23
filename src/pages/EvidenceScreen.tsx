@@ -85,8 +85,8 @@ const EvidenceScreen = () => {
         </div>
         <EmptyState
           icon={<Paperclip className="h-12 w-12" />}
-          heading="No evidence yet"
-          body="Upload evidence files to attach to your incidents."
+          heading="No evidence added yet"
+          body="You can upload screenshots, photos, or documents — these files can be linked to incidents to support your records."
         />
       </div>
     );

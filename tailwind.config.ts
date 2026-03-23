@@ -80,6 +80,11 @@ export default {
           DEFAULT: "hsl(var(--ai-label))",
           foreground: "hsl(var(--ai-label-foreground))",
         },
+        "warm-accent": {
+          DEFAULT: "hsl(var(--warm-accent))",
+          light: "hsl(var(--warm-accent-light))",
+          foreground: "hsl(var(--warm-accent-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

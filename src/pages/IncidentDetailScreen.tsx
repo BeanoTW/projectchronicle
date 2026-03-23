@@ -132,7 +132,7 @@ const IncidentDetailScreen = () => {
 
         {incident.excluded_from_rep && (
           <div className="mt-2.5 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium">
-            This incident is excluded from your rep view.
+            This record is excluded from your rep view.
           </div>
         )}
       </div>

@@ -131,7 +131,7 @@ const ExportScreen = () => {
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Export</h1>
         <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
-          Generate structured reports ready to share with unions, HR, or advisers.
+          Create structured records ready to share with unions, HR, or advisers.
         </p>
       </div>
 

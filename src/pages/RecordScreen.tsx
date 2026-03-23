@@ -414,8 +414,8 @@ const RecordScreen = () => {
         )}
 
         <div className="flex gap-3 pt-3 pb-6">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-card)]">
-            {saving ? 'Saving...' : 'Save Incident'}
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-transform">
+            {saving ? 'Saving...' : 'Save Record'}
           </Button>
         </div>
       </div>
