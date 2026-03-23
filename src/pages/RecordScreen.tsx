@@ -207,7 +207,7 @@ const RecordScreen = () => {
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">When it happened</span>
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Where</span>
           <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Who was involved</span>
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What was said or done</span>
+          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What happened? (include anything said or done)</span>
         </div>
       </div>
 
