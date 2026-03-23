@@ -411,6 +411,17 @@ const RecordScreen = () => {
           </Button>
         </div>
       </div>
+
+      <SplitIncidentModal
+        open={splitModalOpen}
+        onClose={() => setSplitModalOpen(false)}
+        narrative={narrative}
+        highlights={splitHighlights}
+        suggestedCount={splitCount}
+        drafts={splitDrafts}
+        onKeepSingle={() => setSplitModalOpen(false)}
+        onSaveSplit={handleSaveSplit}
+      />
     </div>
   );
 };
