@@ -3,6 +3,7 @@ import { Shield, ExternalLink, ArrowRight, BookOpen, FileText, MessageCircle, Sh
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
+import PageHeader from '@/components/chronicle/PageHeader';
 import {
   Accordion,
   AccordionContent,
