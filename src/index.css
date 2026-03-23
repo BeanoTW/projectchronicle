@@ -16,24 +16,30 @@
     --popover: 0 0% 100%;
     --popover-foreground: 215 25% 15%;
 
-    /* Primary: #1A7A6E → hsl(173, 65%, 29%) */
-    --primary: 173 65% 29%;
+    /* Primary: soft green (trust / control) */
+    --primary: 168 45% 32%;
     --primary-foreground: 0 0% 100%;
 
-    /* Primary Dark: #1A2332 → hsl(215, 30%, 15%) */
+    /* Primary Dark */
     --primary-dark: 215 30% 15%;
 
-    /* Primary Light: #F0F7F6 → hsl(168, 32%, 95%) */
-    --primary-light: 168 32% 95%;
+    /* Primary Light — warm tinted background */
+    --primary-light: 160 25% 96%;
 
-    --secondary: 168 32% 95%;
-    --secondary-foreground: 173 65% 29%;
+    /* Secondary: muted blue (calm / guidance) */
+    --secondary: 210 30% 96%;
+    --secondary-foreground: 210 35% 35%;
 
     --muted: 210 18% 95%;
-    --muted-foreground: 215 10% 55%;
+    --muted-foreground: 215 10% 50%;
 
-    --accent: 170 28% 93%;
-    --accent-foreground: 173 65% 29%;
+    --accent: 165 22% 94%;
+    --accent-foreground: 168 45% 32%;
+
+    /* Warm accent: amber (patterns / attention) */
+    --warm-accent: 38 80% 55%;
+    --warm-accent-light: 40 70% 96%;
+    --warm-accent-foreground: 30 60% 30%;
 
     --destructive: 0 72% 35%;
     --destructive-foreground: 0 0% 100%;
