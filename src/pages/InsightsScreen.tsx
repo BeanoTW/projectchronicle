@@ -76,7 +76,7 @@ const InsightsScreen = () => {
   const patterns = useMemo(() => {
     const result: string[] = [];
     keyIndividuals.forEach(({ name, count, firstDate, lastDate }) => {
-      result.push(`These records include ${count} incidents involving ${name} between ${format(parseISO(firstDate), 'MMMM yyyy')} and ${format(parseISO(lastDate), 'MMMM yyyy')}.`);
+      result.push(`${name} appears in ${count} incidents (${format(parseISO(firstDate), 'MMM yyyy')} – ${format(parseISO(lastDate), 'MMM yyyy')}).`);
     });
     const topCat = categoryPatterns[0];
     if (topCat && topCat.count >= 3) result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
