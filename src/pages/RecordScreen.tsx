@@ -293,7 +293,7 @@ const RecordScreen = () => {
 
         {/* Manual Form Fields */}
         {showManualForm && (
-          <div className="space-y-5">
+          <div className="space-y-5 bg-card/40 rounded-2xl p-4 border border-border/40">
             <div>
               <Label htmlFor="title" className="text-sm font-medium">Title</Label>
               <Input
