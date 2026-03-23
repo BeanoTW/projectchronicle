@@ -301,7 +301,7 @@ const RecordScreen = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Short title for this incident"
-                className="mt-1.5 bg-card rounded-xl"
+                className="mt-1.5 bg-card/60 rounded-xl border-border/40"
               />
             </div>
 
