@@ -348,9 +348,7 @@ const RecordScreen = () => {
                   });
                   if (error) throw error;
                   if (data?.transcript && data.transcript !== '[inaudible]') {
-                    setNarrative(prev => prev ? `${prev}
-
-${data.transcript}` : data.transcript);
+                    setNarrative(prev => prev ? prev + '\n\n' + data.transcript : data.transcript);
                     setMode('text');
                     toast({ title: 'Transcript added', description: 'Your words have been added as editable text.' });
                   } else {
