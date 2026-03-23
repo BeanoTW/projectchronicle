@@ -164,7 +164,7 @@ const InsightsScreen = () => {
       </div>
 
       {/* Accordion sections */}
-      <div className="mx-4 mb-4">
+      <div className="mx-5 mb-5">
         <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2.5">
 
           {/* People involved */}
