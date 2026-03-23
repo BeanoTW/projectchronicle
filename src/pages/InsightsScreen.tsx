@@ -196,7 +196,7 @@ const InsightsScreen = () => {
             <AccordionItem value="patterns" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <Eye className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Eye className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
                   Things showing up in your records
                 </span>
               </AccordionTrigger>
