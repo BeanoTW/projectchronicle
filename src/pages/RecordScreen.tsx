@@ -244,7 +244,7 @@ const RecordScreen = () => {
         {/* AI Analysis Button */}
         <Button
           variant="outline"
-          className="w-full border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 rounded-xl h-11 font-medium shadow-sm"
+          className="w-full border-primary/25 text-primary bg-primary/5 hover:bg-primary/10 rounded-2xl h-12 font-medium shadow-sm transition-all duration-300"
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >
@@ -253,13 +253,13 @@ const RecordScreen = () => {
 
         {/* AI Summary Preview */}
         {aiSuggested && aiSummary && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <div className="bg-card/80 border border-border/60 rounded-2xl p-5 shadow-[var(--shadow-card)]">
             <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground mb-3">Review and edit before saving.</p>
-            <p className="text-[15px] text-body leading-relaxed">{aiSummary}</p>
+            <p className="text-[11px] text-muted-foreground/60 mb-3">Review and edit before saving.</p>
+            <p className="text-[15px] text-body leading-[1.75]">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-              className="text-xs text-destructive mt-3 font-medium"
+              className="text-xs text-destructive/70 mt-3 font-medium hover:text-destructive transition-colors"
             >
               Remove summary
             </button>
