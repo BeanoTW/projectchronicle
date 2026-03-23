@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2, Shield, Eye } from 'lucide-react';
+import { BarChart3, FileText, Users, AlertTriangle, TrendingUp, Loader2, Shield, Eye, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -9,6 +9,12 @@ import EmptyState from '@/components/chronicle/EmptyState';
 import AILabel from '@/components/chronicle/AILabel';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 const InsightsScreen = () => {
   const navigate = useNavigate();
@@ -19,9 +25,7 @@ const InsightsScreen = () => {
   const [aiLoading, setAiLoading] = useState(false);
 
   const totalIncidents = incidents.length;
-  const thisMonth = incidents.filter(i => new Date(i.incident_date).getMonth() === new Date().getMonth()).length;
   const withEvidence = incidents.filter(i => allEvidence.some(e => e.incident_id === i.id)).length;
-  const openIncidents = incidents.filter(i => i.status === 'Open').length;
   const withWitnesses = incidents.filter(i => i.witnesses.length > 0).length;
 
   const keyIndividuals = useMemo(() => {
@@ -55,8 +59,7 @@ const InsightsScreen = () => {
     const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
     for (let i = 0; i < sortedDates.length - 2; i++) {
       if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) {
-        const count = sortedDates.slice(i, i + 3).length;
-        return `${count} incidents were recorded within a 7-day period`;
+        return '3 incidents were recorded within a 7-day period';
       }
     }
     return null;
@@ -99,7 +102,7 @@ const InsightsScreen = () => {
       if (data.error) throw new Error(data.error);
       setAiSummaries(data.summaries || []);
     } catch (e) {
-      toast({ title: 'AI summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setAiLoading(false);
     }
@@ -128,7 +131,7 @@ const InsightsScreen = () => {
         <EmptyState
           icon={<BarChart3 className="h-12 w-12" />}
           heading="Not enough data yet"
-          body="Record more incidents to unlock pattern insights and timeline analysis."
+          body="Record more incidents to see what's showing up in your records."
         />
       </div>
     );
@@ -136,140 +139,176 @@ const InsightsScreen = () => {
 
   const overviewCards = [
     { label: 'Total', value: totalIncidents, icon: FileText },
-    { label: 'This Month', value: thisMonth, icon: TrendingUp },
-    { label: 'Evidence', value: withEvidence, icon: FileText },
-    { label: 'Open', value: openIncidents, icon: AlertTriangle },
-    { label: 'Witnesses', value: withWitnesses, icon: Users },
+    { label: 'With evidence', value: withEvidence, icon: FileText },
+    { label: 'With witnesses', value: withWitnesses, icon: Users },
   ];
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-2">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[11px] text-muted-foreground mt-1.5">Data observations from your recorded incidents. Not legal advice.</p>
+        <p className="text-[13px] text-muted-foreground mt-1.5">A summary of what's showing up in your records.</p>
       </div>
 
-      {/* Overview Stats */}
+      {/* Overview */}
       <div className="px-4 grid grid-cols-3 gap-2 mb-4">
         {overviewCards.map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-3 text-center shadow-[var(--shadow-card)]">
             <Icon className="h-4 w-4 text-primary mx-auto mb-1.5 opacity-70" />
             <p className="text-lg font-bold text-foreground">{value}</p>
-            <p className="text-[10px] text-muted-foreground">{label}</p>
+            <p className="text-[11px] text-muted-foreground">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Emerging Patterns */}
-      {(keyIndividuals.length > 0 || categoryPatterns.length > 0 || concentratedPeriod) && (
-        <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-          <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Eye className="h-4 w-4 text-primary" />
-            Emerging Patterns in Your Records
-          </h2>
+      {/* Accordion sections */}
+      <div className="mx-4 mb-4">
+        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2">
 
+          {/* People involved */}
           {keyIndividuals.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-2">Key Individuals</p>
-              <div className="space-y-1.5">
-                {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
-                  <p key={name} className="text-xs text-body leading-relaxed">
-                    <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {categoryPatterns.length > 0 && (
-            <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-2">Most Common Incident Types</p>
-              <div className="flex flex-wrap gap-1.5">
-                {categoryPatterns.slice(0, 4).map(({ category, count }) => (
-                  <span key={category} className="px-2.5 py-1 rounded-full text-[10px] font-medium bg-primary/8 text-primary border border-primary/15">
-                    {category} ({count})
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {concentratedPeriod && (
-            <div className="mb-3">
-              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Activity Concentration</p>
-              <p className="text-xs text-body leading-relaxed">{concentratedPeriod}</p>
-            </div>
-          )}
-
-          {patterns.length > 0 && (
-            <div className="space-y-2 pt-3 border-t border-border/60">
-              {patterns.map((p, i) => (
-                <p key={i} className="text-xs text-body leading-relaxed">• {p}</p>
-              ))}
-            </div>
-          )}
-
-          {aiSummaries.length > 0 ? (
-            <div className="mt-3 pt-3 border-t border-border/60">
-              <div className="mb-2"><AILabel /></div>
-              <div className="space-y-2">
-                {aiSummaries.map((s, i) => (
-                  <p key={i} className="text-xs text-body leading-relaxed">• {s}</p>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={handleAiSummarise}
-              disabled={aiLoading}
-              className="mt-3 text-xs text-primary font-medium flex items-center gap-1.5"
-            >
-              {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Data Gaps */}
-      {dataGaps.length > 0 && (
-        <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-          <h2 className="text-sm font-semibold text-foreground mb-2.5 flex items-center gap-2">
-            <Shield className="h-4 w-4 text-severity-serious" />
-            Data Gaps
-          </h2>
-          <div className="space-y-2">
-            {dataGaps.map((gap, i) => (
-              <button
-                key={i}
-                onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2 -mx-1 transition-colors"
-              >
-                <div>
-                  <p className="text-xs text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
-                  <p className="text-[11px] text-primary mt-0.5">→ {gap.action}</p>
+            <AccordionItem value="people" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-2.5">
+                  <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                  People involved
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-4">
+                <div className="space-y-2.5">
+                  {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
+                    <div key={name} className="flex items-start gap-2.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
+                      <p className="text-[13px] text-body leading-relaxed">
+                        <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+              </AccordionContent>
+            </AccordionItem>
+          )}
 
-      {/* Chart */}
-      <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-        <h2 className="text-sm font-semibold text-foreground mb-3">Incident Activity</h2>
-        <div className="h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
-              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {chartData.map((_, index) => (
-                  <Cell key={index} fill="hsl(var(--primary))" />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+          {/* Types of situations */}
+          {categoryPatterns.length > 0 && (
+            <AccordionItem value="patterns" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-2.5">
+                  <Eye className="h-4 w-4 text-primary flex-shrink-0" />
+                  Things showing up in your records
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-4">
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {categoryPatterns.slice(0, 5).map(({ category, count }) => (
+                    <span key={category} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/8 text-primary border border-primary/15">
+                      {category} ({count})
+                    </span>
+                  ))}
+                </div>
+
+                {concentratedPeriod && (
+                  <p className="text-[13px] text-body leading-relaxed mb-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 inline-block mr-2 relative top-[-1px]" />
+                    {concentratedPeriod}
+                  </p>
+                )}
+
+                {patterns.length > 0 && (
+                  <div className="space-y-2 pt-3 border-t border-border/60">
+                    {patterns.map((p, i) => (
+                      <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
+                        {p}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {aiSummaries.length > 0 ? (
+                  <div className="mt-3 pt-3 border-t border-border/60">
+                    <div className="mb-2"><AILabel /></div>
+                    <div className="space-y-2">
+                      {aiSummaries.map((s, i) => (
+                        <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-ai-label/60 flex-shrink-0 mt-[7px]" />
+                          {s}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                ) : patterns.length > 0 ? (
+                  <button
+                    onClick={handleAiSummarise}
+                    disabled={aiLoading}
+                    className="mt-3 text-[13px] text-primary font-medium flex items-center gap-1.5"
+                  >
+                    {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
+                  </button>
+                ) : null}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* When things are happening */}
+          {chartData.length > 0 && (
+            <AccordionItem value="timing" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-2.5">
+                  <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                  When things are happening
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-4">
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {chartData.map((_, index) => (
+                          <Cell key={index} fill="hsl(var(--primary))" />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* Gaps in your records */}
+          {dataGaps.length > 0 && (
+            <AccordionItem value="gaps" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+              <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 text-severity-serious flex-shrink-0" />
+                  Things you could add
+                  <span className="text-[10px] text-muted-foreground font-normal">(optional)</span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-4">
+                <div className="space-y-2">
+                  {dataGaps.map((gap, i) => (
+                    <button
+                      key={i}
+                      onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
+                      className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2.5 -mx-1 transition-colors"
+                    >
+                      <div>
+                        <p className="text-[13px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label.toLowerCase()}</p>
+                        <p className="text-[12px] text-primary mt-0.5 flex items-center gap-1">
+                          <ArrowRight className="h-3 w-3" /> {gap.action}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+        </Accordion>
       </div>
     </div>
   );
