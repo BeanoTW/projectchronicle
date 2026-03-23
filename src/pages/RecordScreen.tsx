@@ -253,7 +253,8 @@ const RecordScreen = () => {
         {/* AI Summary Preview */}
         {aiSuggested && aiSummary && (
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <div className="mb-2"><AILabel /></div>
+            <div className="mb-1.5"><AILabel /></div>
+            <p className="text-[11px] text-muted-foreground mb-2.5">This is a structured version of your original record to support review.</p>
             <p className="text-sm text-body leading-relaxed">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
@@ -316,12 +317,13 @@ const RecordScreen = () => {
               </div>
               <div>
                 <Label htmlFor="time" className="text-sm font-medium">Time</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">If unsure, use an approximate time.</p>
                 <Input
                   id="time"
                   type="time"
                   value={incidentTime}
                   onChange={(e) => setIncidentTime(e.target.value)}
-                  className="mt-1.5 bg-card rounded-xl"
+                  className="bg-card rounded-xl"
                 />
               </div>
             </div>

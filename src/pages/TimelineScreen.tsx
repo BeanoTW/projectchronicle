@@ -97,7 +97,7 @@ const TimelineScreen = () => {
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[11px] text-muted-foreground">Ordered by incident date, not recording date.</p>
+        <p className="text-[11px] text-muted-foreground">Sort by incident date (when events happened).</p>
       </div>
 
       {gapFilter && (
@@ -132,7 +132,7 @@ const TimelineScreen = () => {
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
-                  <span className="ml-2 text-[10px] text-severity-serious font-medium">• pattern</span>
+                  <span className="ml-2 text-[10px] text-severity-serious font-medium">• Repeated behaviour</span>
                 )}
               </div>
             ))}

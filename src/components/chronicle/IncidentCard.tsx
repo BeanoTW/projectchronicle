@@ -31,7 +31,7 @@ const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {showPatternLabel && (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-severity-serious/8 text-severity-serious border border-severity-serious/15">
-            Part of repeated pattern
+            Part of repeated behaviour
           </span>
         )}
       </div>

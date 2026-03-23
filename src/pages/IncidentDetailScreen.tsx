@@ -200,8 +200,9 @@ const IncidentDetailScreen = () => {
 
         {incident.ai_summary && (
           <div className="bg-card border border-border rounded-lg p-4">
-            <div className="mb-2"><AILabel /></div>
-            <p className="text-sm text-body">{incident.ai_summary}</p>
+            <div className="mb-1.5"><AILabel /></div>
+            <p className="text-[11px] text-muted-foreground mb-2.5">This is a structured version of your original record to support review.</p>
+            <p className="text-sm text-body leading-relaxed">{incident.ai_summary}</p>
           </div>
         )}
 
