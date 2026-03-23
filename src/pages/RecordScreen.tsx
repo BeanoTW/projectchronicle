@@ -153,7 +153,7 @@ const RecordScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-record pb-24">
       <div className="px-4 pt-6 pb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
@@ -230,7 +230,7 @@ const RecordScreen = () => {
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Write what happened in your own words — include anything said, done, or noticed."
-            className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary text-[15px] leading-relaxed"
+            className="mt-1.5 min-h-[160px] bg-card/80 border-border rounded-xl focus:ring-primary focus:bg-card text-[15px] leading-relaxed transition-colors"
           />
           {narrative.length > 0 && (
             <p className="text-[11px] text-muted-foreground mt-1.5">{narrative.length} characters</p>
@@ -243,7 +243,7 @@ const RecordScreen = () => {
         {/* AI Analysis Button */}
         <Button
           variant="outline"
-          className="w-full border-primary/30 text-primary hover:bg-primary/5 rounded-xl h-11"
+          className="w-full border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 rounded-xl h-11 font-medium shadow-sm"
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >

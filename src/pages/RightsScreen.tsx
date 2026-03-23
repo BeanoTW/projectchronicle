@@ -138,7 +138,7 @@ const RightsScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-rights pb-24">
       <div className="px-4 pt-6 pb-1">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Rights & Guidance</h1>
       </div>

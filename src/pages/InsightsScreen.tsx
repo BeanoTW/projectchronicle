@@ -144,7 +144,7 @@ const InsightsScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-tint-insights pb-24">
       <div className="px-4 pt-6 pb-3">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
         <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
@@ -154,7 +154,9 @@ const InsightsScreen = () => {
       <div className="px-4 grid grid-cols-3 gap-2.5 mb-5">
         {overviewCards.map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-card border border-border rounded-xl p-3.5 text-center shadow-[var(--shadow-card)]">
-            <Icon className="h-4 w-4 text-primary mx-auto mb-2 opacity-70" />
+            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
+              <Icon className="h-4 w-4 text-secondary-foreground" />
+            </div>
             <p className="text-xl font-bold text-foreground">{value}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
           </div>
@@ -170,7 +172,7 @@ const InsightsScreen = () => {
             <AccordionItem value="people" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <Users className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Users className="h-3.5 w-3.5 text-secondary-foreground" /></div>
                   People involved
                 </span>
               </AccordionTrigger>
@@ -194,7 +196,7 @@ const InsightsScreen = () => {
             <AccordionItem value="patterns" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <Eye className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Eye className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
                   Things showing up in your records
                 </span>
               </AccordionTrigger>
@@ -255,7 +257,7 @@ const InsightsScreen = () => {
             <AccordionItem value="timing" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><TrendingUp className="h-3.5 w-3.5 text-secondary-foreground" /></div>
                   When things are happening
                 </span>
               </AccordionTrigger>
@@ -282,7 +284,7 @@ const InsightsScreen = () => {
             <AccordionItem value="gaps" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <Shield className="h-4 w-4 text-severity-serious flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Shield className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
                   Things you could add
                   <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
                 </span>
