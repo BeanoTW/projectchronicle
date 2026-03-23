@@ -7,6 +7,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
 import AILabel from '@/components/chronicle/AILabel';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
