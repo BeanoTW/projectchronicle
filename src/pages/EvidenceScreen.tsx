@@ -83,6 +83,18 @@ const EvidenceScreen = () => {
     }
   };
 
+  const handleRemoveEvidence = async (evidenceId: string, filePath: string) => {
+    try {
+      await supabase.storage.from('evidence').remove([filePath]);
+      const { error } = await supabase.from('evidence_files').delete().eq('id', evidenceId);
+      if (error) throw error;
+      toast({ title: 'Evidence removed' });
+      refetch();
+    } catch {
+      toast({ title: 'Failed to remove', variant: 'destructive' });
+    }
+  };
+
   if (isLoading) {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
