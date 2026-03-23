@@ -257,7 +257,7 @@ const InsightsScreen = () => {
             <AccordionItem value="timing" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
-                  <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><TrendingUp className="h-3.5 w-3.5 text-secondary-foreground" /></div>
                   When things are happening
                 </span>
               </AccordionTrigger>
