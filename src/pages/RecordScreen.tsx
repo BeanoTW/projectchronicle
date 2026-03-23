@@ -158,7 +158,7 @@ const RecordScreen = () => {
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
           <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
-            Capture what happened in your own words. Only your account and the date are required.
+            Take your time — write this in your own words. It doesn't need to be perfect.
           </p>
         </div>
         <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
