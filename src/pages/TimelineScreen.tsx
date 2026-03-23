@@ -6,9 +6,16 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+
+const categoryFilters = [
+  'all',
+  'Verbal Comment', 'Written Communication', 'Safety Concern',
+  'Scheduling or Shift Change', 'Disciplinary Meeting',
+  'Management Conduct', 'Pay or Payroll Issue',
+  'Policy Application', 'Workplace Meeting', 'Other',
+];
 
 const TimelineScreen = () => {
   const { data: allIncidents = [], isLoading } = useIncidents();
@@ -89,7 +96,7 @@ const TimelineScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <div className="px-5 pt-8 pb-5">
+      <div className="px-5 pt-8 pb-3">
         <div className="flex items-center justify-between mb-1">
           <h1>Timeline</h1>
           <div className="flex items-center gap-2">
@@ -107,19 +114,24 @@ const TimelineScreen = () => {
         </div>
       )}
 
+      {/* Horizontal scrollable category chips */}
       {!chronologyMode && (
-        <div className="px-5 pb-4">
-          <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
-            <SelectTrigger className="bg-card text-[13px] h-10 rounded-lg border-border">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {['Verbal Comment','Written Communication','Safety Concern','Scheduling or Shift Change','Disciplinary Meeting','Management Conduct','Pay or Payroll Issue','Policy Application','Workplace Meeting','Other'].map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 min-w-max">
+            {categoryFilters.map(c => (
+              <button
+                key={c}
+                onClick={() => { setFilterCategory(c); setGapFilter(null); }}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-all duration-150 ${
+                  filterCategory === c
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                }`}
+              >
+                {c === 'all' ? 'All' : c}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -138,14 +150,14 @@ const TimelineScreen = () => {
             ))}
           </div>
         ) : (
-          <div className="pl-6 timeline-spine space-y-6">
+          <div className="pl-6 timeline-spine space-y-5">
             {Object.entries(grouped).map(([month, items]) => (
               <div key={month}>
-                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
-                <div className="space-y-3">
+                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5 -ml-6">{month}</h2>
+                <div className="space-y-2.5">
                   {items.map(inc => (
                     <div key={inc.id} className="timeline-node">
-                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} />
+                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact />
                     </div>
                   ))}
                 </div>

@@ -7,6 +7,7 @@ import RecordAgeChip from './RecordAgeChip';
 interface IncidentCardProps {
   incident: Incident;
   showPatternLabel?: boolean;
+  compact?: boolean;
 }
 
 const categoryCardTints: Record<string, string> = {
@@ -21,9 +22,36 @@ const categoryCardTints: Record<string, string> = {
   'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
 };
 
-const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel, compact }: IncidentCardProps) => {
   const navigate = useNavigate();
   const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
+
+  if (compact) {
+    return (
+      <button
+        onClick={() => navigate(`/incident/${incident.id}`)}
+        className={`w-full text-left rounded-xl border border-border border-l-[3px] px-3.5 py-3 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.99] ${tint}`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[13px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+            {incident.title || 'Untitled incident'}
+          </h3>
+          <span className="text-[11px] text-muted-foreground/60 whitespace-nowrap flex-shrink-0">
+            {format(parseISO(incident.incident_date), 'dd MMM')}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          {incident.category && <CategoryBadge category={incident.category} />}
+          {showPatternLabel && (
+            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
+              Repeated
+            </span>
+          )}
+          {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
+        </div>
+      </button>
+    );
+  }
 
   return (
     <button

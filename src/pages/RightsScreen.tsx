@@ -164,7 +164,7 @@ const RightsScreen = () => {
         </p>
       </div>
 
-      {/* Guidance sections — each with distinct colour */}
+      {/* Guidance sections */}
       <div className="mx-5 mb-5">
         <Accordion type="multiple" className="space-y-2">
           {guidanceSections.map(section => {
@@ -195,21 +195,23 @@ const RightsScreen = () => {
         </Accordion>
       </div>
 
-      {/* Based on your records */}
+      {/* Based on your records — issue type chips horizontal scroll */}
       {detectedIssueTypes.length > 0 && (
         <div className="mx-5 mb-5">
           <p className="section-group-title">Based on your records</p>
           <div className="bg-card border border-border rounded-xl p-4">
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {detectedIssueTypes.map(type => (
-                <span key={type} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/6 text-primary border border-primary/12 capitalize">
-                  {type}
-                </span>
-              ))}
+            <div className="overflow-x-auto scrollbar-hide -mx-1">
+              <div className="flex gap-1.5 min-w-max px-1">
+                {detectedIssueTypes.map(type => (
+                  <span key={type} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/6 text-primary border border-primary/12 capitalize whitespace-nowrap">
+                    {type}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {suggestedNextSteps.length > 0 && (
-              <div className="pt-3 border-t border-border">
+              <div className="pt-3 mt-3 border-t border-border">
                 <h3 className="text-[13px] font-semibold text-foreground mb-2.5">Helpful next steps</h3>
                 <div className="space-y-2">
                   {suggestedNextSteps.map((step, i) => (
@@ -225,49 +227,58 @@ const RightsScreen = () => {
         </div>
       )}
 
-      {/* Relevant external guidance */}
+      {/* Relevant external guidance — horizontal scroll cards */}
       {relevantGuidance.length > 0 && (
         <div className="mx-5 mb-5">
           <p className="section-group-title">Relevant to your records</p>
-          <div className="space-y-1.5">
-            {relevantGuidance.map(r => (
-              <div key={r.id} className="bg-card border border-border rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
-                    {r.source}
-                  </span>
+          <div className="overflow-x-auto scrollbar-hide -mx-1">
+            <div className="flex gap-2.5 min-w-max px-1 pb-2">
+              {relevantGuidance.map(r => (
+                <div key={r.id} className="bg-card border border-border rounded-xl p-4 w-[260px] flex-shrink-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
+                      {r.source}
+                    </span>
+                  </div>
+                  <h3 className="text-[14px] font-medium text-foreground mb-1 line-clamp-2">{r.title}</h3>
+                  {r.description && <p className="text-[12px] text-muted-foreground leading-relaxed mb-2 line-clamp-2">{r.description}</p>}
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
+                    View guidance <ExternalLink className="h-3 w-3" />
+                  </a>
                 </div>
-                <h3 className="text-[14px] font-medium text-foreground mb-1">{r.title}</h3>
-                {r.description && <p className="text-[13px] text-muted-foreground leading-relaxed mb-2">{r.description}</p>}
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
-                  View guidance <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Browse all */}
+      {/* Browse all — collapsed by default */}
       <div className="mx-5 pb-4">
-        <p className="section-group-title">Browse all guidance</p>
-        <div className="space-y-1.5">
-          {sortedGuidance.map(r => (
-            <div key={r.id} className="bg-card border border-border rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
-                  {r.source}
-                </span>
-                <span className="text-[11px] text-muted-foreground/60">{r.incident_category}</span>
+        <Accordion type="single" collapsible className="border-none">
+          <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">
+            <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline">
+              Browse all guidance ({sortedGuidance.length})
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-2">
+                {sortedGuidance.map(r => (
+                  <div key={r.id} className="border border-border rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
+                        {r.source}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground/60">{r.incident_category}</span>
+                    </div>
+                    <h3 className="text-[13px] font-medium text-foreground mb-0.5">{r.title}</h3>
+                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-medium hover:underline">
+                      View <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                ))}
               </div>
-              <h3 className="text-[14px] font-medium text-foreground mb-1">{r.title}</h3>
-              {r.description && <p className="text-[13px] text-muted-foreground leading-relaxed mb-2">{r.description}</p>}
-              <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
-                View guidance <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-          ))}
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   );
