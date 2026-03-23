@@ -119,13 +119,16 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
                 <span className="text-[10px] text-muted-foreground/60 block mb-1">
                   {format(parseISO(inc.incident_date), 'dd MMM yyyy')}
                 </span>
-                <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2 mb-1">
+                <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2 mb-1">
                   {inc.title || 'Untitled incident'}
                 </p>
                 {previewText && (
-                  <p className={`text-[12px] text-muted-foreground/70 leading-relaxed mb-1.5 ${previewLines(i)}`}>
-                    {previewText}
-                  </p>
+                  <div className="relative mb-1.5">
+                    <p className={`text-[12px] text-muted-foreground/60 leading-relaxed ${previewLines(i)}`}>
+                      {previewText}
+                    </p>
+                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  </div>
                 )}
                 <div className="flex flex-wrap items-center gap-1">
                   {inc.category && <CategoryBadge category={inc.category} />}
