@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, User } from 'lucide-react';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 
