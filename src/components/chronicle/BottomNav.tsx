@@ -18,7 +18,7 @@ const BottomNav = () => {
       className="fixed bottom-0 left-0 right-0 z-50"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="mx-3 mb-3 rounded-2xl bg-card border border-border shadow-[var(--shadow-elevated)]">
+      <div className="mx-3 mb-3 rounded-2xl glass-nav border border-border shadow-[var(--shadow-elevated)]">
         <div className="flex items-center justify-around h-[60px] max-w-lg mx-auto px-1">
           {navItems.map(({ path, label, icon: Icon, primary }) => {
             const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
