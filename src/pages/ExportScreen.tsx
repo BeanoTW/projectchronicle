@@ -90,10 +90,10 @@ const ExportScreen = () => {
   };
 
   const exportTypes = [
-    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, witnesses, and record strength.', icon: FileText, disabled: incidents.length === 0 },
-    { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, disabled: incidents.length === 0 },
-    { key: 'evidence-index', title: 'Evidence Index', description: 'All evidence with reference numbers and linked incidents.', icon: Paperclip, disabled: evidence.length === 0 },
-    { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.', icon: Package, disabled: incidents.length === 0 },
+    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, witnesses, and record strength.', icon: FileText, comingSoon: true },
+    { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
+    { key: 'evidence-index', title: 'Evidence Index', description: 'All evidence with reference numbers and linked incidents.', icon: Paperclip, comingSoon: true },
+    { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.', icon: Package, comingSoon: true },
   ];
 
   return (
