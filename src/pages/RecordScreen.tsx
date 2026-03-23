@@ -560,6 +560,20 @@ const RecordScreen = () => {
               {!canSave && hasText && !incidentDate && (
                 <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
               )}
+              <AnimatePresence>
+                {saved && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="mt-4 text-center space-y-1"
+                  >
+                    <p className="text-[14px] text-primary font-semibold">Record saved</p>
+                    <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
