@@ -567,9 +567,9 @@ const RecordScreen = () => {
         )}
       </div>
 
-      {/* Reassurance footer */}
-      <div className="pb-28 pt-6 px-5 text-center space-y-1">
-        <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+      {/* Reassurance footer — anchored close to input */}
+      <div className="mt-3 mb-28 mx-5 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm text-center space-y-0.5">
+        <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           {saved
             ? 'Saved · You can come back anytime'
             : hasText
@@ -577,8 +577,8 @@ const RecordScreen = () => {
               : 'Take your time — you can start with anything'}
         </p>
         <div className="flex items-center justify-center gap-1">
-          <Heart className="h-3 w-3 text-primary/40" strokeWidth={1.5} />
-          <p className="text-[10px] text-muted-foreground/50">Built with care</p>
+          <Heart className="h-2.5 w-2.5 text-primary/30" strokeWidth={1.5} />
+          <p className="text-[10px] text-muted-foreground/40">Built with care</p>
         </div>
       </div>
 
