@@ -108,16 +108,16 @@ const EvidenceScreen = () => {
         </div>
       )}
 
-      <div className="px-4 pb-3 overflow-x-auto">
-        <div className="flex gap-1.5 min-w-max">
+      <div className="px-5 pb-3 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
           {filterTabs.map(tab => (
             <button
               key={tab.value}
               onClick={() => setActiveFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 ${
                 activeFilter === tab.value
                   ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  : 'bg-muted/30 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50'
               }`}
             >
               {tab.label}
