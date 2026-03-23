@@ -317,12 +317,13 @@ const RecordScreen = () => {
               </div>
               <div>
                 <Label htmlFor="time" className="text-sm font-medium">Time</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">If unsure, use an approximate time.</p>
                 <Input
                   id="time"
                   type="time"
                   value={incidentTime}
                   onChange={(e) => setIncidentTime(e.target.value)}
-                  className="mt-1.5 bg-card rounded-xl"
+                  className="bg-card rounded-xl"
                 />
               </div>
             </div>

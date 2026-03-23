@@ -37,10 +37,11 @@ RULES:
 - Do NOT classify behaviour as unlawful.
 - Do NOT use legal conclusions such as: harassment, discrimination, victimisation, retaliation, constructive dismissal.
 - Do NOT modify the original narrative in any way.
-- Write the summary in formal, evidence-ready language using the format: "On [date], it is reported that..."
-- The summary must be a precise factual restatement suitable for formal documentation. Avoid casual, emotional, or interpretive language.
-- Use attribution: "The employee reports...", "The record states..."
-- Do NOT state impact as fact without attribution.
+- Write the summary using direct, neutral phrasing. Use the format: "On [date], [event description]." or "During this incident, [what happened]."
+- Do NOT use distancing phrases like "it is reported that", "the employee reports", or "the worker discovered".
+- The summary should read as a clear, direct account — not a retelling from a third party.
+- Keep summaries concise, factual, and suitable for formal documentation. Avoid casual, emotional, or interpretive language.
+- Do NOT state impact as fact without context from the narrative.
 - Do NOT use phrases like "the worker discovered", "the employee felt", or any emotional/interpretive phrasing.
 - For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern, procedural irregularity) and note if similar incidents exist. Use observational language only — not legal advice. Do NOT use "this may indicate", "suggests", "this could reflect", or "appears to show intent". State facts only.`
           },
