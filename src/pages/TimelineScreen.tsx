@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
@@ -9,6 +10,7 @@ import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import CategoryBadge from '@/components/chronicle/CategoryBadge';
 
 const categoryFilters = [
   'all',
@@ -98,9 +100,12 @@ const TimelineScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Timeline">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
-          <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
+        <div className="flex flex-col items-end gap-0.5">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
+            <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
+          </div>
+          <span className="text-[9px] text-muted-foreground/50">View style</span>
         </div>
       </PageHeader>
       <p className="px-5 -mt-2 mb-3 text-[12px] text-muted-foreground/60">Your record over time</p>
@@ -135,17 +140,41 @@ const TimelineScreen = () => {
 
       <div className="px-5">
         {chronologyMode ? (
-          <div className="pl-6 timeline-spine space-y-3 pt-2">
-            {incidents.map(inc => (
-              <div key={inc.id} className="timeline-node text-[14px] leading-relaxed pl-3 py-1">
-                <span className="text-muted-foreground/70 text-[12px]">{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
-                <span className="mx-1.5 text-muted-foreground/30">—</span>
-                <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
-                {isPartOfPattern(inc) && (
-                  <span className="ml-2 text-[11px] text-warm-accent-foreground font-medium">· Repeated behaviour</span>
-                )}
-              </div>
-            ))}
+          /* ===== CENTER-LINE CHRONOLOGY ===== */
+          <div className="center-timeline pt-4 pb-8">
+            {incidents.map((inc, i) => {
+              const side = i % 2 === 0 ? 'left' : 'right';
+              return (
+                <motion.div
+                  key={inc.id}
+                  initial={{ opacity: 0, x: side === 'left' ? -12 : 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
+                  className={`center-timeline-item center-timeline-item--${side}`}
+                >
+                  <div className="center-timeline-node" />
+                  <div className="w-full max-w-[75%]">
+                    <div className="rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-200">
+                      <span className="text-[10px] text-muted-foreground/60 block mb-1">
+                        {format(parseISO(inc.incident_date), 'dd MMM yyyy')}
+                      </span>
+                      <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2 mb-1.5">
+                        {inc.title || 'Untitled incident'}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1">
+                        {inc.category && <CategoryBadge category={inc.category} />}
+                        {isPartOfPattern(inc) && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium text-muted-foreground/50 border border-border/60">
+                            Repeated
+                          </span>
+                        )}
+                        {inc.locked && <span className="text-primary text-[10px]">🔒</span>}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         ) : (
           <div className="pl-6 timeline-spine space-y-5">
