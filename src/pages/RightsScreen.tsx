@@ -166,8 +166,8 @@ const RightsScreen = () => {
       </div>
 
       {/* 3. Guidance sections (accordion) */}
-      <div className="mx-4 mb-4">
-        <Accordion type="multiple" className="space-y-2.5">
+      <div className="mx-5 mb-5">
+        <Accordion type="multiple" className="space-y-3">
           {guidanceSections.map(section => {
             const Icon = section.icon;
             return (
