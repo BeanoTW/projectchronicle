@@ -98,8 +98,12 @@
     --popover: 215 30% 12%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 173 55% 40%;
+    --primary: 168 40% 42%;
     --primary-foreground: 0 0% 100%;
+
+    --warm-accent: 38 75% 50%;
+    --warm-accent-light: 40 50% 18%;
+    --warm-accent-foreground: 38 60% 75%;
 
     --secondary: 215 30% 16%;
     --secondary-foreground: 210 20% 95%;
