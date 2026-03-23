@@ -133,6 +133,12 @@
     --shadow-nav: 0 -1px 12px 0 hsl(0 0% 0% / 0.3);
     --shadow-elevated: 0 8px 24px -4px hsl(0 0% 0% / 0.4);
 
+    --tint-record: 215 30% 9%;
+    --tint-insights: 215 30% 9%;
+    --tint-rights: 215 30% 9%;
+    --tint-evidence: 215 30% 9%;
+    --tint-timeline: 215 30% 9%;
+
     --sidebar-background: 215 30% 10%;
     --sidebar-foreground: 210 20% 95%;
     --sidebar-primary: 168 40% 42%;
