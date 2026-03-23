@@ -153,26 +153,27 @@ const RecordScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tint-record pb-24">
-      <div className="px-4 pt-6 pb-5 flex items-start justify-between">
+    <div className="min-h-screen bg-tint-record pb-24 page-enter">
+      {/* Soft gradient header zone */}
+      <div className="gradient-record px-5 pt-7 pb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
-          <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
+          <h1 className="text-[22px] font-bold text-foreground tracking-tight">Record Incident</h1>
+          <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed max-w-[280px]">
             Take your time — write this in your own words. It doesn't need to be perfect.
           </p>
         </div>
-        <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
+        <button onClick={() => navigate('/settings')} className="p-2.5 -mr-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-xl hover:bg-muted/50">
           <Settings className="h-5 w-5" />
         </button>
       </div>
 
       {/* Mode Toggle */}
-      <div className="px-4 mb-5">
-        <div className="flex bg-muted/70 rounded-xl p-1 gap-1">
+      <div className="px-5 mb-5">
+        <div className="flex bg-muted/50 rounded-2xl p-1 gap-1">
           <button
             onClick={() => setMode('voice')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground/60 hover:text-foreground'
             }`}
           >
             <Mic className="h-4 w-4" />
@@ -180,8 +181,8 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground/60 hover:text-foreground'
             }`}
           >
             <Keyboard className="h-4 w-4" />
@@ -192,53 +193,53 @@ const RecordScreen = () => {
 
       {/* Voice Mode - Inactive Mic */}
       {mode === 'voice' && (
-        <div className="px-4 mb-6 flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-muted/60 border-2 border-border/50 flex items-center justify-center mb-4 opacity-40 cursor-not-allowed">
+        <div className="px-5 mb-6 flex flex-col items-center">
+          <div className="w-28 h-28 rounded-full bg-muted/40 border-2 border-border/30 flex items-center justify-center mb-4 opacity-30 cursor-not-allowed">
             <Mic className="h-12 w-12 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
-          <p className="text-xs text-muted-foreground/70">Use text entry below to record your incident</p>
+          <p className="text-xs text-muted-foreground/60">Use text entry below to record your incident</p>
         </div>
       )}
 
       {/* Prompt Cues */}
-      <div className="px-4 mb-4">
-        <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">When it happened</span>
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Where</span>
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">Who was involved</span>
-          <span className="bg-muted/60 px-2.5 py-1 rounded-lg">What happened? (include anything said or done)</span>
+      <div className="px-5 mb-4">
+        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground/70">
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">When it happened</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">Where</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">Who was involved</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">What happened?</span>
         </div>
       </div>
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-4 mb-4 px-3.5 py-3 rounded-xl bg-severity-serious/8 border border-severity-serious/15 flex items-start gap-2.5">
-          <AlertTriangle className="h-4 w-4 text-severity-serious flex-shrink-0 mt-0.5" />
-          <p className="text-[13px] text-severity-serious font-medium leading-relaxed">{similarPatternAlert}</p>
+        <div className="mx-5 mb-4 px-4 py-3.5 rounded-2xl bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5">
+          <AlertTriangle className="h-4 w-4 text-warm-accent flex-shrink-0 mt-0.5" />
+          <p className="text-[13px] text-warm-accent-foreground font-medium leading-relaxed">{similarPatternAlert}</p>
         </div>
       )}
 
-      <div className="px-4 space-y-5">
-        {/* Narrative Input */}
-        <div>
-          <Label htmlFor="narrative" className="text-sm font-medium text-foreground">
-            Your account of the incident
+      <div className="px-5 space-y-5">
+        {/* Narrative Input — Writing Space */}
+        <div className="writing-focus rounded-2xl border border-border/60 p-1 transition-all duration-300">
+          <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-3 pt-2 block">
+            Your account
           </Label>
           <Textarea
             id="narrative"
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Write what happened in your own words — include anything said, done, or noticed."
-            className="mt-1.5 min-h-[160px] bg-card/80 border-border rounded-xl focus:ring-primary focus:bg-card text-[15px] leading-relaxed transition-colors"
+            className="min-h-[180px] bg-transparent border-0 rounded-xl focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.75] transition-colors shadow-none resize-none"
           />
           {narrative.length > 0 && (
-            <p className="text-[11px] text-muted-foreground mt-1.5">{narrative.length} characters</p>
-          )}
-          {errors.raw_narrative && (
-            <p className="text-xs text-destructive mt-1">{errors.raw_narrative}</p>
+            <p className="text-[11px] text-muted-foreground/50 px-3 pb-2">{narrative.length} characters</p>
           )}
         </div>
+        {errors.raw_narrative && (
+          <p className="text-xs text-destructive -mt-3">{errors.raw_narrative}</p>
+        )}
 
         {/* AI Analysis Button */}
         <Button
