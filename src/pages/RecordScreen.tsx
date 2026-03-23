@@ -461,7 +461,7 @@ const RecordScreen = () => {
               disabled={analysing}
             >
               {analysing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring...</>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
               ) : (
                 'Structure this for you'
               )}
