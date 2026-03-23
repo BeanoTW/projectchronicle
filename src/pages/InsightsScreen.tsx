@@ -144,16 +144,16 @@ const InsightsScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-tint-insights pb-24">
-      <div className="px-4 pt-6 pb-3">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
+    <div className="min-h-screen bg-tint-insights pb-24 page-enter">
+      <div className="px-5 pt-7 pb-3">
+        <h1 className="text-[22px] font-bold text-foreground tracking-tight">Insights</h1>
+        <p className="text-[13px] text-muted-foreground/70 mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
       </div>
 
       {/* Overview */}
-      <div className="px-4 grid grid-cols-3 gap-2.5 mb-5">
+      <div className="px-5 grid grid-cols-3 gap-3 mb-6">
         {overviewCards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card border border-border rounded-xl p-3.5 text-center shadow-[var(--shadow-card)]">
+          <div key={label} className="bg-card/80 border border-border/50 rounded-2xl p-4 text-center shadow-[var(--shadow-card)]">
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
               <Icon className="h-4 w-4 text-secondary-foreground" />
             </div>
@@ -164,12 +164,12 @@ const InsightsScreen = () => {
       </div>
 
       {/* Accordion sections */}
-      <div className="mx-4 mb-4">
-        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2.5">
+      <div className="mx-5 mb-5">
+        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-3">
 
           {/* People involved */}
           {keyIndividuals.length > 0 && (
-            <AccordionItem value="people" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+            <AccordionItem value="people" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Users className="h-3.5 w-3.5 text-secondary-foreground" /></div>
@@ -193,7 +193,7 @@ const InsightsScreen = () => {
 
           {/* Types of situations */}
           {categoryPatterns.length > 0 && (
-            <AccordionItem value="patterns" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+            <AccordionItem value="patterns" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Eye className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
@@ -254,7 +254,7 @@ const InsightsScreen = () => {
 
           {/* When things are happening */}
           {chartData.length > 0 && (
-            <AccordionItem value="timing" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+            <AccordionItem value="timing" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><TrendingUp className="h-3.5 w-3.5 text-secondary-foreground" /></div>
@@ -281,7 +281,7 @@ const InsightsScreen = () => {
 
           {/* Gaps in your records */}
           {dataGaps.length > 0 && (
-            <AccordionItem value="gaps" className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+            <AccordionItem value="gaps" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
               <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Shield className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>

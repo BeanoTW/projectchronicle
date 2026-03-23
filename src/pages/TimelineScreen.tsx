@@ -88,16 +88,16 @@ const TimelineScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tint-timeline pb-24">
-      <div className="px-4 pt-6 pb-3">
+    <div className="min-h-screen bg-tint-timeline pb-24 page-enter">
+      <div className="px-5 pt-7 pb-3">
         <div className="flex items-center justify-between mb-1.5">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
+          <h1 className="text-[22px] font-bold text-foreground tracking-tight">Timeline</h1>
           <div className="flex items-center gap-2">
-            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground">Chronology</Label>
+            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground/70">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground">Sorted by when events happened.</p>
+        <p className="text-[12px] text-muted-foreground/60">Sorted by when events happened.</p>
       </div>
 
       {gapFilter && (
@@ -123,12 +123,12 @@ const TimelineScreen = () => {
         </div>
       )}
 
-      <div className="px-4 space-y-4">
+      <div className="px-5 space-y-5">
         {chronologyMode ? (
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 pl-4 timeline-connector">
             {incidents.map(inc => (
-              <div key={inc.id} className="text-[14px] leading-relaxed">
-                <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
+              <div key={inc.id} className="text-[14px] leading-relaxed pl-4">
+                <span className="text-muted-foreground/60">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
@@ -140,8 +140,8 @@ const TimelineScreen = () => {
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month}>
-              <h2 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 bg-muted/40 inline-block px-3 py-1 rounded-lg">{month}</h2>
-              <div className="space-y-2.5">
+              <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-3 bg-muted/30 inline-block px-3 py-1.5 rounded-lg">{month}</h2>
+              <div className="space-y-3">
                 {items.map(inc => (
                   <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />
                 ))}

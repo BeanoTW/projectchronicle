@@ -10,7 +10,7 @@ const IntegrityPanel = ({ narrative, savedAt }: IntegrityPanelProps) => {
   const date = parseISO(savedAt);
 
   return (
-    <div className="rounded-2xl border-2 bg-integrity border-integrity-border p-5">
+    <div className="rounded-2xl border-2 bg-integrity border-integrity-border p-6 shadow-[0_4px_20px_-4px_hsl(145_79%_90%/0.5)]">
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="w-7 h-7 rounded-lg bg-integrity-foreground/10 flex items-center justify-center">
           <Lock className="h-4 w-4 text-integrity-foreground" />

@@ -93,31 +93,31 @@ const EvidenceScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tint-evidence pb-24">
-      <div className="px-4 pt-6 pb-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Evidence</h1>
-        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-xl cursor-pointer shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-card-hover)]">
+    <div className="min-h-screen bg-tint-evidence pb-24 page-enter">
+      <div className="px-5 pt-7 pb-3 flex items-center justify-between">
+        <h1 className="text-[22px] font-bold text-foreground tracking-tight">Evidence</h1>
+        <label className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-xs font-medium rounded-2xl cursor-pointer shadow-[var(--shadow-card)] transition-all hover:shadow-[var(--shadow-card-hover)] active:scale-[0.97]">
           <Plus className="h-3.5 w-3.5" /> Upload
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
         </label>
       </div>
 
       {unlinkedCount > 0 && (
-        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-severity-serious/8 border border-severity-serious/15 text-severity-serious text-xs font-medium">
+        <div className="mx-5 mb-4 px-4 py-3 rounded-2xl bg-warm-accent-light border border-warm-accent/12 text-warm-accent-foreground text-xs font-medium">
           {unlinkedCount} file{unlinkedCount > 1 ? 's' : ''} not yet linked to an incident
         </div>
       )}
 
-      <div className="px-4 pb-3 overflow-x-auto">
-        <div className="flex gap-1.5 min-w-max">
+      <div className="px-5 pb-3 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
           {filterTabs.map(tab => (
             <button
               key={tab.value}
               onClick={() => setActiveFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 ${
                 activeFilter === tab.value
                   ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted'
+                  : 'bg-muted/30 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50'
               }`}
             >
               {tab.label}
@@ -126,14 +126,14 @@ const EvidenceScreen = () => {
         </div>
       </div>
 
-      <div className="px-4 space-y-2.5">
+      <div className="px-5 space-y-3">
         {filtered.map(ev => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
           const linkedIncident = incidents.find(i => i.id === ev.incident_id);
           const isLinking = linkingId === ev.id;
 
           return (
-            <div key={ev.id} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <div key={ev.id} className="bg-card/80 border border-border/50 rounded-2xl p-4 shadow-[var(--shadow-card)]">
               <div className="flex gap-3">
                 <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0">
                   <Icon className="h-5 w-5 text-primary" />
