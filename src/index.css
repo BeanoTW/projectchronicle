@@ -217,7 +217,7 @@
   transform: scale(0.985);
 }
 
-/* Timeline spine */
+/* Timeline spine (standard left-aligned) */
 .timeline-spine {
   position: relative;
 }
@@ -231,7 +231,7 @@
   background: hsl(var(--border));
 }
 
-/* Timeline node */
+/* Timeline node (standard) */
 .timeline-node {
   position: relative;
   z-index: 1;
@@ -247,6 +247,89 @@
   background: hsl(var(--primary));
   border: 2px solid hsl(var(--background));
   box-shadow: 0 0 0 1.5px hsl(var(--primary) / 0.2);
+}
+
+/* Center timeline */
+.center-timeline {
+  position: relative;
+}
+.center-timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: hsl(var(--primary) / 0.15);
+  transform: translateX(-50%);
+}
+
+.center-timeline-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.center-timeline-item--left {
+  justify-content: flex-start;
+  padding-right: calc(50% + 16px);
+}
+
+.center-timeline-item--right {
+  justify-content: flex-end;
+  padding-left: calc(50% + 16px);
+}
+
+.center-timeline-node {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.center-timeline-item--left::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: calc(50% + 4px);
+  width: 12px;
+  height: 1px;
+  background: hsl(var(--primary) / 0.15);
+}
+
+.center-timeline-item--right::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  right: calc(50% + 4px);
+  width: 12px;
+  height: 1px;
+  background: hsl(var(--primary) / 0.15);
+}
+
+/* Evidence card accent bars */
+.evidence-accent-photo {
+  border-left: 3px solid hsl(var(--primary) / 0.4);
+}
+.evidence-accent-document {
+  border-left: 3px solid hsl(var(--info) / 0.4);
+}
+.evidence-accent-audio {
+  border-left: 3px solid hsl(var(--warm-accent) / 0.4);
+}
+.evidence-accent-email {
+  border-left: 3px solid hsl(var(--rep-foreground) / 0.4);
+}
+.evidence-accent-default {
+  border-left: 3px solid hsl(var(--border));
 }
 
 /* Section group */
