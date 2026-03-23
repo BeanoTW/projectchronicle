@@ -80,12 +80,12 @@
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 173 65% 29%;
+    --sidebar-primary: 168 45% 32%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 168 32% 95%;
-    --sidebar-accent-foreground: 173 65% 29%;
-    --sidebar-border: 210 18% 90%;
-    --sidebar-ring: 173 65% 29%;
+    --sidebar-accent: 165 22% 94%;
+    --sidebar-accent-foreground: 168 45% 32%;
+    --sidebar-border: 210 15% 91%;
+    --sidebar-ring: 168 45% 32%;
   }
 
   .dark {
