@@ -9,12 +9,6 @@ import EmptyState from '@/components/chronicle/EmptyState';
 import AILabel from '@/components/chronicle/AILabel';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 
 const InsightsScreen = () => {
   const navigate = useNavigate();
@@ -127,9 +121,9 @@ const InsightsScreen = () => {
   if (incidents.length < 2) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-4 pt-6"><h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1></div>
+        <div className="px-5 pt-8"><h1 className="text-lg font-bold text-foreground tracking-tight">Insights</h1></div>
         <EmptyState
-          icon={<BarChart3 className="h-12 w-12" />}
+          icon={<BarChart3 className="h-10 w-10" />}
           heading="Not enough data yet"
           body="Record more incidents to see what's showing up in your records."
         />
@@ -137,180 +131,146 @@ const InsightsScreen = () => {
     );
   }
 
-  const overviewCards = [
-    { label: 'Total incidents', value: totalIncidents, icon: FileText },
-    { label: 'With evidence', value: withEvidence, icon: FileText },
-    { label: 'With witnesses', value: withWitnesses, icon: Users },
-  ];
-
   return (
-    <div className="min-h-screen bg-tint-insights pb-24 page-enter">
-      <div className="px-5 pt-7 pb-3">
-        <h1 className="text-[22px] font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[13px] text-muted-foreground/70 mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
+    <div className="min-h-screen bg-background pb-24 page-enter">
+      <div className="px-5 pt-8 pb-4">
+        <h1 className="text-lg font-bold text-foreground tracking-tight">Insights</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">A summary of what you've recorded so far.</p>
       </div>
 
-      {/* Overview */}
-      <div className="px-5 grid grid-cols-3 gap-3 mb-6">
-        {overviewCards.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="bg-card/80 border border-border/50 rounded-2xl p-4 text-center shadow-[var(--shadow-card)]">
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
-              <Icon className="h-4 w-4 text-secondary-foreground" />
-            </div>
-            <p className="text-xl font-bold text-foreground">{value}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+      {/* Overview — structured findings */}
+      <div className="px-5 mb-6">
+        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)] space-y-2.5">
+          <div className="flex items-center gap-2 text-[14px]">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-foreground"><span className="font-semibold">{totalIncidents}</span> incidents recorded</span>
           </div>
-        ))}
+          <div className="flex items-center gap-2 text-[14px]">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-foreground"><span className="font-semibold">{withEvidence}</span> include evidence</span>
+          </div>
+          <div className="flex items-center gap-2 text-[14px]">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-foreground"><span className="font-semibold">{withWitnesses}</span> include witnesses</span>
+          </div>
+        </div>
       </div>
 
-      {/* Accordion sections */}
-      <div className="mx-5 mb-5">
-        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-3">
+      <div className="px-5 space-y-4">
+        {/* People involved */}
+        {keyIndividuals.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              People involved
+            </h2>
+            <div className="space-y-2.5">
+              {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
+                <p key={name} className="text-[14px] text-body leading-relaxed">
+                  <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
 
-          {/* People involved */}
-          {keyIndividuals.length > 0 && (
-            <AccordionItem value="people" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><Users className="h-3.5 w-3.5 text-secondary-foreground" /></div>
-                  People involved
+        {/* Patterns */}
+        {categoryPatterns.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              Things showing up in your records
+            </h2>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {categoryPatterns.slice(0, 5).map(({ category, count }) => (
+                <span key={category} className="px-2.5 py-1 rounded-md text-[12px] font-medium bg-primary/6 text-primary border border-primary/12">
+                  {category} ({count})
                 </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4">
-                <div className="space-y-3">
-                  {keyIndividuals.map(({ name, count, firstDate, lastDate }) => (
-                    <div key={name} className="flex items-start gap-2.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
-                      <p className="text-[14px] text-body leading-relaxed">
-                        <span className="font-medium">{name}</span> — {count} incidents ({format(parseISO(firstDate), 'MMM yyyy')} to {format(parseISO(lastDate), 'MMM yyyy')})
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+              ))}
+            </div>
 
-          {/* Types of situations */}
-          {categoryPatterns.length > 0 && (
-            <AccordionItem value="patterns" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Eye className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
-                  Things showing up in your records
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4">
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {categoryPatterns.slice(0, 5).map(({ category, count }) => (
-                    <span key={category} className="px-2.5 py-1 rounded-full text-[12px] font-medium bg-primary/8 text-primary border border-primary/15">
-                      {category} ({count})
-                    </span>
-                  ))}
-                </div>
+            {concentratedPeriod && (
+              <p className="text-[14px] text-body leading-relaxed mb-3">{concentratedPeriod}</p>
+            )}
 
-                {concentratedPeriod && (
-                  <p className="text-[14px] text-body leading-relaxed mb-3 flex items-start gap-2.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
-                    {concentratedPeriod}
-                  </p>
-                )}
+            {patterns.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-border">
+                {patterns.map((p, i) => (
+                  <p key={i} className="text-[14px] text-body leading-relaxed">{p}</p>
+                ))}
+              </div>
+            )}
 
-                {patterns.length > 0 && (
-                  <div className="space-y-2.5 pt-3 border-t border-border/60">
-                    {patterns.map((p, i) => (
-                      <p key={i} className="text-[14px] text-body leading-relaxed flex items-start gap-2.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
-                        {p}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                {aiSummaries.length > 0 ? (
-                  <div className="mt-3 pt-3 border-t border-border/60">
-                    <div className="mb-2"><AILabel /></div>
-                    <div className="space-y-2.5">
-                      {aiSummaries.map((s, i) => (
-                        <p key={i} className="text-[14px] text-body leading-relaxed flex items-start gap-2.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-ai-label/60 flex-shrink-0 mt-[7px]" />
-                          {s}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                ) : patterns.length > 0 ? (
-                  <button
-                    onClick={handleAiSummarise}
-                    disabled={aiLoading}
-                    className="mt-3 text-[13px] text-primary font-medium flex items-center gap-1.5"
-                  >
-                    {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
-                  </button>
-                ) : null}
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {/* When things are happening */}
-          {chartData.length > 0 && (
-            <AccordionItem value="timing" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center flex-shrink-0"><TrendingUp className="h-3.5 w-3.5 text-secondary-foreground" /></div>
-                  When things are happening
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4">
-                <div className="h-44">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                      <YAxis allowDecimals={false} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} width={24} />
-                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                        {chartData.map((_, index) => (
-                          <Cell key={index} fill="hsl(var(--primary))" />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {/* Gaps in your records */}
-          {dataGaps.length > 0 && (
-            <AccordionItem value="gaps" className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-              <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-warm-accent-light flex items-center justify-center flex-shrink-0"><Shield className="h-3.5 w-3.5 text-warm-accent-foreground" /></div>
-                  Things you could add
-                  <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4">
+            {aiSummaries.length > 0 ? (
+              <div className="mt-3 pt-3 border-t border-border">
+                <div className="mb-2"><AILabel /></div>
                 <div className="space-y-2">
-                  {dataGaps.map((gap, i) => (
-                    <button
-                      key={i}
-                      onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                      className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-xl p-3 -mx-1 transition-colors"
-                    >
-                      <div>
-                        <p className="text-[14px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label}</p>
-                        <p className="text-[12px] text-primary mt-1 flex items-center gap-1.5">
-                          <ArrowRight className="h-3 w-3" /> {gap.action}
-                        </p>
-                      </div>
-                    </button>
+                  {aiSummaries.map((s, i) => (
+                    <p key={i} className="text-[14px] text-body leading-relaxed">{s}</p>
                   ))}
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
+              </div>
+            ) : patterns.length > 0 ? (
+              <button
+                onClick={handleAiSummarise}
+                disabled={aiLoading}
+                className="mt-3 text-[13px] text-primary font-medium flex items-center gap-1.5"
+              >
+                {aiLoading ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</> : 'Generate Summary'}
+              </button>
+            ) : null}
+          </div>
+        )}
 
-        </Accordion>
+        {/* When things are happening */}
+        {chartData.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              When things are happening
+            </h2>
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {chartData.map((_, index) => (
+                      <Cell key={index} fill="hsl(var(--primary))" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* Gaps */}
+        {dataGaps.length > 0 && (
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <h2 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              Things you could add
+              <span className="text-[11px] text-muted-foreground font-normal">(optional)</span>
+            </h2>
+            <div className="space-y-2">
+              {dataGaps.map((gap, i) => (
+                <button
+                  key={i}
+                  onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
+                  className="w-full flex items-start justify-between gap-2 text-left hover:bg-muted/40 rounded-lg p-2.5 -mx-1 transition-colors"
+                >
+                  <div>
+                    <p className="text-[14px] text-body">{gap.count} incident{gap.count > 1 ? 's' : ''} {gap.label}</p>
+                    <p className="text-[12px] text-primary mt-0.5 flex items-center gap-1">
+                      <ArrowRight className="h-3 w-3" /> {gap.action}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

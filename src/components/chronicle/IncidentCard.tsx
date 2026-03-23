@@ -15,10 +15,10 @@ const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className="w-full text-left bg-card/80 rounded-2xl border border-border/50 p-5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300 active:scale-[0.99] border-l-[3px] border-l-primary/20"
+      className="w-full text-left bg-card rounded-xl border border-border p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-200 active:scale-[0.99]"
     >
-      <div className="flex items-start justify-between mb-2.5">
-        <h3 className="text-sm font-semibold text-foreground line-clamp-1 flex-1">
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1">
           {incident.title || 'Untitled incident'}
         </h3>
         {incident.locked && (
@@ -26,17 +26,17 @@ const IncidentCard = ({ incident, showPatternLabel }: IncidentCardProps) => {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-2.5">
+      <div className="flex flex-wrap gap-1.5 mb-2">
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {showPatternLabel && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/20">
-            Part of repeated behaviour
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
+            Repeated behaviour
           </span>
         )}
       </div>
 
-      <p className="text-xs text-body leading-relaxed line-clamp-2 mb-2.5">
+      <p className="text-[13px] text-body leading-relaxed line-clamp-2 mb-2">
         {incident.ai_summary || incident.raw_narrative}
       </p>
 

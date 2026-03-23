@@ -153,27 +153,26 @@ const RecordScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-tint-record pb-24 page-enter">
-      {/* Soft gradient header zone */}
-      <div className="gradient-record px-5 pt-7 pb-6 flex items-start justify-between">
+    <div className="min-h-screen bg-background pb-24 page-enter">
+      <div className="px-5 pt-8 pb-5 flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-foreground tracking-tight">Record Incident</h1>
-          <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed max-w-[280px]">
+          <h1 className="text-lg font-bold text-foreground tracking-tight">Record Incident</h1>
+          <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed max-w-[280px]">
             Take your time — write this in your own words. It doesn't need to be perfect.
           </p>
         </div>
-        <button onClick={() => navigate('/settings')} className="p-2.5 -mr-2 text-muted-foreground/60 hover:text-foreground transition-colors rounded-xl hover:bg-muted/50">
+        <button onClick={() => navigate('/settings')} className="p-2 -mr-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
           <Settings className="h-5 w-5" />
         </button>
       </div>
 
       {/* Mode Toggle */}
       <div className="px-5 mb-5">
-        <div className="flex bg-muted/50 rounded-2xl p-1 gap-1">
+        <div className="flex bg-muted/50 rounded-lg p-1 gap-1">
           <button
             onClick={() => setMode('voice')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground/60 hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Mic className="h-4 w-4" />
@@ -181,8 +180,8 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground/60 hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
+              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Keyboard className="h-4 w-4" />
@@ -191,38 +190,38 @@ const RecordScreen = () => {
         </div>
       </div>
 
-      {/* Voice Mode - Inactive Mic */}
+      {/* Voice Mode */}
       {mode === 'voice' && (
         <div className="px-5 mb-6 flex flex-col items-center">
-          <div className="w-28 h-28 rounded-full bg-muted/40 border-2 border-border/30 flex items-center justify-center mb-4 opacity-30 cursor-not-allowed">
-            <Mic className="h-12 w-12 text-muted-foreground" />
+          <div className="w-24 h-24 rounded-full bg-muted/40 border-2 border-border/30 flex items-center justify-center mb-4 opacity-30 cursor-not-allowed">
+            <Mic className="h-10 w-10 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground font-medium mb-1">Voice capture not yet available</p>
-          <p className="text-xs text-muted-foreground/60">Use text entry below to record your incident</p>
+          <p className="text-xs text-muted-foreground/60">Use text entry to record your incident</p>
         </div>
       )}
 
       {/* Prompt Cues */}
       <div className="px-5 mb-4">
-        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground/70">
-          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">When it happened</span>
-          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">Where</span>
-          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">Who was involved</span>
-          <span className="bg-muted/40 px-2.5 py-1.5 rounded-lg">What happened?</span>
+        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-md">When it happened</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-md">Where</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-md">Who was involved</span>
+          <span className="bg-muted/40 px-2.5 py-1.5 rounded-md">What happened?</span>
         </div>
       </div>
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-5 mb-4 px-4 py-3.5 rounded-2xl bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5">
+        <div className="mx-5 mb-4 px-4 py-3 rounded-lg bg-warm-accent-light border border-warm-accent/12 flex items-start gap-2.5">
           <AlertTriangle className="h-4 w-4 text-warm-accent flex-shrink-0 mt-0.5" />
           <p className="text-[13px] text-warm-accent-foreground font-medium leading-relaxed">{similarPatternAlert}</p>
         </div>
       )}
 
       <div className="px-5 space-y-5">
-        {/* Narrative Input — Writing Space */}
-        <div className="writing-focus rounded-2xl border border-border/60 p-1 transition-all duration-300">
+        {/* Narrative Input */}
+        <div className="writing-focus rounded-xl border border-border p-1 transition-all duration-200">
           <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-3 pt-2 block">
             Your account
           </Label>
@@ -231,7 +230,7 @@ const RecordScreen = () => {
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Write what happened in your own words — include anything said, done, or noticed."
-            className="min-h-[180px] bg-transparent border-0 rounded-xl focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.75] transition-colors shadow-none resize-none"
+            className="min-h-[200px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.75] shadow-none resize-none"
           />
           {narrative.length > 0 && (
             <p className="text-[11px] text-muted-foreground/50 px-3 pb-2">{narrative.length} characters</p>
@@ -241,21 +240,21 @@ const RecordScreen = () => {
           <p className="text-xs text-destructive -mt-3">{errors.raw_narrative}</p>
         )}
 
-        {/* AI Analysis Button */}
+        {/* Generate Summary */}
         <Button
           variant="outline"
-          className="w-full border-primary/25 text-primary bg-primary/5 hover:bg-primary/10 rounded-2xl h-12 font-medium shadow-sm transition-all duration-300"
+          className="w-full border-primary/20 text-primary bg-primary/4 hover:bg-primary/8 rounded-xl h-11 font-medium transition-colors"
           onClick={handleAnalyse}
           disabled={analysing || !narrative.trim()}
         >
           {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
         </Button>
 
-        {/* AI Summary Preview */}
+        {/* AI Summary */}
         {aiSuggested && aiSummary && (
-          <div className="bg-card/80 border border-border/60 rounded-2xl p-5 shadow-[var(--shadow-card)]">
-            <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground/60 mb-3">Review and edit before saving.</p>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <div className="mb-1"><AILabel /></div>
+            <p className="text-[11px] text-muted-foreground mb-2.5">Structured summary (for review)</p>
             <p className="text-[15px] text-body leading-[1.75]">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
@@ -266,20 +265,17 @@ const RecordScreen = () => {
           </div>
         )}
 
-        {/* AI Potential Relevance */}
+        {/* AI Relevance */}
         {aiSuggested && aiRelevance.length > 0 && (
-          <div className="bg-card/80 border border-border/60 rounded-2xl p-5 shadow-[var(--shadow-card)]">
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <h3 className="text-xs font-semibold text-foreground mb-2">Potential Relevance</h3>
-            <div className="mb-1.5"><AILabel /></div>
-            <div className="space-y-2.5">
+            <div className="mb-1"><AILabel /></div>
+            <div className="space-y-2">
               {aiRelevance.map((r, i) => (
-                <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/30 flex-shrink-0 mt-[7px]" />
-                  {r}
-                </p>
+                <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground/50 mt-3">This is not legal advice. These are neutral observations only.</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-2.5">This is not legal advice. These are neutral observations only.</p>
           </div>
         )}
 
@@ -291,131 +287,73 @@ const RecordScreen = () => {
           <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${showManualForm ? 'rotate-90' : ''}`} />
         </button>
 
-        {/* Manual Form Fields */}
+        {/* Manual Form */}
         {showManualForm && (
-          <div className="space-y-5 bg-card/40 rounded-2xl p-4 border border-border/40">
+          <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)]">
             <div>
               <Label htmlFor="title" className="text-sm font-medium">Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Short title for this incident"
-                className="mt-1.5 bg-card/60 rounded-xl border-border/40"
-              />
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title for this incident" className="mt-1.5 rounded-lg" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="date" className="text-sm font-medium">Date *</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={incidentDate}
-                  onChange={(e) => setIncidentDate(e.target.value)}
-                  className="mt-1.5 bg-card rounded-xl"
-                />
-                {errors.incident_date && (
-                  <p className="text-xs text-destructive mt-1">{errors.incident_date}</p>
-                )}
+                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+                {errors.incident_date && <p className="text-xs text-destructive mt-1">{errors.incident_date}</p>}
               </div>
               <div>
                 <Label htmlFor="time" className="text-sm font-medium">Time</Label>
                 <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
-                <Input
-                  id="time"
-                  type="time"
-                  value={incidentTime}
-                  onChange={(e) => setIncidentTime(e.target.value)}
-                  className="bg-card rounded-xl"
-                />
+                <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
               </div>
             </div>
 
             <div>
               <Label htmlFor="location" className="text-sm font-medium">Location</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Where did it happen?"
-                className="mt-1.5 bg-card rounded-xl"
-              />
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
             </div>
 
             <div>
               <Label className="text-sm font-medium">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="mt-1.5 bg-card rounded-xl">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
+                <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <Label htmlFor="people" className="text-sm font-medium">People Involved</Label>
-              <Input
-                id="people"
-                value={peopleInvolved}
-                onChange={(e) => setPeopleInvolved(e.target.value)}
-                placeholder="Comma-separated names"
-                className="mt-1.5 bg-card rounded-xl"
-              />
+              <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
             </div>
 
             <div>
               <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
               <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present? Even if unnamed, this can help later.</p>
-              <Input
-                id="witnesses"
-                value={witnesses}
-                onChange={(e) => setWitnesses(e.target.value)}
-                placeholder="Comma-separated names"
-                className="bg-card rounded-xl"
-              />
+              <Input id="witnesses" value={witnesses} onChange={(e) => setWitnesses(e.target.value)} placeholder="Comma-separated names" className="rounded-lg" />
             </div>
 
             <div>
               <Label htmlFor="exactWords" className="text-sm font-medium">
                 Exact wording <span className="text-primary font-normal">(important)</span>
               </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">
-                Include key phrases or exact words if you remember them.
-              </p>
-              <Textarea
-                id="exactWords"
-                value={exactWords}
-                onChange={(e) => setExactWords(e.target.value)}
-                placeholder="What was said, written, or messaged?"
-                className="min-h-[80px] bg-card rounded-xl text-[15px]"
-              />
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
+              <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[15px]" />
             </div>
 
             <div>
               <Label htmlFor="impact" className="text-sm font-medium">
                 Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
               </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">
-                e.g. felt anxious, avoided area, affected work, raised concern
-              </p>
-              <Textarea
-                id="impact"
-                value={impactNote}
-                onChange={(e) => setImpactNote(e.target.value)}
-                placeholder="How did this affect you?"
-                className="mt-0 min-h-[80px] bg-card rounded-xl text-[15px]"
-              />
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
+              <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[15px]" />
             </div>
           </div>
         )}
 
         <div className="flex gap-3 pt-4 pb-8">
-          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-13 rounded-2xl text-sm font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-200 hover:shadow-[0_12px_30px_-6px_hsl(var(--primary)/0.3)]">
+          <Button onClick={handleSave} disabled={saving} className="flex-1 bg-primary text-primary-foreground h-12 rounded-xl text-sm font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-200">
             {saving ? 'Saving...' : 'Save Record'}
           </Button>
         </div>

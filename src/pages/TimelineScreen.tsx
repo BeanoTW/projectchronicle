@@ -75,42 +75,42 @@ const TimelineScreen = () => {
   if (incidents.length === 0 && filterCategory === 'all') {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-4 pt-6">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Timeline</h1>
+        <div className="px-5 pt-8">
+          <h1 className="text-lg font-bold text-foreground tracking-tight">Timeline</h1>
         </div>
         <EmptyState
-          icon={<CalendarDays className="h-12 w-12" />}
+          icon={<CalendarDays className="h-10 w-10" />}
           heading="No incidents yet"
-          body="You're starting to build a picture — your timeline will appear here as you record more."
+          body="Your timeline will appear here as you record incidents."
         />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-tint-timeline pb-24 page-enter">
-      <div className="px-5 pt-7 pb-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <h1 className="text-[22px] font-bold text-foreground tracking-tight">Timeline</h1>
+    <div className="min-h-screen bg-background pb-24 page-enter">
+      <div className="px-5 pt-8 pb-4">
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="text-lg font-bold text-foreground tracking-tight">Timeline</h1>
           <div className="flex items-center gap-2">
-            <Label htmlFor="chronology" className="text-[12px] text-muted-foreground/70">Chronology</Label>
+            <Label htmlFor="chronology" className="text-[11px] text-muted-foreground">Chronology</Label>
             <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
           </div>
         </div>
-        <p className="text-[12px] text-muted-foreground/60">Sorted by when events happened.</p>
+        <p className="text-[12px] text-muted-foreground">Sorted by when events happened</p>
       </div>
 
       {gapFilter && (
-        <div className="mx-4 mb-3 px-3.5 py-2.5 rounded-xl bg-primary/8 text-primary text-[13px] font-medium flex items-center justify-between border border-primary/15">
+        <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-primary/6 text-primary text-[13px] font-medium flex items-center justify-between border border-primary/12">
           <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
           <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
         </div>
       )}
 
       {!chronologyMode && (
-        <div className="px-4 py-2">
+        <div className="px-5 pb-3">
           <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}>
-            <SelectTrigger className="bg-card text-[13px] h-10 rounded-xl">
+            <SelectTrigger className="bg-card text-[13px] h-10 rounded-lg border-border">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -123,13 +123,13 @@ const TimelineScreen = () => {
         </div>
       )}
 
-      <div className="px-5 space-y-5">
+      <div className="px-5">
         {chronologyMode ? (
-          <div className="space-y-3 pt-2 pl-4 timeline-connector">
+          <div className="pl-6 timeline-spine space-y-3 pt-2">
             {incidents.map(inc => (
-              <div key={inc.id} className="text-[14px] leading-relaxed pl-4">
-                <span className="text-muted-foreground/60">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
-                {' — '}
+              <div key={inc.id} className="timeline-node text-[14px] leading-relaxed pl-3 py-1">
+                <span className="text-muted-foreground text-[12px]">{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
+                <span className="mx-1.5 text-muted-foreground/40">—</span>
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
                   <span className="ml-2 text-[11px] text-warm-accent-foreground font-medium">• Repeated behaviour</span>
@@ -138,16 +138,20 @@ const TimelineScreen = () => {
             ))}
           </div>
         ) : (
-          Object.entries(grouped).map(([month, items]) => (
-            <div key={month}>
-              <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-3 bg-muted/30 inline-block px-3 py-1.5 rounded-lg">{month}</h2>
-              <div className="space-y-3">
-                {items.map(inc => (
-                  <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />
-                ))}
+          <div className="pl-6 timeline-spine space-y-6">
+            {Object.entries(grouped).map(([month, items]) => (
+              <div key={month}>
+                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
+                <div className="space-y-3">
+                  {items.map(inc => (
+                    <div key={inc.id} className="timeline-node">
+                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
