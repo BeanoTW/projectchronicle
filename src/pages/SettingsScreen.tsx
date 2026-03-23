@@ -1,4 +1,5 @@
 import { LogOut, Info, ShieldCheck, Download, HelpCircle, ChevronRight, Lock, Eye, Fingerprint } from 'lucide-react';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
