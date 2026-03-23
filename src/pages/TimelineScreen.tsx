@@ -6,6 +6,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
+import PageHeader from '@/components/chronicle/PageHeader';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
