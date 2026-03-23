@@ -114,7 +114,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
             <div className="w-full max-w-[75%]">
               <button
                 onClick={() => setExpandedId(expanded ? null : inc.id)}
-                className="w-full text-left rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98] transition-all duration-200"
+                className="w-full text-left rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.97] transition-all duration-200"
               >
                 <span className="text-[10px] text-muted-foreground/60 block mb-1">
                   {format(parseISO(inc.incident_date), 'dd MMM yyyy')}

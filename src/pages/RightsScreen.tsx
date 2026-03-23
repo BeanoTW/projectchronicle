@@ -194,15 +194,29 @@ const RightsScreen = () => {
         </Accordion>
       </div>
 
-      {/* Based on your records — issue type chips horizontal scroll */}
+      {/* Based on your records */}
       {detectedIssueTypes.length > 0 && (
         <div className="mx-5 mb-5">
           <p className="section-group-title">Based on your records</p>
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+            {/* Summary lines */}
+            {incidents.length > 0 && (
+              <div className="space-y-1">
+                {Array.from(userCategories).slice(0, 2).map(cat => {
+                  const count = incidents.filter(i => i.category === cat).length;
+                  return count >= 2 ? (
+                    <p key={cat} className="text-[13px] text-muted-foreground leading-relaxed">
+                      Your records include repeated <span className="font-medium text-foreground">{cat.toLowerCase()}</span> across multiple entries.
+                    </p>
+                  ) : null;
+                })}
+              </div>
+            )}
+
             <div className="overflow-x-auto scrollbar-hide -mx-1">
               <div className="flex gap-1.5 min-w-max px-1">
                 {detectedIssueTypes.map(type => (
-                  <span key={type} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/6 text-primary border border-primary/12 capitalize whitespace-nowrap">
+                  <span key={type} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/[0.06] text-primary border border-primary/12 capitalize whitespace-nowrap">
                     {type}
                   </span>
                 ))}
@@ -210,11 +224,11 @@ const RightsScreen = () => {
             </div>
 
             {suggestedNextSteps.length > 0 && (
-              <div className="pt-3 mt-3 border-t border-border">
-                <h3 className="text-[13px] font-semibold text-foreground mb-2.5">Helpful next steps</h3>
-                <div className="space-y-2">
+              <div className="pt-3 mt-1 border-t border-border">
+                <h3 className="text-[13px] font-semibold text-foreground mb-3">Helpful next steps</h3>
+                <div className="space-y-3">
                   {suggestedNextSteps.map((step, i) => (
-                    <div key={i} className="flex items-start gap-2">
+                    <div key={i} className="flex items-start gap-2.5">
                       <ArrowRight className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
                       <p className="text-[13px] text-body leading-relaxed">{step}</p>
                     </div>

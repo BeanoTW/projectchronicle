@@ -337,14 +337,19 @@ const RecordScreen = () => {
 
       {/* Prompt Cues — only before typing */}
       {!hasText && (
-        <div className="px-5 mb-4 overflow-x-auto scrollbar-hide">
-          <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
-            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
-            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
-            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
-            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
-            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+        <div className="px-5 mb-4 space-y-3">
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
+              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
+              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
+              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
+              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
+              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
+            You don't need to get this perfect
+          </p>
         </div>
       )}
 
