@@ -309,7 +309,7 @@ const RecordScreen = () => {
               ? 'border-primary/30 text-primary bg-primary/5 hover:bg-primary/8'
               : 'border-border text-muted-foreground/40'
           }`}
-          onClick={handleAnalyse}
+          onClick={() => { handleAnalyse(); handleDetectMulti(); }}
           disabled={analysing || !narrative.trim()}
         >
           {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
