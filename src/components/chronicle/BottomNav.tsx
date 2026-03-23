@@ -44,7 +44,7 @@ const BottomNav = () => {
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors duration-100 ${
+                className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-200 ease-out ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground/40 hover:text-muted-foreground/60'
