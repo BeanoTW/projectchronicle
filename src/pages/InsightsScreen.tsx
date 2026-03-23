@@ -144,14 +144,14 @@ const InsightsScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-tint-insights pb-24">
-      <div className="px-4 pt-6 pb-3">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Insights</h1>
-        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
+    <div className="min-h-screen bg-tint-insights pb-24 page-enter">
+      <div className="px-5 pt-7 pb-3">
+        <h1 className="text-[22px] font-bold text-foreground tracking-tight">Insights</h1>
+        <p className="text-[13px] text-muted-foreground/70 mt-1.5 leading-relaxed">This is a summary of what you've recorded so far.</p>
       </div>
 
       {/* Overview */}
-      <div className="px-4 grid grid-cols-3 gap-2.5 mb-5">
+      <div className="px-5 grid grid-cols-3 gap-3 mb-6">
         {overviewCards.map(({ label, value, icon: Icon }) => (
           <div key={label} className="bg-card/80 border border-border/50 rounded-2xl p-4 text-center shadow-[var(--shadow-card)]">
             <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center mx-auto mb-2">
