@@ -1,12 +1,12 @@
-import { Mic, CalendarDays, BarChart3, Paperclip, Home } from 'lucide-react';
+import { Mic, CalendarDays, BarChart3, Paperclip, Shield } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const navItems = [
-  { path: '/home', label: 'Home', icon: Home },
   { path: '/timeline', label: 'Timeline', icon: CalendarDays },
-  { path: '/record', label: 'Record', icon: Mic, primary: true },
   { path: '/insights', label: 'Insights', icon: BarChart3 },
+  { path: '/record', label: 'Record', icon: Mic, primary: true },
   { path: '/evidence', label: 'Evidence', icon: Paperclip },
+  { path: '/rights', label: 'Rights', icon: Shield },
 ];
 
 const BottomNav = () => {
