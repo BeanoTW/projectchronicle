@@ -165,7 +165,7 @@ const InsightsScreen = () => {
 
       {/* Accordion sections */}
       <div className="mx-5 mb-5">
-        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-2.5">
+        <Accordion type="multiple" defaultValue={['patterns']} className="space-y-3">
 
           {/* People involved */}
           {keyIndividuals.length > 0 && (
