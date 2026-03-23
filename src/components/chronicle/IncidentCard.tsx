@@ -40,18 +40,19 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
   };
 
   if (compact) {
+    const previewText = incident.ai_summary || incident.raw_narrative;
     return (
       <div>
         <button
           onClick={handleClick}
-          className={`w-full text-left rounded-xl border border-border border-l-[3px] px-3.5 py-3 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
+          className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
         >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[13px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+            <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
               {incident.title || 'Untitled incident'}
             </h3>
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-[11px] text-muted-foreground/60 whitespace-nowrap">
+              <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
                 {format(parseISO(incident.incident_date), 'dd MMM')}
               </span>
               {expandable && (
@@ -59,10 +60,16 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 mt-1.5">
+          {previewText && (
+            <p className="text-[12px] text-muted-foreground/60 leading-relaxed line-clamp-2 mt-1">
+              {previewText}
+            </p>
+          )}
+          <div className="flex items-center gap-1.5 mt-2">
             {incident.category && <CategoryBadge category={incident.category} />}
             {showPatternLabel && (
-              <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
+                <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
                 Repeated
               </span>
             )}
@@ -107,10 +114,10 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className={`w-full text-left rounded-xl border border-border border-l-[3px] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
+      className={`w-full text-left rounded-xl border border-border border-l-4 p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+        <h3 className="text-[15px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
           {incident.title || 'Untitled incident'}
         </h3>
         {incident.locked && (
@@ -122,17 +129,18 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {showPatternLabel && (
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
-            Repeated behaviour
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
+            <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
+            Repeated
           </span>
         )}
       </div>
 
-      <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2 mb-2.5">
+      <p className="text-[13px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-2.5">
         {incident.ai_summary || incident.raw_narrative}
       </p>
 
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/70">
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
         <span>{format(parseISO(incident.incident_date), 'dd MMM yyyy')}</span>
         {incident.location && (
           <>

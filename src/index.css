@@ -301,8 +301,9 @@
   top: 20px;
   left: calc(50% + 4px);
   width: 12px;
-  height: 1px;
-  background: hsl(var(--primary) / 0.15);
+  height: 1.5px;
+  background: hsl(var(--primary) / 0.2);
+  border-radius: 1px;
 }
 
 .center-timeline-item--right::after {
@@ -311,8 +312,9 @@
   top: 20px;
   right: calc(50% + 4px);
   width: 12px;
-  height: 1px;
-  background: hsl(var(--primary) / 0.15);
+  height: 1.5px;
+  background: hsl(var(--primary) / 0.2);
+  border-radius: 1px;
 }
 
 /* Evidence card accent bars */

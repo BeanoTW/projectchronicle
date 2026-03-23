@@ -144,11 +144,11 @@ const TimelineScreen = () => {
           /* ===== CENTER-LINE CHRONOLOGY ===== */
           <ChronologyTimeline incidents={incidents} isPartOfPattern={isPartOfPattern} />
         ) : (
-          <div className="pl-6 timeline-spine space-y-5">
+          <div className="pl-6 timeline-spine space-y-6">
             {Object.entries(grouped).map(([month, items]) => (
               <div key={month}>
-                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2.5 -ml-6">{month}</h2>
-                <div className="space-y-2.5">
+                <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
+                <div className="space-y-3">
                   {items.map(inc => (
                     <div key={inc.id} className="timeline-node">
                       <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact expandable />

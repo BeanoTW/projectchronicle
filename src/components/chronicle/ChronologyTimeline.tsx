@@ -114,23 +114,27 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
             <div className="w-full max-w-[75%]">
               <button
                 onClick={() => setExpandedId(expanded ? null : inc.id)}
-                className="w-full text-left rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.98] transition-all duration-200"
+                className="w-full text-left rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.97] transition-all duration-200"
               >
                 <span className="text-[10px] text-muted-foreground/60 block mb-1">
                   {format(parseISO(inc.incident_date), 'dd MMM yyyy')}
                 </span>
-                <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2 mb-1">
+                <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2 mb-1">
                   {inc.title || 'Untitled incident'}
                 </p>
                 {previewText && (
-                  <p className={`text-[12px] text-muted-foreground/70 leading-relaxed mb-1.5 ${previewLines(i)}`}>
-                    {previewText}
-                  </p>
+                  <div className="relative mb-1.5">
+                    <p className={`text-[12px] text-muted-foreground/60 leading-relaxed ${previewLines(i)}`}>
+                      {previewText}
+                    </p>
+                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-card to-transparent pointer-events-none" />
+                  </div>
                 )}
                 <div className="flex flex-wrap items-center gap-1">
                   {inc.category && <CategoryBadge category={inc.category} />}
                   {isPartOfPattern(inc) && (
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-medium text-muted-foreground/50 border border-border/60">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-primary/60 border border-primary/15 bg-primary/[0.04]">
+                      <svg className="h-2 w-2" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
                       Repeated
                     </span>
                   )}
