@@ -24,26 +24,23 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a formal documentation assistant for Project Chronicle. Your job is to create a structured case narrative from a series of workplace incident records.
+            content: `You are a documentation assistant for Project Chronicle. Create a structured narrative from workplace incident records.
 
 RULES:
-- Write in formal, neutral language suitable for workplace grievance documentation.
-- Use direct phrasing: "On [date], [event description]." or "During this incident, [what happened]."
-- Do NOT use distancing phrases like "it is reported that", "the employee reports", or "the record states".
+- Write in clear, neutral language. Keep it readable and human — not overly formal or legalistic.
+- Use direct phrasing: "On [date], [what happened]." Not "it is reported that" or "the employee states".
+- Stay close to the original wording from incident records. Do not over-polish or rewrite extensively.
 - Identify recurring individuals and note the frequency of their involvement.
-- Highlight patterns across incidents (same category, same people) using factual observations only.
-- For impact: describe what is documented in the records directly, without attribution phrases.
+- Highlight patterns across incidents using factual observations only (counts, dates, categories).
+- For impact: describe what is documented in the records directly. Do not add interpretation.
 - Do NOT interpret intent or draw conclusions.
 - Do NOT use speculative phrases like "this may indicate", "this suggests", or "this could reflect".
-- Do NOT provide legal advice.
-- Do NOT classify behaviour as unlawful.
-- Do NOT use legal conclusions such as harassment, discrimination, victimisation, retaliation, or constructive dismissal.
-- Keep the narrative factual and evidence-ready.
+- Do NOT provide legal advice or classify behaviour as unlawful.
 - Present facts, counts, and date ranges only.`
           },
           {
             role: "user",
-            content: `Generate a structured case narrative from these incidents:\n\n${JSON.stringify(incidents, null, 2)}\n\nDetected patterns:\n${patterns?.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n') || 'None'}`
+            content: `Generate a structured narrative from these incidents:\n\n${JSON.stringify(incidents, null, 2)}\n\nDetected patterns:\n${patterns?.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n') || 'None'}`
           }
         ],
         tools: [
@@ -55,11 +52,11 @@ RULES:
               parameters: {
                 type: "object",
                 properties: {
-                  title: { type: "string", description: "A formal title for the case summary" },
-                  overview: { type: "string", description: "A 2-3 sentence factual overview of the case" },
-                  chronology: { type: "string", description: "A chronological narrative of events using formal language" },
-                  patterns_summary: { type: "string", description: "Factual summary of detected patterns and recurring individuals — counts and date ranges only" },
-                  impact_summary: { type: "string", description: "Summary of reported impact using attributed language (The employee reports... / The record states...)" },
+                  title: { type: "string", description: "A clear title for the summary" },
+                  overview: { type: "string", description: "A 2-3 sentence factual overview" },
+                  chronology: { type: "string", description: "A chronological narrative of events in clear, direct language" },
+                  patterns_summary: { type: "string", description: "Factual summary of recurring themes — counts and date ranges only" },
+                  impact_summary: { type: "string", description: "Summary of how events affected the person, based on what they recorded" },
                   key_individuals: {
                     type: "array",
                     items: {

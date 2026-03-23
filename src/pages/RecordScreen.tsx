@@ -110,7 +110,7 @@ const RecordScreen = () => {
 
       setAiSuggested(true);
       setShowManualForm(true);
-      toast({ title: 'AI analysis complete', description: 'Review the suggested fields below before saving.' });
+      toast({ title: 'Analysis complete', description: 'Review the suggested fields below before saving.' });
     } catch (e) {
       toast({ title: 'Analysis failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
@@ -157,8 +157,8 @@ const RecordScreen = () => {
       <div className="px-4 pt-6 pb-5 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground tracking-tight">Record Incident</h1>
-          <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-            Capture what happened. Only your account and the date are required.
+          <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
+            Capture what happened in your own words. Only your account and the date are required.
           </p>
         </div>
         <button onClick={() => navigate('/settings')} className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted">
@@ -213,9 +213,9 @@ const RecordScreen = () => {
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-4 mb-4 px-3 py-2.5 rounded-xl bg-severity-serious/8 border border-severity-serious/15 flex items-start gap-2.5">
+        <div className="mx-4 mb-4 px-3.5 py-3 rounded-xl bg-severity-serious/8 border border-severity-serious/15 flex items-start gap-2.5">
           <AlertTriangle className="h-4 w-4 text-severity-serious flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-severity-serious font-medium leading-relaxed">{similarPatternAlert}</p>
+          <p className="text-[13px] text-severity-serious font-medium leading-relaxed">{similarPatternAlert}</p>
         </div>
       )}
 
@@ -230,7 +230,7 @@ const RecordScreen = () => {
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Include what happened, who was present, and anything said."
-            className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary"
+            className="mt-1.5 min-h-[160px] bg-card border-border rounded-xl focus:ring-primary text-[15px] leading-relaxed"
           />
           {narrative.length > 0 && (
             <p className="text-[11px] text-muted-foreground mt-1.5">{narrative.length} characters</p>
@@ -254,13 +254,13 @@ const RecordScreen = () => {
         {aiSuggested && aiSummary && (
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground mb-2.5">This is a structured version of your original record to support review.</p>
-            <p className="text-sm text-body leading-relaxed">{aiSummary}</p>
+            <p className="text-[11px] text-muted-foreground mb-3">A structured version of your account — review and edit before saving.</p>
+            <p className="text-[15px] text-body leading-relaxed">{aiSummary}</p>
             <button
               onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-              className="text-xs text-destructive mt-2.5 font-medium"
+              className="text-xs text-destructive mt-3 font-medium"
             >
-              Remove AI summary
+              Remove summary
             </button>
           </div>
         )}
@@ -270,12 +270,15 @@ const RecordScreen = () => {
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <h3 className="text-xs font-semibold text-foreground mb-2">Potential Relevance</h3>
             <div className="mb-1.5"><AILabel /></div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {aiRelevance.map((r, i) => (
-                <p key={i} className="text-xs text-body leading-relaxed">• {r}</p>
+                <p key={i} className="text-[13px] text-body leading-relaxed flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
+                  {r}
+                </p>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2.5">This is not legal advice. These are neutral observations only.</p>
+            <p className="text-[10px] text-muted-foreground mt-3">This is not legal advice. These are neutral observations only.</p>
           </div>
         )}
 
@@ -289,7 +292,7 @@ const RecordScreen = () => {
 
         {/* Manual Form Fields */}
         {showManualForm && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <Label htmlFor="title" className="text-sm font-medium">Title</Label>
               <Input
@@ -317,7 +320,7 @@ const RecordScreen = () => {
               </div>
               <div>
                 <Label htmlFor="time" className="text-sm font-medium">Time</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">If unsure, use an approximate time.</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
                 <Input
                   id="time"
                   type="time"
@@ -366,41 +369,45 @@ const RecordScreen = () => {
 
             <div>
               <Label htmlFor="witnesses" className="text-sm font-medium">Witnesses</Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Add names if anyone saw or heard this.</p>
               <Input
                 id="witnesses"
                 value={witnesses}
                 onChange={(e) => setWitnesses(e.target.value)}
-                placeholder="Comma-separated names of witnesses"
-                className="mt-1.5 bg-card rounded-xl"
+                placeholder="Comma-separated names"
+                className="bg-card rounded-xl"
               />
             </div>
 
             <div>
               <Label htmlFor="exactWords" className="text-sm font-medium">
-                Exact Wording <span className="text-destructive">(important)</span>
+                Exact wording <span className="text-primary font-normal">(important)</span>
               </Label>
               <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">
-                Include exact phrases, messages, or wording if possible.
+                Include key phrases or exact words if you remember them.
               </p>
               <Textarea
                 id="exactWords"
                 value={exactWords}
                 onChange={(e) => setExactWords(e.target.value)}
-                placeholder="Include any exact spoken words, written wording, message text, or other wording directly relevant to the incident."
-                className="min-h-[80px] bg-card rounded-xl"
+                placeholder="What was said, written, or messaged?"
+                className="min-h-[80px] bg-card rounded-xl text-[15px]"
               />
             </div>
 
             <div>
               <Label htmlFor="impact" className="text-sm font-medium">
-                Impact <span className="font-normal text-muted-foreground">(what changed as a result?)</span>
+                Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
               </Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">
+                e.g. felt anxious, avoided area, affected work, raised concern
+              </p>
               <Textarea
                 id="impact"
                 value={impactNote}
                 onChange={(e) => setImpactNote(e.target.value)}
-                placeholder="How did this affect you? What changed?"
-                className="mt-1.5 min-h-[80px] bg-card rounded-xl"
+                placeholder="How did this affect you?"
+                className="mt-0 min-h-[80px] bg-card rounded-xl text-[15px]"
               />
             </div>
           </div>

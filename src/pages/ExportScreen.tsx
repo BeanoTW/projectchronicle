@@ -68,7 +68,7 @@ const ExportScreen = () => {
 
   const handleCaseNarrative = async () => {
     if (incidents.length < 2) {
-      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a case summary.', variant: 'destructive' });
+      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
       return;
     }
     setNarrativeLoading(true);
@@ -89,7 +89,7 @@ const ExportScreen = () => {
       if (data.error) throw new Error(data.error);
       setCaseNarrative(data);
     } catch (e) {
-      toast({ title: 'Case narrative failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setNarrativeLoading(false);
     }
@@ -99,28 +99,28 @@ const ExportScreen = () => {
     {
       key: 'incident',
       title: 'Incident Report',
-      description: 'Single incident report with date, people, narrative, evidence, witnesses, and record strength.',
+      description: 'Individual incident with narrative, evidence, witnesses, and record strength.',
       icon: FileText,
       disabled: incidents.length === 0,
     },
     {
       key: 'chronology',
-      title: 'Chronology',
-      description: 'All incidents in chronological order, grouped by date.',
+      title: 'What happened over time',
+      description: 'All incidents in date order, clearly grouped.',
       icon: Clock,
       disabled: incidents.length === 0,
     },
     {
       key: 'evidence-index',
       title: 'Evidence Index',
-      description: 'Table of all evidence with reference numbers and linked incidents.',
+      description: 'All evidence with reference numbers and linked incidents.',
       icon: Paperclip,
       disabled: evidence.length === 0,
     },
     {
       key: 'full-bundle',
       title: 'Full Case Bundle',
-      description: 'Complete bundle: cover page, chronology, case summary, evidence index, and full incident records.',
+      description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.',
       icon: Package,
       disabled: incidents.length === 0,
     },
@@ -130,15 +130,12 @@ const ExportScreen = () => {
     <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-6 pb-4">
         <h1 className="text-xl font-bold text-foreground tracking-tight">Export</h1>
-        <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
-          Generate structured reports ready to share
-        </p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">
-          Can be used with unions, HR, or legal advisors
+        <p className="text-[13px] text-muted-foreground mt-1.5 leading-relaxed">
+          Generate structured reports ready to share with unions, HR, or advisers.
         </p>
       </div>
 
-      {/* Case Summary */}
+      {/* Your situation so far */}
       <div className="px-4 mb-4">
         <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-start gap-3">
@@ -146,26 +143,26 @@ const ExportScreen = () => {
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-foreground">Case Summary</h3>
-              <p className="text-xs text-body mt-0.5 leading-relaxed">Structured narrative combining all incidents, highlighting recurring individuals and categories.</p>
+              <h3 className="text-[14px] font-semibold text-foreground">Your situation so far</h3>
+              <p className="text-[13px] text-body mt-0.5 leading-relaxed">A structured narrative combining all your incidents, highlighting people involved and recurring themes.</p>
               
               {caseNarrative ? (
                 <div className="mt-3 space-y-3">
                   <div className="mb-1"><AILabel /></div>
-                  <h4 className="text-sm font-semibold text-foreground">{caseNarrative.title}</h4>
-                  <p className="text-xs text-body leading-relaxed">{caseNarrative.overview}</p>
+                  <h4 className="text-[14px] font-semibold text-foreground">{caseNarrative.title}</h4>
+                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.overview}</p>
                   
                   <div>
-                    <p className="text-[11px] font-semibold text-foreground mb-1">Chronology</p>
-                    <p className="text-xs text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
+                    <p className="text-[12px] font-semibold text-foreground mb-1.5">What happened over time</p>
+                    <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
                   </div>
 
                   {caseNarrative.key_individuals.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-foreground mb-1">Key Individuals</p>
-                      <div className="space-y-1.5">
+                      <p className="text-[12px] font-semibold text-foreground mb-1.5">People involved</p>
+                      <div className="space-y-2">
                         {caseNarrative.key_individuals.map((ind, i) => (
-                          <p key={i} className="text-xs text-body leading-relaxed">
+                          <p key={i} className="text-[13px] text-body leading-relaxed">
                             <span className="font-medium">{ind.name}</span> ({ind.involvement_count} incidents) — {ind.context}
                           </p>
                         ))}
@@ -174,16 +171,16 @@ const ExportScreen = () => {
                   )}
 
                   <div>
-                    <p className="text-[11px] font-semibold text-foreground mb-1">Patterns</p>
-                    <p className="text-xs text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
+                    <p className="text-[12px] font-semibold text-foreground mb-1.5">Things that come up more than once</p>
+                    <p className="text-[13px] text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
                   </div>
 
                   <div>
-                    <p className="text-[11px] font-semibold text-foreground mb-1">Reported Impact</p>
-                    <p className="text-xs text-body leading-relaxed">{caseNarrative.impact_summary}</p>
+                    <p className="text-[12px] font-semibold text-foreground mb-1.5">How this has affected you</p>
+                    <p className="text-[13px] text-body leading-relaxed">{caseNarrative.impact_summary}</p>
                   </div>
 
-                  <button onClick={() => setCaseNarrative(null)} className="text-xs text-primary font-medium">
+                  <button onClick={() => setCaseNarrative(null)} className="text-[13px] text-primary font-medium">
                     Regenerate
                   </button>
                 </div>
@@ -191,11 +188,11 @@ const ExportScreen = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3 text-xs border-primary/30 text-primary h-9 rounded-xl hover:bg-primary/5"
+                  className="mt-3 text-[13px] border-primary/30 text-primary h-10 rounded-xl hover:bg-primary/5"
                   onClick={handleCaseNarrative}
                   disabled={narrativeLoading || incidents.length < 2}
                 >
-                  {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1" /> Generate Summary</>}
+                  {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate Summary</>}
                 </Button>
               )}
             </div>
@@ -211,19 +208,19 @@ const ExportScreen = () => {
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-                <p className="text-xs text-body mt-0.5 leading-relaxed">{description}</p>
+                <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
+                <p className="text-[13px] text-body mt-0.5 leading-relaxed">{description}</p>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="mt-3 text-xs border-primary/30 text-primary h-9 rounded-xl hover:bg-primary/5"
+                  className="mt-3 text-[13px] border-primary/30 text-primary h-10 rounded-xl hover:bg-primary/5"
                   disabled={disabled || exporting === key}
                   onClick={() => handleExport(key)}
                 >
                   {exporting === key ? (
-                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generating...</>
+                    <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</>
                   ) : (
-                    <><Download className="h-3 w-3 mr-1" /> Generate</>
+                    <><Download className="h-3 w-3 mr-1.5" /> Generate</>
                   )}
                 </Button>
               </div>
@@ -232,9 +229,9 @@ const ExportScreen = () => {
         ))}
       </div>
 
-      <div className="mx-4 mt-6 p-4 rounded-xl bg-muted/50 border border-border/40">
-        <p className="text-[10px] text-muted-foreground leading-relaxed">
-          This tool supports record-keeping and organisation. It does not provide legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.
+      <div className="mx-4 mt-6 mb-4 p-4 rounded-xl bg-muted/40 border border-border/40">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          This tool supports record-keeping and organisation. It does not provide legal advice. Consult a qualified adviser before taking formal action.
         </p>
       </div>
     </div>

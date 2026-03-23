@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Shield, ExternalLink, ArrowRight, BookOpen, ChevronDown, FileText, Users, MessageCircle, ShieldCheck, Briefcase } from 'lucide-react';
+import { Shield, ExternalLink, ArrowRight, BookOpen, FileText, Users, MessageCircle, ShieldCheck, Briefcase } from 'lucide-react';
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -77,7 +77,7 @@ const guidanceSections = [
       'Use the Export feature to create a structured summary of your incidents',
       'Focus on facts — what happened, when, and who was involved',
       'Think about what outcome you would like',
-      'You do not need to have all the answers — an adviser can help you work through your options',
+      'You don\'t need all the answers — an adviser can help you work through options',
     ],
   },
 ];
@@ -104,9 +104,9 @@ const RightsScreen = () => {
   const suggestedNextSteps = useMemo(() => {
     const steps: string[] = [];
     if (incidents.length >= 1) steps.push('Continue recording incidents as they happen');
-    if (incidents.length >= 3) steps.push('Review the Insights tab to see what\'s showing up in your records');
-    if (incidents.length >= 2) steps.push('Consider speaking to a union representative or workplace adviser');
-    if (incidents.length >= 5) steps.push('Use the Export feature to create a structured summary you can share');
+    if (incidents.length >= 3) steps.push('Review the Insights tab to see what\'s showing up');
+    if (incidents.length >= 2) steps.push('Consider speaking to a union rep or workplace adviser');
+    if (incidents.length >= 5) steps.push('Use Export to create a summary you can share');
     return steps;
   }, [incidents]);
 
@@ -131,7 +131,7 @@ const RightsScreen = () => {
         <EmptyState
           icon={<Shield className="h-12 w-12" />}
           heading="No guidance available yet"
-          body="Record your first incident and we will show relevant guidance here."
+          body="Record your first incident and relevant guidance will appear here."
         />
       </div>
     );
@@ -140,7 +140,7 @@ const RightsScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <div className="px-4 pt-6 pb-1">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Rights Guidance</h1>
+        <h1 className="text-xl font-bold text-foreground tracking-tight">Rights & Guidance</h1>
       </div>
 
       {/* 1. Intro card */}
@@ -148,40 +148,40 @@ const RightsScreen = () => {
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-foreground mb-1">Understanding your situation</p>
+            <p className="text-[14px] font-semibold text-foreground mb-1">Understanding your situation</p>
             <p className="text-[13px] text-body leading-relaxed">
-              This page helps you explore what you've recorded and understand possible next steps. It's designed to support you in organising your thoughts before speaking to someone.
+              This helps you understand what your records may relate to and what you can do next. It's here to support you in organising your thoughts.
             </p>
           </div>
         </div>
       </div>
 
       {/* 2. Disclaimer */}
-      <div className="mx-4 mb-4 px-4 py-2.5 rounded-lg bg-muted/50 border border-border/60">
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          This is general information only — not legal advice. Always speak to a qualified adviser before taking formal steps.
+      <div className="mx-4 mb-4 px-4 py-3 rounded-xl bg-muted/40 border border-border/50">
+        <p className="text-[12px] text-muted-foreground leading-relaxed">
+          General information only — not legal advice. Speak to a qualified adviser before taking formal steps.
         </p>
       </div>
 
       {/* 3. Guidance sections (accordion) */}
       <div className="mx-4 mb-4">
-        <Accordion type="multiple" className="space-y-2">
+        <Accordion type="multiple" className="space-y-2.5">
           {guidanceSections.map(section => {
             const Icon = section.icon;
             return (
               <AccordionItem key={section.id} value={section.id} className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-                <AccordionTrigger className="px-3 py-3.5 text-sm font-medium text-foreground hover:no-underline gap-3">
+                <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                   <span className="flex items-center gap-2.5">
                     <Icon className="h-4 w-4 text-primary flex-shrink-0" />
                     {section.title}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-4">
-                  <ul className="space-y-2.5 ml-0.5">
+                  <ul className="space-y-3 ml-0.5">
                     {section.points.map((point, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary/40 flex-shrink-0 mt-[7px]" />
-                        <span className="text-[13px] text-body leading-relaxed">{point}</span>
+                        <span className="text-[14px] text-body leading-relaxed">{point}</span>
                       </li>
                     ))}
                   </ul>
@@ -195,11 +195,11 @@ const RightsScreen = () => {
       {/* 4. Based on your records */}
       {detectedIssueTypes.length > 0 && (
         <div className="mx-4 mb-4 bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-          <h2 className="text-sm font-semibold text-foreground mb-1.5">Based on your records</h2>
-          <p className="text-[11px] text-muted-foreground mb-3">Topics that may be relevant to what you've recorded:</p>
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <h2 className="text-[14px] font-semibold text-foreground mb-1.5">Based on your records</h2>
+          <p className="text-[12px] text-muted-foreground mb-3">Topics that may be relevant:</p>
+          <div className="flex flex-wrap gap-2 mb-3">
             {detectedIssueTypes.map(type => (
-              <span key={type} className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/8 text-primary border border-primary/15 capitalize">
+              <span key={type} className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-primary/8 text-primary border border-primary/15 capitalize">
                 {type}
               </span>
             ))}
@@ -207,14 +207,14 @@ const RightsScreen = () => {
 
           {suggestedNextSteps.length > 0 && (
             <div className="pt-3 border-t border-border/60">
-              <h3 className="text-xs font-semibold text-foreground mb-2.5">Helpful next steps</h3>
-              <div className="space-y-2">
+              <h3 className="text-[13px] font-semibold text-foreground mb-3">Helpful next steps</h3>
+              <div className="space-y-2.5">
                 {suggestedNextSteps.map((step, i) => (
                   <div key={i} className="flex items-start gap-2.5">
                     <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                       <ArrowRight className="h-3 w-3 text-primary" />
                     </div>
-                    <p className="text-[13px] text-body leading-relaxed">{step}</p>
+                    <p className="text-[14px] text-body leading-relaxed">{step}</p>
                   </div>
                 ))}
               </div>
@@ -226,18 +226,18 @@ const RightsScreen = () => {
       {/* Relevant external guidance */}
       {relevantGuidance.length > 0 && (
         <div className="px-4 mb-6">
-          <h2 className="text-sm font-semibold text-foreground mb-3">Relevant to your records</h2>
+          <h2 className="text-[14px] font-semibold text-foreground mb-3">Relevant to your records</h2>
           <div className="space-y-2.5">
             {relevantGuidance.map(r => (
               <div key={r.id} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
                     {r.source}
                   </span>
                 </div>
-                <h3 className="text-sm font-medium text-foreground mb-1">{r.title}</h3>
+                <h3 className="text-[14px] font-medium text-foreground mb-1">{r.title}</h3>
                 {r.description && <p className="text-[13px] text-body leading-relaxed mb-2.5">{r.description}</p>}
-                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline">
+                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
                   View guidance <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
@@ -247,20 +247,20 @@ const RightsScreen = () => {
       )}
 
       {/* Browse all */}
-      <div className="px-4">
-        <h2 className="text-sm font-semibold text-foreground mb-3">Browse all guidance</h2>
+      <div className="px-4 pb-4">
+        <h2 className="text-[14px] font-semibold text-foreground mb-3">Browse all guidance</h2>
         <div className="space-y-2.5">
           {sortedGuidance.map(r => (
             <div key={r.id} className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
                   {r.source}
                 </span>
-                <span className="text-[10px] text-muted-foreground">{r.incident_category}</span>
+                <span className="text-[11px] text-muted-foreground">{r.incident_category}</span>
               </div>
-              <h3 className="text-sm font-medium text-foreground mb-1">{r.title}</h3>
+              <h3 className="text-[14px] font-medium text-foreground mb-1">{r.title}</h3>
               {r.description && <p className="text-[13px] text-body leading-relaxed mb-2.5">{r.description}</p>}
-              <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline">
+              <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
                 View guidance <ExternalLink className="h-3 w-3" />
               </a>
             </div>

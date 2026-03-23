@@ -24,12 +24,12 @@ const RecordAgeChip = ({ incidentDate, createdAt }: RecordAgeChipProps) => {
     text = `Recorded ${daysGap} days after`;
     colorClass = 'text-muted-foreground bg-muted';
   } else {
-    text = `Recorded ${daysGap} days after · Delayed record`;
-    colorClass = 'text-destructive bg-destructive/10';
+    text = 'Added later';
+    colorClass = 'text-muted-foreground bg-muted';
   }
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colorClass}`}>
       {text}
     </span>
   );

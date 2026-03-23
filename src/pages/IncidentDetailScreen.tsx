@@ -107,22 +107,22 @@ const IncidentDetailScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-card border-b border-border px-4 pt-4 pb-4">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-primary text-sm mb-3">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-primary text-sm mb-3 font-medium">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
 
         {incident.locked && <LockBanner />}
 
-        <h1 className="text-xl font-bold text-foreground mt-2">
+        <h1 className="text-xl font-bold text-foreground mt-2 leading-tight">
           {incident.title || 'Untitled incident'}
         </h1>
 
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <div className="flex flex-wrap gap-1.5 mt-2.5">
           {incident.category && <CategoryBadge category={incident.category} />}
           <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         </div>
 
-        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 mt-2.5 text-[13px] text-muted-foreground">
           <span>{format(parseISO(incident.incident_date), 'dd MMMM yyyy')}</span>
           {incident.incident_time && <><span>·</span><span>{incident.incident_time}</span></>}
           {incident.location && <><span>·</span><span>{incident.location}</span></>}
@@ -131,99 +131,104 @@ const IncidentDetailScreen = () => {
         </div>
 
         {incident.excluded_from_rep && (
-          <div className="mt-2 px-3 py-2 rounded-md bg-muted text-muted-foreground text-xs font-medium">
+          <div className="mt-2.5 px-3 py-2 rounded-xl bg-muted text-muted-foreground text-xs font-medium">
             This incident is excluded from your rep view.
           </div>
         )}
       </div>
 
-      <div className="px-4 pt-4 space-y-4">
+      <div className="px-4 pt-5 space-y-4">
         {/* Serious Incident Flag */}
         {scoring?.seriousFlag && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-start gap-2">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3.5 flex items-start gap-2.5">
             <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-destructive font-medium">{scoring.seriousFlagReason}</p>
+            <p className="text-[13px] text-destructive font-medium leading-relaxed">{scoring.seriousFlagReason}</p>
           </div>
         )}
 
         {/* Record Strength Panel */}
         {scoring && (
-          <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-[var(--shadow-card)]">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground">Record Strength</span>
-              <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
+              <span className="text-[13px] font-semibold text-foreground">Record Strength</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
                 {scoring.recordStrength} record
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="bg-muted/50 rounded px-2 py-1.5">
+            <div className="grid grid-cols-2 gap-2 text-[12px]">
+              <div className="bg-muted/50 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">Evidence:</span> <span className="text-foreground font-medium">{scoring.evidenceStrength}</span>
               </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
+              <div className="bg-muted/50 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">Witnesses:</span> <span className="text-foreground font-medium">{scoring.witnessSupport}</span>
               </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
+              <div className="bg-muted/50 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">Detail:</span> <span className="text-foreground font-medium">{scoring.detailCompleteness}</span>
               </div>
-              <div className="bg-muted/50 rounded px-2 py-1.5">
+              <div className="bg-muted/50 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">Occurrence:</span> <span className="text-foreground font-medium">{scoring.repeatOccurrence}</span>
               </div>
             </div>
 
             {scoring.strengthPrompts.length > 0 && (
-              <div className="pt-2 border-t border-border space-y-1">
+              <div className="pt-2.5 border-t border-border space-y-1.5">
                 {scoring.strengthPrompts.map((prompt, i) => (
-                  <p key={i} className="text-[11px] text-primary">→ {prompt}</p>
+                  <p key={i} className="text-[12px] text-primary leading-relaxed">→ {prompt}</p>
                 ))}
               </div>
             )}
           </div>
         )}
 
+        {/* Original Record — primary section */}
         <IntegrityPanel narrative={incident.raw_narrative} savedAt={incident.created_at} />
 
+        {/* Exact Wording */}
         {incident.exact_words && (
-          <div className="bg-ai-label/30 border border-ai-label-foreground/20 rounded-lg p-4">
-            <p className="text-xs font-semibold text-ai-label-foreground mb-1">Exact wording recorded</p>
-            <p className="text-sm text-foreground italic">"{incident.exact_words}"</p>
+          <div className="bg-ai-label/30 border border-ai-label-foreground/20 rounded-xl p-4">
+            <p className="text-[13px] font-semibold text-ai-label-foreground mb-1.5">Exact wording recorded</p>
+            <p className="text-[15px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
           </div>
         )}
 
+        {/* Impact */}
         {incident.impact_note && (
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-xs font-semibold text-foreground mb-1">Impact (what changed as a result)</p>
-            <p className="text-sm text-body">{incident.impact_note}</p>
+          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+            <p className="text-[13px] font-semibold text-foreground mb-1.5">Impact (what changed)</p>
+            <p className="text-[15px] text-body leading-relaxed">{incident.impact_note}</p>
           </div>
         )}
 
+        {/* AI Summary — secondary/supporting */}
         {incident.ai_summary && (
-          <div className="bg-card border border-border rounded-lg p-4">
+          <div className="bg-muted/30 border border-border rounded-xl p-4">
             <div className="mb-1.5"><AILabel /></div>
-            <p className="text-[11px] text-muted-foreground mb-2.5">This is a structured version of your original record to support review.</p>
-            <p className="text-sm text-body leading-relaxed">{incident.ai_summary}</p>
+            <p className="text-[11px] text-muted-foreground mb-2.5">A structured version of your account — for review only.</p>
+            <p className="text-[14px] text-body leading-relaxed">{incident.ai_summary}</p>
           </div>
         )}
 
+        {/* People & Witnesses */}
         {(incident.people_involved.length > 0 || incident.witnesses.length > 0) && (
-          <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-3 shadow-[var(--shadow-card)]">
             {incident.people_involved.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1">People Involved</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-[13px] font-semibold text-foreground mb-1.5">People involved</p>
+                <div className="flex flex-wrap gap-1.5">
                   {incident.people_involved.map(p => (
-                    <span key={p} className="bg-accent text-accent-foreground px-2 py-0.5 rounded-full text-xs">{p}</span>
+                    <span key={p} className="bg-accent text-accent-foreground px-2.5 py-1 rounded-full text-[12px] font-medium">{p}</span>
                   ))}
                 </div>
               </div>
             )}
             {incident.witnesses.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1">Witnesses</p>
-                <div className="flex flex-wrap gap-1">
+                <p className="text-[13px] font-semibold text-foreground mb-1.5">Witnesses</p>
+                <div className="flex flex-wrap gap-1.5">
                   {incident.witnesses.map(w => (
-                    <span key={w} className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">{w}</span>
+                    <span key={w} className="bg-muted text-muted-foreground px-2.5 py-1 rounded-full text-[12px] font-medium">{w}</span>
                   ))}
                 </div>
               </div>
@@ -232,46 +237,47 @@ const IncidentDetailScreen = () => {
         )}
 
         {/* Evidence */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-xs font-semibold text-foreground mb-2">Evidence ({evidence.length})</p>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <p className="text-[13px] font-semibold text-foreground mb-2.5">Evidence ({evidence.length})</p>
           {evidence.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No evidence attached yet.</p>
+            <p className="text-[13px] text-muted-foreground">No evidence attached yet.</p>
           ) : (
             <div className="space-y-2">
               {evidence.map(ev => (
-                <div key={ev.id} className="flex items-center gap-3 p-2 bg-muted/50 rounded-md">
-                  <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center text-primary text-[10px] font-bold">
+                <div key={ev.id} className="flex items-center gap-3 p-2.5 bg-muted/50 rounded-lg">
+                  <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold">
                     E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{ev.file_name}</p>
-                    <p className="text-[10px] text-muted-foreground">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
+                    <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                    <p className="text-[11px] text-muted-foreground">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
           {!incident.locked && (
-            <label className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 border border-primary text-primary text-xs font-medium rounded-md cursor-pointer hover:bg-primary/5">
-              <Plus className="h-3 w-3" /> Add Evidence
+            <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary text-primary text-[13px] font-medium rounded-xl cursor-pointer hover:bg-primary/5 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Add Evidence
               <input type="file" className="hidden" onChange={handleFileUpload} />
             </label>
           )}
         </div>
 
         {/* Follow-up Notes */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-xs font-semibold text-foreground mb-1">Follow-up Notes — Added after original record</p>
+        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <p className="text-[13px] font-semibold text-foreground mb-1">Follow-up notes</p>
+          <p className="text-[11px] text-muted-foreground mb-2.5">Added after the original record.</p>
           {notes.length === 0 ? (
-            <p className="text-xs text-muted-foreground mt-1">No follow-up notes yet.</p>
+            <p className="text-[13px] text-muted-foreground">No follow-up notes yet.</p>
           ) : (
-            <div className="space-y-2 mt-2">
+            <div className="space-y-2 mt-1">
               {notes.map(note => (
-                <div key={note.id} className="p-2 bg-muted/50 rounded-md">
-                  <p className="text-[10px] text-muted-foreground">
+                <div key={note.id} className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-[11px] text-muted-foreground">
                     Added {format(parseISO(note.created_at), 'dd MMM yyyy')} — {note.note_type}
                   </p>
-                  <p className="text-xs text-body mt-1">{note.note_text}</p>
+                  <p className="text-[13px] text-body mt-1 leading-relaxed">{note.note_text}</p>
                 </div>
               ))}
             </div>
@@ -279,15 +285,15 @@ const IncidentDetailScreen = () => {
 
           {showNoteForm ? (
             <div className="mt-3 space-y-2">
-              <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a follow-up note..." className="min-h-[60px] bg-background text-xs" />
+              <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a follow-up note..." className="min-h-[60px] bg-background text-[13px]" />
               <div className="flex gap-2">
-                <Button size="sm" onClick={handleAddNote} className="text-xs">Save Note</Button>
-                <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)} className="text-xs">Cancel</Button>
+                <Button size="sm" onClick={handleAddNote} className="text-[13px]">Save Note</Button>
+                <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)} className="text-[13px]">Cancel</Button>
               </div>
             </div>
           ) : (
-            <Button variant="outline" size="sm" className="mt-2 text-xs border-primary text-primary" onClick={() => setShowNoteForm(true)}>
-              <Plus className="h-3 w-3 mr-1" /> Add Note
+            <Button variant="outline" size="sm" className="mt-3 text-[13px] border-primary text-primary rounded-xl" onClick={() => setShowNoteForm(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Note
             </Button>
           )}
         </div>
@@ -295,16 +301,16 @@ const IncidentDetailScreen = () => {
         <EditHistoryPanel entries={editHistoryMapped} />
 
         {!incident.locked && (
-          <div className="space-y-2 pt-2 pb-6">
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 text-primary border-primary h-11" onClick={handleLock}>
+          <div className="space-y-2.5 pt-3 pb-6">
+            <div className="flex gap-2.5">
+              <Button variant="outline" className="flex-1 text-primary border-primary h-11 rounded-xl" onClick={handleLock}>
                 <Lock className="h-4 w-4 mr-2" /> Lock Record
               </Button>
-              <Button variant="outline" className="flex-1 text-muted-foreground h-11" onClick={handleExclude}>
+              <Button variant="outline" className="flex-1 text-muted-foreground h-11 rounded-xl" onClick={handleExclude}>
                 <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
               </Button>
             </div>
-            <Button variant="outline" className="w-full border-destructive text-destructive h-11" onClick={handleDelete}>
+            <Button variant="outline" className="w-full border-destructive text-destructive h-11 rounded-xl" onClick={handleDelete}>
               <Trash2 className="h-4 w-4 mr-2" /> Delete
             </Button>
           </div>
