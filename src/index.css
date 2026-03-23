@@ -188,6 +188,9 @@
 }
 
 /* Page transition */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 .page-enter {
   animation: fade-in 0.2s ease-out;
 }

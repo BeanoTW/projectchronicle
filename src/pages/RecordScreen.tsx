@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, Loader2, AlertTriangle, Settings } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
@@ -30,6 +31,7 @@ const RecordScreen = () => {
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   const [showManualForm, setShowManualForm] = useState(false);
+  const [moreDetailsOpen, setMoreDetailsOpen] = useState(false);
   const [narrative, setNarrative] = useState('');
   const [incidentDate, setIncidentDate] = useState('');
   const [incidentTime, setIncidentTime] = useState('');
@@ -194,13 +196,14 @@ const RecordScreen = () => {
         </div>
       )}
 
-      {/* Prompt Cues */}
-      <div className="px-5 mb-4">
-        <div className="flex flex-wrap gap-1.5 text-[11px] text-muted-foreground/70">
-          <span className="bg-muted/40 px-2.5 py-1 rounded">When</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded">Where</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded">Who</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded">What happened</span>
+      {/* Prompt Cues — horizontal scroll */}
+      <div className="px-5 mb-4 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
+          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
+          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
+          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
+          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
+          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
         </div>
       </div>
 
@@ -223,7 +226,7 @@ const RecordScreen = () => {
             value={narrative}
             onChange={(e) => setNarrative(e.target.value)}
             placeholder="Write what happened — include anything said, done, or noticed."
-            className="min-h-[200px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
+            className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
           />
           {narrative.length > 0 && (
             <p className="text-[11px] text-muted-foreground/40 px-4 pb-2">{narrative.length} characters</p>
@@ -232,6 +235,20 @@ const RecordScreen = () => {
         {errors.raw_narrative && (
           <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
         )}
+
+        {/* Essential fields — always visible */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
+            <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+            {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
+          </div>
+          <div>
+            <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
+            <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
+            <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
+          </div>
+        </div>
 
         {/* Generate Summary */}
         <Button
@@ -276,71 +293,66 @@ const RecordScreen = () => {
           </div>
         )}
 
-        <button
-          onClick={() => setShowManualForm(!showManualForm)}
-          className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1"
-        >
-          {showManualForm ? 'Hide details' : 'Fill in manually'}
-          <ChevronRight className={`h-4 w-4 transition-transform duration-150 ${showManualForm ? 'rotate-90' : ''}`} />
-        </button>
-
-        {/* Manual Form */}
-        {showManualForm && (
-          <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)]">
-            <div>
-              <Label htmlFor="title" className="text-[13px] font-medium">Title</Label>
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title for this incident" className="mt-1.5 rounded-lg" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+        {/* More details — collapsible */}
+        <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
+          <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
+            {showManualForm || moreDetailsOpen ? (
+              <>
+                <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+                Hide details
+              </>
+            ) : (
+              <>
+                <ChevronRight className="h-4 w-4 transition-transform duration-200" />
+                More details
+              </>
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+            <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)] mt-2">
               <div>
-                <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
-                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
-                {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
+                <Label htmlFor="title" className="text-[13px] font-medium">Title</Label>
+                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title for this incident" className="mt-1.5 rounded-lg" />
               </div>
               <div>
-                <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
-                <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
+                <Label htmlFor="location" className="text-[13px] font-medium">Location</Label>
+                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
+              </div>
+              <div>
+                <Label className="text-[13px] font-medium">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="people" className="text-[13px] font-medium">People Involved</Label>
+                <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
+              </div>
+              <div>
+                <Label htmlFor="witnesses" className="text-[13px] font-medium">Witnesses</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present?</p>
+                <Input id="witnesses" value={witnesses} onChange={(e) => setWitnesses(e.target.value)} placeholder="Comma-separated names" className="rounded-lg" />
+              </div>
+              <div>
+                <Label htmlFor="exactWords" className="text-[13px] font-medium">
+                  Exact wording <span className="text-primary font-normal">(important)</span>
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
+                <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[14px]" />
+              </div>
+              <div>
+                <Label htmlFor="impact" className="text-[13px] font-medium">
+                  Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
+                </Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
+                <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[14px]" />
               </div>
             </div>
-            <div>
-              <Label htmlFor="location" className="text-[13px] font-medium">Location</Label>
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
-            </div>
-            <div>
-              <Label className="text-[13px] font-medium">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="people" className="text-[13px] font-medium">People Involved</Label>
-              <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
-            </div>
-            <div>
-              <Label htmlFor="witnesses" className="text-[13px] font-medium">Witnesses</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present?</p>
-              <Input id="witnesses" value={witnesses} onChange={(e) => setWitnesses(e.target.value)} placeholder="Comma-separated names" className="rounded-lg" />
-            </div>
-            <div>
-              <Label htmlFor="exactWords" className="text-[13px] font-medium">
-                Exact wording <span className="text-primary font-normal">(important)</span>
-              </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
-              <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[14px]" />
-            </div>
-            <div>
-              <Label htmlFor="impact" className="text-[13px] font-medium">
-                Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
-              </Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
-              <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[14px]" />
-            </div>
-          </div>
-        )}
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="pt-4 pb-8">
           <Button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150">
