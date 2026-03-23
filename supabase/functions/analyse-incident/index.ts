@@ -80,8 +80,8 @@ RULES:
                     description: "Severity level based on impact described"
                   },
                   exact_words: { type: "string", description: "Any verbatim quotes found in the narrative, or null" },
-                  summary: { type: "string", description: "A lightly structured version of the user's account, staying close to their original wording. 2-3 sentences max." },
-                  title: { type: "string", description: "A short, natural title for the incident (under 8 words). Write it the way a person would say it." },
+                  summary: { type: "string", description: "A lightly structured version of the user's account using their own words. Prefer reordering over rewriting. Keep key phrases intact. 2-3 sentences max." },
+                  title: { type: "string", description: "A short, specific title (under 12 words). Include exact wording in quotes if available. Avoid vague words like 'interaction', 'regarding', 'report of'." },
                   potential_relevance: {
                     type: "array",
                     items: { type: "string" },
