@@ -64,7 +64,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
       el.style.boxShadow = `0 0 0 ${glowSize}px hsl(var(--primary) / ${0.15 + (1 - ratio) * 0.15})`;
       el.style.opacity = `${0.5 + (1 - ratio) * 0.5}`;
     });
-  }, []);
+  }, [focusedIndex]);
 
   const onScroll = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
