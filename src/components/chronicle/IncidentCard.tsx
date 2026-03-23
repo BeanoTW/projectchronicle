@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
+import { ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 import RecordAgeChip from './RecordAgeChip';
@@ -8,6 +11,7 @@ interface IncidentCardProps {
   incident: Incident;
   showPatternLabel?: boolean;
   compact?: boolean;
+  expandable?: boolean;
 }
 
 const categoryCardTints: Record<string, string> = {
@@ -22,41 +26,88 @@ const categoryCardTints: Record<string, string> = {
   'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
 };
 
-const IncidentCard = ({ incident, showPatternLabel, compact }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
+  const [expanded, setExpanded] = useState(false);
   const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
+
+  const handleClick = () => {
+    if (expandable) {
+      setExpanded(prev => !prev);
+    } else {
+      navigate(`/incident/${incident.id}`);
+    }
+  };
 
   if (compact) {
     return (
-      <button
-        onClick={() => navigate(`/incident/${incident.id}`)}
-        className={`w-full text-left rounded-xl border border-border border-l-[3px] px-3.5 py-3 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.99] ${tint}`}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[13px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
-            {incident.title || 'Untitled incident'}
-          </h3>
-          <span className="text-[11px] text-muted-foreground/60 whitespace-nowrap flex-shrink-0">
-            {format(parseISO(incident.incident_date), 'dd MMM')}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 mt-1.5">
-          {incident.category && <CategoryBadge category={incident.category} />}
-          {showPatternLabel && (
-            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
-              Repeated
-            </span>
+      <div>
+        <button
+          onClick={handleClick}
+          className={`w-full text-left rounded-xl border border-border border-l-[3px] px-3.5 py-3 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-[13px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+              {incident.title || 'Untitled incident'}
+            </h3>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[11px] text-muted-foreground/60 whitespace-nowrap">
+                {format(parseISO(incident.incident_date), 'dd MMM')}
+              </span>
+              {expandable && (
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground/40 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {incident.category && <CategoryBadge category={incident.category} />}
+            {showPatternLabel && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
+                Repeated
+              </span>
+            )}
+            {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
+          </div>
+        </button>
+        <AnimatePresence>
+          {expandable && expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              <div className={`mx-1 mt-1 px-3.5 py-3 rounded-lg border border-border/60 bg-card/50 space-y-2`}>
+                {(incident.ai_summary || incident.raw_narrative) && (
+                  <p className="text-[13px] text-muted-foreground leading-relaxed">
+                    {incident.ai_summary || incident.raw_narrative}
+                  </p>
+                )}
+                {incident.location && (
+                  <p className="text-[11px] text-muted-foreground/60">📍 {incident.location}</p>
+                )}
+                {incident.people_involved.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground/60">People: {incident.people_involved.join(', ')}</p>
+                )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/incident/${incident.id}`); }}
+                  className="text-[12px] text-primary font-medium pt-1 transition-colors hover:text-primary/80"
+                >
+                  View full record →
+                </button>
+              </div>
+            </motion.div>
           )}
-          {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
-        </div>
-      </button>
+        </AnimatePresence>
+      </div>
     );
   }
 
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className={`w-full text-left rounded-xl border border-border border-l-[3px] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.99] ${tint}`}
+      className={`w-full text-left rounded-xl border border-border border-l-[3px] p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
@@ -71,7 +122,7 @@ const IncidentCard = ({ incident, showPatternLabel, compact }: IncidentCardProps
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {showPatternLabel && (
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
+          <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
             Repeated behaviour
           </span>
         )}

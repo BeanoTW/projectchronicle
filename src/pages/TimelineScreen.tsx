@@ -103,7 +103,7 @@ const TimelineScreen = () => {
           <Switch id="chronology" checked={chronologyMode} onCheckedChange={setChronologyMode} />
         </div>
       </PageHeader>
-      <p className="px-5 -mt-2 mb-3 text-[12px] text-muted-foreground">Sorted by when events happened</p>
+      <p className="px-5 -mt-2 mb-3 text-[12px] text-muted-foreground/60">Your record over time</p>
 
       {gapFilter && (
         <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
@@ -155,7 +155,7 @@ const TimelineScreen = () => {
                 <div className="space-y-2.5">
                   {items.map(inc => (
                     <div key={inc.id} className="timeline-node">
-                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact />
+                      <IncidentCard incident={inc} showPatternLabel={isPartOfPattern(inc)} compact expandable />
                     </div>
                   ))}
                 </div>
