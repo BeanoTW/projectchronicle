@@ -79,7 +79,7 @@ const InsightsScreen = () => {
       result.push(`${name} appears in ${count} incidents (${format(parseISO(firstDate), 'MMM yyyy')} – ${format(parseISO(lastDate), 'MMM yyyy')}).`);
     });
     const topCat = categoryPatterns[0];
-    if (topCat && topCat.count >= 3) result.push(`${topCat.category} is the most frequently recorded category (${topCat.count} incidents).`);
+    if (topCat && topCat.count >= 3) result.push(`${topCat.category} appears most frequently in your records.`);
     if (concentratedPeriod) result.push(concentratedPeriod);
     return result;
   }, [keyIndividuals, categoryPatterns, concentratedPeriod]);
