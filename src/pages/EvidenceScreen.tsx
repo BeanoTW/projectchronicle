@@ -103,7 +103,7 @@ const EvidenceScreen = () => {
       </div>
 
       {unlinkedCount > 0 && (
-        <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-severity-serious/8 border border-severity-serious/15 text-severity-serious text-xs font-medium">
+        <div className="mx-5 mb-4 px-4 py-3 rounded-2xl bg-warm-accent-light border border-warm-accent/12 text-warm-accent-foreground text-xs font-medium">
           {unlinkedCount} file{unlinkedCount > 1 ? 's' : ''} not yet linked to an incident
         </div>
       )}
