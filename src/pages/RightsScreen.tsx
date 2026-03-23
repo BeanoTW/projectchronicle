@@ -138,18 +138,20 @@ const RightsScreen = () => {
   }
 
   return (
-    <div className="min-h-screen bg-tint-rights pb-24">
-      <div className="px-4 pt-6 pb-1">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">Rights & Guidance</h1>
+    <div className="min-h-screen bg-tint-rights pb-24 page-enter">
+      <div className="px-5 pt-7 pb-2">
+        <h1 className="text-[22px] font-bold text-foreground tracking-tight">Rights & Guidance</h1>
       </div>
 
-      {/* 1. Intro card */}
-      <div className="mx-4 mt-3 mb-3 p-4 rounded-xl bg-primary-light border border-primary/10">
+      {/* 1. Intro card — gradient calm panel */}
+      <div className="mx-5 mt-3 mb-3 p-5 rounded-2xl gradient-calm border border-primary/8">
         <div className="flex items-start gap-3">
-          <BookOpen className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
           <div>
-            <p className="text-[14px] font-semibold text-foreground mb-1">Understanding your situation</p>
-            <p className="text-[13px] text-body leading-relaxed">
+            <p className="text-[14px] font-semibold text-foreground mb-1.5">Understanding your situation</p>
+            <p className="text-[13px] text-body/80 leading-relaxed">
               This section helps you make sense of what you've recorded and consider possible next steps. It's here to support you in organising your thoughts.
             </p>
           </div>
@@ -157,8 +159,8 @@ const RightsScreen = () => {
       </div>
 
       {/* 2. Disclaimer */}
-      <div className="mx-4 mb-4 px-4 py-3 rounded-xl bg-muted/40 border border-border/50">
-        <p className="text-[12px] text-muted-foreground leading-relaxed">
+      <div className="mx-5 mb-5 px-4 py-3 rounded-2xl bg-muted/30 border border-border/40">
+        <p className="text-[12px] text-muted-foreground/70 leading-relaxed">
           General information only — not legal advice. Speak to a qualified adviser before taking formal steps.
         </p>
       </div>
