@@ -54,6 +54,7 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/insights" element={<ProtectedRoute><AppLayout><InsightsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<ProtectedRoute><AppLayout><RightsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
