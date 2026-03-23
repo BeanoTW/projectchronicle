@@ -114,7 +114,8 @@ const RecordScreen = () => {
       if (data.title && !title) setTitle(data.title);
       if (data.potential_relevance?.length) setAiRelevance(data.potential_relevance);
       setAiSuggested(true);
-      setShowManualForm(true);
+      setShowManualForm(false);
+      setMoreDetailsOpen(false);
       toast({ title: 'Analysis complete', description: 'Review the suggested fields below before saving.' });
     } catch (e) {
       toast({ title: 'Analysis failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
@@ -200,6 +201,55 @@ const RecordScreen = () => {
     }
   };
 
+  const hasText = narrative.trim().length > 0;
+  const canSave = hasText && !!incidentDate;
+
+  // Shared detail fields component
+  const detailFields = (
+    <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)] mt-2">
+      <div>
+        <Label htmlFor="title" className="text-[13px] font-medium">Title</Label>
+        <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title for this incident" className="mt-1.5 rounded-lg" />
+      </div>
+      <div>
+        <Label htmlFor="location" className="text-[13px] font-medium">Location</Label>
+        <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
+      </div>
+      <div>
+        <Label className="text-[13px] font-medium">Category</Label>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
+          <SelectContent>
+            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor="people" className="text-[13px] font-medium">People Involved</Label>
+        <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
+      </div>
+      <div>
+        <Label htmlFor="witnesses" className="text-[13px] font-medium">Witnesses</Label>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present?</p>
+        <Input id="witnesses" value={witnesses} onChange={(e) => setWitnesses(e.target.value)} placeholder="Comma-separated names" className="rounded-lg" />
+      </div>
+      <div>
+        <Label htmlFor="exactWords" className="text-[13px] font-medium">
+          Exact wording <span className="text-primary font-normal">(important)</span>
+        </Label>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
+        <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[14px]" />
+      </div>
+      <div>
+        <Label htmlFor="impact" className="text-[13px] font-medium">
+          Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
+        </Label>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
+        <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[14px]" />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <div className="px-5 pt-8 pb-5 flex items-start justify-between">
@@ -247,20 +297,22 @@ const RecordScreen = () => {
         </div>
       )}
 
-      {/* Prompt Cues — horizontal scroll */}
-      <div className="px-5 mb-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
-          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
-          <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+      {/* Prompt Cues — only before typing */}
+      {!hasText && (
+        <div className="px-5 mb-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
+            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
+            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
+            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
+            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
+            <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pattern Alert */}
       {similarPatternAlert && (
-        <div className="mx-5 mb-4 px-4 py-3 rounded-lg bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5">
+        <div className="mx-5 mb-4 px-4 py-3 rounded-lg bg-warm-accent-light border border-warm-accent/15 flex items-start gap-2.5 animate-fade-in">
           <AlertTriangle className="h-4 w-4 text-warm-accent flex-shrink-0 mt-0.5" />
           <p className="text-[13px] text-warm-accent-foreground font-medium leading-relaxed">{similarPatternAlert}</p>
         </div>
@@ -287,129 +339,132 @@ const RecordScreen = () => {
           <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
         )}
 
-        {/* Essential fields — always visible */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
-            <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
-            {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
-          </div>
-          <div>
-            <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
-            <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
-            <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
-          </div>
-        </div>
-
-        {/* Generate Summary */}
-        <Button
-          variant="outline"
-          className={`w-full rounded-xl h-11 text-[13px] font-medium transition-all ${
-            narrative.trim()
-              ? 'border-primary/30 text-primary bg-primary/5 hover:bg-primary/8'
-              : 'border-border text-muted-foreground/40'
-          }`}
-          onClick={() => { handleAnalyse(); handleDetectMulti(); }}
-          disabled={analysing || !narrative.trim()}
-        >
-          {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
-        </Button>
-
-        {/* AI Summary */}
-        {aiSuggested && aiSummary && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <div className="mb-1"><AILabel /></div>
-            <p className="text-[12px] text-muted-foreground mb-2">Structured summary (for review)</p>
-            <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
-            <button
-              onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-              className="text-[12px] text-destructive/60 mt-3 font-medium hover:text-destructive transition-colors"
+        {/* Generate Summary — appears when user has typed */}
+        {hasText && (
+          <div className="animate-fade-in">
+            <Button
+              className="w-full rounded-xl h-11 text-[13px] font-medium bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+              onClick={() => { handleAnalyse(); handleDetectMulti(); }}
+              disabled={analysing}
             >
-              Remove summary
-            </button>
+              {analysing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing...</> : 'Generate Summary'}
+            </Button>
           </div>
         )}
 
-        {/* AI Relevance */}
-        {aiSuggested && aiRelevance.length > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-            <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential Relevance</h3>
-            <div className="mb-1"><AILabel /></div>
-            <div className="space-y-2">
-              {aiRelevance.map((r, i) => (
-                <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground/40 mt-2.5">Not legal advice. Neutral observations only.</p>
-          </div>
-        )}
-
-        {/* More details — collapsible */}
-        <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
-          <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
-            {showManualForm || moreDetailsOpen ? (
-              <>
-                <ChevronDown className="h-4 w-4 transition-transform duration-200" />
-                Hide details
-              </>
-            ) : (
-              <>
-                <ChevronRight className="h-4 w-4 transition-transform duration-200" />
-                More details
-              </>
+        {/* === POST-ANALYSIS SECTION === */}
+        {aiSuggested && (
+          <div className="space-y-5 animate-fade-in">
+            {/* AI Summary */}
+            {aiSummary && (
+              <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+                <div className="mb-1"><AILabel /></div>
+                <p className="text-[12px] text-muted-foreground mb-2">Structured summary (for review)</p>
+                <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
+                <button
+                  onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
+                  className="text-[12px] text-destructive/60 mt-3 font-medium hover:text-destructive transition-colors"
+                >
+                  Remove summary
+                </button>
+              </div>
             )}
-          </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-            <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)] mt-2">
+
+            {/* AI Relevance */}
+            {aiRelevance.length > 0 && (
+              <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+                <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential Relevance</h3>
+                <div className="mb-1"><AILabel /></div>
+                <div className="space-y-2">
+                  {aiRelevance.map((r, i) => (
+                    <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground/40 mt-2.5">Not legal advice. Neutral observations only.</p>
+              </div>
+            )}
+
+            {/* Date & Time — revealed after analysis */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="title" className="text-[13px] font-medium">Title</Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title for this incident" className="mt-1.5 rounded-lg" />
+                <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
+                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+                {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
               </div>
               <div>
-                <Label htmlFor="location" className="text-[13px] font-medium">Location</Label>
-                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
-              </div>
-              <div>
-                <Label className="text-[13px] font-medium">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="people" className="text-[13px] font-medium">People Involved</Label>
-                <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
-              </div>
-              <div>
-                <Label htmlFor="witnesses" className="text-[13px] font-medium">Witnesses</Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Were any staff or customers present?</p>
-                <Input id="witnesses" value={witnesses} onChange={(e) => setWitnesses(e.target.value)} placeholder="Comma-separated names" className="rounded-lg" />
-              </div>
-              <div>
-                <Label htmlFor="exactWords" className="text-[13px] font-medium">
-                  Exact wording <span className="text-primary font-normal">(important)</span>
-                </Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">Include key phrases or exact words if you remember them.</p>
-                <Textarea id="exactWords" value={exactWords} onChange={(e) => setExactWords(e.target.value)} placeholder="What was said, written, or messaged?" className="min-h-[80px] rounded-lg text-[14px]" />
-              </div>
-              <div>
-                <Label htmlFor="impact" className="text-[13px] font-medium">
-                  Impact <span className="font-normal text-muted-foreground">(what changed?)</span>
-                </Label>
-                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1.5">e.g. felt anxious, avoided area, affected work, raised concern</p>
-                <Textarea id="impact" value={impactNote} onChange={(e) => setImpactNote(e.target.value)} placeholder="How did this affect you?" className="min-h-[80px] rounded-lg text-[14px]" />
+                <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
+                <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
               </div>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
 
-        <div className="pt-4 pb-8">
-          <Button onClick={handleSave} disabled={saving} className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150">
-            {saving ? 'Saving...' : 'Save Record'}
-          </Button>
-        </div>
+            {/* More details — collapsible */}
+            <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
+              <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
+                {showManualForm || moreDetailsOpen ? (
+                  <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
+                ) : (
+                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Add details manually</>
+                )}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                {detailFields}
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Save */}
+            <div className="pt-4 pb-8">
+              <Button
+                onClick={handleSave}
+                disabled={saving || !canSave}
+                className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
+              >
+                {saving ? 'Saving...' : 'Save Record'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Fallback manual path — skip analysis */}
+        {!aiSuggested && hasText && (
+          <div className="animate-fade-in">
+            <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
+              <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
+                {showManualForm || moreDetailsOpen ? (
+                  <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
+                ) : (
+                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Skip analysis — add details manually</>
+                )}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                <div className="space-y-5 mt-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="date-manual" className="text-[13px] font-medium">Date *</Label>
+                      <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="mt-1.5 rounded-lg" />
+                      {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="time-manual" className="text-[13px] font-medium">Time</Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Approximate is fine.</p>
+                      <Input id="time-manual" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
+                    </div>
+                  </div>
+                  {detailFields}
+                  <div className="pt-4 pb-8">
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !canSave}
+                      className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
+                    >
+                      {saving ? 'Saving...' : 'Save Record'}
+                    </Button>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+        )}
       </div>
 
       <SplitIncidentModal
