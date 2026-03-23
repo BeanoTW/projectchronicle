@@ -71,7 +71,7 @@ const IncidentCard = ({ incident, showPatternLabel, compact }: IncidentCardProps
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {showPatternLabel && (
-          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-warm-accent-light text-warm-accent-foreground border border-warm-accent/15">
+          <span className="px-2 py-0.5 rounded text-[10px] font-medium text-muted-foreground/60 border border-border bg-transparent">
             Repeated behaviour
           </span>
         )}
