@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight } from 'lucide-react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import EvidencePreview from '@/components/chronicle/EvidencePreview';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
