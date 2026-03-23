@@ -123,12 +123,12 @@ const TimelineScreen = () => {
         </div>
       )}
 
-      <div className="px-4 space-y-4">
+      <div className="px-5 space-y-5">
         {chronologyMode ? (
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 pl-4 timeline-connector">
             {incidents.map(inc => (
-              <div key={inc.id} className="text-[14px] leading-relaxed">
-                <span className="text-muted-foreground">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
+              <div key={inc.id} className="text-[14px] leading-relaxed pl-4">
+                <span className="text-muted-foreground/60">{format(parseISO(inc.incident_date), 'dd MMM')}</span>
                 {' — '}
                 <span className="text-foreground">{inc.title || 'Untitled incident'}</span>
                 {isPartOfPattern(inc) && (
@@ -140,8 +140,8 @@ const TimelineScreen = () => {
         ) : (
           Object.entries(grouped).map(([month, items]) => (
             <div key={month}>
-              <h2 className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3 bg-muted/40 inline-block px-3 py-1 rounded-lg">{month}</h2>
-              <div className="space-y-2.5">
+              <h2 className="text-[11px] font-semibold text-muted-foreground/60 uppercase tracking-widest mb-3 bg-muted/30 inline-block px-3 py-1.5 rounded-lg">{month}</h2>
+              <div className="space-y-3">
                 {items.map(inc => (
                   <IncidentCard key={inc.id} incident={inc} showPatternLabel={isPartOfPattern(inc)} />
                 ))}

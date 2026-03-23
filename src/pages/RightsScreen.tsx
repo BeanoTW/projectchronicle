@@ -171,10 +171,12 @@ const RightsScreen = () => {
           {guidanceSections.map(section => {
             const Icon = section.icon;
             return (
-              <AccordionItem key={section.id} value={section.id} className="bg-card border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden px-1">
-                <AccordionTrigger className="px-3 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                  <span className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4 text-primary flex-shrink-0" />
+              <AccordionItem key={section.id} value={section.id} className="bg-card/80 border border-border/50 rounded-2xl shadow-[var(--shadow-card)] overflow-hidden px-1">
+                <AccordionTrigger className="px-4 py-4 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+                  <span className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0">
+                      <Icon className="h-3.5 w-3.5 text-primary" />
+                    </div>
                     {section.title}
                   </span>
                 </AccordionTrigger>
