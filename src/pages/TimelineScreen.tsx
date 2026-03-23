@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
+import ChronologyTimeline from '@/components/chronicle/ChronologyTimeline';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { Switch } from '@/components/ui/switch';
@@ -141,41 +142,7 @@ const TimelineScreen = () => {
       <div className="px-5">
         {chronologyMode ? (
           /* ===== CENTER-LINE CHRONOLOGY ===== */
-          <div className="center-timeline pt-4 pb-8">
-            {incidents.map((inc, i) => {
-              const side = i % 2 === 0 ? 'left' : 'right';
-              return (
-                <motion.div
-                  key={inc.id}
-                  initial={{ opacity: 0, x: side === 'left' ? -12 : 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
-                  className={`center-timeline-item center-timeline-item--${side}`}
-                >
-                  <div className="center-timeline-node" />
-                  <div className="w-full max-w-[75%]">
-                    <div className="rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-200">
-                      <span className="text-[10px] text-muted-foreground/60 block mb-1">
-                        {format(parseISO(inc.incident_date), 'dd MMM yyyy')}
-                      </span>
-                      <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2 mb-1.5">
-                        {inc.title || 'Untitled incident'}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-1">
-                        {inc.category && <CategoryBadge category={inc.category} />}
-                        {isPartOfPattern(inc) && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-medium text-muted-foreground/50 border border-border/60">
-                            Repeated
-                          </span>
-                        )}
-                        {inc.locked && <span className="text-primary text-[10px]">🔒</span>}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          <ChronologyTimeline incidents={incidents} isPartOfPattern={isPartOfPattern} />
         ) : (
           <div className="pl-6 timeline-spine space-y-5">
             {Object.entries(grouped).map(([month, items]) => (
