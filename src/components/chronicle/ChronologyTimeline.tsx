@@ -26,6 +26,9 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
     if (!containerRef.current) return;
     const viewportCenter = window.innerHeight / 2;
 
+    let closestIdx = -1;
+    let closestDist = Infinity;
+
     itemRefs.current.forEach((el, i) => {
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -34,17 +37,18 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
       const maxDistance = window.innerHeight * 0.6;
       const ratio = Math.min(distance / maxDistance, 1);
 
-      // Opacity: 1 at center, 0.6 at edges
+      if (distance < closestDist) { closestDist = distance; closestIdx = i; }
+
       const opacity = 1 - ratio * 0.4;
-      // Scale: 1 at center, 0.97 at edges
       const scale = 1 - ratio * 0.03;
-      // Subtle horizontal drift: 0 at center, 3px outward at edges
       const side = i % 2 === 0 ? -1 : 1;
       const drift = ratio * 3 * side;
 
       el.style.opacity = `${opacity}`;
       el.style.transform = `scale(${scale}) translateX(${drift}px)`;
     });
+
+    if (closestIdx !== focusedIndex) setFocusedIndex(closestIdx);
 
     nodeRefs.current.forEach((el, i) => {
       if (!el) return;
