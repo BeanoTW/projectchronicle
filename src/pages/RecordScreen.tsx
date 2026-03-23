@@ -54,7 +54,6 @@ const RecordScreen = () => {
   const [splitDrafts, setSplitDrafts] = useState<IncidentDraft[]>([]);
   const [splitCount, setSplitCount] = useState(1);
   const [splitChecked, setSplitChecked] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const existingPatterns = useMemo(() => {
     const result: string[] = [];
