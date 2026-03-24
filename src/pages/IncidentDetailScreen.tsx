@@ -57,6 +57,8 @@ const IncidentDetailScreen = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Incident not found.</p></div>;
   }
 
+  const isVoided = !!incident.voided_at;
+
   const handleLock = async () => {
     await updateIncident.mutateAsync({ id: incident.id, locked: true });
     await createEditHistory.mutateAsync({ incident_id: incident.id, field_changed: 'record_locked' });
@@ -64,9 +66,29 @@ const IncidentDetailScreen = () => {
   };
 
   const handleDelete = async () => {
+    if (incident.locked) {
+      setShowLockedDeleteDialog(true);
+      return;
+    }
     await deleteIncident.mutateAsync(incident.id);
     toast({ title: 'Incident deleted' });
     navigate('/timeline');
+  };
+
+  const handleVoid = async () => {
+    await updateIncident.mutateAsync({
+      id: incident.id,
+      voided_at: new Date().toISOString(),
+      void_reason: voidReason.trim() || null,
+    } as any);
+    await createEditHistory.mutateAsync({
+      incident_id: incident.id,
+      field_changed: 'record_voided',
+      new_value: voidReason.trim() || 'No reason given',
+    });
+    setShowVoidDialog(false);
+    setVoidReason('');
+    toast({ title: 'Record marked as void' });
   };
 
   const handleExclude = async () => {
