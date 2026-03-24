@@ -351,7 +351,8 @@ const IncidentDetailScreen = () => {
 
         <EditHistoryPanel entries={editHistoryMapped} />
 
-        {!incident.locked && (
+        {/* Actions for unlocked incidents */}
+        {!incident.locked && !isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-primary border-primary/20 h-11 rounded-xl text-[13px]" onClick={handleLock}>
@@ -366,6 +367,68 @@ const IncidentDetailScreen = () => {
             </button>
           </div>
         )}
+
+        {/* Actions for locked (but not voided) incidents */}
+        {incident.locked && !isVoided && (
+          <div className="space-y-2.5 pt-3 pb-6">
+            <div className="flex gap-2.5">
+              <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
+                <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
+              </Button>
+              <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={() => setShowVoidDialog(true)}>
+                <Archive className="h-4 w-4 mr-2" /> Void Record
+              </Button>
+            </div>
+            <button onClick={handleDelete} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
+              <Trash2 className="h-4 w-4 inline mr-1.5" />Delete incident
+            </button>
+          </div>
+        )}
+
+        {/* Void dialog */}
+        <AlertDialog open={showVoidDialog} onOpenChange={setShowVoidDialog}>
+          <AlertDialogContent className="rounded-2xl mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[16px]">Mark record as void</AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] leading-relaxed">
+                This record will remain in your timeline but will be clearly marked as voided. The original content will be preserved.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <label className="text-[12px] font-medium text-foreground">Reason (optional)</label>
+              <Input
+                value={voidReason}
+                onChange={e => setVoidReason(e.target.value)}
+                placeholder="e.g. Duplicate entry, recorded in error"
+                className="text-[13px]"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[13px]">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleVoid} className="text-[13px] bg-muted-foreground hover:bg-muted-foreground/90">
+                <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Record
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Locked delete prevention dialog */}
+        <AlertDialog open={showLockedDeleteDialog} onOpenChange={setShowLockedDeleteDialog}>
+          <AlertDialogContent className="rounded-2xl mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[16px]">Cannot delete locked record</AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] leading-relaxed">
+                Locked records cannot be deleted. You can mark this record as void or add a correction note instead.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[13px]">Close</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { setShowLockedDeleteDialog(false); setShowVoidDialog(true); }} className="text-[13px]">
+                <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Instead
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
