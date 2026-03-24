@@ -41,8 +41,9 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
 
   if (compact) {
     const previewText = incident.ai_summary || incident.raw_narrative;
+    const isVoided = !!(incident as any).voided_at;
     return (
-      <div>
+      <div className={isVoided ? 'opacity-50' : ''}>
         <button
           onClick={handleClick}
           className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
