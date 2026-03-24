@@ -2,6 +2,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { Heart } from 'lucide-react';
+import heroImage from '@/assets/hero-chronicle.png';
 
 const supportiveMessages = [
   "You don't need everything — just start with what you remember",
@@ -17,12 +18,6 @@ const contextStatements = [
   "Details written at the time are often more reliable than memory later",
 ];
 
-const processNotes = [
-  "Many workplace issues are resolved before reaching a formal hearing",
-  "Clear timelines are often important in formal processes",
-  "Keeping your own record is a reasonable and responsible thing to do",
-];
-
 const HomeScreen = () => {
   const picked = useMemo(() => {
     const day = new Date().getDate();
@@ -33,29 +28,41 @@ const HomeScreen = () => {
         supportiveMessages[(day + 3) % supportiveMessages.length],
       ],
       context: contextStatements[day % contextStatements.length],
-      process: processNotes[day % processNotes.length],
     };
   }, []);
 
   const fade = (delay: number) => ({
-    initial: { opacity: 0, y: 6 },
+    initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.35, delay },
+    transition: { duration: 0.45, delay },
   });
 
   return (
     <div className="min-h-screen bg-background pb-28 page-enter">
       <PageHeader title="Project Chronicle" hideHome />
 
-      {/* Welcome subtitle */}
-      <motion.div className="px-5 mb-8" {...fade(0)}>
-        <p className="text-[15px] text-muted-foreground leading-relaxed">
-          A quiet space to build your record, at your own pace.
+      {/* Hero image */}
+      <motion.div className="relative mb-2" {...fade(0)}>
+        <div className="w-full max-w-lg mx-auto">
+          <img
+            src={heroImage}
+            alt="Project Chronicle — Record events. Preserve evidence. Build clear timelines."
+            className="w-full h-auto object-contain"
+          />
+          {/* Bottom gradient fade */}
+          <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent" />
+        </div>
+      </motion.div>
+
+      {/* Tagline — not duplicating image text, this is the bottom line */}
+      <motion.div className="px-6 mb-10 text-center" {...fade(0.08)}>
+        <p className="text-[14px] text-muted-foreground tracking-wide leading-relaxed">
+          Turning scattered events into undeniable truth.
         </p>
       </motion.div>
 
-      {/* Primary message — highlighted */}
-      <motion.div className="px-5 mb-3" {...fade(0.06)}>
+      {/* Primary message */}
+      <motion.div className="px-5 mb-3" {...fade(0.14)}>
         <div className="px-5 py-5 rounded-xl bg-primary/[0.06] border border-primary/12 shadow-[var(--shadow-card)]">
           <p className="text-[15px] text-foreground leading-relaxed font-medium">
             {picked.primary}
@@ -64,7 +71,7 @@ const HomeScreen = () => {
       </motion.div>
 
       {/* Supporting messages */}
-      <motion.div className="px-5 mb-3 space-y-2.5" {...fade(0.12)}>
+      <motion.div className="px-5 mb-3 space-y-2.5" {...fade(0.2)}>
         {picked.supporting.map((msg, i) => (
           <div
             key={i}
@@ -75,8 +82,8 @@ const HomeScreen = () => {
         ))}
       </motion.div>
 
-      {/* Contextual message — muted */}
-      <motion.div className="px-5 mb-10" {...fade(0.18)}>
+      {/* Contextual message */}
+      <motion.div className="px-5 mb-10" {...fade(0.26)}>
         <div className="px-4 py-3 rounded-xl bg-muted/30 border border-border/60">
           <p className="text-[12px] text-muted-foreground leading-relaxed">
             {picked.context}
@@ -84,8 +91,8 @@ const HomeScreen = () => {
         </div>
       </motion.div>
 
-      {/* Support section */}
-      <motion.div className="px-5" {...fade(0.24)}>
+      {/* Footer */}
+      <motion.div className="px-5" {...fade(0.32)}>
         <div className="text-center py-6 space-y-2">
           <div className="flex items-center justify-center gap-1.5 mb-1">
             <Heart className="h-3.5 w-3.5 text-primary/50" strokeWidth={1.5} />
