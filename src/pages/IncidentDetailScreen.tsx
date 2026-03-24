@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
