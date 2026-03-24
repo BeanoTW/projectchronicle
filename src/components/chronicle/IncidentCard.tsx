@@ -41,14 +41,16 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
 
   if (compact) {
     const previewText = incident.ai_summary || incident.raw_narrative;
+    const isVoided = !!(incident as any).voided_at;
     return (
-      <div>
+      <div className={isVoided ? 'opacity-50' : ''}>
         <button
           onClick={handleClick}
           className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
         >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+            <h3 className={`text-[14px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
               {incident.title || 'Untitled incident'}
             </h3>
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -111,13 +113,15 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
     );
   }
 
+  const isVoidedFull = !!(incident as any).voided_at;
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className={`w-full text-left rounded-xl border border-border border-l-4 p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
+      className={`w-full text-left rounded-xl border border-border border-l-4 p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint} ${isVoidedFull ? 'opacity-50' : ''}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-[15px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+        <h3 className={`text-[15px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+          {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
           {incident.title || 'Untitled incident'}
         </h3>
         {incident.locked && (

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
@@ -15,7 +15,12 @@ import LockBanner from '@/components/chronicle/LockBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 import { calculateScoring } from '@/lib/scoring';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const recordStrengthStyles: Record<string, string> = {
   Weak: 'text-destructive bg-destructive/8',
@@ -43,6 +48,9 @@ const IncidentDetailScreen = () => {
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState('Update');
+  const [showVoidDialog, setShowVoidDialog] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [showLockedDeleteDialog, setShowLockedDeleteDialog] = useState(false);
 
   const scoring = useMemo(() => {
     if (!incident) return null;
@@ -57,6 +65,8 @@ const IncidentDetailScreen = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Incident not found.</p></div>;
   }
 
+  const isVoided = !!incident.voided_at;
+
   const handleLock = async () => {
     await updateIncident.mutateAsync({ id: incident.id, locked: true });
     await createEditHistory.mutateAsync({ incident_id: incident.id, field_changed: 'record_locked' });
@@ -64,9 +74,29 @@ const IncidentDetailScreen = () => {
   };
 
   const handleDelete = async () => {
+    if (incident.locked) {
+      setShowLockedDeleteDialog(true);
+      return;
+    }
     await deleteIncident.mutateAsync(incident.id);
     toast({ title: 'Incident deleted' });
     navigate('/timeline');
+  };
+
+  const handleVoid = async () => {
+    await updateIncident.mutateAsync({
+      id: incident.id,
+      voided_at: new Date().toISOString(),
+      void_reason: voidReason.trim() || null,
+    } as any);
+    await createEditHistory.mutateAsync({
+      incident_id: incident.id,
+      field_changed: 'record_voided',
+      new_value: voidReason.trim() || 'No reason given',
+    });
+    setShowVoidDialog(false);
+    setVoidReason('');
+    toast({ title: 'Record marked as void' });
   };
 
   const handleExclude = async () => {
@@ -112,9 +142,20 @@ const IncidentDetailScreen = () => {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
 
-        {incident.locked && <div className="mb-3"><LockBanner /></div>}
+        {incident.locked && !isVoided && <div className="mb-3"><LockBanner /></div>}
 
-        <h1 className="text-[20px] font-bold text-foreground leading-tight">
+        {isVoided && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/60 text-muted-foreground border border-border mb-3">
+            <Archive className="h-4 w-4" />
+            <div>
+              <span className="text-sm font-medium">Voided record</span>
+              {incident.void_reason && <p className="text-[12px] text-muted-foreground/70 mt-0.5">{incident.void_reason}</p>}
+              <p className="text-[11px] text-muted-foreground/50">Voided {format(parseISO(incident.voided_at!), 'dd MMM yyyy')}</p>
+            </div>
+          </div>
+        )}
+
+        <h1 className={`text-[20px] font-bold leading-tight ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {incident.title || 'Untitled incident'}
         </h1>
 
@@ -310,7 +351,8 @@ const IncidentDetailScreen = () => {
 
         <EditHistoryPanel entries={editHistoryMapped} />
 
-        {!incident.locked && (
+        {/* Actions for unlocked incidents */}
+        {!incident.locked && !isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-primary border-primary/20 h-11 rounded-xl text-[13px]" onClick={handleLock}>
@@ -325,6 +367,68 @@ const IncidentDetailScreen = () => {
             </button>
           </div>
         )}
+
+        {/* Actions for locked (but not voided) incidents */}
+        {incident.locked && !isVoided && (
+          <div className="space-y-2.5 pt-3 pb-6">
+            <div className="flex gap-2.5">
+              <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
+                <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
+              </Button>
+              <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={() => setShowVoidDialog(true)}>
+                <Archive className="h-4 w-4 mr-2" /> Void Record
+              </Button>
+            </div>
+            <button onClick={handleDelete} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
+              <Trash2 className="h-4 w-4 inline mr-1.5" />Delete incident
+            </button>
+          </div>
+        )}
+
+        {/* Void dialog */}
+        <AlertDialog open={showVoidDialog} onOpenChange={setShowVoidDialog}>
+          <AlertDialogContent className="rounded-2xl mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[16px]">Mark record as void</AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] leading-relaxed">
+                This record will remain in your timeline but will be clearly marked as voided. The original content will be preserved.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-2">
+              <label className="text-[12px] font-medium text-foreground">Reason (optional)</label>
+              <Input
+                value={voidReason}
+                onChange={e => setVoidReason(e.target.value)}
+                placeholder="e.g. Duplicate entry, recorded in error"
+                className="text-[13px]"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[13px]">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleVoid} className="text-[13px] bg-muted-foreground hover:bg-muted-foreground/90">
+                <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Record
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Locked delete prevention dialog */}
+        <AlertDialog open={showLockedDeleteDialog} onOpenChange={setShowLockedDeleteDialog}>
+          <AlertDialogContent className="rounded-2xl mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[16px]">Cannot delete locked record</AlertDialogTitle>
+              <AlertDialogDescription className="text-[13px] leading-relaxed">
+                Locked records cannot be deleted. You can mark this record as void or add a correction note instead.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-[13px]">Close</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { setShowLockedDeleteDialog(false); setShowVoidDialog(true); }} className="text-[13px]">
+                <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Instead
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

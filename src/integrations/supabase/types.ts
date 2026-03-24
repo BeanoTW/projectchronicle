@@ -165,6 +165,8 @@ export type Database = {
           title: string | null
           updated_at: string
           user_id: string
+          void_reason: string | null
+          voided_at: string | null
           witnesses: string[]
         }
         Insert: {
@@ -188,6 +190,8 @@ export type Database = {
           title?: string | null
           updated_at?: string
           user_id: string
+          void_reason?: string | null
+          voided_at?: string | null
           witnesses?: string[]
         }
         Update: {
@@ -211,6 +215,8 @@ export type Database = {
           title?: string | null
           updated_at?: string
           user_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
           witnesses?: string[]
         }
         Relationships: []
