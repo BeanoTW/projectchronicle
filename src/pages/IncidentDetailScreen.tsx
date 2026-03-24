@@ -15,7 +15,12 @@ import LockBanner from '@/components/chronicle/LockBanner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
 import { calculateScoring } from '@/lib/scoring';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const recordStrengthStyles: Record<string, string> = {
   Weak: 'text-destructive bg-destructive/8',
