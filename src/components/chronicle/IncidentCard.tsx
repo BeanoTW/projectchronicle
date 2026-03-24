@@ -49,7 +49,8 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
           className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
         >
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-[14px] font-semibold text-foreground line-clamp-1 flex-1 leading-snug">
+            <h3 className={`text-[14px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+              {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
               {incident.title || 'Untitled incident'}
             </h3>
             <div className="flex items-center gap-1.5 flex-shrink-0">
