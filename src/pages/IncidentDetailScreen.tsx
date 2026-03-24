@@ -142,9 +142,20 @@ const IncidentDetailScreen = () => {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
 
-        {incident.locked && <div className="mb-3"><LockBanner /></div>}
+        {incident.locked && !isVoided && <div className="mb-3"><LockBanner /></div>}
 
-        <h1 className="text-[20px] font-bold text-foreground leading-tight">
+        {isVoided && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/60 text-muted-foreground border border-border mb-3">
+            <Archive className="h-4 w-4" />
+            <div>
+              <span className="text-sm font-medium">Voided record</span>
+              {incident.void_reason && <p className="text-[12px] text-muted-foreground/70 mt-0.5">{incident.void_reason}</p>}
+              <p className="text-[11px] text-muted-foreground/50">Voided {format(parseISO(incident.voided_at!), 'dd MMM yyyy')}</p>
+            </div>
+          </div>
+        )}
+
+        <h1 className={`text-[20px] font-bold leading-tight ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {incident.title || 'Untitled incident'}
         </h1>
 
