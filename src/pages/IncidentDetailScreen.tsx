@@ -48,6 +48,9 @@ const IncidentDetailScreen = () => {
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState('Update');
+  const [showVoidDialog, setShowVoidDialog] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [showLockedDeleteDialog, setShowLockedDeleteDialog] = useState(false);
 
   const scoring = useMemo(() => {
     if (!incident) return null;
