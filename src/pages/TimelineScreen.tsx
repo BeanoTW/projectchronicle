@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Paperclip } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
+import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 
 const categoryFilters = [
   'all',
@@ -22,6 +23,7 @@ const TimelineScreen = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   useEffect(() => {
     const gap = searchParams.get('gap');
@@ -111,7 +113,20 @@ const TimelineScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Timeline" subtitle="Your record over time" />
+      <PageHeader title="Timeline" subtitle="Your record over time">
+        <button
+          onClick={() => setShowLibrary(true)}
+          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
+          aria-label="Attachments"
+        >
+          <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          {allEvidence.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+              {allEvidence.length}
+            </span>
+          )}
+        </button>
+      </PageHeader>
 
       {gapFilter && (
         <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
