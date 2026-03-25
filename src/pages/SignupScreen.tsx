@@ -15,23 +15,28 @@ const fade = (delay: number) => ({
   transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
 });
 
-const LoginScreen = () => {
+const SignupScreen = () => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleSignup = async () => {
     if (!email.trim() || !password) return;
+    if (password.length < 6) {
+      toast({ title: 'Password too short', description: 'Use at least 6 characters.', variant: 'destructive' });
+      return;
+    }
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signUp(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
     } else {
-      navigate('/home');
+      toast({ title: 'Check your email', description: 'We sent a confirmation link. Verify your email, then sign in.' });
+      navigate('/login');
     }
   };
 
@@ -47,7 +52,7 @@ const LoginScreen = () => {
         className="text-[22px] font-bold text-foreground text-center mt-7 tracking-[-0.03em]"
         {...fade(0.1)}
       >
-        Welcome back.
+        Create your account.
       </motion.h1>
 
       <motion.div className="mt-10 space-y-5" {...fade(0.2)}>
@@ -73,30 +78,31 @@ const LoginScreen = () => {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
             className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30"
           />
         </div>
 
         <Button
-          onClick={handleLogin}
+          onClick={handleSignup}
           disabled={loading}
           className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
         >
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-          {loading ? 'Signing in…' : 'Sign In'}
+          {loading ? 'Creating account…' : 'Sign Up'}
         </Button>
       </motion.div>
 
       <motion.div className="mt-8 text-center" {...fade(0.3)}>
         <button
-          onClick={() => navigate('/signup')}
+          onClick={() => navigate('/login')}
           className="text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors"
         >
-          Create an account
+          Already have an account? Sign in
         </button>
       </motion.div>
     </div>
   );
 };
 
-export default LoginScreen;
+export default SignupScreen;
