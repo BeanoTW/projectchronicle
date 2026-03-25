@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, TrendingUp, CalendarDays, AlertCircle, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart3, Users, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -14,142 +13,145 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
-const PatternsScreen = () => {
+interface Insight {
+  id: string;
+  fact: string;
+  explanation: string;
+}
+
+const InsightsScreen = () => {
   const navigate = useNavigate();
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
 
-  const totalIncidents = incidents.length;
-  const withAttachments = incidents.filter(i => allEvidence.some(e => e.incident_id === i.id)).length;
-  const withWitnesses = incidents.filter(i => i.witnesses.length > 0).length;
+  const sorted = useMemo(
+    () => [...incidents].sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime()),
+    [incidents]
+  );
 
+  // --- Activity over time insights ---
+  const activityInsights = useMemo(() => {
+    if (sorted.length < 2) return [] as Insight[];
+    const results: Insight[] = [];
+    const seen = new Set<string>();
+
+    // Ascending for cluster detection
+    const asc = [...sorted].reverse();
+
+    // Clustering: 3+ within 7 days
+    for (let i = 0; i < asc.length - 2; i++) {
+      const d1 = new Date(asc[i].incident_date).getTime();
+      const d3 = new Date(asc[i + 2].incident_date).getTime();
+      if (d3 - d1 <= 7 * 86400000) {
+        let count = 3;
+        for (let j = i + 3; j < asc.length; j++) {
+          if (new Date(asc[j].incident_date).getTime() - d1 <= 7 * 86400000) count++;
+          else break;
+        }
+        const key = `cluster-${count}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({
+            id: key,
+            fact: `${count} records occurred within 7 days`,
+            explanation: 'These events occurred in a short time period',
+          });
+        }
+        break;
+      }
+    }
+
+    // Gap: between consecutive records (descending order), pick most recent meaningful gap
+    // Skip the gap that includes the most recent record (i=0)
+    let bestGap = { days: 0, index: -1 };
+    for (let i = 1; i < sorted.length - 1; i++) {
+      const gap = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i + 1].incident_date));
+      if (gap > bestGap.days) {
+        bestGap = { days: gap, index: i };
+      }
+    }
+    // Fallback: if no gap found excluding index 0, check index 0 but only if it's not the most recent
+    if (bestGap.days <= 14 && sorted.length >= 2) {
+      const gap0 = differenceInDays(parseISO(sorted[0].incident_date), parseISO(sorted[1].incident_date));
+      if (gap0 > 14 && gap0 > bestGap.days) {
+        bestGap = { days: gap0, index: 0 };
+      }
+    }
+    if (bestGap.days > 14) {
+      results.push({
+        id: `gap-${bestGap.days}`,
+        fact: `No incidents recorded for ${bestGap.days} days`,
+        explanation: 'There was a significant pause between entries',
+      });
+    }
+
+    // Frequency trend
+    if (asc.length >= 4) {
+      const mid = Math.floor(asc.length / 2);
+      const firstHalf = asc.slice(0, mid);
+      const secondHalf = asc.slice(mid);
+      const firstSpan = differenceInDays(parseISO(firstHalf[firstHalf.length - 1].incident_date), parseISO(firstHalf[0].incident_date)) || 1;
+      const secondSpan = differenceInDays(parseISO(secondHalf[secondHalf.length - 1].incident_date), parseISO(secondHalf[0].incident_date)) || 1;
+      const firstRate = firstHalf.length / firstSpan;
+      const secondRate = secondHalf.length / secondSpan;
+      if (secondRate > firstRate * 1.5) {
+        results.push({
+          id: 'freq-increase',
+          fact: 'Records are becoming more frequent',
+          explanation: 'Entries are closer together than earlier records',
+        });
+      } else if (firstRate > secondRate * 1.5) {
+        results.push({
+          id: 'freq-decrease',
+          fact: 'Records are becoming less frequent',
+          explanation: 'Entries are more spread out than earlier records',
+        });
+      }
+    }
+
+    return results;
+  }, [sorted]);
+
+  // --- People ---
   const keyIndividuals = useMemo(() => {
-    const peopleData: Record<string, { count: number; firstDate: string; lastDate: string }> = {};
-    const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-    sorted.forEach(i => {
+    const peopleData: Record<string, number> = {};
+    incidents.forEach(i => {
       i.people_involved.forEach(p => {
-        if (!peopleData[p]) peopleData[p] = { count: 0, firstDate: i.incident_date, lastDate: i.incident_date };
-        peopleData[p].count++;
-        peopleData[p].lastDate = i.incident_date;
+        peopleData[p] = (peopleData[p] || 0) + 1;
       });
     });
     return Object.entries(peopleData)
-      .filter(([, d]) => d.count >= 2)
-      .sort((a, b) => b[1].count - a[1].count)
-      .map(([name, d]) => ({ name, ...d }));
+      .filter(([, count]) => count >= 2)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
   }, [incidents]);
 
+  // --- Categories ---
   const categoryPatterns = useMemo(() => {
     const catCounts: Record<string, number> = {};
     incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
     return Object.entries(catCounts).sort((a, b) => b[1] - a[1]).map(([category, count]) => ({ category, count }));
   }, [incidents]);
 
-  // Patterns over time — temporal analysis
-  const temporalPatterns = useMemo(() => {
-    if (incidents.length < 2) return [];
-    const results: { id: string; text: string }[] = [];
-    const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-    const seen = new Set<string>();
-
-    // Clustering: check for 3+ within 7 days
-    for (let i = 0; i < sorted.length - 2; i++) {
-      const d1 = new Date(sorted[i].incident_date).getTime();
-      const d3 = new Date(sorted[i + 2].incident_date).getTime();
-      if (d3 - d1 <= 7 * 86400000) {
-        // Count how many in this window
-        let count = 3;
-        for (let j = i + 3; j < sorted.length; j++) {
-          if (new Date(sorted[j].incident_date).getTime() - d1 <= 7 * 86400000) count++;
-          else break;
-        }
-        const key = `cluster-${count}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          results.push({ id: key, text: `${count} records occurred within one week` });
-        }
-        break;
-      }
+  // --- Summary line ---
+  const summaryLine = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(`${incidents.length} record${incidents.length !== 1 ? 's' : ''}`);
+    
+    const freqInsight = activityInsights.find(i => i.id.startsWith('freq-'));
+    if (freqInsight) {
+      parts.push(freqInsight.id === 'freq-increase' ? 'Activity increasing' : 'Activity decreasing');
     }
-
-    // Gaps: largest gap
-    let maxGap = 0;
-    for (let i = 1; i < sorted.length; i++) {
-      const gap = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
-      if (gap > maxGap) maxGap = gap;
+    
+    if (keyIndividuals.length > 0) {
+      parts.push(`${keyIndividuals[0].name} appears most`);
     }
-    if (maxGap > 14) {
-      results.push({ id: `gap-${maxGap}`, text: `No incidents recorded for ${maxGap} days` });
-    }
+    
+    return parts.join(' · ');
+  }, [incidents.length, activityInsights, keyIndividuals]);
 
-    // Frequency change
-    if (sorted.length >= 4) {
-      const mid = Math.floor(sorted.length / 2);
-      const firstHalf = sorted.slice(0, mid);
-      const secondHalf = sorted.slice(mid);
-      const firstSpan = differenceInDays(parseISO(firstHalf[firstHalf.length - 1].incident_date), parseISO(firstHalf[0].incident_date)) || 1;
-      const secondSpan = differenceInDays(parseISO(secondHalf[secondHalf.length - 1].incident_date), parseISO(secondHalf[0].incident_date)) || 1;
-      const firstRate = firstHalf.length / firstSpan;
-      const secondRate = secondHalf.length / secondSpan;
-      if (secondRate > firstRate * 1.5) {
-        results.push({ id: 'freq-increase', text: 'Records are becoming more frequent in recent entries' });
-      }
-    }
-
-    // Repeated people (deduplicated from main patterns)
-    keyIndividuals.slice(0, 2).forEach(({ name, count }) => {
-      const key = `person-${name}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        results.push({ id: key, text: `${name} appears in ${count} records` });
-      }
-    });
-
-    return results.slice(0, 5);
-  }, [incidents, keyIndividuals]);
-
-  // Build unique patterns (max 5, deduplicated)
-  const patterns = useMemo(() => {
-    const result: { id: string; text: string }[] = [];
-    const seen = new Set<string>();
-
-    // Timing cluster
-    const clusterPattern = temporalPatterns.find(p => p.id.startsWith('cluster'));
-    if (clusterPattern && !seen.has(clusterPattern.text)) {
-      seen.add(clusterPattern.text);
-      result.push(clusterPattern);
-    }
-
-    // Repeated people
-    keyIndividuals.slice(0, 2).forEach(({ name, count }) => {
-      const text = `${name} appears in ${count} records`;
-      if (!seen.has(text)) {
-        seen.add(text);
-        result.push({ id: `person-${name}`, text });
-      }
-    });
-
-    // Category grouping
-    const topCat = categoryPatterns[0];
-    if (topCat && topCat.count >= 3) {
-      const text = `${topCat.category} appears in multiple records`;
-      if (!seen.has(text)) {
-        seen.add(text);
-        result.push({ id: `cat-${topCat.category}`, text });
-      }
-    }
-
-    // Gaps
-    if (withAttachments === 0 && totalIncidents > 0) {
-      result.push({ id: 'gap-attachments', text: 'None of your records include attachments yet' });
-    }
-    if (withWitnesses === 0 && totalIncidents > 0) {
-      result.push({ id: 'gap-witnesses', text: 'No witnesses have been recorded' });
-    }
-
-    return result.slice(0, 5);
-  }, [temporalPatterns, keyIndividuals, categoryPatterns, withAttachments, withWitnesses, totalIncidents]);
-
+  // --- Data gaps ---
   const dataGaps = useMemo(() => {
     const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
     const noAttach = incidents.filter(i => !allEvidence.some(e => e.incident_id === i.id)).length;
@@ -163,18 +165,6 @@ const PatternsScreen = () => {
     return gaps;
   }, [incidents, allEvidence]);
 
-  const chartData = useMemo(() => {
-    const months: Record<string, { name: string; count: number }> = {};
-    incidents.forEach(i => {
-      const d = new Date(i.incident_date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const name = d.toLocaleString('default', { month: 'short' });
-      if (!months[key]) months[key] = { name, count: 0 };
-      months[key].count++;
-    });
-    return Object.values(months);
-  }, [incidents]);
-
   if (isLoading) {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
@@ -182,7 +172,7 @@ const PatternsScreen = () => {
   if (incidents.length < 2) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8"><h1>Patterns</h1></div>
+        <div className="px-5 pt-8"><h1 className="text-[20px] font-semibold text-foreground">What your records show</h1></div>
         <EmptyState icon={<BarChart3 className="h-10 w-10" />} heading="Not enough data yet" body="Patterns will become clearer as you add more records." />
       </div>
     );
@@ -190,110 +180,62 @@ const PatternsScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Patterns" subtitle="What your records show so far." />
+      <PageHeader title="What your records show" />
 
-      {/* Overview stats */}
-      <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-[22px] font-bold text-foreground tabular-nums">{totalIncidents}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">recorded</p>
-          </div>
-          <div>
-            <p className="text-[22px] font-bold text-foreground tabular-nums">{withAttachments}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">with attachments</p>
-          </div>
-          <div>
-            <p className="text-[22px] font-bold text-foreground tabular-nums">{withWitnesses}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">with witnesses</p>
-          </div>
-        </div>
-        {withAttachments < totalIncidents && (
-          <p className="text-[11px] text-muted-foreground/60 text-center mt-3 pt-3 border-t border-border/50">
-            {totalIncidents - withAttachments} record{totalIncidents - withAttachments > 1 ? 's have' : ' has'} no attachments yet
-          </p>
-        )}
+      {/* Summary line */}
+      <div className="mx-5 mb-5 px-4 py-3 bg-card border border-border rounded-xl">
+        <p className="text-[13px] text-foreground font-medium">{summaryLine}</p>
       </div>
 
       {/* Accordion sections */}
       <div className="mx-5 mb-6">
-        <Accordion type="multiple" className="space-y-2">
-          {/* Patterns */}
-          {patterns.length > 0 && (
-            <AccordionItem value="patterns" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                  </span>
-                  Patterns
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 space-y-2">
-                  {patterns.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        const personMatch = p.text.match(/^(.+) appears in \d+ records$/);
-                        if (personMatch) {
-                          navigate(`/timeline?person=${encodeURIComponent(personMatch[1])}`);
-                        }
-                      }}
-                      className="block w-full text-left text-[13px] text-body leading-relaxed hover:text-foreground transition-colors"
-                    >
-                      {p.text}
-                    </button>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {/* Patterns over time */}
-          {temporalPatterns.length > 0 && (
-            <AccordionItem value="temporal" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
+        <Accordion type="multiple" defaultValue={['activity']} className="space-y-2">
+          {/* Activity over time */}
+          {activityInsights.length > 0 && (
+            <AccordionItem value="activity" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <Clock className="h-3.5 w-3.5" />
                   </span>
-                  Patterns over time
+                  Activity over time
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 space-y-2">
-                  {temporalPatterns.map((p) => (
-                    <p key={p.id} className="text-[13px] text-body leading-relaxed">
-                      {p.text}
-                    </p>
+                <div className="ml-10 space-y-3">
+                  {activityInsights.map((insight) => (
+                    <div key={insight.id}>
+                      <p className="text-[13px] text-foreground font-medium leading-relaxed">{insight.fact}</p>
+                      <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{insight.explanation}</p>
+                    </div>
                   ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
           )}
 
-          {/* People involved */}
+          {/* People appearing */}
           {keyIndividuals.length > 0 && (
-            <AccordionItem value="people" className="border rounded-xl overflow-hidden bg-rep/50 border-rep-foreground/15">
+            <AccordionItem value="people" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-rep-foreground/10 text-rep-foreground">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <Users className="h-3.5 w-3.5" />
                   </span>
-                  People involved
+                  People appearing
                   <span className="text-[12px] text-muted-foreground font-normal">({keyIndividuals.length})</span>
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 flex flex-wrap gap-2">
+                <div className="ml-10 space-y-3">
                   {keyIndividuals.map(({ name, count }) => (
                     <button
                       key={name}
                       onClick={() => navigate(`/timeline?person=${encodeURIComponent(name)}`)}
-                      className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-rep-foreground/8 text-rep-foreground border border-rep-foreground/12 hover:bg-rep-foreground/12 transition-colors"
+                      className="block w-full text-left"
                     >
-                      {name} <span className="text-rep-foreground/50 ml-1">({count})</span>
+                      <p className="text-[13px] text-foreground font-medium">{name} appears in {count} records</p>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">This individual is present across multiple entries</p>
                     </button>
                   ))}
                 </div>
@@ -303,53 +245,23 @@ const PatternsScreen = () => {
 
           {/* Categories */}
           {categoryPatterns.length > 0 && (
-            <AccordionItem value="categories" className="border rounded-xl overflow-hidden bg-info/[0.03] border-info/15">
+            <AccordionItem value="categories" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-info/10 text-info">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <BarChart3 className="h-3.5 w-3.5" />
                   </span>
                   Categories
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 flex flex-wrap gap-1.5">
-                  {categoryPatterns.slice(0, 5).map(({ category, count }) => (
-                    <span key={category} className="px-2 py-0.5 rounded text-[11px] font-medium bg-info/6 text-info border border-info/12">
-                      {category} ({count})
-                    </span>
+                <div className="ml-10 space-y-3">
+                  {categoryPatterns.slice(0, 5).map(({ category, count }, i) => (
+                    <div key={category}>
+                      <p className="text-[13px] text-foreground font-medium">{category} — {count} record{count > 1 ? 's' : ''}</p>
+                      {i === 0 && <p className="text-[12px] text-muted-foreground mt-0.5">Most common category across your entries</p>}
+                    </div>
                   ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          )}
-
-          {/* When things are happening */}
-          {chartData.length > 0 && (
-            <AccordionItem value="timing" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                <span className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                  </span>
-                  When things are happening
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="ml-10">
-                  <div className="h-36">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData}>
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={20} />
-                        <Bar dataKey="count" radius={[3, 3, 0, 0]}>
-                          {chartData.map((_, index) => (
-                            <Cell key={index} fill="hsl(var(--primary))" />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -357,10 +269,10 @@ const PatternsScreen = () => {
 
           {/* Things you could add */}
           {dataGaps.length > 0 && (
-            <AccordionItem value="gaps" className="border rounded-xl overflow-hidden bg-warm-accent/[0.03] border-warm-accent/15">
+            <AccordionItem value="gaps" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-warm-accent/10 text-warm-accent">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
                     <AlertCircle className="h-3.5 w-3.5" />
                   </span>
                   Things you could add
@@ -389,4 +301,4 @@ const PatternsScreen = () => {
   );
 };
 
-export default PatternsScreen;
+export default InsightsScreen;
