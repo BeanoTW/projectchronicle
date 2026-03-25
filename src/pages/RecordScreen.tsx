@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2 } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2, Paperclip } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,9 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
-import { useUploadEvidence } from '@/hooks/useEvidence';
+import { useUploadEvidence, useEvidence } from '@/hooks/useEvidence';
+import AttachmentRow from '@/components/chronicle/AttachmentRow';
+import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -42,7 +44,9 @@ const RecordScreen = () => {
   const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
   const uploadEvidence = useUploadEvidence();
+  const { data: allEvidence = [] } = useEvidence();
   const [transcribing, setTranscribing] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   const [showManualForm, setShowManualForm] = useState(false);
