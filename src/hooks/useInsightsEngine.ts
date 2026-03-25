@@ -35,6 +35,12 @@ export interface DataGap {
   filterKey: string;
 }
 
+export interface PatternSignal {
+  id: string;
+  label: string;
+  explanation: string;
+}
+
 export function useInsightsEngine(
   incidents: Incident[],
   allEvidence: EvidenceFile[]
