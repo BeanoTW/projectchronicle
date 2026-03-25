@@ -1,8 +1,9 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
 import heroImage from '@/assets/hero-chronicle.png';
 import landscapeImage from '@/assets/landscape-hero.jpg';
+import TutorialModal from '@/components/chronicle/TutorialModal';
 
 const quotes = [
   "You can always come back and add more.",
@@ -22,12 +23,11 @@ const QuoteStrip = () => {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const speed = 0.35; // px per frame
+    const speed = 0.35;
 
     const tick = () => {
       if (!paused) {
         posRef.current += speed;
-        // Loop when first set scrolls out
         if (posRef.current >= el.scrollWidth / 2) {
           posRef.current = 0;
         }
@@ -39,7 +39,6 @@ const QuoteStrip = () => {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [paused]);
 
-  // Duplicate quotes for seamless loop
   const items = [...quotes, ...quotes];
 
   return (
@@ -70,10 +69,28 @@ const fade = (delay: number) => ({
   transition: { duration: 0.5, delay },
 });
 
+const TUTORIAL_KEY = 'chronicle-tutorial-shown';
+
 const HomeScreen = () => {
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    const shown = localStorage.getItem(TUTORIAL_KEY);
+    if (!shown) {
+      setShowTutorial(true);
+    }
+  }, []);
+
+  const closeTutorial = () => {
+    localStorage.setItem(TUTORIAL_KEY, 'true');
+    setShowTutorial(false);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-28 page-enter">
-      {/* Hero — large, anchored to top */}
+      <TutorialModal open={showTutorial} onClose={closeTutorial} />
+
+      {/* Hero */}
       <motion.div className="relative" {...fade(0)}>
         <div className="w-full px-3 pt-3">
           <img

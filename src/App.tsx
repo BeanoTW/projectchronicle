@@ -6,8 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import BottomNav from "@/components/chronicle/BottomNav";
-import OnboardingScreen from "./pages/OnboardingScreen";
+import WelcomeScreen from "./pages/WelcomeScreen";
 import LoginScreen from "./pages/LoginScreen";
+import SignupScreen from "./pages/SignupScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
@@ -18,8 +19,6 @@ import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
 import NotFound from "./pages/NotFound";
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -32,36 +31,6 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-
-  // Persist any pending incident from onboarding
-  useEffect(() => {
-    if (!user) return;
-    const pending = sessionStorage.getItem('chronicle-pending-incident');
-    if (!pending) return;
-    sessionStorage.removeItem('chronicle-pending-incident');
-    try {
-      const incident = JSON.parse(pending);
-      supabase.from('incidents').insert({
-        raw_narrative: incident.raw_narrative,
-        incident_date: incident.incident_date || new Date().toISOString().split('T')[0],
-        incident_time: incident.incident_time || null,
-        location: incident.location || null,
-        category: incident.category || null,
-        severity: incident.severity || null,
-        title: incident.title || null,
-        ai_summary: incident.ai_summary || null,
-        exact_words: incident.exact_words || null,
-        record_method: incident.record_method || 'text',
-        user_id: user.id,
-        people_involved: incident.people_involved || [],
-        witnesses: [],
-        tags: [],
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['incidents'] });
-      });
-    } catch { /* ignore */ }
-  }, [user]);
-
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   if (!user) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -83,8 +52,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<PublicRoute><OnboardingScreen /></PublicRoute>} />
+            <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
+            <Route path="/signup" element={<PublicRoute><SignupScreen /></PublicRoute>} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
