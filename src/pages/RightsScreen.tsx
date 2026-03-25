@@ -48,7 +48,7 @@ const guidanceSections = [
       'Include dates, times, locations, and who was present',
       'Use exact wording if you remember what was said',
       'Keep your account factual — describe what happened, not how you feel about it',
-      'Save any related messages, emails, or documents as evidence',
+      'Save any related messages, emails, or documents as attachments',
     ],
   },
   {
@@ -116,7 +116,7 @@ const RightsScreen = () => {
   const suggestedNextSteps = useMemo(() => {
     const steps: string[] = [];
     if (incidents.length >= 1) steps.push('Continue recording incidents as they happen');
-    if (incidents.length >= 3) steps.push('Review the Insights tab to see what\'s showing up');
+    if (incidents.length >= 3) steps.push('Review the Patterns tab to see what\'s showing up');
     if (incidents.length >= 2) steps.push('Consider speaking to a union rep or workplace adviser');
     if (incidents.length >= 5) steps.push('Use Export to create a summary you can share');
     return steps;

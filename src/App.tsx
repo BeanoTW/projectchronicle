@@ -12,7 +12,7 @@ import SignupScreen from "./pages/SignupScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
-import InsightsScreen from "./pages/InsightsScreen";
+import PatternsScreen from "./pages/InsightsScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";
 import ExportScreen from "./pages/ExportScreen";
@@ -58,7 +58,9 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/insights" element={<ProtectedRoute><AppLayout><InsightsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/patterns" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/insights" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/attachments" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<ProtectedRoute><AppLayout><RightsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />

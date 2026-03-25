@@ -92,7 +92,7 @@ const ExportScreen = () => {
   const exportTypes = [
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, witnesses, and record strength.', icon: FileText, comingSoon: true },
     { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
-    { key: 'evidence-index', title: 'Evidence Index', description: 'All evidence with reference numbers and linked incidents.', icon: Paperclip, comingSoon: true },
+    { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true },
     { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.', icon: Package, comingSoon: true },
   ];
 

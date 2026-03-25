@@ -120,7 +120,7 @@ const IncidentDetailScreen = () => {
     try {
       await uploadEvidence.mutateAsync({ file, incidentId: incident.id });
       await createEditHistory.mutateAsync({ incident_id: incident.id, field_changed: 'evidence_attached', new_value: file.name });
-      toast({ title: 'Evidence uploaded' });
+      toast({ title: 'Attachment uploaded' });
     } catch {
       toast({ title: 'Upload failed', variant: 'destructive' });
     }
@@ -204,7 +204,7 @@ const IncidentDetailScreen = () => {
               <div className="grid grid-cols-2 gap-2 text-[12px]">
                 <div className="bg-muted/40 rounded-lg px-3 py-2">
                   <span className="text-foreground font-medium">
-                    {scoring.evidenceStrength === 'None' ? 'No evidence attached yet' : `Evidence: ${scoring.evidenceStrength}`}
+                    {scoring.evidenceStrength === 'None' ? 'No attachments yet' : `Attachments: ${scoring.evidenceStrength}`}
                   </span>
                 </div>
                 <div className="bg-muted/40 rounded-lg px-3 py-2">
@@ -285,12 +285,12 @@ const IncidentDetailScreen = () => {
           </div>
         )}
 
-        {/* Evidence */}
+        {/* Attachments */}
         <div>
-          <p className="section-group-title">Evidence ({evidence.length})</p>
+          <p className="section-group-title">Attachments ({evidence.length})</p>
           <div className="bg-card border border-border rounded-xl p-4">
             {evidence.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No evidence added yet — you can upload screenshots, photos, or documents.</p>
+              <p className="text-[13px] text-muted-foreground">No attachments added yet — you can upload screenshots, photos, or documents.</p>
             ) : (
               <div className="space-y-2">
                 {evidence.map(ev => (
@@ -308,7 +308,7 @@ const IncidentDetailScreen = () => {
             )}
             {!incident.locked && (
               <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary/20 text-primary text-[13px] font-medium rounded-lg cursor-pointer hover:bg-primary/4 transition-colors">
-                <Plus className="h-3.5 w-3.5" /> Add Evidence
+                <Plus className="h-3.5 w-3.5" /> Add Attachment
                 <input type="file" className="hidden" onChange={handleFileUpload} />
               </label>
             )}

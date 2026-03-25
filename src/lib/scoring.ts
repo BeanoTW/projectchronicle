@@ -122,7 +122,7 @@ export function calculateScoring(
 
   const strengthPrompts: string[] = [];
   const linkedEvidence = allEvidence.filter(e => e.incident_id === incident.id);
-  if (linkedEvidence.length === 0) strengthPrompts.push('Add evidence to strengthen this record');
+  if (linkedEvidence.length === 0) strengthPrompts.push('Add attachments to strengthen this record');
   if (incident.witnesses.length === 0) strengthPrompts.push('Add witnesses if available');
   if (!incident.exact_words) strengthPrompts.push('Add exact wording if remembered');
   if (!incident.impact_note) strengthPrompts.push('Add impact details if relevant');

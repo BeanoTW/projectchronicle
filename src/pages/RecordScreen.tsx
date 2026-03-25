@@ -256,7 +256,7 @@ const RecordScreen = () => {
       });
       localStorage.removeItem('chronicle-draft');
       setSaved(true);
-      toast({ title: 'Record saved', description: 'You can add evidence to this later.' });
+      toast({ title: 'Record saved', description: 'You can add attachments to this later.' });
       setTimeout(() => navigate('/timeline'), 1200);
     } catch (e) {
       toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
@@ -442,7 +442,7 @@ const RecordScreen = () => {
                 try {
                   const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: blob.type });
                   await uploadEvidence.mutateAsync({ file, description: `Voice note (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')})` });
-                  toast({ title: 'Voice note saved', description: 'Stored as evidence. Transcribing…' });
+                  toast({ title: 'Voice note saved', description: 'Stored as an attachment. Transcribing…' });
 
                   setTranscribing(true);
                   try {
@@ -460,7 +460,7 @@ const RecordScreen = () => {
                       toast({ title: 'Audio saved', description: 'Transcription was not possible — you can add text notes manually.' });
                     }
                   } catch {
-                    toast({ title: 'Audio saved', description: 'Transcription unavailable — voice note stored as evidence.' });
+                    toast({ title: 'Audio saved', description: 'Transcription unavailable — voice note stored as an attachment.' });
                   } finally {
                     setTranscribing(false);
                   }

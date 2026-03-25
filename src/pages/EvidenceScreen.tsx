@@ -64,7 +64,7 @@ const EvidenceScreen = () => {
     if (!file) return;
     try {
       await uploadEvidence.mutateAsync({ file });
-      toast({ title: 'Evidence uploaded', description: 'Link it to an incident to strengthen your records.' });
+      toast({ title: 'Attachment uploaded', description: 'Link it to a record to strengthen your documentation.' });
     } catch {
       toast({ title: 'Upload failed', variant: 'destructive' });
     }
@@ -74,7 +74,7 @@ const EvidenceScreen = () => {
     try {
       const { error } = await supabase.from('evidence_files').update({ incident_id: incidentId }).eq('id', evidenceId);
       if (error) throw error;
-      toast({ title: 'Evidence linked to incident' });
+      toast({ title: 'Attachment linked to record' });
       setLinkingId(null);
       setSelectedIncidentId('');
       refetch();
@@ -88,7 +88,7 @@ const EvidenceScreen = () => {
       await supabase.storage.from('evidence').remove([filePath]);
       const { error } = await supabase.from('evidence_files').delete().eq('id', evidenceId);
       if (error) throw error;
-      toast({ title: 'Evidence removed' });
+      toast({ title: 'Attachment removed' });
       refetch();
     } catch {
       toast({ title: 'Failed to remove', variant: 'destructive' });
@@ -103,7 +103,7 @@ const EvidenceScreen = () => {
     return (
       <div className="min-h-screen bg-background pb-24">
         <div className="px-5 pt-8 flex items-center justify-between">
-          <h1>Evidence</h1>
+          <h1>Attachments</h1>
           <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-[12px] font-medium rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-transform">
             <Plus className="h-3.5 w-3.5" /> Upload
             <input type="file" className="hidden" onChange={handleUpload} />
@@ -111,8 +111,8 @@ const EvidenceScreen = () => {
         </div>
         <EmptyState
           icon={<Paperclip className="h-10 w-10" />}
-          heading="No evidence added yet"
-          body="You can upload screenshots, photos, or documents — these files can be linked to incidents to support your records."
+          heading="No attachments added yet"
+          body="You can upload screenshots, photos, or documents — these files can be linked to records to support your documentation."
         />
       </div>
     );
@@ -120,7 +120,7 @@ const EvidenceScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Evidence">
+      <PageHeader title="Attachments">
         <label className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-[12px] font-semibold rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-all duration-150 hover:shadow-[var(--shadow-card-hover)]">
           <Plus className="h-3.5 w-3.5" /> Upload
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
