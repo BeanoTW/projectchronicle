@@ -76,7 +76,10 @@ const InsightsScreen = () => {
     // Gap: pick ONE meaningful gap
     if (consecutiveGaps.length > 0) {
       const avgGap = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
-      const maxAllowed = Math.max(avgGap * 2, 60); // Never suppress gaps under 60 days
+      // Use median-based outlier detection: allow gaps up to 3x median or 90 days minimum
+      const sortedGaps = [...consecutiveGaps].sort((a, b) => a - b);
+      const median = sortedGaps[Math.floor(sortedGaps.length / 2)];
+      const maxAllowed = Math.max(median * 4, 90);
 
       let chosenGap: { days: number; label: string } | null = null;
 

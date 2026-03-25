@@ -90,12 +90,14 @@ export function deriveRepeatOccurrence(
   const sameCategory = allIncidents.filter(
     i => i.id !== incident.id && i.category && i.category === incident.category
   ).length;
-  // Require 2+ other records sharing a person (not just 1) to avoid
-  // inflating patterns for co-habitants / classmates who appear in every record
-  const samePeople = allIncidents.filter(
-    i => i.id !== incident.id && i.people_involved.some(p => incident.people_involved.includes(p))
+  // Require same person AND same category to count as a repeat pattern
+  // This prevents co-habitants/classmates from inflating repeat scores
+  const samePeopleAndCategory = allIncidents.filter(
+    i => i.id !== incident.id
+      && i.category === incident.category
+      && i.people_involved.some(p => incident.people_involved.includes(p))
   ).length;
-  return sameCategory >= 2 || samePeople >= 2 ? 'Repeated' : 'One-off';
+  return sameCategory >= 2 || samePeopleAndCategory >= 1 ? 'Repeated' : 'One-off';
 }
 
 const evidenceScores: Record<EvidenceStrength, number> = {
