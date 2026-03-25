@@ -5,6 +5,22 @@ import type { Tables } from '@/integrations/supabase/types';
 
 export type FollowUpNote = Tables<'follow_up_notes'>;
 
+export const useAllFollowUpNotes = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['follow_up_notes_all'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('follow_up_notes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as FollowUpNote[];
+    },
+    enabled: !!user,
+  });
+};
+
 export const useFollowUpNotes = (incidentId: string | undefined) => {
   const { user } = useAuth();
   return useQuery({
