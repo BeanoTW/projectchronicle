@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
@@ -11,6 +11,7 @@ interface IncidentCardProps {
   incident: Incident;
   showPatternLabel?: boolean;
   occurrenceLabel?: string | null;
+  attachmentCount?: number;
   compact?: boolean;
   expandable?: boolean;
 }
@@ -37,7 +38,7 @@ function formatPatternLabel(raw: string | null | undefined): string | null {
   return raw;
 }
 
-const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, expandable }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentCount, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
