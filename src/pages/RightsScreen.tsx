@@ -8,6 +8,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import RightsHero from '@/components/chronicle/RightsHero';
 import RightsCards from '@/components/chronicle/RightsCards';
 import RightsActions from '@/components/chronicle/RightsActions';
+import SupportServices from '@/components/chronicle/SupportServices';
 import {
   Accordion,
   AccordionContent,
@@ -125,6 +126,11 @@ const RightsScreen = () => {
           <RightsActions actions={suggestedActions} />
         </div>
       )}
+
+      {/* Get support */}
+      <div className="mx-5 mb-8">
+        <SupportServices incidents={incidents} />
+      </div>
 
       {/* Browse all guidance */}
       <div className="mx-5 pb-4">
