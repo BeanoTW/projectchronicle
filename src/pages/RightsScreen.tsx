@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Shield, ExternalLink, ArrowRight, BookOpen, FileText, MessageCircle, ShieldCheck, Briefcase } from 'lucide-react';
+import { ExternalLink, ArrowRight, BookOpen, FileText, MessageCircle, ShieldCheck, Briefcase } from 'lucide-react';
+import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -139,7 +140,7 @@ const RightsScreen = () => {
     return (
       <div className="min-h-screen bg-background pb-24">
         <div className="px-5 pt-8"><h1>Rights & Guidance</h1></div>
-        <EmptyState icon={<Shield className="h-10 w-10" />} heading="No guidance available yet" body="Record your first incident and relevant guidance will appear here." />
+        <EmptyState icon={<ChronicleLogo size={48} />} heading="No guidance available yet" body="Record your first incident and relevant guidance will appear here." />
       </div>
     );
   }
