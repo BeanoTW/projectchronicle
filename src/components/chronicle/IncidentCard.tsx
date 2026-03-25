@@ -90,6 +90,11 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
                 {patternText}
               </span>
             )}
+            {(attachmentCount ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground/70">
+                <Paperclip className="h-2.5 w-2.5" /> {attachmentCount}
+              </span>
+            )}
             {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
           </div>
         </button>
