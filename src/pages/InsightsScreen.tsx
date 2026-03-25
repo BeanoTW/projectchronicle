@@ -80,6 +80,30 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
+          {/* Pattern signals */}
+          {patternSignals.length > 0 && (
+            <AccordionItem value="signals" className="border rounded-xl overflow-hidden bg-accent/[0.04] border-accent/15">
+              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-accent/10 text-accent-foreground">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                  </span>
+                  Pattern signals
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="ml-10 space-y-3">
+                  {patternSignals.map((signal) => (
+                    <div key={signal.id}>
+                      <p className="text-[13px] text-foreground font-medium leading-relaxed">{signal.label}</p>
+                      <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{signal.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
           {/* Activity over time */}
           {filteredActivityInsights.length > 0 && (
             <AccordionItem value="activity" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
