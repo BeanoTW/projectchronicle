@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, Paperclip } from 'lucide-react';
+import { CalendarDays, Paperclip, BookOpen, List } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -8,6 +8,7 @@ import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
+import { generateNarrative } from '@/lib/narrativeEngine';
 
 const categoryFilters = [
   'all',
@@ -24,6 +25,9 @@ const TimelineScreen = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
+
+  const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
 
   useEffect(() => {
     const gap = searchParams.get('gap');
@@ -128,6 +132,30 @@ const TimelineScreen = () => {
         </button>
       </PageHeader>
 
+      {/* View toggle */}
+      <div className="px-5 mb-3 flex gap-1.5">
+        <button
+          onClick={() => setViewMode('timeline')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+            viewMode === 'timeline'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+          }`}
+        >
+          <List className="h-3 w-3" /> Timeline
+        </button>
+        <button
+          onClick={() => setViewMode('narrative')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+            viewMode === 'narrative'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+          }`}
+        >
+          <BookOpen className="h-3 w-3" /> Narrative
+        </button>
+      </div>
+
       {gapFilter && (
         <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
           <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
@@ -135,51 +163,93 @@ const TimelineScreen = () => {
         </div>
       )}
 
-      {/* Category chips */}
-      <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
-        <div className="flex gap-1.5 min-w-max">
-          {categoryFilters.map(c => (
-            <button
-              key={c}
-              onClick={() => { setFilterCategory(c); setGapFilter(null); }}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-all duration-150 ${
-                filterCategory === c
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-            >
-              {c === 'all' ? 'All' : c}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-5">
-        <div className="pl-6 timeline-spine space-y-6">
-          {Object.entries(grouped).map(([month, items]) => (
-            <div key={month}>
-              <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
-              <div className="space-y-3">
-                {items.map(inc => {
-                  const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
-                  return (
-                    <div key={inc.id} className="timeline-node">
-                      <IncidentCard
-                        incident={inc}
-                        showPatternLabel={isPartOfPattern(inc)}
-                        occurrenceLabel={getOccurrenceLabel(inc)}
-                        attachmentCount={attachmentCount}
-                        compact
-                        expandable
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+      {viewMode === 'timeline' && (
+        <>
+          {/* Category chips */}
+          <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-1.5 min-w-max">
+              {categoryFilters.map(c => (
+                <button
+                  key={c}
+                  onClick={() => { setFilterCategory(c); setGapFilter(null); }}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-all duration-150 ${
+                    filterCategory === c
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  {c === 'all' ? 'All' : c}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="px-5">
+            <div className="pl-6 timeline-spine space-y-6">
+              {Object.entries(grouped).map(([month, items]) => (
+                <div key={month}>
+                  <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
+                  <div className="space-y-3">
+                    {items.map(inc => {
+                      const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
+                      return (
+                        <div key={inc.id} className="timeline-node">
+                          <IncidentCard
+                            incident={inc}
+                            showPatternLabel={isPartOfPattern(inc)}
+                            occurrenceLabel={getOccurrenceLabel(inc)}
+                            attachmentCount={attachmentCount}
+                            compact
+                            expandable
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {viewMode === 'narrative' && (
+        <div className="px-5">
+          {/* Context notes */}
+          {(narrative.context.clusterNote || narrative.context.repeatedIndividuals.length > 0 || narrative.context.dominantCategory) && (
+            <div className="bg-card border border-border rounded-xl p-4 mb-4 space-y-1.5">
+              {narrative.context.clusterNote && (
+                <p className="text-[12px] text-muted-foreground leading-relaxed">{narrative.context.clusterNote}</p>
+              )}
+              {narrative.context.repeatedIndividuals.map(name => (
+                <p key={name} className="text-[12px] text-muted-foreground leading-relaxed">
+                  {name} appears across multiple entries in this period.
+                </p>
+              ))}
+              {narrative.context.dominantCategory && (
+                <p className="text-[12px] text-muted-foreground leading-relaxed">
+                  Several entries relate to {narrative.context.dominantCategory.toLowerCase()}.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Narrative entries */}
+          <div className="space-y-3">
+            {narrative.entries.map((entry, i) => (
+              <p key={entry.id} className="text-[13px] text-foreground leading-relaxed">
+                <span className="text-muted-foreground/50 text-[11px] font-medium mr-2">{i + 1}.</span>
+                {entry.text}
+              </p>
+            ))}
+          </div>
+
+          {narrative.entries.length === 0 && (
+            <p className="text-[13px] text-muted-foreground text-center py-8">No records to narrate.</p>
+          )}
         </div>
-      </div>
+      )}
+
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
   );
