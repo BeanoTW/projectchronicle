@@ -12,6 +12,7 @@ import SignupScreen from "./pages/SignupScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
+import FlowScreen from "./pages/FlowScreen";
 import PatternsScreen from "./pages/InsightsScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/flow" element={<ProtectedRoute><AppLayout><FlowScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/patterns" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/insights" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/attachments" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
