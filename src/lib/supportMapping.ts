@@ -118,6 +118,106 @@ export function getToneMessage(level: SeverityLevel): string | null {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Signal-based contextual messages for Rights page                  */
+/* ------------------------------------------------------------------ */
+
+export interface ContextualSignal {
+  id: string;
+  message: string;
+  guidance: string;
+}
+
+export function deriveContextualSignals(incidents: Incident[]): ContextualSignal[] {
+  if (incidents.length < 2) return [];
+  const signals: ContextualSignal[] = [];
+
+  // Frequency increase check
+  const sorted = [...incidents]
+    .filter(i => i.incident_date)
+    .sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
+
+  if (sorted.length >= 5) {
+    const gaps: number[] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      gaps.push(Math.abs(new Date(sorted[i].incident_date).getTime() - new Date(sorted[i + 1].incident_date).getTime()) / 86400000);
+    }
+    if (gaps.length >= 4) {
+      const recentAvg = (gaps[0] + gaps[1]) / 2;
+      const earlierAvg = (gaps[2] + gaps[3]) / 2;
+      if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) {
+        signals.push({
+          id: 'ctx-freq',
+          message: 'Your recent records show increased activity',
+          guidance: 'You may want to keep recording events consistently',
+        });
+      }
+    }
+  }
+
+  // Clustering check
+  if (sorted.length >= 3) {
+    for (let i = 0; i < sorted.length - 2; i++) {
+      const span = Math.abs(new Date(sorted[i].incident_date).getTime() - new Date(sorted[i + 2].incident_date).getTime());
+      if (span <= 14 * 86400000) {
+        signals.push({
+          id: 'ctx-cluster',
+          message: 'Several incidents occurred close together',
+          guidance: 'Recording each event separately helps keep a clear picture',
+        });
+        break;
+      }
+    }
+  }
+
+  // Repeated person + category
+  const personCatPairs: Record<string, number> = {};
+  incidents.forEach(i => {
+    if (!i.category) return;
+    i.people_involved.forEach(p => {
+      const key = `${p}::${i.category}`;
+      personCatPairs[key] = (personCatPairs[key] || 0) + 1;
+    });
+  });
+  if (Object.values(personCatPairs).some(c => c >= 2)) {
+    signals.push({
+      id: 'ctx-person-cat',
+      message: 'Similar situations involving the same individual appear in your records',
+      guidance: 'Noting each occurrence may help show a pattern if needed',
+    });
+  }
+
+  // Repeated category
+  const catCounts: Record<string, number> = {};
+  incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+  if (Object.values(catCounts).some(c => c >= 3) && !signals.some(s => s.id === 'ctx-person-cat')) {
+    signals.push({
+      id: 'ctx-repeated-cat',
+      message: 'A recurring type of issue appears in your records',
+      guidance: 'Understanding your rights around this may be helpful',
+    });
+  }
+
+  // Weak record strength
+  let weakCount = 0;
+  incidents.forEach(i => {
+    let missing = 0;
+    if (i.witnesses.length === 0) missing++;
+    if (!i.exact_words) missing++;
+    if (!i.impact_note) missing++;
+    if (missing >= 2) weakCount++;
+  });
+  if (weakCount > incidents.length / 2) {
+    signals.push({
+      id: 'ctx-weak',
+      message: 'Adding detail may make patterns easier to understand later',
+      guidance: 'Witnesses, wording, and impact notes can strengthen records',
+    });
+  }
+
+  return signals.slice(0, 3);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Service selection                                                 */
 /* ------------------------------------------------------------------ */
 

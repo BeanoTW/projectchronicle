@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp } from 'lucide-react';
+import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp, Lightbulb } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useInsightsEngine } from '@/hooks/useInsightsEngine';
@@ -20,6 +20,7 @@ const InsightsScreen = () => {
   const {
     summaryLine,
     standoutSignals,
+    guidanceHints,
     patternSignals,
     filteredActivityInsights,
     keyIndividuals,
@@ -47,19 +48,19 @@ const InsightsScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="What your records show" />
 
-      {/* Summary line */}
-      <div className="mx-5 mb-5 px-4 py-3 bg-card border border-border rounded-xl">
+      {/* Summary bar */}
+      <div className="mx-5 mb-6 px-4 py-3 bg-card border border-border rounded-xl">
         <p className="text-[13px] text-foreground font-medium">{summaryLine}</p>
       </div>
 
-      {/* Accordion sections */}
+      {/* Accordion sections — strict hierarchy */}
       <div className="mx-5 mb-6">
-        <Accordion type="multiple" defaultValue={['standout', 'activity']} className="space-y-2">
+        <Accordion type="multiple" defaultValue={['standout']} className="space-y-3">
 
-          {/* What stands out */}
+          {/* 1. What stands out (PRIMARY) */}
           {standoutSignals.length > 0 && (
             <AccordionItem value="standout" className="border rounded-xl overflow-hidden bg-accent/[0.06] border-accent/20">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-accent/15 text-accent-foreground">
                     <Zap className="h-3.5 w-3.5" />
@@ -68,11 +69,11 @@ const InsightsScreen = () => {
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 space-y-3">
+                <div className="ml-10 space-y-4">
                   {standoutSignals.map((signal) => (
                     <div key={signal.id}>
-                      <p className="text-[13px] text-foreground font-medium leading-relaxed">{signal.headline}</p>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{signal.explanation}</p>
+                      <p className="text-[13px] text-foreground font-semibold leading-relaxed">{signal.headline}</p>
+                      <p className="text-[12px] text-muted-foreground/80 leading-relaxed mt-0.5">{signal.explanation}</p>
                     </div>
                   ))}
                 </div>
@@ -80,10 +81,33 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Pattern signals */}
+          {/* 2. What this may help with (NEW) */}
+          {guidanceHints.length > 0 && (
+            <AccordionItem value="guidance" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
+                    <Lightbulb className="h-3.5 w-3.5" />
+                  </span>
+                  What this may help with
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="ml-10 space-y-3">
+                  {guidanceHints.map((hint) => (
+                    <p key={hint.id} className="text-[13px] text-foreground/80 leading-relaxed">
+                      {hint.text}
+                    </p>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* 3. Pattern signals (SECONDARY) */}
           {patternSignals.length > 0 && (
             <AccordionItem value="signals" className="border rounded-xl overflow-hidden bg-accent/[0.04] border-accent/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-accent/10 text-accent-foreground">
                     <TrendingUp className="h-3.5 w-3.5" />
@@ -92,11 +116,11 @@ const InsightsScreen = () => {
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 space-y-3">
+                <div className="ml-10 space-y-4">
                   {patternSignals.map((signal) => (
                     <div key={signal.id}>
-                      <p className="text-[13px] text-foreground font-medium leading-relaxed">{signal.label}</p>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{signal.explanation}</p>
+                      <p className="text-[13px] text-foreground font-semibold leading-relaxed">{signal.label}</p>
+                      <p className="text-[12px] text-muted-foreground/80 leading-relaxed mt-0.5">{signal.explanation}</p>
                     </div>
                   ))}
                 </div>
@@ -104,10 +128,10 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Activity over time */}
+          {/* 4. Activity over time */}
           {filteredActivityInsights.length > 0 && (
             <AccordionItem value="activity" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <Clock className="h-3.5 w-3.5" />
@@ -116,11 +140,11 @@ const InsightsScreen = () => {
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10 space-y-3">
+                <div className="ml-10 space-y-4">
                   {filteredActivityInsights.map((insight) => (
                     <div key={insight.id}>
-                      <p className="text-[13px] text-foreground font-medium leading-relaxed">{insight.fact}</p>
-                      <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{insight.explanation}</p>
+                      <p className="text-[13px] text-foreground font-semibold leading-relaxed">{insight.fact}</p>
+                      <p className="text-[12px] text-muted-foreground/80 leading-relaxed mt-0.5">{insight.explanation}</p>
                     </div>
                   ))}
                 </div>
@@ -128,10 +152,10 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* People */}
+          {/* 5. People */}
           {keyIndividuals.length > 0 && (
             <AccordionItem value="people" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <Users className="h-3.5 w-3.5" />
@@ -148,11 +172,11 @@ const InsightsScreen = () => {
                       onClick={() => navigate(`/timeline?person=${encodeURIComponent(name)}`)}
                       className="block w-full text-left"
                     >
-                      <p className="text-[13px] text-foreground font-medium">
+                      <p className="text-[13px] text-foreground font-semibold">
                         {name} — {count} record{count > 1 ? 's' : ''}
                       </p>
                       {isTop && !shouldSuppressPeopleExplanation && (
-                        <p className="text-[12px] text-muted-foreground mt-0.5">This individual appears more than others in your records</p>
+                        <p className="text-[12px] text-muted-foreground/80 mt-0.5">This individual appears more than others in your records</p>
                       )}
                     </button>
                   ))}
@@ -161,10 +185,10 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Categories */}
+          {/* 6. Categories */}
           {categoryPatterns.length > 0 && (
             <AccordionItem value="categories" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <BarChart3 className="h-3.5 w-3.5" />
@@ -176,9 +200,9 @@ const InsightsScreen = () => {
                 <div className="ml-10 space-y-3">
                   {categoryPatterns.slice(0, 5).map(({ category, count, isTop }) => (
                     <div key={category}>
-                      <p className="text-[13px] text-foreground font-medium">{category} — {count} record{count > 1 ? 's' : ''}</p>
+                      <p className="text-[13px] text-foreground font-semibold">{category} — {count} record{count > 1 ? 's' : ''}</p>
                       {isTop && !shouldSuppressCategoryExplanation && (
-                        <p className="text-[12px] text-muted-foreground mt-0.5">This is the most common category in your records</p>
+                        <p className="text-[12px] text-muted-foreground/80 mt-0.5">This is the most common category in your records</p>
                       )}
                     </div>
                   ))}
@@ -187,10 +211,10 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Record strength */}
+          {/* 7. Record strength */}
           {recordStrengthInsight && (
             <AccordionItem value="strength" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
                     <ShieldAlert className="h-3.5 w-3.5" />
@@ -200,17 +224,17 @@ const InsightsScreen = () => {
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
                 <div className="ml-10">
-                  <p className="text-[13px] text-foreground font-medium leading-relaxed">{recordStrengthInsight.fact}</p>
-                  <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{recordStrengthInsight.explanation}</p>
+                  <p className="text-[13px] text-foreground font-semibold leading-relaxed">{recordStrengthInsight.fact}</p>
+                  <p className="text-[12px] text-muted-foreground/80 leading-relaxed mt-0.5">{recordStrengthInsight.explanation}</p>
                 </div>
               </AccordionContent>
             </AccordionItem>
           )}
 
-          {/* Things you could add */}
+          {/* 8. Things you could add */}
           {dataGaps.length > 0 && (
             <AccordionItem value="gaps" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
-              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+              <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
                 <span className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
                     <AlertCircle className="h-3.5 w-3.5" />

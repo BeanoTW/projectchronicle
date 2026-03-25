@@ -7,6 +7,7 @@ import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import PageHeader from '@/components/chronicle/PageHeader';
 import RightsHero from '@/components/chronicle/RightsHero';
 import RightsActions from '@/components/chronicle/RightsActions';
+import RightsContextualSignals from '@/components/chronicle/RightsContextualSignals';
 import SupportServices from '@/components/chronicle/SupportServices';
 import MentalHealthSection from '@/components/chronicle/MentalHealthSection';
 import {
@@ -38,7 +39,6 @@ const RightsScreen = () => {
 
   const relevantGuidance = allGuidance.filter(r => userCategories.has(r.incident_category));
 
-  // Work guidance items (structured)
   const workCategories = [
     'Management Conduct', 'Verbal Comment', 'Written Communication',
     'Disciplinary Meeting', 'Pay or Payroll Issue', 'Policy Application',
@@ -55,7 +55,6 @@ const RightsScreen = () => {
     return actions;
   }, [incidents]);
 
-  // Deduplicated browse-all list
   const deduplicatedGuidance = useMemo(() => {
     const seen = new Set<string>();
     return [...allGuidance]
@@ -89,16 +88,16 @@ const RightsScreen = () => {
       <RightsHero />
 
       {/* Disclaimer */}
-      <div className="mx-5 mb-6 px-4 py-2.5 rounded-lg border border-border">
+      <div className="mx-5 mb-7 px-4 py-2.5 rounded-lg border border-border">
         <p className="text-[12px] text-muted-foreground/70 leading-relaxed">
           General information only — not legal advice. Speak to a qualified adviser before taking formal steps.
         </p>
       </div>
 
-      {/* 2. Relevant to your records (TOP PRIORITY) */}
+      {/* 2. Relevant to your records */}
       {relevantGuidance.length > 0 && (
         <div className="mx-5 mb-8">
-          <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
             Relevant to your records
           </p>
           <div className="space-y-3">
@@ -112,7 +111,7 @@ const RightsScreen = () => {
                 </div>
                 <h3 className="text-[15px] font-semibold text-foreground leading-snug mb-0.5">{g.title}</h3>
                 {g.description && (
-                  <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2 mb-2">{g.description}</p>
+                  <p className="text-[13px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-2">{g.description}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground/50 italic mb-2">
                   Shown because this relates to your records
@@ -126,6 +125,11 @@ const RightsScreen = () => {
         </div>
       )}
 
+      {/* 3. Contextual signals — "What this may help with" */}
+      <div className="mx-5 mb-8">
+        <RightsContextualSignals incidents={incidents} />
+      </div>
+
       {/* Image break */}
       <div className="mx-5 mb-8 rounded-2xl overflow-hidden relative h-[120px]">
         <img src={solidarityImg} alt="" className="w-full h-full object-cover" />
@@ -135,10 +139,15 @@ const RightsScreen = () => {
         </div>
       </div>
 
-      {/* 3. Work guidance */}
+      {/* 4. Get support */}
+      <div className="mx-5 mb-8">
+        <SupportServices incidents={incidents} />
+      </div>
+
+      {/* 5. Work guidance */}
       {workGuidance.length > 0 && (
         <div className="mx-5 mb-8">
-          <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
             Work
           </p>
           <div className="space-y-2">
@@ -163,28 +172,23 @@ const RightsScreen = () => {
         </div>
       )}
 
-      {/* 4. Get support */}
-      <div className="mx-5 mb-8">
-        <SupportServices incidents={incidents} />
-      </div>
-
-      {/* 5. Mental health & wellbeing */}
+      {/* 6. Mental health & wellbeing */}
       <div className="mx-5 mb-8">
         <MentalHealthSection />
       </div>
 
-      {/* 6. What you can do */}
+      {/* 7. What you can do */}
       {suggestedActions.length > 0 && (
         <div className="mx-5 mb-8">
           <RightsActions actions={suggestedActions} />
         </div>
       )}
 
-      {/* 7. Browse all guidance (deduplicated) */}
+      {/* 8. Browse all guidance */}
       <div className="mx-5 pb-4">
         <Accordion type="single" collapsible className="border-none">
           <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">
-            <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline">
+            <AccordionTrigger className="px-4 py-4 text-[14px] font-semibold text-foreground hover:no-underline">
               Browse all guidance ({deduplicatedGuidance.length})
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
