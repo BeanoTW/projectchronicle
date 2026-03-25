@@ -89,12 +89,13 @@ const RecordScreen = () => {
     }
   };
 
-  // Auto-save draft to localStorage
+  // Auto-save draft to localStorage — ONLY user-entered fields
   const saveDraft = useCallback(() => {
     if (narrative.trim()) {
       localStorage.setItem('chronicle-draft', JSON.stringify({
         narrative, incidentDate, incidentTime, location, category,
         peopleInvolved, witnesses, exactWords, impactNote, title,
+        // NEVER store: aiSummary, aiRelevance, aiSuggested — these are analysis/preview only
       }));
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2000);
