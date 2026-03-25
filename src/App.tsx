@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { DevModeProvider } from "@/contexts/DevModeContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import LoginScreen from "./pages/LoginScreen";
@@ -44,6 +45,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <DevModeProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -64,6 +66,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </DevModeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
