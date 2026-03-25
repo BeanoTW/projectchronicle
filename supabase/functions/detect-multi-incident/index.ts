@@ -24,7 +24,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a workplace incident structuring assistant. Your job is to detect whether a narrative describes MULTIPLE separate incidents and, if so, identify highlight phrases and draft splits.
+            content: `You are an incident structuring assistant. Your job is to detect whether a narrative describes MULTIPLE separate incidents and, if so, identify highlight phrases and draft splits. Incidents may occur in any context: workplace, university, shared housing, public spaces, social settings, or any other environment.
 
 RULES:
 - An "incident" is a distinct event at a specific time/place. Recurring patterns described generally are ONE incident unless specific separate occasions are described.

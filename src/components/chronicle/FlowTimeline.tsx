@@ -14,6 +14,15 @@ const categoryColors: Record<string, string> = {
   'Pay or Payroll Issue': 'hsl(var(--warm-accent))',
   'Policy Application': 'hsl(var(--info))',
   'Workplace Meeting': 'hsl(var(--primary))',
+  'Academic Misconduct': 'hsl(var(--destructive))',
+  'Accommodation Issue': 'hsl(var(--warm-accent))',
+  'Teaching or Supervision': 'hsl(var(--primary))',
+  'Noise Complaint': 'hsl(var(--severity-serious))',
+  'Property Damage': 'hsl(var(--destructive))',
+  'Shared Space Dispute': 'hsl(var(--warm-accent))',
+  'Antisocial Behaviour': 'hsl(var(--severity-serious))',
+  'Public Safety': 'hsl(var(--destructive))',
+  'Transport Incident': 'hsl(var(--info))',
   'Other': 'hsl(var(--muted-foreground))',
 };
 

@@ -30,6 +30,11 @@ const SERIOUS_KEYWORDS = [
   'safeguard', 'child', 'vulnerable',
   'retaliat', 'reprisal', 'punish', 'victimis',
   'threat', 'intimidat', 'bully',
+  'stalk', 'follow', 'harass',
+  'theft', 'stolen', 'break-in', 'broke into', 'trespass',
+  'damage', 'vandal', 'destroy',
+  'drunk', 'spiked', 'drugged',
+  'weapon', 'knife', 'armed',
 ];
 
 function detectSeriousFlag(incident: Incident): { flag: boolean; reason: string | null } {
@@ -85,10 +90,12 @@ export function deriveRepeatOccurrence(
   const sameCategory = allIncidents.filter(
     i => i.id !== incident.id && i.category && i.category === incident.category
   ).length;
+  // Require 2+ other records sharing a person (not just 1) to avoid
+  // inflating patterns for co-habitants / classmates who appear in every record
   const samePeople = allIncidents.filter(
     i => i.id !== incident.id && i.people_involved.some(p => incident.people_involved.includes(p))
   ).length;
-  return sameCategory >= 2 || samePeople >= 1 ? 'Repeated' : 'One-off';
+  return sameCategory >= 2 || samePeople >= 2 ? 'Repeated' : 'One-off';
 }
 
 const evidenceScores: Record<EvidenceStrength, number> = {
