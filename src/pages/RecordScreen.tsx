@@ -101,7 +101,7 @@ const RecordScreen = () => {
     }
   }, [narrative, incidentDate, incidentTime, location, category, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
-  // Load draft on mount
+  // Load draft on mount — ONLY user-entered fields, never analysis/AI output
   useEffect(() => {
     const stored = localStorage.getItem('chronicle-draft');
     if (stored) {
@@ -117,8 +117,22 @@ const RecordScreen = () => {
         if (draft.exactWords) setExactWords(draft.exactWords);
         if (draft.impactNote) setImpactNote(draft.impactNote);
         if (draft.title) setTitle(draft.title);
+        // NEVER restore AI-derived fields: aiSummary, aiRelevance, aiSuggested
       } catch { /* ignore */ }
     }
+  }, []);
+
+  // DRAFT LEAKAGE PREVENTION: Clear all temporary state on unmount
+  useEffect(() => {
+    return () => {
+      // Clear analysis/preview state — these must never persist
+      setAiSummary('');
+      setAiRelevance([]);
+      setAiSuggested(false);
+      setSplitDrafts([]);
+      setSplitHighlights([]);
+      setSplitChecked(false);
+    };
   }, []);
 
   // Auto-save every 5s when narrative has content
