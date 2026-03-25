@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2 } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2, Paperclip } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,7 +19,9 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
-import { useUploadEvidence } from '@/hooks/useEvidence';
+import { useUploadEvidence, useEvidence } from '@/hooks/useEvidence';
+import AttachmentRow from '@/components/chronicle/AttachmentRow';
+import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -42,7 +44,9 @@ const RecordScreen = () => {
   const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
   const uploadEvidence = useUploadEvidence();
+  const { data: allEvidence = [] } = useEvidence();
   const [transcribing, setTranscribing] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   const [showManualForm, setShowManualForm] = useState(false);
@@ -404,7 +408,20 @@ const RecordScreen = () => {
       <PageHeader
         title="Record"
         subtitle="Take your time — write this in your own words."
-      />
+      >
+        <button
+          onClick={() => setShowLibrary(true)}
+          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
+          aria-label="Attachments"
+        >
+          <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          {allEvidence.length > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+              {allEvidence.length}
+            </span>
+          )}
+        </button>
+      </PageHeader>
 
       {/* Mode Toggle */}
       <div className="px-5 mb-5">
@@ -568,6 +585,12 @@ const RecordScreen = () => {
               {errors.raw_narrative && (
                 <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
               )}
+
+              {/* Attachment row — primary entry point */}
+              <AttachmentRow
+                count={allEvidence.filter(e => !e.incident_id).length + allEvidence.filter(e => !!e.incident_id).length}
+                onViewAttachments={() => setShowLibrary(true)}
+              />
 
               {/* Reassurance text */}
               {hasText && !aiSuggested && (
@@ -899,6 +922,7 @@ const RecordScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
   );
 };

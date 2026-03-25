@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
@@ -11,6 +11,7 @@ interface IncidentCardProps {
   incident: Incident;
   showPatternLabel?: boolean;
   occurrenceLabel?: string | null;
+  attachmentCount?: number;
   compact?: boolean;
   expandable?: boolean;
 }
@@ -37,7 +38,7 @@ function formatPatternLabel(raw: string | null | undefined): string | null {
   return raw;
 }
 
-const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, expandable }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentCount, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
@@ -87,6 +88,11 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, ex
             {patternText && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
                 {patternText}
+              </span>
+            )}
+            {(attachmentCount ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground/70">
+                <Paperclip className="h-2.5 w-2.5" /> {attachmentCount}
               </span>
             )}
             {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
