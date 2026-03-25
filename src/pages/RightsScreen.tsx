@@ -8,6 +8,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import RightsHero from '@/components/chronicle/RightsHero';
 import RightsCards from '@/components/chronicle/RightsCards';
 import RightsActions from '@/components/chronicle/RightsActions';
+import SupportServices from '@/components/chronicle/SupportServices';
 import {
   Accordion,
   AccordionContent,
