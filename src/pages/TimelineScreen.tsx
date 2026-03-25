@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, Paperclip, BookOpen, List } from 'lucide-react';
+import { CalendarDays, Paperclip, BookOpen, List, FileText } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -8,6 +8,7 @@ import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
+import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import { generateNarrative } from '@/lib/narrativeEngine';
 
 const categoryFilters = [
@@ -25,6 +26,7 @@ const TimelineScreen = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
 
   const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
@@ -118,6 +120,13 @@ const TimelineScreen = () => {
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Timeline" subtitle="Your record over time">
+        <button
+          onClick={() => setShowSummaryBuilder(true)}
+          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors"
+          aria-label="Generate summary"
+        >
+          <FileText className="h-[18px] w-[18px]" strokeWidth={1.5} />
+        </button>
         <button
           onClick={() => setShowLibrary(true)}
           className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
@@ -251,6 +260,7 @@ const TimelineScreen = () => {
       )}
 
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
+      <SummaryBuilderModal open={showSummaryBuilder} onClose={() => setShowSummaryBuilder(false)} incidents={allIncidents} />
     </div>
   );
 };
