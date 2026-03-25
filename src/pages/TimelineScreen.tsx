@@ -1,18 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, LayoutList, GitBranch, Waypoints } from 'lucide-react';
+import { CalendarDays, LayoutList, GitBranch } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import ChronologyTimeline from '@/components/chronicle/ChronologyTimeline';
-import FlowTimeline from '@/components/chronicle/FlowTimeline';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 
-type ViewMode = 'timeline' | 'chronology' | 'flow';
+type ViewMode = 'timeline' | 'chronology';
 
 const categoryFilters = [
   'all',
@@ -63,12 +62,8 @@ const TimelineScreen = () => {
     return new Set(Object.entries(peopleCounts).filter(([, c]) => c >= 2).map(([name]) => name));
   }, [allIncidents]);
 
-  const mostFrequentPerson = useMemo(() => {
-    const peopleCounts: Record<string, number> = {};
-    allIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    const top = Object.entries(peopleCounts).sort((a, b) => b[1] - a[1])[0];
-    return top ? top[0] : null;
-  }, [allIncidents]);
+
+
 
   const isPartOfPattern = (inc: typeof allIncidents[0]) => {
     if (inc.category && repeatedCategories.has(inc.category)) return true;
@@ -76,7 +71,7 @@ const TimelineScreen = () => {
     return false;
   };
 
-  // Occurrence label: "3rd occurrence" or "X incidents involving [Name]"
+  // Occurrence label: "Repeated X times" or "X appears in N records"
   const getOccurrenceLabel = (inc: typeof allIncidents[0]): string | null => {
     if (inc.category && repeatedCategories.has(inc.category)) {
       const sameCategory = allIncidents
@@ -85,14 +80,13 @@ const TimelineScreen = () => {
       const idx = sameCategory.findIndex(i => i.id === inc.id);
       if (idx >= 0) {
         const ordinal = idx + 1;
-        const suffix = ordinal === 1 ? 'st' : ordinal === 2 ? 'nd' : ordinal === 3 ? 'rd' : 'th';
-        return `${ordinal}${suffix} occurrence`;
+        return `Repeated ${ordinal} times`;
       }
     }
     const repeatedPerson = inc.people_involved.find(p => repeatedPeople.has(p));
     if (repeatedPerson) {
       const count = allIncidents.filter(i => i.people_involved.includes(repeatedPerson)).length;
-      return `${count} incidents involving ${repeatedPerson}`;
+      return `${repeatedPerson} appears in ${count} records`;
     }
     return null;
   };
@@ -149,7 +143,6 @@ const TimelineScreen = () => {
         <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5">
           {([
             { mode: 'timeline' as ViewMode, icon: LayoutList, label: 'List' },
-            { mode: 'flow' as ViewMode, icon: Waypoints, label: 'Flow' },
             { mode: 'chronology' as ViewMode, icon: GitBranch, label: 'Record' },
           ]).map(({ mode, icon: Icon, label }) => (
             <button
@@ -198,14 +191,7 @@ const TimelineScreen = () => {
       )}
 
       <div className="px-5">
-        {viewMode === 'flow' ? (
-          <FlowTimeline
-            incidents={incidents}
-            repeatedPeople={repeatedPeople}
-            totalIncidents={allIncidents.length}
-            mostFrequentPerson={mostFrequentPerson}
-          />
-        ) : viewMode === 'chronology' ? (
+        {viewMode === 'chronology' ? (
           <ChronologyTimeline
             incidents={incidents}
             isPartOfPattern={isPartOfPattern}

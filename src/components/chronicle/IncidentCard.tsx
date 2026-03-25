@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
@@ -27,6 +27,16 @@ const categoryCardTints: Record<string, string> = {
   'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
 };
 
+// Format pattern labels per spec
+function formatPatternLabel(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const occMatch = raw.match(/^(\d+)(?:st|nd|rd|th) occurrence$/);
+  if (occMatch) return `Repeated ${occMatch[1]} times`;
+  const invMatch = raw.match(/^(\d+) incidents involving (.+)$/);
+  if (invMatch) return `${invMatch[2]} appears in ${invMatch[1]} records`;
+  return raw;
+}
+
 const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -40,7 +50,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, ex
     }
   };
 
-  const patternText = occurrenceLabel || (showPatternLabel ? 'Repeated' : null);
+  const patternText = formatPatternLabel(occurrenceLabel) || (showPatternLabel ? 'Repeated' : null);
 
   if (compact) {
     const previewText = incident.ai_summary || incident.raw_narrative;
@@ -60,8 +70,10 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, ex
               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
                 {format(parseISO(incident.incident_date), 'dd MMM')}
               </span>
-              {expandable && (
+              {expandable ? (
                 <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground/40 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
               )}
             </div>
           </div>
@@ -73,7 +85,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, ex
           <div className="flex items-center gap-1.5 mt-2">
             {incident.category && <CategoryBadge category={incident.category} />}
             {patternText && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
                 {patternText}
               </span>
             )}
@@ -126,16 +138,17 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, ex
           {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
           {incident.title || 'Untitled incident'}
         </h3>
-        {incident.locked && (
-          <span className="text-primary text-[11px]">🔒</span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-2.5">
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {patternText && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
             {patternText}
           </span>
         )}

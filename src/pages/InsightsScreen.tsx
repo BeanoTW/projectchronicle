@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, TrendingUp, CalendarDays, AlertCircle } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, CalendarDays, AlertCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
-import { format, parseISO } from 'date-fns';
+import { differenceInDays, parseISO } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -45,43 +45,110 @@ const PatternsScreen = () => {
     return Object.entries(catCounts).sort((a, b) => b[1] - a[1]).map(([category, count]) => ({ category, count }));
   }, [incidents]);
 
-  const concentratedPeriod = useMemo(() => {
-    if (incidents.length < 3) return null;
-    const sortedDates = incidents.map(i => new Date(i.incident_date).getTime()).sort();
-    for (let i = 0; i < sortedDates.length - 2; i++) {
-      if (sortedDates[i + 2] - sortedDates[i] <= 7 * 86400000) return 'Several records are close together in time';
-    }
-    return null;
-  }, [incidents]);
+  // Patterns over time — temporal analysis
+  const temporalPatterns = useMemo(() => {
+    if (incidents.length < 2) return [];
+    const results: { id: string; text: string }[] = [];
+    const sorted = [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
+    const seen = new Set<string>();
 
-  // Build unique, meaningful patterns (max 5)
+    // Clustering: check for 3+ within 7 days
+    for (let i = 0; i < sorted.length - 2; i++) {
+      const d1 = new Date(sorted[i].incident_date).getTime();
+      const d3 = new Date(sorted[i + 2].incident_date).getTime();
+      if (d3 - d1 <= 7 * 86400000) {
+        // Count how many in this window
+        let count = 3;
+        for (let j = i + 3; j < sorted.length; j++) {
+          if (new Date(sorted[j].incident_date).getTime() - d1 <= 7 * 86400000) count++;
+          else break;
+        }
+        const key = `cluster-${count}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push({ id: key, text: `${count} records occurred within one week` });
+        }
+        break;
+      }
+    }
+
+    // Gaps: largest gap
+    let maxGap = 0;
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+      if (gap > maxGap) maxGap = gap;
+    }
+    if (maxGap > 14) {
+      results.push({ id: `gap-${maxGap}`, text: `No incidents recorded for ${maxGap} days` });
+    }
+
+    // Frequency change
+    if (sorted.length >= 4) {
+      const mid = Math.floor(sorted.length / 2);
+      const firstHalf = sorted.slice(0, mid);
+      const secondHalf = sorted.slice(mid);
+      const firstSpan = differenceInDays(parseISO(firstHalf[firstHalf.length - 1].incident_date), parseISO(firstHalf[0].incident_date)) || 1;
+      const secondSpan = differenceInDays(parseISO(secondHalf[secondHalf.length - 1].incident_date), parseISO(secondHalf[0].incident_date)) || 1;
+      const firstRate = firstHalf.length / firstSpan;
+      const secondRate = secondHalf.length / secondSpan;
+      if (secondRate > firstRate * 1.5) {
+        results.push({ id: 'freq-increase', text: 'Records are becoming more frequent in recent entries' });
+      }
+    }
+
+    // Repeated people (deduplicated from main patterns)
+    keyIndividuals.slice(0, 2).forEach(({ name, count }) => {
+      const key = `person-${name}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        results.push({ id: key, text: `${name} appears in ${count} records` });
+      }
+    });
+
+    return results.slice(0, 5);
+  }, [incidents, keyIndividuals]);
+
+  // Build unique patterns (max 5, deduplicated)
   const patterns = useMemo(() => {
-    const result: string[] = [];
+    const result: { id: string; text: string }[] = [];
+    const seen = new Set<string>();
 
     // Timing cluster
-    if (concentratedPeriod) result.push(concentratedPeriod);
+    const clusterPattern = temporalPatterns.find(p => p.id.startsWith('cluster'));
+    if (clusterPattern && !seen.has(clusterPattern.text)) {
+      seen.add(clusterPattern.text);
+      result.push(clusterPattern);
+    }
 
     // Repeated people
     keyIndividuals.slice(0, 2).forEach(({ name, count }) => {
-      result.push(`${name} appears in ${count} records`);
+      const text = `${name} appears in ${count} records`;
+      if (!seen.has(text)) {
+        seen.add(text);
+        result.push({ id: `person-${name}`, text });
+      }
     });
 
     // Category grouping
     const topCat = categoryPatterns[0];
     if (topCat && topCat.count >= 3) {
-      result.push(`${topCat.category} appears in multiple records`);
+      const text = `${topCat.category} appears in multiple records`;
+      if (!seen.has(text)) {
+        seen.add(text);
+        result.push({ id: `cat-${topCat.category}`, text });
+      }
     }
 
     // Gaps
     if (withAttachments === 0 && totalIncidents > 0) {
-      result.push('None of your records include attachments yet');
+      result.push({ id: 'gap-attachments', text: 'None of your records include attachments yet' });
     }
     if (withWitnesses === 0 && totalIncidents > 0) {
-      result.push('No witnesses have been recorded');
+      result.push({ id: 'gap-witnesses', text: 'No witnesses have been recorded' });
     }
 
     return result.slice(0, 5);
-  }, [concentratedPeriod, keyIndividuals, categoryPatterns, withAttachments, withWitnesses, totalIncidents]);
+  }, [temporalPatterns, keyIndividuals, categoryPatterns, withAttachments, withWitnesses, totalIncidents]);
 
   const dataGaps = useMemo(() => {
     const gaps: { label: string; count: number; action: string; filterKey: string }[] = [];
@@ -151,7 +218,7 @@ const PatternsScreen = () => {
       {/* Accordion sections */}
       <div className="mx-5 mb-6">
         <Accordion type="multiple" className="space-y-2">
-          {/* Patterns in your records */}
+          {/* Patterns */}
           {patterns.length > 0 && (
             <AccordionItem value="patterns" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
@@ -159,29 +226,48 @@ const PatternsScreen = () => {
                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
                     <TrendingUp className="h-3.5 w-3.5" />
                   </span>
-                  Patterns in your records
+                  Patterns
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="ml-10">
-                  <p className="text-[11px] text-muted-foreground/60 mb-3">What's starting to show up over time</p>
-                  <div className="space-y-2">
-                    {patterns.map((p, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          // Try to navigate to filtered timeline for people patterns
-                          const personMatch = p.match(/^(.+) appears in \d+ records$/);
-                          if (personMatch) {
-                            navigate(`/timeline?person=${encodeURIComponent(personMatch[1])}`);
-                          }
-                        }}
-                        className="block w-full text-left text-[13px] text-body leading-relaxed hover:text-foreground transition-colors"
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
+                <div className="ml-10 space-y-2">
+                  {patterns.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        const personMatch = p.text.match(/^(.+) appears in \d+ records$/);
+                        if (personMatch) {
+                          navigate(`/timeline?person=${encodeURIComponent(personMatch[1])}`);
+                        }
+                      }}
+                      className="block w-full text-left text-[13px] text-body leading-relaxed hover:text-foreground transition-colors"
+                    >
+                      {p.text}
+                    </button>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* Patterns over time */}
+          {temporalPatterns.length > 0 && (
+            <AccordionItem value="temporal" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
+              <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
+                <span className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-primary/10 text-primary">
+                    <Clock className="h-3.5 w-3.5" />
+                  </span>
+                  Patterns over time
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="ml-10 space-y-2">
+                  {temporalPatterns.map((p) => (
+                    <p key={p.id} className="text-[13px] text-body leading-relaxed">
+                      {p.text}
+                    </p>
+                  ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
