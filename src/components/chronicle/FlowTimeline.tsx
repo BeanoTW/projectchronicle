@@ -3,6 +3,8 @@ import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
+import FlowFrequencyChart from './FlowFrequencyChart';
+import { deriveEscalationSignal } from '@/lib/flowEscalation';
 
 const categoryColors: Record<string, string> = {
   'Management Conduct': 'hsl(var(--primary))',
