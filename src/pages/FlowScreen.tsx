@@ -42,7 +42,7 @@ const FlowScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Flow" subtitle="How incidents develop over time" />
+      <PageHeader title="Flow" subtitle="How your records are changing over time" />
       <div className="px-5">
         <FlowTimeline
           incidents={incidents}
