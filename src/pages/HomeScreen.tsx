@@ -95,7 +95,7 @@ const HomeScreen = () => {
         <div className="w-full px-3 pt-3">
           <img
             src={heroImage}
-            alt="Project Chronicle — Record events. Preserve evidence. Build clear timelines."
+            alt="Project Chronicle — Record events. Preserve attachments. Build clear timelines."
             className="w-full h-auto object-contain max-w-md mx-auto"
           />
         </div>
