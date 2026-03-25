@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2 } from 'lucide-react';
+import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -323,6 +324,7 @@ const RecordScreen = () => {
   };
 
   const hasText = narrative.trim().length > 0;
+  const isCoherent = useMemo(() => detectCoherence(narrative), [narrative]);
   const canSave = hasText && !!incidentDate;
 
   const detailFields = (
@@ -578,24 +580,67 @@ const RecordScreen = () => {
                 </motion.p>
               )}
 
-              {/* Structure button */}
-              {hasText && (
+              {/* Smart CTA — coherence-aware */}
+              {hasText && !aiSuggested && (
                 <motion.div
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
+                  className="space-y-2"
                 >
-                  <Button
-                    className="w-full rounded-xl h-11 text-[13px] font-medium bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
-                    onClick={() => { handleAnalyse(); handleDetectMulti(); }}
-                    disabled={analysing}
-                  >
-                    {analysing ? (
-                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
-                    ) : (
-                      'Structure this for you'
-                    )}
-                  </Button>
+                  {isCoherent ? (
+                    <>
+                      <Button
+                        className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                        onClick={() => { handleAnalyse(); handleDetectMulti(); handleSave(); }}
+                        disabled={analysing || saving}
+                      >
+                        {saving ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                        ) : analysing ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
+                        ) : (
+                          'Save record'
+                        )}
+                      </Button>
+                      <button
+                        onClick={() => { handleAnalyse(); handleDetectMulti(); }}
+                        disabled={analysing}
+                        className="w-full text-center py-2 text-[13px] text-primary/70 font-medium hover:text-primary transition-colors disabled:opacity-40"
+                      >
+                        {analysing ? 'Structuring…' : 'Improve structure'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                        onClick={() => { handleAnalyse(); handleDetectMulti(); }}
+                        disabled={analysing}
+                      >
+                        {analysing ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
+                        ) : (
+                          'Structure this for you'
+                        )}
+                      </Button>
+                      <button
+                        onClick={() => {
+                          if (!incidentDate) {
+                            setErrors({ incident_date: 'Please add a date before saving.' });
+                            setShowManualForm(true);
+                            setMoreDetailsOpen(true);
+                            return;
+                          }
+                          handleSave();
+                        }}
+                        disabled={saving}
+                        className="w-full text-center py-2 text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors disabled:opacity-40"
+                      >
+                        Save as is
+                      </button>
+                    </>
+                  )}
                 </motion.div>
               )}
 
@@ -623,7 +668,7 @@ const RecordScreen = () => {
 
                   {aiRelevance.length > 0 && (
                     <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                      <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential relevance</h3>
+                      <h3 className="text-[12px] font-semibold text-foreground mb-2">Related context</h3>
                       <div className="mb-1"><AILabel /></div>
                       <div className="space-y-2">
                         {aiRelevance.map((r, i) => (
