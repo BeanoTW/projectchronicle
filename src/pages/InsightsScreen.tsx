@@ -52,8 +52,22 @@ const InsightsScreen = () => {
       <PageHeader title="What your records show" />
 
       {/* Summary bar */}
-      <div className="mx-5 mb-6 px-4 py-3 bg-card border border-border rounded-xl">
+      <div className="mx-5 mb-4 px-4 py-3 bg-card border border-border rounded-xl">
         <p className="text-[13px] text-foreground font-medium">{summaryLine}</p>
+      </div>
+
+      {/* Generate summary entry */}
+      <div className="mx-5 mb-6">
+        <button
+          onClick={() => setShowSummaryBuilder(true)}
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/20 transition-colors w-full text-left"
+        >
+          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <div>
+            <p className="text-[13px] font-medium text-foreground">Generate summary</p>
+            <p className="text-[11px] text-muted-foreground">Create a structured narrative from your records</p>
+          </div>
+        </button>
       </div>
 
       {/* Accordion sections — strict hierarchy */}
@@ -263,7 +277,9 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
         </Accordion>
-      </div>
+
+      <SummaryBuilderModal open={showSummaryBuilder} onClose={() => setShowSummaryBuilder(false)} incidents={incidents} />
+    </div>
     </div>
   );
 };
