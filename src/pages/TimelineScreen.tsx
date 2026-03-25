@@ -160,22 +160,27 @@ const TimelineScreen = () => {
             <div key={month}>
               <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
               <div className="space-y-3">
-                {items.map(inc => (
-                  <div key={inc.id} className="timeline-node">
-                    <IncidentCard
-                      incident={inc}
-                      showPatternLabel={isPartOfPattern(inc)}
-                      occurrenceLabel={getOccurrenceLabel(inc)}
-                      compact
-                      expandable
-                    />
-                  </div>
-                ))}
+                {items.map(inc => {
+                  const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
+                  return (
+                    <div key={inc.id} className="timeline-node">
+                      <IncidentCard
+                        incident={inc}
+                        showPatternLabel={isPartOfPattern(inc)}
+                        occurrenceLabel={getOccurrenceLabel(inc)}
+                        attachmentCount={attachmentCount}
+                        compact
+                        expandable
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
       </div>
+      <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
   );
 };
