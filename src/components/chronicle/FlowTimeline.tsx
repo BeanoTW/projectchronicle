@@ -33,12 +33,86 @@ interface Props {
   mostFrequentPerson: string | null;
 }
 
+/* ── Signal derivation ── */
+
+interface FlowSignal {
+  key: string;
+  text: string;
+  type: 'neutral' | 'escalation' | 'pause';
+}
+
+function deriveSignals(
+  sorted: Incident[],       // ASC by date, valid dates only
+  gaps: number[],           // consecutive day gaps (sorted[i] → sorted[i+1])
+): FlowSignal[] {
+  const signals: FlowSignal[] = [];
+  if (sorted.length < 2) return signals;
+
+  // 1. Frequency trend – compare recent vs earlier gaps
+  if (gaps.length >= 4) {
+    const len = gaps.length;
+    const recentAvg = (gaps[len - 1] + gaps[len - 2]) / 2;
+    const earlierAvg = (gaps[len - 3] + gaps[len - 4]) / 2;
+    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) {
+      signals.push({ key: 'trend', text: 'Activity increasing', type: 'escalation' });
+    } else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) {
+      signals.push({ key: 'trend', text: 'Activity decreasing', type: 'neutral' });
+    }
+  }
+
+  // 2. Cluster detection – 2+ incidents within 14 days
+  let bestClusterCount = 0;
+  let bestClusterSpan = 0;
+  let clusterStart = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const spanFromStart = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[clusterStart].incident_date));
+    if (spanFromStart <= 14) {
+      const count = i - clusterStart + 1;
+      if (count > bestClusterCount) {
+        bestClusterCount = count;
+        bestClusterSpan = spanFromStart;
+      }
+    } else {
+      clusterStart = i;
+    }
+  }
+  if (bestClusterCount >= 3) {
+    signals.push({
+      key: 'cluster',
+      text: `${bestClusterCount} incidents occurred within ${bestClusterSpan || 1} days`,
+      type: 'escalation',
+    });
+  } else if (bestClusterCount === 2 && bestClusterSpan <= 7) {
+    signals.push({
+      key: 'cluster',
+      text: 'Some incidents happened close together in time',
+      type: 'neutral',
+    });
+  }
+
+  // 3. Long pause detection – any consecutive gap ≥ 21 days
+  const longestGap = Math.max(...gaps);
+  if (longestGap >= 21) {
+    // Check if the long pause is followed by recent activity
+    const lastGapIdx = gaps.lastIndexOf(longestGap);
+    const isFollowedByRecent = lastGapIdx < gaps.length - 1;
+    if (isFollowedByRecent) {
+      signals.push({ key: 'pause', text: 'Long pause followed by recent activity', type: 'pause' });
+    } else {
+      signals.push({ key: 'pause', text: 'Long pause between records', type: 'pause' });
+    }
+  }
+
+  // Cap at 3 signals
+  return signals.slice(0, 3);
+}
+
 const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Filter valid dates, sort oldest-first
+  // Filter valid dates, sort oldest-first (ASC)
   const sorted = useMemo(() =>
     [...incidents]
       .filter(i => isValid(parseISO(i.incident_date)))
@@ -46,28 +120,19 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     [incidents]
   );
 
-  // Consecutive gaps for trend calculation
+  // Consecutive gaps
   const consecutiveGaps = useMemo(() => {
-    const gaps: number[] = [];
+    const g: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
-      gaps.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+      g.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
     }
-    return gaps;
+    return g;
   }, [sorted]);
 
-  // Frequency trend (same logic as Insights for consistency)
-  const frequencyTrend = useMemo(() => {
-    if (consecutiveGaps.length < 4) return null;
-    const len = consecutiveGaps.length;
-    // Recent = last 2 gaps, earlier = 2 before that
-    const recentAvg = (consecutiveGaps[len - 1] + consecutiveGaps[len - 2]) / 2;
-    const earlierAvg = (consecutiveGaps[len - 3] + consecutiveGaps[len - 4]) / 2;
-    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) return 'Activity increasing';
-    if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) return 'Activity slowing';
-    return null;
-  }, [consecutiveGaps]);
+  // Interpreted signals (max 3)
+  const signals = useMemo(() => deriveSignals(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
 
-  // Compute spacing that reflects real time intervals
+  // Dot visual data – spacing reflects real time, NO gap labels
   const dotData = useMemo(() => {
     if (sorted.length === 0) return [];
     const minSpacing = 6;
@@ -78,57 +143,17 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         ? differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date))
         : 0;
 
-      // Proportional spacing: 0 days = minSpacing, 30+ days = maxSpacing
       const spacing = i === 0 ? 0 : Math.max(minSpacing, Math.min(maxSpacing, minSpacing + (gap / 30) * (maxSpacing - minSpacing)));
-
-      const isCluster = gap <= 2 && i > 0;
+      const isCluster = gap <= 3 && i > 0;
       const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
       const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
-      const baseSize = isCluster ? 14 : 10;
+      // Recent records slightly larger
+      const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
+      const baseSize = (isCluster ? 14 : 10) + recencyBoost;
 
       return { inc, gap, spacing, isCluster, hasRing, color, baseSize };
     });
   }, [sorted, repeatedPeople]);
-
-  // Gap labels — computed directly from sorted array, strictly between consecutive records
-  const gapLabels = useMemo(() => {
-    const labels = new Map<number, string>();
-    if (sorted.length < 2) return labels;
-
-    // Compute each consecutive gap and label significant ones (≥ 7 days)
-    for (let i = 1; i < sorted.length; i++) {
-      const days = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
-      if (days >= 7) {
-        labels.set(i, `${days}-day gap`);
-      }
-    }
-
-    // Cluster labels: 3+ records within 2 days of each other
-    let clusterStart = -1;
-    let clusterCount = 0;
-    for (let i = 1; i < sorted.length; i++) {
-      const days = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
-      if (days <= 2) {
-        if (clusterStart === -1) { clusterStart = i - 1; clusterCount = 2; }
-        else clusterCount++;
-      } else {
-        if (clusterCount >= 3) {
-          const span = differenceInDays(parseISO(sorted[clusterStart + clusterCount - 1].incident_date), parseISO(sorted[clusterStart].incident_date));
-          labels.set(clusterStart, `${clusterCount} in ${span || 1} days`);
-        }
-        clusterStart = -1;
-        clusterCount = 0;
-      }
-    }
-    if (clusterCount >= 3) {
-      const span = differenceInDays(parseISO(sorted[clusterStart + clusterCount - 1].incident_date), parseISO(sorted[clusterStart].incident_date));
-      labels.set(clusterStart, `${clusterCount} in ${span || 1} days`);
-    }
-
-    return labels;
-  }, [sorted]);
-
-  const selectedIncident = sorted.find(i => i.id === selectedId);
 
   // Month markers
   const monthMarkers = useMemo(() => {
@@ -144,45 +169,49 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     return markers;
   }, [sorted]);
 
+  const selectedIncident = sorted.find(i => i.id === selectedId);
+
   return (
     <div className="space-y-4">
-      {/* Summary strip */}
-      <div className="flex items-center gap-4 px-1 text-[12px] text-muted-foreground">
-        <span className="font-medium text-foreground tabular-nums">{totalIncidents} recorded</span>
-        {mostFrequentPerson && (
-          <>
-            <span className="opacity-30">·</span>
-            <span>{mostFrequentPerson} appears most</span>
-          </>
-        )}
-        {frequencyTrend && (
-          <>
-            <span className="opacity-30">·</span>
-            <span className="text-primary font-medium">{frequencyTrend}</span>
-          </>
-        )}
-      </div>
+      {/* Interpreted signals – max 3 */}
+      {signals.length > 0 && (
+        <div className="space-y-1.5 px-1">
+          {signals.map(s => (
+            <div
+              key={s.key}
+              className={`text-[12px] leading-snug font-medium ${
+                s.type === 'escalation'
+                  ? 'text-primary'
+                  : s.type === 'pause'
+                    ? 'text-muted-foreground'
+                    : 'text-foreground/70'
+              }`}
+            >
+              {s.text}
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Horizontal scrollable flow */}
+      {/* Fallback if no signals */}
+      {signals.length === 0 && sorted.length >= 2 && (
+        <p className="text-[12px] text-muted-foreground/60 px-1">
+          Activity spread out over time — no strong patterns detected
+        </p>
+      )}
+
+      {/* Horizontal dot timeline – visual only, no gap labels */}
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide -mx-5 px-5">
-        <div className="flex items-end min-w-max pb-6 pt-10 relative">
+        <div className="flex items-end min-w-max pb-6 pt-6 relative">
           {/* Baseline */}
           <div className="absolute bottom-[22px] left-0 right-0 h-[1.5px] bg-border" />
 
           {dotData.map((d, i) => {
             const isSelected = selectedId === d.inc.id;
-            const gapLabel = gapLabels.get(i);
             const monthMarker = monthMarkers.find(m => m.index === i);
 
             return (
               <div key={d.inc.id} className="relative flex flex-col items-center" style={{ marginLeft: d.spacing }}>
-                {/* Gap label */}
-                {gapLabel && (
-                  <span className="absolute -top-6 text-[8px] text-muted-foreground/50 whitespace-nowrap font-medium">
-                    {gapLabel}
-                  </span>
-                )}
-
                 <button
                   onClick={() => setSelectedId(isSelected ? null : d.inc.id)}
                   className="relative z-10"
@@ -215,26 +244,20 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         </div>
       </div>
 
-      {/* Legend */}
+      {/* Minimal legend */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/60">
         <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }} /> Management
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--warm-accent))' }} /> Verbal
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--severity-serious))' }} /> Safety
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'hsl(var(--info))' }} /> Written
+          <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full border border-current" style={{ boxShadow: '0 0 0 1.5px currentColor' }} /> Repeated person
         </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
+        </span>
       </div>
 
-      {/* Compact selected preview */}
+      {/* Selected record preview */}
       <AnimatePresence>
         {selectedIncident && (
           <motion.div
