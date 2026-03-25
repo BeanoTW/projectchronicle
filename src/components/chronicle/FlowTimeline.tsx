@@ -122,6 +122,9 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     [incidents]
   );
 
+  // Parsed dates for chart + escalation
+  const sortedDates = useMemo(() => sorted.map(i => parseISO(i.incident_date)), [sorted]);
+
   // Consecutive gaps
   const consecutiveGaps = useMemo(() => {
     const g: number[] = [];
@@ -133,6 +136,16 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
 
   // Interpreted signals (max 3)
   const signals = useMemo(() => deriveSignals(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
+
+  // Single escalation signal
+  const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
+
+  // Check if chart should render (≥3 records spanning multiple days)
+  const showChart = useMemo(() => {
+    if (sortedDates.length < 3) return false;
+    const span = differenceInDays(sortedDates[sortedDates.length - 1], sortedDates[0]);
+    return span >= 2;
+  }, [sortedDates]);
 
   // Dot visual data – spacing reflects real time, NO gap labels
   const dotData = useMemo(() => {
