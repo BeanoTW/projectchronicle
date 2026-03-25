@@ -4,7 +4,7 @@ import { useEvidence } from '@/hooks/useEvidence';
 import FlowTimeline from '@/components/chronicle/FlowTimeline';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
-import { GitBranch } from 'lucide-react';
+import { Activity } from 'lucide-react';
 
 const FlowScreen = () => {
   const { data: incidents = [], isLoading } = useIncidents();
@@ -30,11 +30,11 @@ const FlowScreen = () => {
   if (incidents.length < 2) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Flow" />
+        <PageHeader title="Activity" />
         <EmptyState
-          icon={<GitBranch className="h-10 w-10" />}
+          icon={<Activity className="h-10 w-10" />}
           heading="Not enough data yet"
-          body="Flow will visualise how incidents develop over time as you add more records."
+          body="Activity will show how your records change over time as you add more."
         />
       </div>
     );
@@ -42,7 +42,7 @@ const FlowScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Flow" subtitle="How your records are changing over time" />
+      <PageHeader title="Activity" subtitle="Activity over time" />
       <div className="px-5">
         <FlowTimeline
           incidents={incidents}
