@@ -34,6 +34,7 @@ const IncidentDetailScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const { devMode } = useDevMode();
   const { data: incident, isLoading } = useIncident(id);
   const { data: allIncidents = [] } = useIncidents();
   const { data: editHistory = [] } = useEditHistory(id);
