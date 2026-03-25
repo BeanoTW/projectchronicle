@@ -62,12 +62,8 @@ const TimelineScreen = () => {
     return new Set(Object.entries(peopleCounts).filter(([, c]) => c >= 2).map(([name]) => name));
   }, [allIncidents]);
 
-  const mostFrequentPerson = useMemo(() => {
-    const peopleCounts: Record<string, number> = {};
-    allIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    const top = Object.entries(peopleCounts).sort((a, b) => b[1] - a[1])[0];
-    return top ? top[0] : null;
-  }, [allIncidents]);
+
+
 
   const isPartOfPattern = (inc: typeof allIncidents[0]) => {
     if (inc.category && repeatedCategories.has(inc.category)) return true;
