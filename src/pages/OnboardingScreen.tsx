@@ -51,7 +51,7 @@ const fadeUp = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
   exit: { opacity: 0, y: -6 },
-  transition: { duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] },
+  transition: { duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as const },
 };
 
 const OnboardingScreen = () => {
@@ -198,7 +198,16 @@ const OnboardingScreen = () => {
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
           await supabase.from('incidents').insert({
-            ...sessionIncident,
+            raw_narrative: sessionIncident.raw_narrative,
+            incident_date: sessionIncident.incident_date || new Date().toISOString().split('T')[0],
+            incident_time: sessionIncident.incident_time || null,
+            location: sessionIncident.location || null,
+            category: sessionIncident.category || null,
+            severity: sessionIncident.severity || null,
+            title: sessionIncident.title || null,
+            ai_summary: sessionIncident.ai_summary || null,
+            exact_words: sessionIncident.exact_words || null,
+            record_method: sessionIncident.record_method,
             user_id: userData.user.id,
             people_involved: sessionIncident.people_involved || [],
             witnesses: [],
