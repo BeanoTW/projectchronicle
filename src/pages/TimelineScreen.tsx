@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, Paperclip } from 'lucide-react';
+import { CalendarDays, Paperclip, BookOpen, List } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -8,6 +8,7 @@ import IncidentCard from '@/components/chronicle/IncidentCard';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
+import { generateNarrative } from '@/lib/narrativeEngine';
 
 const categoryFilters = [
   'all',
