@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
@@ -13,10 +13,11 @@ import IntegrityPanel from '@/components/chronicle/IntegrityPanel';
 import EditHistoryPanel from '@/components/chronicle/EditHistoryPanel';
 import AILabel from '@/components/chronicle/AILabel';
 import LockBanner from '@/components/chronicle/LockBanner';
+import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { calculateScoring } from '@/lib/scoring';
 import { calculateScoring } from '@/lib/scoring';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -47,9 +48,8 @@ const IncidentDetailScreen = () => {
   const uploadEvidence = useUploadEvidence();
   const createNote = useCreateFollowUpNote();
 
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [noteType, setNoteType] = useState('Update');
+  const followUpRef = useRef<HTMLDivElement>(null);
+  const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [showLockedDeleteDialog, setShowLockedDeleteDialog] = useState(false);
@@ -106,12 +106,9 @@ const IncidentDetailScreen = () => {
     toast({ title: incident.excluded_from_rep ? 'Included in rep view' : 'Excluded from rep view' });
   };
 
-  const handleAddNote = async () => {
-    if (!noteText.trim()) return;
-    await createNote.mutateAsync({ incident_id: incident.id, note_text: noteText, note_type: noteType });
-    setNoteText('');
-    setShowNoteForm(false);
-    toast({ title: 'Note added' });
+  const handleAddNote = async (note: { note_text: string; note_type: string }) => {
+    await createNote.mutateAsync({ incident_id: incident.id, ...note });
+    toast({ title: 'Follow-up detail added' });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
