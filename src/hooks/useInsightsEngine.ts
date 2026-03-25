@@ -35,6 +35,12 @@ export interface DataGap {
   filterKey: string;
 }
 
+export interface PatternSignal {
+  id: string;
+  label: string;
+  explanation: string;
+}
+
 export function useInsightsEngine(
   incidents: Incident[],
   allEvidence: EvidenceFile[]
@@ -286,6 +292,72 @@ export function useInsightsEngine(
   // De-duplicated category top explanation
   const shouldSuppressCategoryExplanation = standoutIds.has('category-dominant');
 
+  // --- Pattern signals (trajectory layer, max 2) ---
+  const patternSignals = useMemo((): PatternSignal[] => {
+    if (incidents.length < 2) return [];
+    const signals: PatternSignal[] = [];
+
+    // A. Frequency: recent gaps smaller than earlier gaps
+    if (consecutiveGaps.length >= 4) {
+      const recentAvg = (consecutiveGaps[0] + consecutiveGaps[1]) / 2;
+      const earlierAvg = (consecutiveGaps[2] + consecutiveGaps[3]) / 2;
+      if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) {
+        signals.push({
+          id: 'signal-frequency',
+          label: 'Activity increasing',
+          explanation: 'Entries are occurring closer together over time',
+        });
+      }
+    }
+
+    // B. Clustering: 2+ within 14 days
+    const asc = [...sorted].reverse();
+    for (let i = 0; i < asc.length - 1; i++) {
+      const d1 = new Date(asc[i].incident_date).getTime();
+      const d2 = new Date(asc[i + 1].incident_date).getTime();
+      if (d2 - d1 <= 14 * 86400000) {
+        // Count cluster size
+        let count = 2;
+        for (let j = i + 2; j < asc.length; j++) {
+          if (new Date(asc[j].incident_date).getTime() - d1 <= 14 * 86400000) count++;
+          else break;
+        }
+        signals.push({
+          id: 'signal-cluster',
+          label: 'Records are clustered',
+          explanation: `${count} events occurred within a short time period`,
+        });
+        break;
+      }
+    }
+
+    // C. Repetition: same category ≥2 OR same person+category ≥2
+    const catCounts: Record<string, number> = {};
+    incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+    const hasRepeatedCategory = Object.values(catCounts).some(c => c >= 2);
+
+    const personCatPairs = new Set<string>();
+    let hasRepeatedPersonCat = false;
+    incidents.forEach(i => {
+      if (!i.category) return;
+      i.people_involved.forEach(p => {
+        const key = `${p}::${i.category}`;
+        if (personCatPairs.has(key)) hasRepeatedPersonCat = true;
+        personCatPairs.add(key);
+      });
+    });
+
+    if (hasRepeatedCategory || hasRepeatedPersonCat) {
+      signals.push({
+        id: 'signal-repetition',
+        label: 'Repeated pattern in records',
+        explanation: 'Similar categories or individuals appear across multiple entries',
+      });
+    }
+
+    return signals.slice(0, 2);
+  }, [incidents, sorted, consecutiveGaps]);
+
   // --- Data gaps ---
   const dataGaps = useMemo((): DataGap[] => {
     const gaps: DataGap[] = [];
@@ -318,6 +390,7 @@ export function useInsightsEngine(
     sorted,
     summaryLine,
     standoutSignals,
+    patternSignals,
     filteredActivityInsights,
     keyIndividuals,
     shouldSuppressPeopleExplanation,
