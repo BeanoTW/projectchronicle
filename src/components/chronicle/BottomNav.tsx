@@ -1,11 +1,10 @@
-import { Mic, CalendarDays, TrendingUp, Paperclip, Shield } from 'lucide-react';
+import { Mic, CalendarDays, TrendingUp, Shield } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const navItems = [
   { path: '/timeline', label: 'Timeline', icon: CalendarDays },
-  { path: '/patterns', label: 'Patterns', icon: TrendingUp },
   { path: '/record', label: 'Record', icon: Mic, primary: true },
-  { path: '/attachments', label: 'Attachments', icon: Paperclip },
+  { path: '/patterns', label: 'Patterns', icon: TrendingUp },
   { path: '/rights', label: 'Rights', icon: Shield },
 ];
 
