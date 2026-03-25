@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp, Lightbulb } from 'lucide-react';
+import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp, Lightbulb, FileText } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useInsightsEngine } from '@/hooks/useInsightsEngine';
+import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import {
@@ -16,6 +18,7 @@ const InsightsScreen = () => {
   const navigate = useNavigate();
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
+  const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
 
   const {
     summaryLine,
