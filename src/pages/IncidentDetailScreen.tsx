@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
@@ -13,8 +13,8 @@ import IntegrityPanel from '@/components/chronicle/IntegrityPanel';
 import EditHistoryPanel from '@/components/chronicle/EditHistoryPanel';
 import AILabel from '@/components/chronicle/AILabel';
 import LockBanner from '@/components/chronicle/LockBanner';
+import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { calculateScoring } from '@/lib/scoring';
@@ -47,9 +47,7 @@ const IncidentDetailScreen = () => {
   const uploadEvidence = useUploadEvidence();
   const createNote = useCreateFollowUpNote();
 
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [noteType, setNoteType] = useState('Update');
+  const followUpRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [showLockedDeleteDialog, setShowLockedDeleteDialog] = useState(false);
@@ -106,12 +104,9 @@ const IncidentDetailScreen = () => {
     toast({ title: incident.excluded_from_rep ? 'Included in rep view' : 'Excluded from rep view' });
   };
 
-  const handleAddNote = async () => {
-    if (!noteText.trim()) return;
-    await createNote.mutateAsync({ incident_id: incident.id, note_text: noteText, note_type: noteType });
-    setNoteText('');
-    setShowNoteForm(false);
-    toast({ title: 'Note added' });
+  const handleAddNote = async (note: { note_text: string; note_type: string }) => {
+    await createNote.mutateAsync({ incident_id: incident.id, ...note });
+    toast({ title: 'Follow-up detail added' });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,11 +200,9 @@ const IncidentDetailScreen = () => {
               {scoring.strengthPrompts.length > 0 && (
                 <div className="pt-2.5 border-t border-border space-y-1.5">
                   {scoring.strengthPrompts.map((prompt, i) => {
-                    // Make prompts tappable actions
                     let action: (() => void) | undefined;
-                    if (prompt.includes('attachments') || prompt.includes('Attachment')) action = () => document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
-                    if (prompt.includes('witnesses')) action = () => setShowNoteForm(true);
-                    if (prompt.includes('impact')) action = () => setShowNoteForm(true);
+                    if (prompt.includes('attachment')) action = () => document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+                    if (prompt.includes('follow-up')) action = () => followUpRef.current?.scrollIntoView({ behavior: 'smooth' });
 
                     return (
                       <button
@@ -217,7 +210,7 @@ const IncidentDetailScreen = () => {
                         onClick={action}
                         className="block text-[12px] text-primary leading-relaxed hover:text-primary/80 transition-colors text-left"
                       >
-                        → {prompt.replace('Add attachments to strengthen this record', 'Add attachment').replace('Add witnesses if available', 'Add witness').replace('Add impact details if relevant', 'Add impact')}
+                        → {prompt}
                       </button>
                     );
                   })}
@@ -312,40 +305,15 @@ const IncidentDetailScreen = () => {
           </div>
         </div>
 
-        {/* Follow-up Notes */}
-        <div>
-          <p className="section-group-title">Follow-up notes</p>
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-[11px] text-muted-foreground mb-2.5">Added after the original record.</p>
-            {notes.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No follow-up notes yet.</p>
-            ) : (
-              <div className="space-y-2 mt-1">
-                {notes.map(note => (
-                  <div key={note.id} className="p-3 bg-muted/30 rounded-lg">
-                    <p className="text-[11px] text-muted-foreground/60">
-                      Added {format(parseISO(note.created_at), 'dd MMM yyyy')} — {note.note_type}
-                    </p>
-                    <p className="text-[13px] text-body mt-1 leading-relaxed">{note.note_text}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {showNoteForm ? (
-              <div className="mt-3 space-y-2">
-                <Textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a follow-up note..." className="min-h-[60px] bg-background text-[13px]" />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleAddNote} className="text-[13px]">Save Note</Button>
-                  <Button size="sm" variant="outline" onClick={() => setShowNoteForm(false)} className="text-[13px]">Cancel</Button>
-                </div>
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" className="mt-3 text-[13px] border-primary/20 text-primary rounded-lg" onClick={() => setShowNoteForm(true)}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Add Note
-              </Button>
-            )}
-          </div>
+        {/* Follow-up Details */}
+        <div ref={followUpRef}>
+          <FollowUpDetails
+            notes={notes}
+            originalCreatedAt={incident.created_at}
+            locked={incident.locked}
+            onAddNote={handleAddNote}
+            onUploadAttachment={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+          />
         </div>
 
         <EditHistoryPanel entries={editHistoryMapped} />
