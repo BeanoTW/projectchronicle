@@ -924,6 +924,7 @@ const RecordScreen = () => {
       </AlertDialog>
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
+  );
 };
 
 export default RecordScreen;
