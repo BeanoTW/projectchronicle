@@ -1,5 +1,5 @@
-import { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { useRef, useMemo, useState } from 'react';
+import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
@@ -17,13 +17,6 @@ const categoryColors: Record<string, string> = {
   'Other': 'hsl(var(--muted-foreground))',
 };
 
-const severitySizes: Record<string, number> = {
-  Critical: 20,
-  Serious: 16,
-  Moderate: 12,
-  Low: 10,
-};
-
 interface Props {
   incidents: Incident[];
   repeatedPeople: Set<string>;
@@ -36,62 +29,110 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Sort oldest-first for spatial left→right progression
+  // Filter valid dates, sort oldest-first
   const sorted = useMemo(() =>
-    [...incidents].sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime()),
+    [...incidents]
+      .filter(i => isValid(parseISO(i.incident_date)))
+      .sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime()),
     [incidents]
   );
 
-  // Group by month
-  const months = useMemo(() => {
-    const groups: { label: string; incidents: typeof sorted }[] = [];
-    let currentMonth = '';
-    sorted.forEach(inc => {
-      const month = format(parseISO(inc.incident_date), 'MMM yyyy');
-      if (month !== currentMonth) {
-        groups.push({ label: month, incidents: [] });
-        currentMonth = month;
-      }
-      groups[groups.length - 1].incidents.push(inc);
-    });
-    return groups;
+  // Consecutive gaps for trend calculation
+  const consecutiveGaps = useMemo(() => {
+    const gaps: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      gaps.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+    }
+    return gaps;
   }, [sorted]);
 
-  // Frequency trend
+  // Frequency trend (same logic as Insights for consistency)
   const frequencyTrend = useMemo(() => {
-    if (sorted.length < 4) return null;
-    const mid = Math.floor(sorted.length / 2);
-    const firstHalf = sorted.slice(0, mid);
-    const secondHalf = sorted.slice(mid);
-    const firstSpan = differenceInDays(
-      parseISO(firstHalf[firstHalf.length - 1].incident_date),
-      parseISO(firstHalf[0].incident_date)
-    ) || 1;
-    const secondSpan = differenceInDays(
-      parseISO(secondHalf[secondHalf.length - 1].incident_date),
-      parseISO(secondHalf[0].incident_date)
-    ) || 1;
-    const firstRate = firstHalf.length / firstSpan;
-    const secondRate = secondHalf.length / secondSpan;
-    if (secondRate > firstRate * 1.3) return 'Increasing frequency';
-    if (secondRate < firstRate * 0.7) return 'Decreasing frequency';
+    if (consecutiveGaps.length < 4) return null;
+    const len = consecutiveGaps.length;
+    // Recent = last 2 gaps, earlier = 2 before that
+    const recentAvg = (consecutiveGaps[len - 1] + consecutiveGaps[len - 2]) / 2;
+    const earlierAvg = (consecutiveGaps[len - 3] + consecutiveGaps[len - 4]) / 2;
+    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) return 'Activity increasing';
+    if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) return 'Activity slowing';
     return null;
-  }, [sorted]);
+  }, [consecutiveGaps]);
 
-  const hasRepeatedPerson = (inc: Incident) =>
-    inc.people_involved.some(p => repeatedPeople.has(p));
+  // Compute spacing that reflects real time intervals
+  const dotData = useMemo(() => {
+    if (sorted.length === 0) return [];
+    const minSpacing = 6;
+    const maxSpacing = 48;
 
-  const getDotSize = (inc: Incident) =>
-    severitySizes[inc.severity || ''] || 10;
+    return sorted.map((inc, i) => {
+      const gap = i > 0
+        ? differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date))
+        : 0;
 
-  const getDotColor = (inc: Incident) =>
-    categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
+      // Proportional spacing: 0 days = minSpacing, 30+ days = maxSpacing
+      const spacing = i === 0 ? 0 : Math.max(minSpacing, Math.min(maxSpacing, minSpacing + (gap / 30) * (maxSpacing - minSpacing)));
+
+      const isCluster = gap <= 2 && i > 0;
+      const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
+      const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
+      const baseSize = isCluster ? 14 : 10;
+
+      return { inc, gap, spacing, isCluster, hasRing, color, baseSize };
+    });
+  }, [sorted, repeatedPeople]);
+
+  // Identify significant gaps for labels
+  const gapLabels = useMemo(() => {
+    if (consecutiveGaps.length === 0) return new Map<number, string>();
+    const avg = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
+    const labels = new Map<number, string>();
+    consecutiveGaps.forEach((gap, i) => {
+      if (gap >= 14 && gap >= avg * 1.5) {
+        labels.set(i + 1, `${gap}-day gap`);
+      }
+    });
+    // Same-day clusters
+    let clusterStart = -1;
+    let clusterCount = 0;
+    consecutiveGaps.forEach((gap, i) => {
+      if (gap <= 2) {
+        if (clusterStart === -1) { clusterStart = i; clusterCount = 2; }
+        else clusterCount++;
+      } else {
+        if (clusterCount >= 3) {
+          const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[clusterStart].incident_date));
+          labels.set(clusterStart, `${clusterCount} in ${span || 1} days`);
+        }
+        clusterStart = -1;
+        clusterCount = 0;
+      }
+    });
+    if (clusterCount >= 3) {
+      const span = differenceInDays(parseISO(sorted[sorted.length - 1].incident_date), parseISO(sorted[clusterStart!].incident_date));
+      labels.set(clusterStart!, `${clusterCount} in ${span || 1} days`);
+    }
+    return labels;
+  }, [consecutiveGaps, sorted]);
 
   const selectedIncident = sorted.find(i => i.id === selectedId);
 
+  // Month markers
+  const monthMarkers = useMemo(() => {
+    const markers: { index: number; label: string }[] = [];
+    let currentMonth = '';
+    sorted.forEach((inc, i) => {
+      const m = format(parseISO(inc.incident_date), 'MMM yy');
+      if (m !== currentMonth) {
+        markers.push({ index: i, label: m });
+        currentMonth = m;
+      }
+    });
+    return markers;
+  }, [sorted]);
+
   return (
     <div className="space-y-4">
-      {/* Summary header */}
+      {/* Summary strip */}
       <div className="flex items-center gap-4 px-1 text-[12px] text-muted-foreground">
         <span className="font-medium text-foreground tabular-nums">{totalIncidents} recorded</span>
         {mostFrequentPerson && (
@@ -109,71 +150,54 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       </div>
 
       {/* Horizontal scrollable flow */}
-      <div
-        ref={scrollRef}
-        className="overflow-x-auto scrollbar-hide -mx-5 px-5"
-      >
-        <div className="flex items-end gap-0 min-w-max pb-2 pt-8 relative">
+      <div ref={scrollRef} className="overflow-x-auto scrollbar-hide -mx-5 px-5">
+        <div className="flex items-end min-w-max pb-6 pt-10 relative">
           {/* Baseline */}
           <div className="absolute bottom-[22px] left-0 right-0 h-[1.5px] bg-border" />
 
-          {months.map((month, mi) => (
-            <div key={month.label} className="flex flex-col items-start">
-              {/* Month label */}
-              <div className="flex items-end gap-1 relative">
-                {month.incidents.map((inc, ii) => {
-                  const size = getDotSize(inc);
-                  const color = getDotColor(inc);
-                  const hasRing = hasRepeatedPerson(inc);
-                  const isSelected = selectedId === inc.id;
+          {dotData.map((d, i) => {
+            const isSelected = selectedId === d.inc.id;
+            const gapLabel = gapLabels.get(i);
+            const monthMarker = monthMarkers.find(m => m.index === i);
 
-                  // Calculate gap from previous incident
-                  const prevInc = ii > 0
-                    ? month.incidents[ii - 1]
-                    : mi > 0
-                      ? months[mi - 1].incidents[months[mi - 1].incidents.length - 1]
-                      : null;
+            return (
+              <div key={d.inc.id} className="relative flex flex-col items-center" style={{ marginLeft: d.spacing }}>
+                {/* Gap label */}
+                {gapLabel && (
+                  <span className="absolute -top-6 text-[8px] text-muted-foreground/50 whitespace-nowrap font-medium">
+                    {gapLabel}
+                  </span>
+                )}
 
-                  const gap = prevInc
-                    ? differenceInDays(parseISO(inc.incident_date), parseISO(prevInc.incident_date))
-                    : 0;
+                <button
+                  onClick={() => setSelectedId(isSelected ? null : d.inc.id)}
+                  className="relative z-10"
+                >
+                  <div
+                    className="rounded-full transition-all duration-200"
+                    style={{
+                      width: isSelected ? d.baseSize * 1.3 : d.baseSize,
+                      height: isSelected ? d.baseSize * 1.3 : d.baseSize,
+                      backgroundColor: d.color,
+                      boxShadow: isSelected
+                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}`
+                        : d.hasRing
+                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${d.color}`
+                          : 'none',
+                      marginBottom: `${22 - (isSelected ? d.baseSize * 1.3 : d.baseSize) / 2}px`,
+                    }}
+                  />
+                </button>
 
-                  // Spacing: tight clustering with minimum gap
-                  const marginLeft = ii === 0 && mi === 0
-                    ? 0
-                    : Math.max(4, Math.min(gap * 2, 24));
-
-                  return (
-                    <button
-                      key={inc.id}
-                      onClick={() => setSelectedId(isSelected ? null : inc.id)}
-                      className="relative flex flex-col items-center group"
-                      style={{ marginLeft }}
-                    >
-                      <div
-                        className="rounded-full transition-all duration-200 relative z-10"
-                        style={{
-                          width: size,
-                          height: size,
-                          backgroundColor: color,
-                          boxShadow: isSelected
-                            ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${color}`
-                            : hasRing
-                              ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${color}`
-                              : 'none',
-                          transform: isSelected ? 'scale(1.3)' : 'scale(1)',
-                          marginBottom: `${22 - size / 2}px`,
-                        }}
-                      />
-                    </button>
-                  );
-                })}
+                {/* Month label */}
+                {monthMarker && (
+                  <span className="absolute -bottom-4 text-[9px] text-muted-foreground/50 whitespace-nowrap">
+                    {monthMarker.label}
+                  </span>
+                )}
               </div>
-              <span className="text-[9px] text-muted-foreground/50 mt-1.5 pl-1 whitespace-nowrap">
-                {month.label}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -196,39 +220,38 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         </span>
       </div>
 
-      {/* Selected incident detail */}
+      {/* Compact selected preview */}
       <AnimatePresence>
         {selectedIncident && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]"
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.15 }}
+            className="bg-card border border-border rounded-xl px-4 py-3 shadow-[var(--shadow-card)]"
           >
-            <span className="text-[10px] text-muted-foreground/60 block mb-1">
-              {format(parseISO(selectedIncident.incident_date), 'dd MMM yyyy')}
-              {selectedIncident.incident_time && ` · ${selectedIncident.incident_time}`}
-            </span>
-            <p className="text-[14px] font-semibold text-foreground leading-snug mb-1">
-              {selectedIncident.title || 'Untitled incident'}
-            </p>
-            {(selectedIncident.ai_summary || selectedIncident.raw_narrative) && (
-              <p className="text-[12px] text-muted-foreground/60 leading-relaxed line-clamp-2 mb-2">
-                {selectedIncident.ai_summary || selectedIncident.raw_narrative}
-              </p>
-            )}
-            {selectedIncident.people_involved.length > 0 && (
-              <p className="text-[11px] text-muted-foreground/50 mb-2">
-                {selectedIncident.people_involved.join(', ')}
-              </p>
-            )}
-            <button
-              onClick={() => navigate(`/incident/${selectedIncident.id}`)}
-              className="text-[12px] text-primary font-medium transition-colors hover:text-primary/80"
-            >
-              View full record →
-            </button>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] text-muted-foreground/60 block">
+                  {format(parseISO(selectedIncident.incident_date), 'dd MMM yyyy')}
+                  {selectedIncident.incident_time && ` · ${selectedIncident.incident_time}`}
+                </span>
+                <p className="text-[13px] font-semibold text-foreground leading-snug mt-0.5 truncate">
+                  {selectedIncident.title || 'Untitled'}
+                </p>
+                {selectedIncident.people_involved.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">
+                    {selectedIncident.people_involved.join(', ')}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => navigate(`/incident/${selectedIncident.id}`)}
+                className="text-[11px] text-primary font-medium whitespace-nowrap flex-shrink-0 mt-1"
+              >
+                Open →
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
