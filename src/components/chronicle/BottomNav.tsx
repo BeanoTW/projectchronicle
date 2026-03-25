@@ -28,10 +28,10 @@ const BottomNav = () => {
                 <button
                   key={path}
                   onClick={() => navigate(path)}
-                  className="flex flex-col items-center justify-center -mt-5 transition-transform duration-150 active:scale-95"
+                  className="flex flex-col items-center justify-center -mt-4 transition-transform duration-150 active:scale-95"
                 >
-                  <div className="w-[50px] h-[50px] rounded-full bg-primary text-primary-foreground flex items-center justify-center record-glow ring-[3px] ring-background shadow-[var(--shadow-elevated)]">
-                    <Icon className="h-5 w-5" strokeWidth={2} />
+                  <div className="w-[44px] h-[44px] rounded-full bg-primary text-primary-foreground flex items-center justify-center ring-[3px] ring-background shadow-[var(--shadow-card)]">
+                    <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
                   </div>
                   <span className="text-[10px] mt-1 font-semibold text-primary">
                     {label}
