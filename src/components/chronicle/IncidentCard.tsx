@@ -10,6 +10,7 @@ import RecordAgeChip from './RecordAgeChip';
 interface IncidentCardProps {
   incident: Incident;
   showPatternLabel?: boolean;
+  occurrenceLabel?: string | null;
   compact?: boolean;
   expandable?: boolean;
 }
@@ -26,7 +27,7 @@ const categoryCardTints: Record<string, string> = {
   'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
 };
 
-const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: IncidentCardProps) => {
+const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
@@ -39,9 +40,11 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
     }
   };
 
+  const patternText = occurrenceLabel || (showPatternLabel ? 'Repeated' : null);
+
   if (compact) {
     const previewText = incident.ai_summary || incident.raw_narrative;
-    const isVoided = !!(incident as any).voided_at;
+    const isVoided = !!incident.voided_at;
     return (
       <div className={isVoided ? 'opacity-50' : ''}>
         <button
@@ -69,10 +72,9 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
           )}
           <div className="flex items-center gap-1.5 mt-2">
             {incident.category && <CategoryBadge category={incident.category} />}
-            {showPatternLabel && (
+            {patternText && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
-                <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
-                Repeated
+                {patternText}
               </span>
             )}
             {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
@@ -87,7 +89,7 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
               transition={{ duration: 0.25, ease: 'easeInOut' }}
               className="overflow-hidden"
             >
-              <div className={`mx-1 mt-1 px-3.5 py-3 rounded-lg border border-border/60 bg-card/50 space-y-2`}>
+              <div className="mx-1 mt-1 px-3.5 py-3 rounded-lg border border-border/60 bg-card/50 space-y-2">
                 {(incident.ai_summary || incident.raw_narrative) && (
                   <p className="text-[13px] text-muted-foreground leading-relaxed">
                     {incident.ai_summary || incident.raw_narrative}
@@ -113,7 +115,7 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
     );
   }
 
-  const isVoidedFull = !!(incident as any).voided_at;
+  const isVoidedFull = !!incident.voided_at;
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
@@ -132,10 +134,9 @@ const IncidentCard = ({ incident, showPatternLabel, compact, expandable }: Incid
       <div className="flex flex-wrap gap-1.5 mb-2.5">
         {incident.category && <CategoryBadge category={incident.category} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
-        {showPatternLabel && (
+        {patternText && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-primary/70 border border-primary/15 bg-primary/[0.04]">
-            <svg className="h-2.5 w-2.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
-            Repeated
+            {patternText}
           </span>
         )}
       </div>

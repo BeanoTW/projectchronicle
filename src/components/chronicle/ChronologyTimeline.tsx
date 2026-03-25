@@ -1,186 +1,174 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { useMemo } from 'react';
+import { format, parseISO, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, User } from 'lucide-react';
+import { MapPin, User, Paperclip, StickyNote } from 'lucide-react';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 
 interface Props {
   incidents: Incident[];
   isPartOfPattern: (inc: Incident) => boolean;
+  evidenceCounts?: Record<string, number>;
+  noteCounts?: Record<string, number>;
+  occurrenceLabel?: (inc: Incident) => string | null;
 }
 
-const ChronologyTimeline = ({ incidents, isPartOfPattern }: Props) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const nodeRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const rafRef = useRef<number>(0);
-  const [mounted, setMounted] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const updateTransforms = useCallback(() => {
-    if (!containerRef.current) return;
-    const viewportCenter = window.innerHeight / 2;
-
-    let closestIdx = -1;
-    let closestDist = Infinity;
-
-    itemRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const elCenter = rect.top + rect.height / 2;
-      const distance = Math.abs(elCenter - viewportCenter);
-      const maxDistance = window.innerHeight * 0.6;
-      const ratio = Math.min(distance / maxDistance, 1);
-
-      if (distance < closestDist) { closestDist = distance; closestIdx = i; }
-
-      const opacity = 1 - ratio * 0.4;
-      const scale = 1 - ratio * 0.03;
-      const side = i % 2 === 0 ? -1 : 1;
-      const drift = ratio * 3 * side;
-
-      el.style.opacity = `${opacity}`;
-      el.style.transform = `scale(${scale}) translateX(${drift}px)`;
-    });
-
-    if (closestIdx !== focusedIndex) setFocusedIndex(closestIdx);
-
-    nodeRefs.current.forEach((el, i) => {
-      if (!el) return;
-      const itemEl = itemRefs.current[i];
-      if (!itemEl) return;
-      const rect = itemEl.getBoundingClientRect();
-      const elCenter = rect.top + rect.height / 2;
-      const distance = Math.abs(elCenter - viewportCenter);
-      const maxDistance = window.innerHeight * 0.6;
-      const ratio = Math.min(distance / maxDistance, 1);
-
-      const glowSize = (1 - ratio) * 4;
-      el.style.boxShadow = `0 0 0 ${glowSize}px hsl(var(--primary) / ${0.15 + (1 - ratio) * 0.15})`;
-      el.style.opacity = `${0.5 + (1 - ratio) * 0.5}`;
-    });
-  }, [focusedIndex]);
-
-  const onScroll = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(updateTransforms);
-  }, [updateTransforms]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    window.addEventListener('scroll', onScroll, { passive: true });
-    // Initial calculation
-    updateTransforms();
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [mounted, onScroll, updateTransforms]);
-
+const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, noteCounts = {}, occurrenceLabel }: Props) => {
   const navigate = useNavigate();
-  const isFocused = (i: number) => i === focusedIndex;
-  const isExpanded = (id: string) => expandedId === id;
-  const previewLines = (i: number) => isFocused(i) ? 'line-clamp-3' : 'line-clamp-2';
+
+  // Group by month — newest month first (incidents already sorted newest-first)
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: Incident[] }[] = [];
+    let currentMonth = '';
+    incidents.forEach(inc => {
+      const month = format(parseISO(inc.incident_date), 'MMMM yyyy');
+      if (month !== currentMonth) {
+        groups.push({ label: month, items: [] });
+        currentMonth = month;
+      }
+      groups[groups.length - 1].items.push(inc);
+    });
+    return groups;
+  }, [incidents]);
+
+  // Summary header
+  const summary = useMemo(() => {
+    const peopleCounts: Record<string, number> = {};
+    incidents.forEach(i => i.people_involved.forEach(p => {
+      peopleCounts[p] = (peopleCounts[p] || 0) + 1;
+    }));
+    const topPerson = Object.entries(peopleCounts).sort((a, b) => b[1] - a[1])[0];
+    const catCounts: Record<string, number> = {};
+    incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+    const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
+
+    return { total: incidents.length, topPerson, topCat };
+  }, [incidents]);
 
   return (
-    <div ref={containerRef} className="center-timeline pt-4 pb-8">
-      {incidents.map((inc, i) => {
-        const side = i % 2 === 0 ? 'left' : 'right';
-        const expanded = isExpanded(inc.id);
-        const previewText = inc.ai_summary || inc.raw_narrative;
+    <div className="space-y-6">
+      {/* Summary header */}
+      <div className="bg-card border border-border rounded-xl p-4">
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          <span className="font-medium text-foreground">{summary.total} recorded incidents</span>
+          {summary.topPerson && <> · {summary.topPerson[0]} appears in {summary.topPerson[1]} entries</>}
+          {summary.topCat && <> · Most common: {summary.topCat[0]}</>}
+        </p>
+      </div>
 
-        return (
-          <motion.div
-            key={inc.id}
-            ref={(el) => { itemRefs.current[i] = el; }}
-            initial={{ opacity: 0, x: side === 'left' ? -12 : 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
-            className={`center-timeline-item center-timeline-item--${side}`}
-            style={{ willChange: 'transform, opacity' }}
-          >
-            <div
-              ref={(el) => { nodeRefs.current[i] = el; }}
-              className="center-timeline-node"
-              style={{ willChange: 'box-shadow, opacity', transition: 'box-shadow 0.15s ease-out, opacity 0.15s ease-out' }}
-            />
-            <div className="w-full max-w-[75%]">
-              <button
-                onClick={() => setExpandedId(expanded ? null : inc.id)}
-                className="w-full text-left rounded-xl border border-border bg-card p-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] active:scale-[0.97] transition-all duration-200"
-              >
-                <span className="text-[10px] text-muted-foreground/60 block mb-1">
-                  {format(parseISO(inc.incident_date), 'dd MMM yyyy')}
-                </span>
-                <p className="text-[14px] font-semibold text-foreground leading-snug line-clamp-2 mb-1">
-                  {inc.title || 'Untitled incident'}
-                </p>
-                {previewText && (
-                  <div className="relative mb-1.5">
-                    <p className={`text-[12px] text-muted-foreground/60 leading-relaxed ${previewLines(i)}`}>
-                      {previewText}
-                    </p>
-                    <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-card to-transparent pointer-events-none" />
-                  </div>
-                )}
-                <div className="flex flex-wrap items-center gap-1">
-                  {inc.category && <CategoryBadge category={inc.category} />}
-                  {isPartOfPattern(inc) && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-primary/60 border border-primary/15 bg-primary/[0.04]">
-                      <svg className="h-2 w-2" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8a6 6 0 0 1 6-6v0a6 6 0 0 1 6 6v0a6 6 0 0 1-6 6v0" strokeLinecap="round"/><path d="M8 14a6 6 0 0 1-6-6" strokeLinecap="round" strokeDasharray="2 3"/></svg>
-                      Repeated
-                    </span>
-                  )}
-                  {inc.locked && <span className="text-primary text-[10px]">🔒</span>}
-                </div>
-              </button>
+      {/* Single-column timeline */}
+      <div className="relative pl-5">
+        {/* Spine */}
+        <div className="absolute left-[7px] top-0 bottom-0 w-[1.5px] bg-border" />
 
-              <AnimatePresence>
-                {expanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                  >
-                    <div className="mx-1 mt-1 px-3.5 py-3 rounded-lg border border-border/60 bg-card/50 space-y-2">
-                      {previewText && (
-                        <p className="text-[13px] text-muted-foreground leading-relaxed">
-                          {previewText}
-                        </p>
-                      )}
-                      {inc.location && (
-                        <p className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {inc.location}
-                        </p>
-                      )}
-                      {inc.people_involved.length > 0 && (
-                        <p className="text-[11px] text-muted-foreground/60 flex items-center gap-1">
-                          <User className="h-3 w-3" /> {inc.people_involved.join(', ')}
-                        </p>
-                      )}
+        {grouped.map((group, gi) => (
+          <div key={group.label} className="mb-6">
+            <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-5">
+              {group.label}
+            </h3>
+
+            <div className="space-y-2.5">
+              {group.items.map((inc, ii) => {
+                const isVoided = !!inc.voided_at;
+                const eCount = evidenceCounts[inc.id] || 0;
+                const nCount = noteCounts[inc.id] || 0;
+                const patternLabel = occurrenceLabel?.(inc);
+
+                // Time gap label
+                let gapLabel: string | null = null;
+                const prevInc = ii > 0
+                  ? group.items[ii - 1]
+                  : gi > 0
+                    ? grouped[gi - 1].items[grouped[gi - 1].items.length - 1]
+                    : null;
+
+                if (prevInc) {
+                  // Since newest-first, prevInc is actually newer
+                  const days = Math.abs(differenceInDays(
+                    parseISO(inc.incident_date),
+                    parseISO(prevInc.incident_date)
+                  ));
+                  if (days >= 3 && days <= 60) {
+                    gapLabel = `${days} days between records`;
+                  }
+                }
+
+                return (
+                  <div key={inc.id}>
+                    {gapLabel && (
+                      <p className="text-[10px] text-muted-foreground/40 italic mb-1.5 ml-2">{gapLabel}</p>
+                    )}
+                    <div className="relative">
+                      {/* Node dot */}
+                      <div
+                        className="absolute -left-5 top-[14px] w-[7px] h-[7px] rounded-full bg-primary border-2 border-background z-10"
+                        style={{ boxShadow: '0 0 0 1.5px hsl(var(--primary) / 0.2)' }}
+                      />
+
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigate(`/incident/${inc.id}`); }}
-                        className="text-[12px] text-primary font-medium pt-1 transition-colors hover:text-primary/80"
+                        onClick={() => navigate(`/incident/${inc.id}`)}
+                        className={`w-full text-left rounded-lg border border-border bg-card px-3.5 py-3 hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''}`}
                       >
-                        View full record →
+                        {/* Date line */}
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50 mb-1">
+                          <span>{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
+                          {inc.incident_time && <><span>·</span><span>{inc.incident_time}</span></>}
+                          {inc.location && (
+                            <span className="flex items-center gap-0.5">
+                              <MapPin className="h-2.5 w-2.5" /> {inc.location}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title */}
+                        <p className={`text-[13px] font-semibold leading-snug mb-1 ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                          {isVoided && <span className="text-[9px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
+                          {inc.title || 'Untitled incident'}
+                        </p>
+
+                        {/* 1-2 line summary */}
+                        {(inc.ai_summary || inc.raw_narrative) && (
+                          <p className="text-[11px] text-muted-foreground/60 leading-relaxed line-clamp-2 mb-1.5">
+                            {inc.ai_summary || inc.raw_narrative}
+                          </p>
+                        )}
+
+                        {/* People */}
+                        {inc.people_involved.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground/50 flex items-center gap-1 mb-1.5">
+                            <User className="h-2.5 w-2.5" /> {inc.people_involved.join(', ')}
+                          </p>
+                        )}
+
+                        {/* Metadata row */}
+                        <div className="flex flex-wrap items-center gap-1">
+                          {inc.category && <CategoryBadge category={inc.category} />}
+                          {patternLabel && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-primary/60 border border-primary/15 bg-primary/[0.04]">
+                              {patternLabel}
+                            </span>
+                          )}
+                          {eCount > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground/50">
+                              <Paperclip className="h-2.5 w-2.5" /> {eCount}
+                            </span>
+                          )}
+                          {nCount > 0 && (
+                            <span className="inline-flex items-center gap-0.5 text-[9px] text-muted-foreground/50">
+                              <StickyNote className="h-2.5 w-2.5" /> {nCount}
+                            </span>
+                          )}
+                          {inc.locked && <span className="text-primary text-[9px]">🔒</span>}
+                        </div>
                       </button>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                );
+              })}
             </div>
-          </motion.div>
-        );
-      })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
