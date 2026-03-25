@@ -76,24 +76,23 @@ const InsightsScreen = () => {
     // Gap: pick ONE meaningful gap
     if (consecutiveGaps.length > 0) {
       const avgGap = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
+      const maxAllowed = Math.max(avgGap * 2, 60); // Never suppress gaps under 60 days
 
-      // Priority 1: most recent gap (index 0)
-      // Priority 2: largest valid gap
       let chosenGap: { days: number; label: string } | null = null;
 
-      // Check most recent gap first
-      if (consecutiveGaps[0] > 14 && consecutiveGaps[0] <= avgGap * 2) {
+      // Priority 1: most recent gap (index 0)
+      if (consecutiveGaps[0] > 14 && consecutiveGaps[0] <= maxAllowed) {
         chosenGap = {
           days: consecutiveGaps[0],
           label: 'This is the time between your two most recent records',
         };
       }
 
-      // Fallback: largest valid gap (not outlier)
+      // Fallback: largest valid gap (not extreme outlier)
       if (!chosenGap) {
         let largest = { days: 0, idx: -1 };
         for (let i = 0; i < consecutiveGaps.length; i++) {
-          if (consecutiveGaps[i] > largest.days && consecutiveGaps[i] <= avgGap * 2) {
+          if (consecutiveGaps[i] > largest.days && consecutiveGaps[i] <= maxAllowed) {
             largest = { days: consecutiveGaps[i], idx: i };
           }
         }
