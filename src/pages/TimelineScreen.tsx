@@ -7,7 +7,6 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import ChronologyTimeline from '@/components/chronicle/ChronologyTimeline';
-import FlowTimeline from '@/components/chronicle/FlowTimeline';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
@@ -76,7 +75,7 @@ const TimelineScreen = () => {
     return false;
   };
 
-  // Occurrence label: "3rd occurrence" or "X incidents involving [Name]"
+  // Occurrence label: "Repeated X times" or "X appears in N records"
   const getOccurrenceLabel = (inc: typeof allIncidents[0]): string | null => {
     if (inc.category && repeatedCategories.has(inc.category)) {
       const sameCategory = allIncidents
@@ -85,14 +84,13 @@ const TimelineScreen = () => {
       const idx = sameCategory.findIndex(i => i.id === inc.id);
       if (idx >= 0) {
         const ordinal = idx + 1;
-        const suffix = ordinal === 1 ? 'st' : ordinal === 2 ? 'nd' : ordinal === 3 ? 'rd' : 'th';
-        return `${ordinal}${suffix} occurrence`;
+        return `Repeated ${ordinal} times`;
       }
     }
     const repeatedPerson = inc.people_involved.find(p => repeatedPeople.has(p));
     if (repeatedPerson) {
       const count = allIncidents.filter(i => i.people_involved.includes(repeatedPerson)).length;
-      return `${count} incidents involving ${repeatedPerson}`;
+      return `${repeatedPerson} appears in ${count} records`;
     }
     return null;
   };

@@ -200,30 +200,27 @@ const IncidentDetailScreen = () => {
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
                   {scoring.recordStrength} record
                 </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-[12px]">
-                <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-foreground font-medium">
-                    {scoring.evidenceStrength === 'None' ? 'No attachments yet' : `Attachments: ${scoring.evidenceStrength}`}
-                  </span>
-                </div>
-                <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-foreground font-medium">
-                    {scoring.witnessSupport === 'None' ? 'No witnesses recorded' : `Witnesses: ${scoring.witnessSupport}`}
-                  </span>
-                </div>
-                <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-muted-foreground">Detail:</span> <span className="text-foreground font-medium">{scoring.detailCompleteness}</span>
-                </div>
-                <div className="bg-muted/40 rounded-lg px-3 py-2">
-                  <span className="text-muted-foreground">Occurrence:</span> <span className="text-foreground font-medium">{scoring.repeatOccurrence}</span>
-                </div>
+                <span className="text-[11px] text-muted-foreground ml-auto">{scoring.recordScore}/5</span>
               </div>
               {scoring.strengthPrompts.length > 0 && (
                 <div className="pt-2.5 border-t border-border space-y-1.5">
-                  {scoring.strengthPrompts.map((prompt, i) => (
-                    <p key={i} className="text-[12px] text-primary leading-relaxed">→ {prompt}</p>
-                  ))}
+                  {scoring.strengthPrompts.map((prompt, i) => {
+                    // Make prompts tappable actions
+                    let action: (() => void) | undefined;
+                    if (prompt.includes('attachments') || prompt.includes('Attachment')) action = () => document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
+                    if (prompt.includes('witnesses')) action = () => setShowNoteForm(true);
+                    if (prompt.includes('impact')) action = () => setShowNoteForm(true);
+
+                    return (
+                      <button
+                        key={i}
+                        onClick={action}
+                        className="block text-[12px] text-primary leading-relaxed hover:text-primary/80 transition-colors text-left"
+                      >
+                        → {prompt.replace('Add attachments to strengthen this record', 'Add attachment').replace('Add witnesses if available', 'Add witness').replace('Add impact details if relevant', 'Add impact')}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -251,7 +248,7 @@ const IncidentDetailScreen = () => {
           </div>
         )}
 
-        {/* AI Summary */}
+        {/* Summary */}
         {incident.ai_summary && (
           <div className="bg-muted/20 border border-border/50 rounded-xl p-4">
             <div className="mb-1"><AILabel /></div>
