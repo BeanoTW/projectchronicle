@@ -37,7 +37,7 @@ const FlowFrequencyChart = ({ dates }: Props) => {
       ).length;
 
       data.push({
-        label: format(windowStart, 'dd MMM'),
+        label: format(windowStart, 'MMM yyyy'),
         count,
         windowStart,
       });
@@ -71,6 +71,8 @@ const FlowFrequencyChart = ({ dates }: Props) => {
             tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
             tickLine={false}
             axisLine={false}
+            interval="preserveStartEnd"
+            minTickGap={40}
           />
           <YAxis
             allowDecimals={false}
