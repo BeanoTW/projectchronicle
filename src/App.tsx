@@ -12,6 +12,7 @@ import SignupScreen from "./pages/SignupScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
+import FlowScreen from "./pages/FlowScreen";
 import PatternsScreen from "./pages/InsightsScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";
