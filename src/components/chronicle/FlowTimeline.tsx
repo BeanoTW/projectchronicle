@@ -90,38 +90,43 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     });
   }, [sorted, repeatedPeople]);
 
-  // Identify significant gaps for labels
+  // Gap labels — computed directly from sorted array, strictly between consecutive records
   const gapLabels = useMemo(() => {
-    if (consecutiveGaps.length === 0) return new Map<number, string>();
-    const avg = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
     const labels = new Map<number, string>();
-    consecutiveGaps.forEach((gap, i) => {
-      if (gap >= 14 && gap >= avg * 1.5) {
-        labels.set(i + 1, `${gap}-day gap`);
+    if (sorted.length < 2) return labels;
+
+    // Compute each consecutive gap and label significant ones (≥ 7 days)
+    for (let i = 1; i < sorted.length; i++) {
+      const days = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+      if (days >= 7) {
+        labels.set(i, `${days}-day gap`);
       }
-    });
-    // Same-day clusters
+    }
+
+    // Cluster labels: 3+ records within 2 days of each other
     let clusterStart = -1;
     let clusterCount = 0;
-    consecutiveGaps.forEach((gap, i) => {
-      if (gap <= 2) {
-        if (clusterStart === -1) { clusterStart = i; clusterCount = 2; }
+    for (let i = 1; i < sorted.length; i++) {
+      const days = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+      if (days <= 2) {
+        if (clusterStart === -1) { clusterStart = i - 1; clusterCount = 2; }
         else clusterCount++;
       } else {
         if (clusterCount >= 3) {
-          const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[clusterStart].incident_date));
+          const span = differenceInDays(parseISO(sorted[clusterStart + clusterCount - 1].incident_date), parseISO(sorted[clusterStart].incident_date));
           labels.set(clusterStart, `${clusterCount} in ${span || 1} days`);
         }
         clusterStart = -1;
         clusterCount = 0;
       }
-    });
-    if (clusterCount >= 3) {
-      const span = differenceInDays(parseISO(sorted[sorted.length - 1].incident_date), parseISO(sorted[clusterStart!].incident_date));
-      labels.set(clusterStart!, `${clusterCount} in ${span || 1} days`);
     }
+    if (clusterCount >= 3) {
+      const span = differenceInDays(parseISO(sorted[clusterStart + clusterCount - 1].incident_date), parseISO(sorted[clusterStart].incident_date));
+      labels.set(clusterStart, `${clusterCount} in ${span || 1} days`);
+    }
+
     return labels;
-  }, [consecutiveGaps, sorted]);
+  }, [sorted]);
 
   const selectedIncident = sorted.find(i => i.id === selectedId);
 
