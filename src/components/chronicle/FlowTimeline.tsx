@@ -272,22 +272,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         </span>
       </div>
 
-      {/* Escalation signal – single, prioritised */}
-      {escalation && (
-        <div className="px-1 mt-1">
-          <p className="text-[12px] font-medium text-primary leading-snug">
-            {escalation.headline}
-          </p>
-          <p className="text-[11px] text-muted-foreground/70 leading-snug">
-            {escalation.explanation}
-          </p>
-        </div>
-      )}
-
-      {/* Frequency chart */}
-      {showChart && <FlowFrequencyChart dates={sortedDates} />}
-
-      {/* Selected record preview */}
+      {/* Selected record preview — directly after timeline for immediate feedback */}
       <AnimatePresence>
         {selectedIncident && (
           <motion.div
@@ -322,6 +307,21 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Escalation signal – single, prioritised */}
+      {escalation && (
+        <div className="px-1 mt-1">
+          <p className="text-[12px] font-medium text-primary leading-snug">
+            {escalation.headline}
+          </p>
+          <p className="text-[11px] text-muted-foreground/70 leading-snug">
+            {escalation.explanation}
+          </p>
+        </div>
+      )}
+
+      {/* Frequency chart — supporting context, below interaction */}
+      {showChart && <FlowFrequencyChart dates={sortedDates} />}
     </div>
   );
 };

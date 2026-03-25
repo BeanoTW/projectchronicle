@@ -59,7 +59,8 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/flow" element={<ProtectedRoute><AppLayout><FlowScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/activity" element={<ProtectedRoute><AppLayout><FlowScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/flow" element={<Navigate to="/activity" replace />} />
             <Route path="/patterns" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/insights" element={<ProtectedRoute><AppLayout><PatternsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/attachments" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
