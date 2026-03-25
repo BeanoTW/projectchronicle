@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
+import { useDevMode } from '@/contexts/DevModeContext';
+import { useIncidents, useCreateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
@@ -18,6 +19,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
 import { useUploadEvidence } from '@/hooks/useEvidence';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const categories = [
   'Verbal Comment', 'Written Communication', 'Safety Concern',
@@ -29,8 +34,10 @@ const categories = [
 const RecordScreen = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { devMode, toggleDevMode } = useDevMode();
   const { data: existingIncidents = [] } = useIncidents();
   const createIncident = useCreateIncident();
+  const deleteIncident = useDeleteIncident();
   const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
   const uploadEvidence = useUploadEvidence();
@@ -62,6 +69,25 @@ const RecordScreen = () => {
   const [splitCount, setSplitCount] = useState(1);
   const [splitChecked, setSplitChecked] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+
+  // Dev mode: reset dialog
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [resetting, setResetting] = useState(false);
+
+  // Long press for dev mode
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleLongPressStart = () => {
+    longPressRef.current = setTimeout(() => {
+      toggleDevMode();
+    }, 2500);
+  };
+  const handleLongPressEnd = () => {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  };
 
   // Auto-save draft to localStorage
   const saveDraft = useCallback(() => {
@@ -207,7 +233,7 @@ const RecordScreen = () => {
         impact_note: impactNote || null,
         ai_summary: aiSummary || null,
         title: title || null,
-        record_method: 'text',
+        record_method: mode,
       });
       await createEditHistory.mutateAsync({
         incident_id: result.id,
@@ -248,6 +274,36 @@ const RecordScreen = () => {
       toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetAll = async () => {
+    if (resetConfirmText !== 'RESET') return;
+    setResetting(true);
+    try {
+      // Delete all evidence files from storage
+      const { data: evidenceFiles } = await supabase.from('evidence_files').select('file_path');
+      if (evidenceFiles?.length) {
+        await supabase.storage.from('evidence').remove(evidenceFiles.map(f => f.file_path));
+      }
+      // Delete all evidence records
+      await supabase.from('evidence_files').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete all follow-up notes
+      await supabase.from('follow_up_notes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete all edit history
+      await supabase.from('edit_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Delete all incidents
+      await supabase.from('incidents').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      localStorage.removeItem('chronicle-draft');
+      setShowResetDialog(false);
+      setResetConfirmText('');
+      toast({ title: 'All data reset', description: 'Everything has been cleared.' });
+      navigate('/timeline');
+    } catch (e) {
+      toast({ title: 'Reset failed', description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -300,7 +356,34 @@ const RecordScreen = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24 page-enter">
+    <div className="min-h-screen pb-24 page-enter relative overflow-hidden">
+      {/* Subtle background pattern */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/20" />
+        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-foreground" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+      </div>
+
+      {/* Dev mode indicator */}
+      <AnimatePresence>
+        {devMode && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-1 left-1/2 -translate-x-1/2 z-50 px-2.5 py-0.5 bg-destructive/90 text-destructive-foreground text-[9px] font-bold tracking-widest rounded-full uppercase"
+          >
+            Dev Mode
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <PageHeader
         title="Record"
         subtitle="Take your time — write this in your own words."
@@ -328,289 +411,245 @@ const RecordScreen = () => {
         </div>
       </div>
 
-      {/* Voice Mode */}
-      {mode === 'voice' && (
-        <>
-          <VoiceRecorder
-            onAudioCaptured={async (blob, duration) => {
-              if (!user) return;
-              try {
-                const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: blob.type });
-                await uploadEvidence.mutateAsync({ file, description: `Voice note (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')})` });
-                toast({ title: 'Voice note saved', description: 'Stored as evidence. Transcribing…' });
-
-                setTranscribing(true);
+      <AnimatePresence mode="wait">
+        {/* ========== VOICE MODE ========== */}
+        {mode === 'voice' && (
+          <motion.div
+            key="voice-mode"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+          >
+            <VoiceRecorder
+              onAudioCaptured={async (blob, duration) => {
+                if (!user) return;
                 try {
-                  const formData = new FormData();
-                  formData.append('audio', blob);
-                  const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-                    body: formData,
-                  });
-                  if (error) throw error;
-                  if (data?.transcript && data.transcript !== '[inaudible]') {
-                    setNarrative(prev => prev ? prev + '\n\n' + data.transcript : data.transcript);
-                    setMode('text');
-                    toast({ title: 'Transcript added', description: 'Your words have been added as editable text.' });
-                  } else {
-                    toast({ title: 'Audio saved', description: 'Transcription was not possible — you can add text notes manually.' });
+                  const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: blob.type });
+                  await uploadEvidence.mutateAsync({ file, description: `Voice note (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')})` });
+                  toast({ title: 'Voice note saved', description: 'Stored as evidence. Transcribing…' });
+
+                  setTranscribing(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append('audio', blob);
+                    const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+                      body: formData,
+                    });
+                    if (error) throw error;
+                    if (data?.transcript && data.transcript !== '[inaudible]') {
+                      setNarrative(prev => prev ? prev + '\n\n' + data.transcript : data.transcript);
+                      setMode('text');
+                      toast({ title: 'Transcript added', description: 'Your words have been added as editable text.' });
+                    } else {
+                      toast({ title: 'Audio saved', description: 'Transcription was not possible — you can add text notes manually.' });
+                    }
+                  } catch {
+                    toast({ title: 'Audio saved', description: 'Transcription unavailable — voice note stored as evidence.' });
+                  } finally {
+                    setTranscribing(false);
                   }
                 } catch {
-                  toast({ title: 'Audio saved', description: 'Transcription unavailable — voice note stored as evidence.' });
-                } finally {
-                  setTranscribing(false);
+                  toast({ title: 'Upload failed', description: 'Could not save recording. Please try again.', variant: 'destructive' });
                 }
-              } catch {
-                toast({ title: 'Upload failed', description: 'Could not save recording. Please try again.', variant: 'destructive' });
-              }
-            }}
-            onSwitchToText={() => setMode('text')}
-          />
-          {transcribing && (
-            <div className="px-5 mb-4">
-              <div className="flex items-center gap-2 px-4 py-3 bg-primary/[0.04] border border-primary/10 rounded-xl">
-                <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
-                <p className="text-[12px] text-primary font-medium">Transcribing your recording…</p>
+              }}
+              onSwitchToText={() => setMode('text')}
+            />
+            {transcribing && (
+              <div className="px-5 mb-4">
+                <div className="flex items-center gap-2 px-4 py-3 bg-primary/[0.04] border border-primary/10 rounded-xl">
+                  <Loader2 className="h-4 w-4 text-primary animate-spin flex-shrink-0" />
+                  <p className="text-[12px] text-primary font-medium">Transcribing your recording…</p>
+                </div>
               </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Prompt Cues — only before typing */}
-      {!hasText && (
-        <div className="px-5 mb-4 space-y-3">
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
-              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
-              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
-              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
-              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
-              <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-            You don't need to get this perfect
-          </p>
-        </div>
-      )}
-
-      {/* Pattern Alert */}
-      {similarPatternAlert && (
-        <div className="mx-5 mb-4 px-4 py-3.5 rounded-xl bg-warm-accent/[0.08] border border-warm-accent/25 flex items-start gap-2.5 shadow-sm animate-fade-in">
-          <div className="w-6 h-6 rounded-full bg-warm-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <AlertTriangle className="h-3.5 w-3.5 text-warm-accent" />
-          </div>
-          <div>
-            <p className="text-[13px] text-warm-accent-foreground font-semibold leading-snug">
-              {similarPatternAlert.replace('incidents', 'records')}
-            </p>
-            <p className="text-[11px] text-warm-accent-foreground/60 mt-0.5">Pattern detected from your existing records</p>
-          </div>
-        </div>
-      )}
-
-      <div className="px-5 space-y-5">
-        {/* Narrative Input */}
-        <div className="writing-focus rounded-xl border border-border bg-card transition-all duration-200">
-          <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-4 pt-3 block">
-            Your account
-          </Label>
-          <Textarea
-            id="narrative"
-            value={narrative}
-            onChange={(e) => setNarrative(e.target.value)}
-            placeholder="Write what happened — include anything said, done, or noticed."
-            className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
-          />
-          <div className="flex items-center justify-between px-4 pb-2">
-            {narrative.length > 0 && (
-              <p className="text-[11px] text-muted-foreground/40">{narrative.length} characters</p>
             )}
-            <AnimatePresence>
-              {draftSaved && (
+
+            {/* Helper chips for voice context */}
+            {!hasText && (
+              <div className="px-5 mt-2 mb-4">
+                <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
+                  You don't need to get this perfect
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ========== TEXT MODE ========== */}
+        {mode === 'text' && (
+          <motion.div
+            key="text-mode"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* Prompt Cues — only before typing */}
+            {!hasText && (
+              <div className="px-5 mb-4 space-y-3">
+                <div className="overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
+                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
+                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
+                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
+                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
+                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
+                  You don't need to get this perfect
+                </p>
+              </div>
+            )}
+
+            {/* Pattern Alert */}
+            {similarPatternAlert && (
+              <div className="mx-5 mb-4 px-4 py-3.5 rounded-xl bg-warm-accent/[0.08] border border-warm-accent/25 flex items-start gap-2.5 shadow-sm animate-fade-in">
+                <div className="w-6 h-6 rounded-full bg-warm-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warm-accent" />
+                </div>
+                <div>
+                  <p className="text-[13px] text-warm-accent-foreground font-semibold leading-snug">
+                    {similarPatternAlert.replace('incidents', 'records')}
+                  </p>
+                  <p className="text-[11px] text-warm-accent-foreground/60 mt-0.5">Pattern detected from your existing records</p>
+                </div>
+              </div>
+            )}
+
+            <div className="px-5 space-y-5">
+              {/* Narrative Input */}
+              <div className="writing-focus rounded-xl border border-border bg-card transition-all duration-200">
+                <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-4 pt-3 block">
+                  Your account
+                </Label>
+                <Textarea
+                  id="narrative"
+                  value={narrative}
+                  onChange={(e) => setNarrative(e.target.value)}
+                  placeholder="Write what happened — include anything said, done, or noticed."
+                  className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
+                />
+                <div className="flex items-center justify-between px-4 pb-2">
+                  {narrative.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground/40">{narrative.length} characters</p>
+                  )}
+                  <AnimatePresence>
+                    {draftSaved && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="text-[11px] text-primary/60 font-medium ml-auto"
+                      >
+                        Draft saved
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              {errors.raw_narrative && (
+                <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
+              )}
+
+              {/* Reassurance text */}
+              {hasText && !aiSuggested && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[11px] text-primary/60 font-medium ml-auto"
+                  className="text-[12px] text-muted-foreground/60 text-center -mt-2"
                 >
-                  Draft saved
+                  Approximate is fine · You can edit this later
                 </motion.p>
               )}
-            </AnimatePresence>
-          </div>
-        </div>
-        {errors.raw_narrative && (
-          <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
-        )}
 
-        {/* Reassurance text */}
-        {hasText && !aiSuggested && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-[12px] text-muted-foreground/60 text-center -mt-2"
-          >
-            Approximate is fine · You can edit this later
-          </motion.p>
-        )}
-
-        {/* Structure button — appears when user has typed */}
-        {hasText && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <Button
-              className="w-full rounded-xl h-11 text-[13px] font-medium bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
-              onClick={() => { handleAnalyse(); handleDetectMulti(); }}
-              disabled={analysing}
-            >
-              {analysing ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
-              ) : (
-                'Structure this for you'
-              )}
-            </Button>
-          </motion.div>
-        )}
-
-        {/* === POST-ANALYSIS SECTION === */}
-        {aiSuggested && (
-          <motion.div
-            className="space-y-5"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            {/* AI Summary */}
-            {aiSummary && (
-              <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                <div className="mb-1"><AILabel /></div>
-                <p className="text-[12px] text-muted-foreground mb-2">Structured summary — review before saving</p>
-                <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
-                <button
-                  onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-                  className="text-[12px] text-destructive/60 mt-3 font-medium hover:text-destructive transition-colors"
+              {/* Structure button */}
+              {hasText && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
                 >
-                  Remove summary
-                </button>
-              </div>
-            )}
-
-            {/* AI Relevance */}
-            {aiRelevance.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential relevance</h3>
-                <div className="mb-1"><AILabel /></div>
-                <div className="space-y-2">
-                  {aiRelevance.map((r, i) => (
-                    <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground/40 mt-2.5">Not legal advice. Neutral observations only.</p>
-              </div>
-            )}
-
-            {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
-                <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
-                {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
-              </div>
-              <div>
-                <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
-                <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
-              </div>
-            </div>
-
-            {/* More details — collapsible */}
-            <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
-                {showManualForm || moreDetailsOpen ? (
-                  <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
-                ) : (
-                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually</>
-                )}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                {detailFields}
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Save */}
-            <div className="pt-4 pb-8">
-              <Button
-                onClick={handleSave}
-                disabled={saving || saved || !canSave}
-                className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
-              >
-                {saved ? (
-                  <><Check className="h-4 w-4 mr-2" /> Saved</>
-                ) : saving ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                ) : (
-                  'Save record'
-                )}
-              </Button>
-              {!canSave && hasText && !incidentDate && (
-                <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
-              )}
-              <AnimatePresence>
-                {saved && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.35 }}
-                    className="mt-4 text-center space-y-1"
+                  <Button
+                    className="w-full rounded-xl h-11 text-[13px] font-medium bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                    onClick={() => { handleAnalyse(); handleDetectMulti(); }}
+                    disabled={analysing}
                   >
-                    <p className="text-[14px] text-primary font-semibold">Record saved</p>
-                    <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
+                    {analysing ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
+                    ) : (
+                      'Structure this for you'
+                    )}
+                  </Button>
+                </motion.div>
+              )}
 
-        {/* Fallback manual path — skip analysis */}
-        {!aiSuggested && hasText && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
-              <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
-                {showManualForm || moreDetailsOpen ? (
-                  <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
-                ) : (
-                  <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually instead</>
-                )}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                <div className="space-y-5 mt-2">
+              {/* === POST-ANALYSIS SECTION === */}
+              {aiSuggested && (
+                <motion.div
+                  className="space-y-5"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                >
+                  {aiSummary && (
+                    <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+                      <div className="mb-1"><AILabel /></div>
+                      <p className="text-[12px] text-muted-foreground mb-2">Structured summary — review before saving</p>
+                      <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
+                      <button
+                        onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
+                        className="text-[12px] text-destructive/60 mt-3 font-medium hover:text-destructive transition-colors"
+                      >
+                        Remove summary
+                      </button>
+                    </div>
+                  )}
+
+                  {aiRelevance.length > 0 && (
+                    <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+                      <h3 className="text-[12px] font-semibold text-foreground mb-2">Potential relevance</h3>
+                      <div className="mb-1"><AILabel /></div>
+                      <div className="space-y-2">
+                        {aiRelevance.map((r, i) => (
+                          <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/40 mt-2.5">Not legal advice. Neutral observations only.</p>
+                    </div>
+                  )}
+
+                  {/* Date & Time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="date-manual" className="text-[13px] font-medium">Date *</Label>
+                      <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
                       <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                      <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
+                      <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
                       {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
                     </div>
                     <div>
-                      <Label htmlFor="time-manual" className="text-[13px] font-medium">Time</Label>
+                      <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
                       <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                      <Input id="time-manual" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
+                      <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
                     </div>
                   </div>
-                  {detailFields}
+
+                  <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
+                      {showManualForm || moreDetailsOpen ? (
+                        <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
+                      ) : (
+                        <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually</>
+                      )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                      {detailFields}
+                    </CollapsibleContent>
+                  </Collapsible>
+
+                  {/* Save */}
                   <div className="pt-4 pb-8">
-                     <Button
+                    <Button
                       onClick={handleSave}
                       disabled={saving || saved || !canSave}
                       className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
@@ -641,14 +680,83 @@ const RecordScreen = () => {
                       )}
                     </AnimatePresence>
                   </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+                </motion.div>
+              )}
+
+              {/* Fallback manual path */}
+              {!aiSuggested && hasText && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
+                      {showManualForm || moreDetailsOpen ? (
+                        <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
+                      ) : (
+                        <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually instead</>
+                      )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                      <div className="space-y-5 mt-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="date-manual" className="text-[13px] font-medium">Date *</Label>
+                            <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                            <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
+                            {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
+                          </div>
+                          <div>
+                            <Label htmlFor="time-manual" className="text-[13px] font-medium">Time</Label>
+                            <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                            <Input id="time-manual" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
+                          </div>
+                        </div>
+                        {detailFields}
+                        <div className="pt-4 pb-8">
+                          <Button
+                            onClick={handleSave}
+                            disabled={saving || saved || !canSave}
+                            className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
+                          >
+                            {saved ? (
+                              <><Check className="h-4 w-4 mr-2" /> Saved</>
+                            ) : saving ? (
+                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+                            ) : (
+                              'Save record'
+                            )}
+                          </Button>
+                          {!canSave && hasText && !incidentDate && (
+                            <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
+                          )}
+                          <AnimatePresence>
+                            {saved && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.35 }}
+                                className="mt-4 text-center space-y-1"
+                              >
+                                <p className="text-[14px] text-primary font-semibold">Record saved</p>
+                                <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </motion.div>
+              )}
+            </div>
           </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {/* Reassurance footer — anchored close to input */}
+      {/* Reassurance footer with long-press dev mode trigger */}
       <div className="mt-3 mb-28 mx-5 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm text-center space-y-0.5">
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           {saved
@@ -657,11 +765,35 @@ const RecordScreen = () => {
               ? 'You can edit this later'
               : 'Take your time — you can start with anything'}
         </p>
-        <div className="flex items-center justify-center gap-1">
+        <div
+          className="flex items-center justify-center gap-1 select-none cursor-default"
+          onPointerDown={handleLongPressStart}
+          onPointerUp={handleLongPressEnd}
+          onPointerLeave={handleLongPressEnd}
+        >
           <Heart className="h-2.5 w-2.5 text-primary/30" strokeWidth={1.5} />
           <p className="text-[10px] text-muted-foreground/40">Built with care</p>
         </div>
       </div>
+
+      {/* Dev mode controls */}
+      {devMode && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-5 mb-28 p-4 rounded-xl border-2 border-destructive/20 bg-destructive/[0.03] space-y-3"
+        >
+          <p className="text-[12px] font-bold text-destructive uppercase tracking-wide">Developer Controls</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-destructive border-destructive/20 text-[13px]"
+            onClick={() => setShowResetDialog(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Reset all data
+          </Button>
+        </motion.div>
+      )}
 
       <SplitIncidentModal
         open={splitModalOpen}
@@ -673,6 +805,38 @@ const RecordScreen = () => {
         onKeepSingle={() => setSplitModalOpen(false)}
         onSaveSplit={handleSaveSplit}
       />
+
+      {/* Reset confirmation dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent className="rounded-2xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[16px] text-destructive">Reset all data</AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] leading-relaxed">
+              This will permanently delete all incidents, follow-up notes, and evidence files. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-[12px] font-medium text-foreground">Type RESET to confirm</label>
+            <Input
+              value={resetConfirmText}
+              onChange={e => setResetConfirmText(e.target.value)}
+              placeholder="RESET"
+              className="text-[13px] font-mono"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[13px]" onClick={() => setResetConfirmText('')}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetAll}
+              disabled={resetConfirmText !== 'RESET' || resetting}
+              className="text-[13px] bg-destructive hover:bg-destructive/90"
+            >
+              {resetting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 mr-1.5" />}
+              Delete everything
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
