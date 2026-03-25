@@ -127,6 +127,11 @@ const RightsScreen = () => {
         </div>
       )}
 
+      {/* Get support */}
+      <div className="mx-5 mb-8">
+        <SupportServices incidents={incidents} />
+      </div>
+
       {/* Browse all guidance */}
       <div className="mx-5 pb-4">
         <Accordion type="single" collapsible className="border-none">
