@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
+import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,8 +30,8 @@ const LoginScreen = () => {
   return (
     <div className="flex flex-col min-h-screen px-6 pt-16 bg-background max-w-lg mx-auto">
       <div className="flex flex-col items-center mb-8">
-        <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mb-4">
-          <Shield className="h-7 w-7 text-primary-foreground" />
+        <div className="mb-4">
+          <ChronicleLogo size={56} />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
         <p className="text-sm text-muted-foreground mt-1">Sign in to Project Chronicle</p>
