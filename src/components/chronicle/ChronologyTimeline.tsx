@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, User, Paperclip, StickyNote } from 'lucide-react';
+import { MapPin, User, Paperclip, StickyNote, ChevronRight } from 'lucide-react';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 
@@ -16,7 +16,6 @@ interface Props {
 const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, noteCounts = {}, occurrenceLabel }: Props) => {
   const navigate = useNavigate();
 
-  // Group by month — newest month first (incidents already sorted newest-first)
   const grouped = useMemo(() => {
     const groups: { label: string; items: Incident[] }[] = [];
     let currentMonth = '';
@@ -31,7 +30,6 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
     return groups;
   }, [incidents]);
 
-  // Summary header
   const summary = useMemo(() => {
     const peopleCounts: Record<string, number> = {};
     incidents.forEach(i => i.people_involved.forEach(p => {
@@ -44,6 +42,19 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
 
     return { total: incidents.length, topPerson, topCat };
   }, [incidents]);
+
+  // Format pattern labels per spec
+  const formatPatternLabel = (inc: Incident): string | null => {
+    const raw = occurrenceLabel?.(inc);
+    if (!raw) return null;
+    // "5th occurrence" → "Repeated 5 times"
+    const occMatch = raw.match(/^(\d+)(?:st|nd|rd|th) occurrence$/);
+    if (occMatch) return `Repeated ${occMatch[1]} times`;
+    // "2 incidents involving X" → "X appears in 2 records"
+    const invMatch = raw.match(/^(\d+) incidents involving (.+)$/);
+    if (invMatch) return `${invMatch[2]} appears in ${invMatch[1]} records`;
+    return raw;
+  };
 
   return (
     <div className="space-y-6">
@@ -72,7 +83,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                 const isVoided = !!inc.voided_at;
                 const eCount = evidenceCounts[inc.id] || 0;
                 const nCount = noteCounts[inc.id] || 0;
-                const patternLabel = occurrenceLabel?.(inc);
+                const patternLabel = formatPatternLabel(inc);
 
                 // Time gap label
                 let gapLabel: string | null = null;
@@ -83,13 +94,12 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                     : null;
 
                 if (prevInc) {
-                  // Since newest-first, prevInc is actually newer
                   const days = Math.abs(differenceInDays(
                     parseISO(inc.incident_date),
                     parseISO(prevInc.incident_date)
                   ));
                   if (days >= 3 && days <= 60) {
-                    gapLabel = `${days} days between records`;
+                    gapLabel = `No incidents recorded for ${days} days`;
                   }
                 }
 
@@ -109,15 +119,18 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                         onClick={() => navigate(`/incident/${inc.id}`)}
                         className={`w-full text-left rounded-lg border border-border bg-card px-3.5 py-3 hover:shadow-[var(--shadow-card-hover)] transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''}`}
                       >
-                        {/* Date line */}
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50 mb-1">
-                          <span>{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
-                          {inc.incident_time && <><span>·</span><span>{inc.incident_time}</span></>}
-                          {inc.location && (
-                            <span className="flex items-center gap-0.5">
-                              <MapPin className="h-2.5 w-2.5" /> {inc.location}
-                            </span>
-                          )}
+                        {/* Date line + chevron */}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+                            <span>{format(parseISO(inc.incident_date), 'dd MMM yyyy')}</span>
+                            {inc.incident_time && <><span>·</span><span>{inc.incident_time}</span></>}
+                            {inc.location && (
+                              <span className="flex items-center gap-0.5">
+                                <MapPin className="h-2.5 w-2.5" /> {inc.location}
+                              </span>
+                            )}
+                          </div>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
                         </div>
 
                         {/* Title */}
@@ -144,7 +157,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                         <div className="flex flex-wrap items-center gap-1">
                           {inc.category && <CategoryBadge category={inc.category} />}
                           {patternLabel && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium text-primary/60 border border-primary/15 bg-primary/[0.04]">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
                               {patternLabel}
                             </span>
                           )}
