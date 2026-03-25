@@ -592,12 +592,14 @@ const RecordScreen = () => {
                     <>
                       <Button
                         className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
-                        onClick={() => { handleAnalyse(); handleDetectMulti(); handleSave(); }}
+                        onClick={async () => {
+                          handleDetectMulti();
+                          await handleAnalyse();
+                          // After analysis extracts date, save will be available in post-analysis section
+                        }}
                         disabled={analysing || saving}
                       >
-                        {saving ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                        ) : analysing ? (
+                        {analysing ? (
                           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
                         ) : (
                           'Save record'
@@ -608,7 +610,7 @@ const RecordScreen = () => {
                         disabled={analysing}
                         className="w-full text-center py-2 text-[13px] text-primary/70 font-medium hover:text-primary transition-colors disabled:opacity-40"
                       >
-                        {analysing ? 'Structuring…' : 'Improve structure'}
+                        {analysing ? 'Structuring…' : 'Improve structure first'}
                       </button>
                     </>
                   ) : (
