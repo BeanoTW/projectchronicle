@@ -73,29 +73,23 @@ const InsightsScreen = () => {
       }
     }
 
-    // Gap: pick ONE meaningful gap
+    // Gap: pick ONE meaningful consecutive gap (no statistical suppression)
     if (consecutiveGaps.length > 0) {
-      const avgGap = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
-      // Use median-based outlier detection: allow gaps up to 3x median or 90 days minimum
-      const sortedGaps = [...consecutiveGaps].sort((a, b) => a - b);
-      const median = sortedGaps[Math.floor(sortedGaps.length / 2)];
-      const maxAllowed = Math.max(median * 4, 90);
-
       let chosenGap: { days: number; label: string } | null = null;
 
-      // Priority 1: most recent gap (index 0)
-      if (consecutiveGaps[0] > 14 && consecutiveGaps[0] <= maxAllowed) {
+      // Priority 1: most recent gap (index 0) if > 14 days
+      if (consecutiveGaps[0] > 14) {
         chosenGap = {
           days: consecutiveGaps[0],
           label: 'This is the time between your two most recent records',
         };
       }
 
-      // Fallback: largest valid gap (not extreme outlier)
+      // Priority 2: largest consecutive gap if > 14 days
       if (!chosenGap) {
         let largest = { days: 0, idx: -1 };
         for (let i = 0; i < consecutiveGaps.length; i++) {
-          if (consecutiveGaps[i] > largest.days && consecutiveGaps[i] <= maxAllowed) {
+          if (consecutiveGaps[i] > largest.days) {
             largest = { days: consecutiveGaps[i], idx: i };
           }
         }
