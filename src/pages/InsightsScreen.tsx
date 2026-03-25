@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert } from 'lucide-react';
+import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useInsightsEngine } from '@/hooks/useInsightsEngine';
@@ -20,6 +20,7 @@ const InsightsScreen = () => {
   const {
     summaryLine,
     standoutSignals,
+    patternSignals,
     filteredActivityInsights,
     keyIndividuals,
     shouldSuppressPeopleExplanation,
