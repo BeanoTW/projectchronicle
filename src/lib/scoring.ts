@@ -30,6 +30,11 @@ const SERIOUS_KEYWORDS = [
   'safeguard', 'child', 'vulnerable',
   'retaliat', 'reprisal', 'punish', 'victimis',
   'threat', 'intimidat', 'bully',
+  'stalk', 'follow', 'harass',
+  'theft', 'stolen', 'break-in', 'broke into', 'trespass',
+  'damage', 'vandal', 'destroy',
+  'drunk', 'spiked', 'drugged',
+  'weapon', 'knife', 'armed',
 ];
 
 function detectSeriousFlag(incident: Incident): { flag: boolean; reason: string | null } {
