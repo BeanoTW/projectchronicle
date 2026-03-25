@@ -26,6 +26,7 @@ const TimelineScreen = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
 
   const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
