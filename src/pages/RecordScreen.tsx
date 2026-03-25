@@ -586,6 +586,12 @@ const RecordScreen = () => {
                 <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
               )}
 
+              {/* Attachment row — primary entry point */}
+              <AttachmentRow
+                count={allEvidence.filter(e => !e.incident_id).length + allEvidence.filter(e => !!e.incident_id).length}
+                onViewAttachments={() => setShowLibrary(true)}
+              />
+
               {/* Reassurance text */}
               {hasText && !aiSuggested && (
                 <motion.p
@@ -916,8 +922,8 @@ const RecordScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
-  );
 };
 
 export default RecordScreen;
