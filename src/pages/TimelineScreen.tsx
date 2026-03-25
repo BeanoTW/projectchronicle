@@ -4,7 +4,7 @@ import { CalendarDays, LayoutList, GitBranch, Waypoints } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
-import { useFollowUpNotes } from '@/hooks/useFollowUpNotes';
+import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import ChronologyTimeline from '@/components/chronicle/ChronologyTimeline';
 import FlowTimeline from '@/components/chronicle/FlowTimeline';
