@@ -1,16 +1,21 @@
-import { useMemo } from 'react';
-import { ExternalLink, ArrowRight, BookOpen, FileText, MessageCircle, ShieldCheck, Briefcase } from 'lucide-react';
-import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
+import { useMemo, useState } from 'react';
+import { ExternalLink, ArrowRight } from 'lucide-react';
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
+import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import PageHeader from '@/components/chronicle/PageHeader';
+import RightsHero from '@/components/chronicle/RightsHero';
+import RightsCards from '@/components/chronicle/RightsCards';
+import RightsActions from '@/components/chronicle/RightsActions';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+
+import solidarityImg from '@/assets/rights-solidarity.jpg';
 
 const issueTypeMap: Record<string, string[]> = {
   'Management Conduct': ['management conduct', 'leadership accountability'],
@@ -24,75 +29,17 @@ const issueTypeMap: Record<string, string[]> = {
   'Workplace Meeting': ['workplace communication', 'meeting conduct'],
 };
 
-const guidanceSections = [
-  {
-    id: 'understanding',
-    icon: BookOpen,
-    title: 'Understanding your situation',
-    tint: 'bg-primary/[0.04] border-primary/15',
-    iconBg: 'bg-primary/10 text-primary',
-    points: [
-      'Your records help you see what has been happening over time',
-      'Look for things that come up more than once — people, types of situations, or timeframes',
-      'Understanding your situation is the first step to deciding what to do next',
-    ],
-  },
-  {
-    id: 'documenting',
-    icon: FileText,
-    title: 'How to document clearly',
-    tint: 'bg-info/[0.04] border-info/15',
-    iconBg: 'bg-info/10 text-info',
-    points: [
-      'Write down what happened as soon as possible after each event',
-      'Include dates, times, locations, and who was present',
-      'Use exact wording if you remember what was said',
-      'Keep your account factual — describe what happened, not how you feel about it',
-      'Save any related messages, emails, or documents as attachments',
-    ],
-  },
-  {
-    id: 'grievance',
-    icon: MessageCircle,
-    title: 'Raising a concern or grievance',
-    tint: 'bg-warm-accent/[0.04] border-warm-accent/15',
-    iconBg: 'bg-warm-accent/10 text-warm-accent',
-    points: [
-      'Most workplaces have a grievance or complaints procedure',
-      'You can usually raise concerns informally first, then formally if needed',
-      'Put your concern in writing so there is a clear record',
-      'Keep a copy of everything you send and receive',
-      'You can ask for support from a colleague or union representative',
-    ],
-  },
-  {
-    id: 'protection',
-    icon: ShieldCheck,
-    title: 'Protection from unfair treatment',
-    tint: 'bg-severity-low/[0.04] border-severity-low/15',
-    iconBg: 'bg-severity-low/10 text-severity-low',
-    points: [
-      'Employees have legal protections against unfair treatment at work',
-      'If you raise a concern in good faith, you should not be treated worse as a result',
-      'Keep records of anything that changes after you raise a concern',
-      'If things get worse, this may be relevant to your situation',
-    ],
-  },
-  {
-    id: 'speaking',
-    icon: Briefcase,
-    title: 'Preparing to speak to someone',
-    tint: 'bg-rep/80 border-rep-foreground/15',
-    iconBg: 'bg-rep-foreground/10 text-rep-foreground',
-    points: [
-      'Before meeting HR, a union rep, or an adviser, organise your records',
-      'Use the Export feature to create a structured summary of your incidents',
-      'Focus on facts — what happened, when, and who was involved',
-      'Think about what outcome you would like',
-      'You don\'t need all the answers — an adviser can help you work through options',
-    ],
-  },
-];
+const contextGroups: Record<string, string[]> = {
+  'Work': ['Management Conduct', 'Verbal Comment', 'Written Communication', 'Disciplinary Meeting', 'Pay or Payroll Issue', 'Policy Application', 'Workplace Meeting', 'Scheduling or Shift Change'],
+  'Personal safety': ['Safety Concern'],
+};
+
+const sourceColors: Record<string, string> = {
+  'ACAS': 'bg-primary/[0.08] text-primary border border-primary/[0.12]',
+  'HSE': 'bg-severity-serious/[0.08] text-severity-serious border border-severity-serious/[0.12]',
+  'gov.uk': 'bg-rep text-rep-foreground border border-rep-foreground/[0.12]',
+  'Unite': 'bg-severity-low/[0.08] text-severity-low border border-severity-low/[0.12]',
+};
 
 const RightsScreen = () => {
   const { data: allGuidance = [], isLoading: guidanceLoading } = useRightsGuidance();
@@ -104,33 +51,30 @@ const RightsScreen = () => {
     return cats;
   }, [incidents]);
 
-  const detectedIssueTypes = useMemo(() => {
-    const types = new Set<string>();
+  const groupedRights = useMemo(() => {
+    const groups: Record<string, { category: string; types: string[] }[]> = {};
     userCategories.forEach(cat => {
-      const mapped = issueTypeMap[cat];
-      if (mapped) mapped.forEach(t => types.add(t));
+      const types = issueTypeMap[cat];
+      if (!types) return;
+      const group = Object.entries(contextGroups).find(([, cats]) => cats.includes(cat));
+      const groupName = group ? group[0] : 'General';
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push({ category: cat, types });
     });
-    return Array.from(types);
+    return groups;
   }, [userCategories]);
 
-  const suggestedNextSteps = useMemo(() => {
-    const steps: string[] = [];
-    if (incidents.length >= 1) steps.push('Continue recording incidents as they happen');
-    if (incidents.length >= 3) steps.push('Review the Patterns tab to see what\'s showing up');
-    if (incidents.length >= 2) steps.push('Consider speaking to a union rep or workplace adviser');
-    if (incidents.length >= 5) steps.push('Use Export to create a summary you can share');
-    return steps;
+  const suggestedActions = useMemo(() => {
+    const actions: string[] = [];
+    if (incidents.length >= 1) actions.push('Continue recording incidents as they happen');
+    if (incidents.length >= 2) actions.push('Consider speaking to a union rep or workplace adviser');
+    if (incidents.length >= 3) actions.push('Review Insights to understand what patterns exist');
+    if (incidents.length >= 5) actions.push('Use Export to create a summary you can share');
+    return actions;
   }, [incidents]);
 
   const relevantGuidance = allGuidance.filter(r => userCategories.has(r.incident_category));
   const sortedGuidance = [...allGuidance].sort((a, b) => a.display_order - b.display_order);
-
-  const sourceColors: Record<string, string> = {
-    'ACAS': 'bg-primary/8 text-primary border border-primary/12',
-    'HSE': 'bg-severity-serious/8 text-severity-serious border border-severity-serious/12',
-    'gov.uk': 'bg-rep text-rep-foreground border border-rep-foreground/12',
-    'Unite': 'bg-severity-low/8 text-severity-low border border-severity-low/12',
-  };
 
   if (guidanceLoading || incidentsLoading) {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
@@ -149,124 +93,40 @@ const RightsScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Rights & Guidance" />
 
-      {/* Intro */}
-      <div className="mx-5 mt-3 mb-3 bg-card border border-border rounded-xl p-4">
-        <p className="text-[15px] font-semibold text-foreground mb-1">Understanding your situation</p>
-        <p className="text-[13px] text-muted-foreground leading-relaxed">
-          This helps you understand what your records may relate to and what you can do next.
-        </p>
-      </div>
+      {/* Hero */}
+      <RightsHero />
 
       {/* Disclaimer */}
-      <div className="mx-5 mb-5 px-4 py-2.5 rounded-lg border border-border">
+      <div className="mx-5 mb-6 px-4 py-2.5 rounded-lg border border-border">
         <p className="text-[12px] text-muted-foreground/70 leading-relaxed">
           General information only — not legal advice. Speak to a qualified adviser before taking formal steps.
         </p>
       </div>
 
-      {/* Guidance sections */}
-      <div className="mx-5 mb-5">
-        <Accordion type="multiple" className="space-y-2">
-          {guidanceSections.map(section => {
-            const Icon = section.icon;
-            return (
-              <AccordionItem key={section.id} value={section.id} className={`border rounded-xl overflow-hidden ${section.tint}`}>
-                <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
-                  <span className="flex items-center gap-3">
-                    <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${section.iconBg}`}>
-                      <Icon className="h-3.5 w-3.5" />
-                    </span>
-                    {section.title}
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <ul className="space-y-2.5 ml-10">
-                    {section.points.map((point, i) => (
-                      <li key={i} className="text-[13px] text-body leading-relaxed pl-4 relative">
-                        <span className="absolute left-0 top-[8px] w-1.5 h-1.5 rounded-full bg-muted-foreground/25" />
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+      {/* Your Rights — contextual groups */}
+      {Object.keys(groupedRights).length > 0 && (
+        <div className="mx-5 mb-8">
+          <RightsCards groupedRights={groupedRights} relevantGuidance={relevantGuidance} sourceColors={sourceColors} />
+        </div>
+      )}
+
+      {/* Image break */}
+      <div className="mx-5 mb-8 rounded-2xl overflow-hidden relative h-[120px]">
+        <img src={solidarityImg} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/[0.78] via-background/[0.65] to-background/[0.82]" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <p className="text-[14px] font-medium text-foreground/80 tracking-wide">You are not alone in this</p>
+        </div>
       </div>
 
-      {/* Based on your records */}
-      {detectedIssueTypes.length > 0 && (
-        <div className="mx-5 mb-5">
-          <p className="section-group-title">Based on your records</p>
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-            {/* Summary lines */}
-            {incidents.length > 0 && (
-              <div className="space-y-1">
-                {Array.from(userCategories).slice(0, 2).map(cat => {
-                  const count = incidents.filter(i => i.category === cat).length;
-                  return count >= 2 ? (
-                    <p key={cat} className="text-[13px] text-muted-foreground leading-relaxed">
-                      Your records include repeated <span className="font-medium text-foreground">{cat.toLowerCase()}</span> across multiple entries.
-                    </p>
-                  ) : null;
-                })}
-              </div>
-            )}
-
-            <div className="overflow-x-auto scrollbar-hide -mx-1">
-              <div className="flex gap-1.5 min-w-max px-1">
-                {detectedIssueTypes.map(type => (
-                  <span key={type} className="px-2 py-0.5 rounded text-[11px] font-medium bg-primary/[0.06] text-primary border border-primary/12 capitalize whitespace-nowrap">
-                    {type}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {suggestedNextSteps.length > 0 && (
-              <div className="pt-3 mt-1 border-t border-border">
-                <h3 className="text-[13px] font-semibold text-foreground mb-3">Helpful next steps</h3>
-                <div className="space-y-3">
-                  {suggestedNextSteps.map((step, i) => (
-                    <div key={i} className="flex items-start gap-2.5">
-                      <ArrowRight className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
-                      <p className="text-[13px] text-body leading-relaxed">{step}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+      {/* What you can do */}
+      {suggestedActions.length > 0 && (
+        <div className="mx-5 mb-8">
+          <RightsActions actions={suggestedActions} />
         </div>
       )}
 
-      {/* Relevant external guidance — horizontal scroll cards */}
-      {relevantGuidance.length > 0 && (
-        <div className="mx-5 mb-5">
-          <p className="section-group-title">Relevant to your records</p>
-          <div className="overflow-x-auto scrollbar-hide -mx-1">
-            <div className="flex gap-2.5 min-w-max px-1 pb-2">
-              {relevantGuidance.map(r => (
-                <div key={r.id} className="bg-card border border-border rounded-xl p-4 w-[260px] flex-shrink-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
-                      {r.source}
-                    </span>
-                  </div>
-                  <h3 className="text-[14px] font-medium text-foreground mb-1 line-clamp-2">{r.title}</h3>
-                  {r.description && <p className="text-[12px] text-muted-foreground leading-relaxed mb-2 line-clamp-2">{r.description}</p>}
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-primary font-medium hover:underline">
-                    View guidance <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Browse all — collapsed by default */}
+      {/* Browse all guidance */}
       <div className="mx-5 pb-4">
         <Accordion type="single" collapsible className="border-none">
           <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">
