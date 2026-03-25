@@ -35,78 +35,53 @@ interface Props {
   mostFrequentPerson: string | null;
 }
 
-/* ── Signal derivation ── */
+/* ── Top summary: max 2 lines, human language ── */
 
-interface FlowSignal {
-  key: string;
-  text: string;
-  type: 'neutral' | 'escalation' | 'pause';
-}
+function deriveTopSummary(
+  sorted: Incident[],
+  gaps: number[],
+): { primary: string; secondary: string | null } {
+  if (sorted.length < 2) return { primary: `${sorted.length} record`, secondary: null };
 
-function deriveSignals(
-  sorted: Incident[],       // ASC by date, valid dates only
-  gaps: number[],           // consecutive day gaps (sorted[i] → sorted[i+1])
-): FlowSignal[] {
-  const signals: FlowSignal[] = [];
-  if (sorted.length < 2) return signals;
-
-  // 1. Frequency trend – compare recent vs earlier gaps
+  // Check frequency trend
+  let trending: 'increasing' | 'decreasing' | null = null;
   if (gaps.length >= 4) {
-    const len = gaps.length;
-    const recentAvg = (gaps[len - 1] + gaps[len - 2]) / 2;
-    const earlierAvg = (gaps[len - 3] + gaps[len - 4]) / 2;
-    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) {
-      signals.push({ key: 'trend', text: 'Activity increasing', type: 'escalation' });
-    } else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) {
-      signals.push({ key: 'trend', text: 'Activity decreasing', type: 'neutral' });
-    }
+    const recentAvg = (gaps[gaps.length - 1] + gaps[gaps.length - 2]) / 2;
+    const earlierAvg = (gaps[gaps.length - 3] + gaps[gaps.length - 4]) / 2;
+    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) trending = 'increasing';
+    else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) trending = 'decreasing';
   }
 
-  // 2. Cluster detection – 2+ incidents within 14 days
-  let bestClusterCount = 0;
-  let bestClusterSpan = 0;
-  let clusterStart = 0;
+  // Check clustering
+  let hasCluster = false;
   for (let i = 1; i < sorted.length; i++) {
-    const spanFromStart = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[clusterStart].incident_date));
-    if (spanFromStart <= 14) {
-      const count = i - clusterStart + 1;
-      if (count > bestClusterCount) {
-        bestClusterCount = count;
-        bestClusterSpan = spanFromStart;
-      }
-    } else {
-      clusterStart = i;
-    }
-  }
-  if (bestClusterCount >= 3) {
-    signals.push({
-      key: 'cluster',
-      text: `${bestClusterCount} incidents occurred within ${bestClusterSpan || 1} days`,
-      type: 'escalation',
-    });
-  } else if (bestClusterCount === 2 && bestClusterSpan <= 7) {
-    signals.push({
-      key: 'cluster',
-      text: 'Some incidents happened close together in time',
-      type: 'neutral',
-    });
+    const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+    if (span <= 3) { hasCluster = true; break; }
   }
 
-  // 3. Long pause detection – any consecutive gap ≥ 21 days
-  const longestGap = Math.max(...gaps);
-  if (longestGap >= 21) {
-    // Check if the long pause is followed by recent activity
-    const lastGapIdx = gaps.lastIndexOf(longestGap);
-    const isFollowedByRecent = lastGapIdx < gaps.length - 1;
-    if (isFollowedByRecent) {
-      signals.push({ key: 'pause', text: 'Long pause followed by recent activity', type: 'pause' });
-    } else {
-      signals.push({ key: 'pause', text: 'Long pause between records', type: 'pause' });
-    }
+  // Check long pause followed by recent activity
+  const longestGap = gaps.length > 0 ? Math.max(...gaps) : 0;
+  const longestGapIdx = gaps.indexOf(longestGap);
+  const hasPauseThenRecent = longestGap >= 21 && longestGapIdx < gaps.length - 1;
+
+  // Primary line
+  let primary = `${sorted.length} records over time`;
+  if (trending === 'increasing') primary = 'Activity increasing';
+  else if (hasPauseThenRecent) primary = 'Long pause followed by recent activity';
+  else if (hasCluster) primary = 'Some incidents occurred close together';
+  else if (trending === 'decreasing') primary = 'Activity decreasing';
+
+  // Secondary line
+  let secondary: string | null = null;
+  if (trending === 'increasing' && hasCluster) {
+    secondary = 'Several incidents occurred within a short period';
+  } else if (hasPauseThenRecent && trending === 'increasing') {
+    secondary = 'Recent records are more frequent than before';
+  } else if (sorted.length >= 5) {
+    secondary = `Spanning ${differenceInDays(parseISO(sorted[sorted.length - 1].incident_date), parseISO(sorted[0].incident_date))} days`;
   }
 
-  // Cap at 3 signals
-  return signals.slice(0, 3);
+  return { primary, secondary };
 }
 
 const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
@@ -134,8 +109,8 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     return g;
   }, [sorted]);
 
-  // Interpreted signals (max 3)
-  const signals = useMemo(() => deriveSignals(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
+  // Top summary (max 2 lines, human language)
+  const topSummary = useMemo(() => deriveTopSummary(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
 
   // Single escalation signal
   const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
@@ -147,7 +122,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     return span >= 2;
   }, [sortedDates]);
 
-  // Dot visual data – spacing reflects real time, NO gap labels
+  // Dot visual data
   const dotData = useMemo(() => {
     if (sorted.length === 0) return [];
     const minSpacing = 6;
@@ -162,7 +137,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       const isCluster = gap <= 3 && i > 0;
       const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
       const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
-      // Recent records slightly larger
       const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
       const baseSize = (isCluster ? 14 : 10) + recencyBoost;
 
@@ -170,7 +144,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     });
   }, [sorted, repeatedPeople]);
 
-  // Month markers – limited to ~4-6 evenly spaced anchors
+  // Month markers
   const monthMarkers = useMemo(() => {
     const allMarkers: { index: number; label: string }[] = [];
     let currentMonth = '';
@@ -182,10 +156,8 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       }
     });
 
-    // If ≤5 unique months, show all
     if (allMarkers.length <= 5) return allMarkers;
 
-    // Otherwise pick evenly spaced anchors: first, last, and ~3 in between
     const maxLabels = 5;
     const result: typeof allMarkers = [];
     for (let k = 0; k < maxLabels; k++) {
@@ -200,38 +172,18 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
   const selectedIncident = sorted.find(i => i.id === selectedId);
 
   return (
-    <div className="space-y-4">
-      {/* Interpreted signals – max 3 */}
-      {signals.length > 0 && (
-        <div className="space-y-1.5 px-1">
-          {signals.map(s => (
-            <div
-              key={s.key}
-              className={`text-[12px] leading-snug font-medium ${
-                s.type === 'escalation'
-                  ? 'text-primary'
-                  : s.type === 'pause'
-                    ? 'text-muted-foreground'
-                    : 'text-foreground/70'
-              }`}
-            >
-              {s.text}
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="space-y-5">
+      {/* Top summary — max 2 lines */}
+      <div className="px-1">
+        <p className="text-[14px] font-semibold text-foreground leading-snug">{topSummary.primary}</p>
+        {topSummary.secondary && (
+          <p className="text-[13px] text-muted-foreground leading-snug mt-0.5">{topSummary.secondary}</p>
+        )}
+      </div>
 
-      {/* Fallback if no signals */}
-      {signals.length === 0 && sorted.length >= 2 && (
-        <p className="text-[12px] text-muted-foreground/60 px-1">
-          Activity spread out over time — no strong patterns detected
-        </p>
-      )}
-
-      {/* Horizontal dot timeline – visual only, no gap labels */}
+      {/* Horizontal dot timeline */}
       <div ref={scrollRef} className="overflow-x-auto scrollbar-hide -mx-5 px-5">
         <div className="flex items-end min-w-max pb-6 pt-6 relative">
-          {/* Baseline */}
           <div className="absolute bottom-[22px] left-0 right-0 h-[1.5px] bg-border" />
 
           {dotData.map((d, i) => {
@@ -260,7 +212,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                   />
                 </button>
 
-                {/* Month label */}
                 {monthMarker && (
                   <span className="absolute -bottom-4 text-[9px] text-muted-foreground/50 whitespace-nowrap">
                     {monthMarker.label}
@@ -272,20 +223,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         </div>
       </div>
 
-      {/* Minimal legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/60">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full border border-current" style={{ boxShadow: '0 0 0 1.5px currentColor' }} /> Repeated person
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
-        </span>
-      </div>
-
-      {/* Selected record preview — directly after timeline for immediate feedback */}
+      {/* Selected record preview */}
       <AnimatePresence>
         {selectedIncident && (
           <motion.div
@@ -321,20 +259,33 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         )}
       </AnimatePresence>
 
-      {/* Escalation signal – single, prioritised */}
+      {/* Escalation signal – single, only if clearly supported */}
       {escalation && (
-        <div className="px-1 mt-1">
-          <p className="text-[12px] font-medium text-primary leading-snug">
+        <div className="bg-primary/[0.04] border border-primary/[0.12] rounded-xl px-4 py-3">
+          <p className="text-[13px] font-semibold text-foreground leading-snug">
             {escalation.headline}
           </p>
-          <p className="text-[11px] text-muted-foreground/70 leading-snug">
+          <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
             {escalation.explanation}
           </p>
         </div>
       )}
 
-      {/* Frequency chart — supporting context, below interaction */}
+      {/* Frequency chart — visual confirmation only, no explanation text */}
       {showChart && <FlowFrequencyChart dates={sortedDates} />}
+
+      {/* Minimal legend */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/50">
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full border border-current" style={{ boxShadow: '0 0 0 1.5px currentColor' }} /> Repeated person
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
+        </span>
+      </div>
     </div>
   );
 };
