@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Mic, Keyboard, Loader2, Check, Eye, Pencil, X } from 'lucide-react';
+import { Mic, Keyboard, Loader2, Check, Eye, Pencil, X } from 'lucide-react';
+import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -256,9 +257,9 @@ const OnboardingScreen = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
-              className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-8"
+              className="mb-8"
             >
-              <Shield className="h-7 w-7 text-primary" />
+              <ChronicleLogo size={64} />
             </motion.div>
 
             <motion.h1
