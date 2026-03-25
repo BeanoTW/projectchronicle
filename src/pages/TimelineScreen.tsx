@@ -25,7 +25,7 @@ const categoryFilters = [
 const TimelineScreen = () => {
   const { data: allIncidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
-  const { data: allNotes = [] } = useFollowUpNotes();
+  const { data: allNotes = [] } = useAllFollowUpNotes();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
