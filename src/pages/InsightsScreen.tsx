@@ -73,30 +73,37 @@ const InsightsScreen = () => {
       }
     }
 
-    // Gap: pick ONE meaningful consecutive gap (no statistical suppression)
+    // Gap: pick ONE meaningful consecutive gap
+    // Rules: no statistical suppression, no size-based filtering
+    // Threshold: ≥ 7 days (noise control only)
     if (consecutiveGaps.length > 0) {
       let chosenGap: { days: number; label: string } | null = null;
 
-      // Priority 1: most recent gap (index 0) if > 14 days
-      if (consecutiveGaps[0] > 14) {
-        chosenGap = {
-          days: consecutiveGaps[0],
-          label: 'This is the time between your two most recent records',
-        };
+      // Priority 1: first gap in sequence (most recent first) where gap ≥ 7
+      for (let i = 0; i < consecutiveGaps.length; i++) {
+        if (consecutiveGaps[i] >= 7) {
+          chosenGap = {
+            days: consecutiveGaps[i],
+            label: i === 0
+              ? 'This is the time between your two most recent records'
+              : 'This is the longest gap in your records',
+          };
+          break;
+        }
       }
 
-      // Priority 2: largest consecutive gap if > 14 days
+      // Priority 2: if no gap ≥ 7, take the largest gap in dataset
       if (!chosenGap) {
         let largest = { days: 0, idx: -1 };
         for (let i = 0; i < consecutiveGaps.length; i++) {
-          if (consecutiveGaps[i] > largest.days) {
-            largest = { days: consecutiveGaps[i], idx: i };
-          }
+          if (consecutiveGaps[i] > largest.days) largest = { days: consecutiveGaps[i], idx: i };
         }
-        if (largest.days > 14) {
+        if (largest.days > 0) {
           chosenGap = {
             days: largest.days,
-            label: 'There was a significant pause between entries',
+            label: largest.idx === 0
+              ? 'This is the time between your two most recent records'
+              : 'This is the longest gap in your records',
           };
         }
       }
