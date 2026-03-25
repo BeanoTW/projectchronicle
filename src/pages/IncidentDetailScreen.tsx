@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
+import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
