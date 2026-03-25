@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react';
-import { ExternalLink, ArrowRight } from 'lucide-react';
+import { useMemo } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import PageHeader from '@/components/chronicle/PageHeader';
 import RightsHero from '@/components/chronicle/RightsHero';
-import RightsCards from '@/components/chronicle/RightsCards';
 import RightsActions from '@/components/chronicle/RightsActions';
 import SupportServices from '@/components/chronicle/SupportServices';
+import MentalHealthSection from '@/components/chronicle/MentalHealthSection';
 import {
   Accordion,
   AccordionContent,
@@ -18,28 +18,12 @@ import {
 
 import solidarityImg from '@/assets/rights-solidarity.jpg';
 
-const issueTypeMap: Record<string, string[]> = {
-  'Management Conduct': ['management conduct', 'leadership accountability'],
-  'Verbal Comment': ['workplace communication', 'verbal behaviour'],
-  'Written Communication': ['written communication', 'documentation practices'],
-  'Safety Concern': ['health and safety', 'duty of care'],
-  'Scheduling or Shift Change': ['contractual terms', 'working time'],
-  'Disciplinary Meeting': ['disciplinary procedures', 'procedural fairness'],
-  'Pay or Payroll Issue': ['pay and remuneration', 'contractual entitlements'],
-  'Policy Application': ['workplace policy', 'procedural consistency'],
-  'Workplace Meeting': ['workplace communication', 'meeting conduct'],
-};
-
-const contextGroups: Record<string, string[]> = {
-  'Work': ['Management Conduct', 'Verbal Comment', 'Written Communication', 'Disciplinary Meeting', 'Pay or Payroll Issue', 'Policy Application', 'Workplace Meeting', 'Scheduling or Shift Change'],
-  'Personal safety': ['Safety Concern'],
-};
-
 const sourceColors: Record<string, string> = {
   'ACAS': 'bg-primary/[0.08] text-primary border border-primary/[0.12]',
   'HSE': 'bg-severity-serious/[0.08] text-severity-serious border border-severity-serious/[0.12]',
   'gov.uk': 'bg-rep text-rep-foreground border border-rep-foreground/[0.12]',
   'Unite': 'bg-severity-low/[0.08] text-severity-low border border-severity-low/[0.12]',
+  'NHS': 'bg-info/[0.08] text-info border border-info/[0.12]',
 };
 
 const RightsScreen = () => {
@@ -52,18 +36,15 @@ const RightsScreen = () => {
     return cats;
   }, [incidents]);
 
-  const groupedRights = useMemo(() => {
-    const groups: Record<string, { category: string; types: string[] }[]> = {};
-    userCategories.forEach(cat => {
-      const types = issueTypeMap[cat];
-      if (!types) return;
-      const group = Object.entries(contextGroups).find(([, cats]) => cats.includes(cat));
-      const groupName = group ? group[0] : 'General';
-      if (!groups[groupName]) groups[groupName] = [];
-      groups[groupName].push({ category: cat, types });
-    });
-    return groups;
-  }, [userCategories]);
+  const relevantGuidance = allGuidance.filter(r => userCategories.has(r.incident_category));
+
+  // Work guidance items (structured)
+  const workCategories = [
+    'Management Conduct', 'Verbal Comment', 'Written Communication',
+    'Disciplinary Meeting', 'Pay or Payroll Issue', 'Policy Application',
+    'Workplace Meeting', 'Scheduling or Shift Change', 'Safety Concern',
+  ];
+  const workGuidance = allGuidance.filter(r => workCategories.includes(r.incident_category));
 
   const suggestedActions = useMemo(() => {
     const actions: string[] = [];
@@ -74,8 +55,18 @@ const RightsScreen = () => {
     return actions;
   }, [incidents]);
 
-  const relevantGuidance = allGuidance.filter(r => userCategories.has(r.incident_category));
-  const sortedGuidance = [...allGuidance].sort((a, b) => a.display_order - b.display_order);
+  // Deduplicated browse-all list
+  const deduplicatedGuidance = useMemo(() => {
+    const seen = new Set<string>();
+    return [...allGuidance]
+      .sort((a, b) => a.display_order - b.display_order)
+      .filter(r => {
+        const key = `${r.source}-${r.title}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [allGuidance]);
 
   if (guidanceLoading || incidentsLoading) {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
@@ -94,7 +85,7 @@ const RightsScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Rights & Guidance" />
 
-      {/* Hero */}
+      {/* 1. Hero */}
       <RightsHero />
 
       {/* Disclaimer */}
@@ -104,10 +95,34 @@ const RightsScreen = () => {
         </p>
       </div>
 
-      {/* Your Rights — contextual groups */}
-      {Object.keys(groupedRights).length > 0 && (
+      {/* 2. Relevant to your records (TOP PRIORITY) */}
+      {relevantGuidance.length > 0 && (
         <div className="mx-5 mb-8">
-          <RightsCards groupedRights={groupedRights} relevantGuidance={relevantGuidance} sourceColors={sourceColors} />
+          <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Relevant to your records
+          </p>
+          <div className="space-y-3">
+            {relevantGuidance.slice(0, 6).map(g => (
+              <div key={g.id} className="bg-card border border-border rounded-2xl p-4 shadow-[var(--shadow-card)]">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${sourceColors[g.source] || 'bg-muted text-muted-foreground'}`}>
+                    {g.source}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50">{g.incident_category}</span>
+                </div>
+                <h3 className="text-[15px] font-semibold text-foreground leading-snug mb-0.5">{g.title}</h3>
+                {g.description && (
+                  <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-2 mb-2">{g.description}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground/50 italic mb-2">
+                  Shown because this relates to your records
+                </p>
+                <a href={g.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-medium hover:underline">
+                  View guidance <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -120,28 +135,61 @@ const RightsScreen = () => {
         </div>
       </div>
 
-      {/* What you can do */}
+      {/* 3. Work guidance */}
+      {workGuidance.length > 0 && (
+        <div className="mx-5 mb-8">
+          <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Work
+          </p>
+          <div className="space-y-2">
+            {workGuidance.slice(0, 5).map(g => (
+              <a
+                key={g.id}
+                href={g.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 group"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${sourceColors[g.source] || 'bg-muted text-muted-foreground'}`}>
+                    {g.source}
+                  </span>
+                  <span className="text-[13px] text-foreground group-hover:underline line-clamp-1">{g.title}</span>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 ml-2" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4. Get support */}
+      <div className="mx-5 mb-8">
+        <SupportServices incidents={incidents} />
+      </div>
+
+      {/* 5. Mental health & wellbeing */}
+      <div className="mx-5 mb-8">
+        <MentalHealthSection />
+      </div>
+
+      {/* 6. What you can do */}
       {suggestedActions.length > 0 && (
         <div className="mx-5 mb-8">
           <RightsActions actions={suggestedActions} />
         </div>
       )}
 
-      {/* Get support */}
-      <div className="mx-5 mb-8">
-        <SupportServices incidents={incidents} />
-      </div>
-
-      {/* Browse all guidance */}
+      {/* 7. Browse all guidance (deduplicated) */}
       <div className="mx-5 pb-4">
         <Accordion type="single" collapsible className="border-none">
           <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">
             <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline">
-              Browse all guidance ({sortedGuidance.length})
+              Browse all guidance ({deduplicatedGuidance.length})
             </AccordionTrigger>
             <AccordionContent className="px-4 pb-4">
               <div className="space-y-2">
-                {sortedGuidance.map(r => (
+                {deduplicatedGuidance.map(r => (
                   <div key={r.id} className="border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>

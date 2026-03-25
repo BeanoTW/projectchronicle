@@ -17,6 +17,21 @@ const contextColors: Record<string, string> = {
   general: 'bg-muted text-muted-foreground border-border',
 };
 
+const contextLabels: Record<string, string> = {
+  workplace: 'Work',
+  housing: 'Housing',
+  education: 'Education',
+  safety: 'Safety',
+  wellbeing: 'Wellbeing',
+  general: 'General',
+};
+
+const severityPrefixes: Record<string, string> = {
+  low: 'You may want to explore',
+  moderate: 'It may help to speak to',
+  high: 'You may want to consider contacting',
+};
+
 const SupportServices = ({ incidents }: SupportServicesProps) => {
   const services = useMemo(() => selectServices(incidents), [incidents]);
   const severity = useMemo(() => deriveSeverityLevel(incidents), [incidents]);
@@ -56,15 +71,14 @@ const SupportServices = ({ incidents }: SupportServicesProps) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${contextColors[service.context] || contextColors.general}`}>
-                  {service.context === 'workplace' ? 'Work' :
-                   service.context === 'housing' ? 'Housing' :
-                   service.context === 'education' ? 'Education' :
-                   service.context === 'safety' ? 'Safety' :
-                   service.context === 'wellbeing' ? 'Wellbeing' : 'General'}
+                  {contextLabels[service.context] || 'General'}
                 </span>
               </div>
               <h3 className="text-[15px] font-semibold text-foreground leading-snug">{service.name}</h3>
               <p className="text-[13px] text-muted-foreground leading-relaxed line-clamp-1">{service.description}</p>
+              <p className="text-[11px] text-muted-foreground/50 italic mt-1">
+                Shown because this relates to your records
+              </p>
             </div>
             <ExternalLink className="h-4 w-4 text-muted-foreground/40 flex-shrink-0 ml-3 group-hover:text-primary transition-colors" />
           </motion.a>

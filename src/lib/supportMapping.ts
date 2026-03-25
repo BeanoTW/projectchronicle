@@ -39,10 +39,19 @@ const CATEGORY_CONTEXT: Record<string, ('workplace' | 'housing' | 'education' | 
   'Workplace Meeting':         ['workplace'],
   'Scheduling or Shift Change':['workplace'],
   'Safety Concern':            ['safety'],
+  'Noise Complaint':           ['housing'],
+  'Property Damage':           ['housing'],
+  'Shared Space Dispute':      ['housing'],
+  'Accommodation Issue':       ['housing'],
+  'Academic Misconduct':       ['education'],
+  'Teaching or Supervision':   ['education'],
+  'Antisocial Behaviour':      ['safety'],
+  'Public Safety':             ['safety'],
+  'Transport Incident':        ['safety'],
 };
 
 /* ------------------------------------------------------------------ */
-/*  Serious-keyword detection (same list as scoring.ts)                */
+/*  Serious-keyword detection                                         */
 /* ------------------------------------------------------------------ */
 
 const SAFETY_KEYWORDS = [
@@ -71,7 +80,6 @@ export function deriveSeverityLevel(incidents: Incident[]): SeverityLevel {
   const hasSafety = hasSafetyKeywords(incidents);
   if (hasSafety) return 'high';
 
-  // Check clustering: 3+ incidents within 14 days
   const sorted = [...incidents]
     .filter(i => i.incident_date)
     .sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
@@ -85,7 +93,6 @@ export function deriveSeverityLevel(incidents: Incident[]): SeverityLevel {
     }
   }
 
-  // Repeated category + person → moderate
   if (incidents.length >= 3) return 'moderate';
   if (incidents.length >= 2) {
     const categories = incidents.map(i => i.category).filter(Boolean);
@@ -102,7 +109,7 @@ export function deriveSeverityLevel(incidents: Incident[]): SeverityLevel {
 
 const TONE_MESSAGES: Record<SeverityLevel, string | null> = {
   low: null,
-  moderate: 'You don\u2019t have to deal with this alone',
+  moderate: 'It may help to speak to someone about this',
   high: 'Support is available if you need it',
 };
 
@@ -119,30 +126,23 @@ export function selectServices(incidents: Incident[]): SupportService[] {
 
   const neededContexts = new Set<string>();
 
-  // From categories
   incidents.forEach(i => {
     const contexts = i.category ? CATEGORY_CONTEXT[i.category] : undefined;
     if (contexts) contexts.forEach(c => neededContexts.add(c));
   });
 
-  // Safety keywords override
   if (hasSafetyKeywords(incidents)) {
     neededContexts.add('safety');
   }
 
-  // Wellbeing if high frequency or escalating
   const severity = deriveSeverityLevel(incidents);
   if (severity === 'high' || incidents.length >= 5) {
     neededContexts.add('wellbeing');
   }
 
-  // Always include general
   neededContexts.add('general');
 
-  // If no specific context matched, default to general only
   const selected = SERVICES.filter(s => neededContexts.has(s.context));
-
-  // De-duplicate and cap at 5
   const unique = selected.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
   return unique.slice(0, 5);
 }

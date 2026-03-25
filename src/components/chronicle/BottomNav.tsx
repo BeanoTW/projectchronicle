@@ -19,7 +19,7 @@ const BottomNav = () => {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="mx-3 mb-3 rounded-2xl glass-nav border border-border shadow-[var(--shadow-elevated)]">
-        <div className="grid grid-cols-5 h-[60px] max-w-lg mx-auto">
+        <div className="flex items-center justify-around h-[60px] max-w-lg mx-auto">
           {navItems.map(({ path, label, icon: Icon, primary }) => {
             const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
 
@@ -28,12 +28,12 @@ const BottomNav = () => {
                 <button
                   key={path}
                   onClick={() => navigate(path)}
-                  className="flex flex-col items-center justify-center -mt-4 transition-transform duration-150 active:scale-95"
+                  className="flex flex-col items-center justify-center transition-transform duration-150 active:scale-95"
                 >
-                  <div className="w-[44px] h-[44px] rounded-full bg-primary text-primary-foreground flex items-center justify-center ring-[3px] ring-background shadow-[var(--shadow-card)]">
+                  <div className="w-[42px] h-[42px] rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-[var(--shadow-card)]">
                     <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
                   </div>
-                  <span className="text-[10px] mt-1 font-semibold text-primary">
+                  <span className="text-[10px] mt-0.5 font-semibold text-primary">
                     {label}
                   </span>
                 </button>
