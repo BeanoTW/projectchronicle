@@ -25,6 +25,9 @@ const TimelineScreen = () => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
+
+  const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
 
   useEffect(() => {
     const gap = searchParams.get('gap');
