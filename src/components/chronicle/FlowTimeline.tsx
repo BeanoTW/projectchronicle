@@ -170,18 +170,31 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     });
   }, [sorted, repeatedPeople]);
 
-  // Month markers
+  // Month markers – limited to ~4-6 evenly spaced anchors
   const monthMarkers = useMemo(() => {
-    const markers: { index: number; label: string }[] = [];
+    const allMarkers: { index: number; label: string }[] = [];
     let currentMonth = '';
     sorted.forEach((inc, i) => {
-      const m = format(parseISO(inc.incident_date), 'MMM yy');
+      const m = format(parseISO(inc.incident_date), 'MMM yyyy');
       if (m !== currentMonth) {
-        markers.push({ index: i, label: m });
+        allMarkers.push({ index: i, label: m });
         currentMonth = m;
       }
     });
-    return markers;
+
+    // If ≤5 unique months, show all
+    if (allMarkers.length <= 5) return allMarkers;
+
+    // Otherwise pick evenly spaced anchors: first, last, and ~3 in between
+    const maxLabels = 5;
+    const result: typeof allMarkers = [];
+    for (let k = 0; k < maxLabels; k++) {
+      const idx = Math.round((k / (maxLabels - 1)) * (allMarkers.length - 1));
+      if (!result.find(r => r.index === allMarkers[idx].index)) {
+        result.push(allMarkers[idx]);
+      }
+    }
+    return result;
   }, [sorted]);
 
   const selectedIncident = sorted.find(i => i.id === selectedId);
