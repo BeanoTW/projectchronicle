@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, LayoutList, GitBranch, Waypoints } from 'lucide-react';
+import { CalendarDays, LayoutList, GitBranch } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -12,7 +12,7 @@ import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 
-type ViewMode = 'timeline' | 'chronology' | 'flow';
+type ViewMode = 'timeline' | 'chronology';
 
 const categoryFilters = [
   'all',
@@ -149,7 +149,6 @@ const TimelineScreen = () => {
         <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5">
           {([
             { mode: 'timeline' as ViewMode, icon: LayoutList, label: 'List' },
-            { mode: 'flow' as ViewMode, icon: Waypoints, label: 'Flow' },
             { mode: 'chronology' as ViewMode, icon: GitBranch, label: 'Record' },
           ]).map(({ mode, icon: Icon, label }) => (
             <button
@@ -198,14 +197,7 @@ const TimelineScreen = () => {
       )}
 
       <div className="px-5">
-        {viewMode === 'flow' ? (
-          <FlowTimeline
-            incidents={incidents}
-            repeatedPeople={repeatedPeople}
-            totalIncidents={allIncidents.length}
-            mostFrequentPerson={mostFrequentPerson}
-          />
-        ) : viewMode === 'chronology' ? (
+        {viewMode === 'chronology' ? (
           <ChronologyTimeline
             incidents={incidents}
             isPartOfPattern={isPartOfPattern}

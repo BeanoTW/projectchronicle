@@ -655,7 +655,7 @@ const RecordScreen = () => {
                   {aiSummary && (
                     <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
                       <div className="mb-1"><AILabel /></div>
-                      <p className="text-[12px] text-muted-foreground mb-2">Structured summary — review before saving</p>
+                       <p className="text-[12px] text-muted-foreground mb-2">Review before saving</p>
                       <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
                       <button
                         onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
