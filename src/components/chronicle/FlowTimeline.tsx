@@ -3,6 +3,8 @@ import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
+import FlowFrequencyChart from './FlowFrequencyChart';
+import { deriveEscalationSignal } from '@/lib/flowEscalation';
 
 const categoryColors: Record<string, string> = {
   'Management Conduct': 'hsl(var(--primary))',
@@ -120,6 +122,9 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     [incidents]
   );
 
+  // Parsed dates for chart + escalation
+  const sortedDates = useMemo(() => sorted.map(i => parseISO(i.incident_date)), [sorted]);
+
   // Consecutive gaps
   const consecutiveGaps = useMemo(() => {
     const g: number[] = [];
@@ -131,6 +136,16 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
 
   // Interpreted signals (max 3)
   const signals = useMemo(() => deriveSignals(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
+
+  // Single escalation signal
+  const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
+
+  // Check if chart should render (≥3 records spanning multiple days)
+  const showChart = useMemo(() => {
+    if (sortedDates.length < 3) return false;
+    const span = differenceInDays(sortedDates[sortedDates.length - 1], sortedDates[0]);
+    return span >= 2;
+  }, [sortedDates]);
 
   // Dot visual data – spacing reflects real time, NO gap labels
   const dotData = useMemo(() => {
@@ -256,6 +271,21 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
           <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
         </span>
       </div>
+
+      {/* Escalation signal – single, prioritised */}
+      {escalation && (
+        <div className="px-1 mt-1">
+          <p className="text-[12px] font-medium text-primary leading-snug">
+            {escalation.headline}
+          </p>
+          <p className="text-[11px] text-muted-foreground/70 leading-snug">
+            {escalation.explanation}
+          </p>
+        </div>
+      )}
+
+      {/* Frequency chart */}
+      {showChart && <FlowFrequencyChart dates={sortedDates} />}
 
       {/* Selected record preview */}
       <AnimatePresence>
