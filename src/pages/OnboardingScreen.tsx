@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, Keyboard, Loader2, Check, Eye, Pencil, X } from 'lucide-react';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
@@ -39,14 +39,11 @@ interface SessionIncident {
   record_method: string;
 }
 
-// ─── Onboarding Steps ───
-const STEP_HOOK = 0;
-const STEP_CAPTURE = 1;
-const STEP_PATTERN = 2;
-const STEP_TRUST = 3;
-const STEP_RECORD = 4;
-const STEP_PREVIEW = 5;
-const STEP_SIGNUP = 6;
+// ─── Steps ───
+const STEP_ENTRY = 0;
+const STEP_RECORD = 1;
+const STEP_PREVIEW = 2;
+const STEP_SIGNUP = 3;
 
 const fadeUp = {
   initial: { opacity: 0, y: 10 },
@@ -59,7 +56,7 @@ const OnboardingScreen = () => {
   const navigate = useNavigate();
   const { signUp, signIn } = useAuth();
   const { toast } = useToast();
-  const [step, setStep] = useState(STEP_HOOK);
+  const [step, setStep] = useState(STEP_ENTRY);
 
   // Record state
   const [mode, setMode] = useState<'text' | 'voice'>('text');
@@ -81,16 +78,6 @@ const OnboardingScreen = () => {
 
   // Discard dialog
   const [showDiscard, setShowDiscard] = useState(false);
-
-  // Screen 1 text animation
-  const [showLine2, setShowLine2] = useState(false);
-  useEffect(() => {
-    if (step === STEP_HOOK) {
-      const timer = setTimeout(() => setShowLine2(true), 300);
-      return () => clearTimeout(timer);
-    }
-    setShowLine2(false);
-  }, [step]);
 
   const hasText = narrative.trim().length > 0;
   const canAnalyse = narrative.trim().length >= 20;
@@ -120,15 +107,15 @@ const OnboardingScreen = () => {
   const handleSaveToSession = () => {
     const incident: SessionIncident = {
       raw_narrative: narrative,
-      title: analysis?.title || null,
-      ai_summary: analysis?.summary || null,
+      title: analysis?.title || undefined,
+      ai_summary: analysis?.summary || undefined,
       incident_date: analysis?.incident_date || new Date().toISOString().split('T')[0],
-      incident_time: analysis?.incident_time || null,
-      location: analysis?.location || null,
-      category: analysis?.category || null,
-      severity: analysis?.severity || null,
+      incident_time: analysis?.incident_time || undefined,
+      location: analysis?.location || undefined,
+      category: analysis?.category || undefined,
+      severity: analysis?.severity || undefined,
       people_involved: analysis?.people_involved || [],
-      exact_words: analysis?.exact_words || null,
+      exact_words: analysis?.exact_words || undefined,
       record_method: mode,
     };
     setSessionIncident(incident);
@@ -149,7 +136,6 @@ const OnboardingScreen = () => {
   // ─── Edit (back to record) ───
   const handleEdit = () => {
     setStep(STEP_RECORD);
-    // Keep analysis cached temporarily but don't persist
   };
 
   // ─── Discard ───
@@ -179,13 +165,10 @@ const OnboardingScreen = () => {
       return;
     }
 
-    // Try to sign in immediately (if auto-confirm is on)
     const { error: signInError } = await signIn(email, password);
     if (signInError) {
       setSignupLoading(false);
-      // Email confirmation required
       toast({ title: 'Account created', description: 'Check your email to confirm, then sign in.' });
-      // Store incident for after login
       if (sessionIncident) {
         sessionStorage.setItem('chronicle-pending-incident', JSON.stringify(sessionIncident));
       }
@@ -193,7 +176,6 @@ const OnboardingScreen = () => {
       return;
     }
 
-    // Persist the incident
     if (sessionIncident) {
       try {
         const { data: userData } = await supabase.auth.getUser();
@@ -216,7 +198,7 @@ const OnboardingScreen = () => {
           });
         }
       } catch {
-        // Silent — incident will be lost but user is signed up
+        // Silent
       }
     }
 
@@ -238,159 +220,71 @@ const OnboardingScreen = () => {
     return 'text-foreground';
   };
 
-  // ═══════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════
-
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Subtle background */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/15" />
       </div>
 
       <AnimatePresence mode="wait">
-        {/* ═══ SCREEN 1: HOOK ═══ */}
-        {step === STEP_HOOK && (
-          <motion.div key="hook" {...fadeUp} className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-              className="mb-8"
-            >
-              <ChronicleLogo size={64} />
-            </motion.div>
+        {/* ═══ ENTRY SCREEN ═══ */}
+        {step === STEP_ENTRY && (
+          <motion.div key="entry" {...fadeUp} className="flex flex-col items-center min-h-screen px-8 text-center">
+            <div className="pt-24 mb-8">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ChronicleLogo size={64} />
+              </motion.div>
+            </div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="text-[22px] font-bold text-foreground leading-tight mb-3"
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="text-[22px] font-bold text-foreground leading-tight mb-3 tracking-[-0.01em]"
             >
-              Something didn't feel right.
+              Record it while it's still clear.
             </motion.h1>
 
-            <AnimatePresence>
-              {showLine2 && (
-                <motion.p
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35 }}
-                  className="text-[15px] text-muted-foreground leading-relaxed max-w-[280px]"
-                >
-                  You don't have to remember it later.
-                </motion.p>
-              )}
-            </AnimatePresence>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+              className="text-[14px] text-muted-foreground leading-relaxed max-w-[280px]"
+            >
+              You don't have to piece it together later.
+            </motion.p>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
+              transition={{ delay: 0.4 }}
               className="mt-10 w-full max-w-xs"
             >
               <Button
-                onClick={() => setStep(STEP_CAPTURE)}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
+                onClick={() => setStep(STEP_RECORD)}
+                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground active:scale-[0.97] transition-transform"
               >
-                Start a record
+                Start recording
               </Button>
             </motion.div>
-          </motion.div>
-        )}
 
-        {/* ═══ SCREEN 2: CAPTURE ═══ */}
-        {step === STEP_CAPTURE && (
-          <motion.div key="capture" {...fadeUp} className="flex flex-col items-center justify-center min-h-screen px-8 text-center relative">
-            {/* Faint horizontal line */}
-            <div className="absolute top-1/2 left-0 right-0 h-px bg-border/[0.08]" />
-
-            <h1 className="text-[22px] font-bold text-foreground leading-tight mb-3 relative z-10">
-              Capture what happened
-            </h1>
-            <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[280px] relative z-10">
-              while it's still clear.
-            </p>
-
-            <div className="mt-10 w-full max-w-xs relative z-10">
-              <Button
-                onClick={() => setStep(STEP_PATTERN)}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
-              >
-                Continue
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ═══ SCREEN 3: PATTERN ═══ */}
-        {step === STEP_PATTERN && (
-          <motion.div key="pattern" {...fadeUp} className="flex flex-col items-center justify-center min-h-screen px-8 text-center relative">
-            {/* Thin line with progressive dots */}
-            <div className="absolute top-[46%] left-8 right-8 h-px bg-border/[0.06]" />
-            <motion.div
+            <motion.button
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.15 }}
-              transition={{ delay: 0.2 }}
-              className="absolute top-[46%] left-[25%] w-2 h-2 rounded-full bg-primary -translate-y-1/2"
-            />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.2 }}
-              transition={{ delay: 0.5 }}
-              className="absolute top-[46%] left-[50%] w-2.5 h-2.5 rounded-full bg-primary -translate-y-1/2"
-            />
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.25 }}
-              transition={{ delay: 0.8 }}
-              className="absolute top-[46%] left-[72%] w-3 h-3 rounded-full bg-primary -translate-y-1/2"
-            />
-
-            <h1 className="text-[22px] font-bold text-foreground leading-tight mb-3 relative z-10">
-              Small moments add up.
-            </h1>
-            <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[280px] relative z-10">
-              Patterns become visible.
-            </p>
-
-            <div className="mt-10 w-full max-w-xs relative z-10">
-              <Button
-                onClick={() => setStep(STEP_TRUST)}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
-              >
-                Continue
-              </Button>
-            </div>
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              onClick={() => navigate('/login')}
+              className="mt-6 text-[13px] text-muted-foreground/50 font-medium hover:text-muted-foreground transition-colors"
+            >
+              I already have an account
+            </motion.button>
           </motion.div>
         )}
 
-        {/* ═══ SCREEN 4: TRUST ═══ */}
-        {step === STEP_TRUST && (
-          <motion.div key="trust" {...fadeUp} className="flex flex-col items-center justify-center min-h-screen px-8 text-center">
-            <h1 className="text-[22px] font-bold text-foreground leading-tight mb-3">
-              Your records stay private.
-            </h1>
-            <p className="text-[15px] text-foreground/80 leading-relaxed max-w-[280px]">
-              Always under your control.
-            </p>
-            <p className="text-[12px] text-muted-foreground/50 mt-3 max-w-[260px]">
-              Nothing is shared without your action
-            </p>
-
-            <div className="mt-10 w-full max-w-xs">
-              <Button
-                onClick={() => setStep(STEP_RECORD)}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
-              >
-                Continue
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ═══ SCREEN 5: FIRST RECORD ═══ */}
+        {/* ═══ FIRST RECORD ═══ */}
         {step === STEP_RECORD && (
           <motion.div key="record" {...fadeUp} className="flex flex-col min-h-screen px-5 pt-12 pb-8 max-w-lg mx-auto">
             <h1 className="text-[22px] font-bold text-foreground mb-1">What happened?</h1>
@@ -419,7 +313,7 @@ const OnboardingScreen = () => {
             </div>
 
             {/* Text input */}
-            <div className="writing-focus rounded-xl border border-border bg-card flex-1 min-h-0">
+            <div className="rounded-xl border border-border bg-card flex-1 min-h-0">
               <Textarea
                 value={narrative}
                 onChange={(e) => setNarrative(e.target.value)}
@@ -431,14 +325,13 @@ const OnboardingScreen = () => {
               )}
             </div>
 
-            {/* Helper text */}
             {!hasText && (
               <p className="text-[11px] text-muted-foreground/40 text-center mt-3">
                 No required fields · Just describe what happened
               </p>
             )}
 
-            {/* Analyse CTA */}
+            {/* Actions */}
             <div className="mt-5 space-y-3">
               {analysisFailed && hasText && (
                 <Button
@@ -452,7 +345,7 @@ const OnboardingScreen = () => {
               <Button
                 onClick={handleAnalyse}
                 disabled={!canAnalyse || analysing}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] disabled:opacity-40"
+                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground disabled:opacity-40"
               >
                 {analysing ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analysing…</>
@@ -469,10 +362,9 @@ const OnboardingScreen = () => {
           </motion.div>
         )}
 
-        {/* ═══ SCREEN 6: ANALYSIS PREVIEW ═══ */}
+        {/* ═══ ANALYSIS PREVIEW ═══ */}
         {step === STEP_PREVIEW && analysis && (
           <motion.div key="preview" {...fadeUp} className="flex flex-col min-h-screen px-5 pt-10 pb-8 max-w-lg mx-auto">
-            {/* Preview badge */}
             <div className="flex items-center gap-2 mb-5">
               <Eye className="h-3.5 w-3.5 text-muted-foreground/50" />
               <span className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider">
@@ -481,7 +373,6 @@ const OnboardingScreen = () => {
             </div>
 
             <div className="space-y-4">
-              {/* Title */}
               {analysis.title && (
                 <div>
                   <p className="text-[11px] text-muted-foreground/50 mb-1">Title</p>
@@ -489,40 +380,31 @@ const OnboardingScreen = () => {
                 </div>
               )}
 
-              {/* Summary */}
               {analysis.summary && (
                 <div className="bg-card border border-border rounded-xl p-4">
                   <p className="text-[11px] text-muted-foreground/50 mb-1.5">Summary</p>
-                  <p className="text-[14px] text-body leading-[1.7]">{analysis.summary}</p>
+                  <p className="text-[14px] text-foreground/80 leading-[1.7]">{analysis.summary}</p>
                 </div>
               )}
 
-              {/* Extracted fields */}
               <div className="bg-card border border-border rounded-xl p-4 space-y-3">
                 <p className="text-[11px] text-muted-foreground/50 mb-1">Extracted details</p>
-                
                 {analysis.incident_date && (
                   <div className="flex justify-between items-baseline">
                     <span className="text-[12px] text-muted-foreground">Date</span>
-                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.incident_date)}`}>
-                      {analysis.incident_date}
-                    </span>
+                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.incident_date)}`}>{analysis.incident_date}</span>
                   </div>
                 )}
                 {analysis.incident_time && (
                   <div className="flex justify-between items-baseline">
                     <span className="text-[12px] text-muted-foreground">Time</span>
-                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.incident_time)}`}>
-                      {analysis.incident_time}
-                    </span>
+                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.incident_time)}`}>{analysis.incident_time}</span>
                   </div>
                 )}
                 {analysis.location && (
                   <div className="flex justify-between items-baseline">
                     <span className="text-[12px] text-muted-foreground">Location</span>
-                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.location)}`}>
-                      {analysis.location}
-                    </span>
+                    <span className={`text-[13px] font-medium ${confidenceClass(analysis.location)}`}>{analysis.location}</span>
                   </div>
                 )}
                 {analysis.category && (
@@ -534,13 +416,9 @@ const OnboardingScreen = () => {
                 {analysis.people_involved && analysis.people_involved.length > 0 && (
                   <div className="flex justify-between items-baseline">
                     <span className="text-[12px] text-muted-foreground">People</span>
-                    <span className="text-[13px] font-medium text-foreground">
-                      {analysis.people_involved.join(', ')}
-                    </span>
+                    <span className="text-[13px] font-medium text-foreground">{analysis.people_involved.join(', ')}</span>
                   </div>
                 )}
-
-                {/* Low-confidence warning */}
                 {(!analysis.incident_date && !analysis.location) && (
                   <p className="text-[11px] text-muted-foreground/50 italic pt-1">
                     Some details couldn't be detected — check before saving
@@ -549,27 +427,18 @@ const OnboardingScreen = () => {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="mt-auto pt-6 space-y-3">
               <Button
                 onClick={handleSaveToSession}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)]"
+                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
               >
                 <Check className="h-4 w-4 mr-2" /> Save record
               </Button>
               <div className="flex gap-3">
-                <Button
-                  onClick={handleEdit}
-                  variant="outline"
-                  className="flex-1 h-10 rounded-xl text-[13px] font-medium border-border"
-                >
+                <Button onClick={handleEdit} variant="outline" className="flex-1 h-10 rounded-xl text-[13px] font-medium border-border">
                   <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
                 </Button>
-                <Button
-                  onClick={() => setShowDiscard(true)}
-                  variant="ghost"
-                  className="flex-1 h-10 rounded-xl text-[13px] font-medium text-muted-foreground"
-                >
+                <Button onClick={() => setShowDiscard(true)} variant="ghost" className="flex-1 h-10 rounded-xl text-[13px] font-medium text-muted-foreground">
                   <X className="h-3.5 w-3.5 mr-1.5" /> Discard
                 </Button>
               </div>
@@ -588,23 +457,15 @@ const OnboardingScreen = () => {
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-[var(--shadow-elevated)]"
+                    className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full"
                   >
                     <h3 className="text-[16px] font-bold text-foreground mb-2">Discard this record?</h3>
                     <p className="text-[13px] text-muted-foreground mb-5">This cannot be undone.</p>
                     <div className="flex gap-3">
-                      <Button
-                        onClick={() => setShowDiscard(false)}
-                        variant="outline"
-                        className="flex-1 h-10 rounded-xl text-[13px]"
-                      >
+                      <Button onClick={() => setShowDiscard(false)} variant="outline" className="flex-1 h-10 rounded-xl text-[13px]">
                         Keep editing
                       </Button>
-                      <Button
-                        onClick={handleDiscard}
-                        variant="destructive"
-                        className="flex-1 h-10 rounded-xl text-[13px]"
-                      >
+                      <Button onClick={handleDiscard} variant="destructive" className="flex-1 h-10 rounded-xl text-[13px]">
                         Discard
                       </Button>
                     </div>
@@ -615,10 +476,9 @@ const OnboardingScreen = () => {
           </motion.div>
         )}
 
-        {/* ═══ SCREEN 7: ACCOUNT CREATION ═══ */}
+        {/* ═══ ACCOUNT CREATION ═══ */}
         {step === STEP_SIGNUP && (
           <motion.div key="signup" {...fadeUp} className="flex flex-col min-h-screen px-6 pt-14 pb-8 max-w-lg mx-auto">
-            {/* Save confirmation */}
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -661,7 +521,7 @@ const OnboardingScreen = () => {
               <Button
                 onClick={handleSignup}
                 disabled={signupLoading}
-                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)]"
+                className="w-full h-12 rounded-xl text-[14px] font-semibold bg-primary text-primary-foreground"
               >
                 {signupLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 {signupLoading ? 'Creating account…' : 'Create account'}
