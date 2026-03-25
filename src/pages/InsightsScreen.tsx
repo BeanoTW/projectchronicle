@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, TrendingUp, Clock, AlertCircle } from 'lucide-react';
-import { differenceInDays, parseISO } from 'date-fns';
+import { BarChart3, Users, Clock, AlertCircle } from 'lucide-react';
+import { differenceInDays, parseISO, isValid } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -24,10 +24,24 @@ const InsightsScreen = () => {
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
 
-  const sorted = useMemo(
-    () => [...incidents].sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime()),
-    [incidents]
-  );
+  // Filter to valid-dated records, sorted DESC
+  const sorted = useMemo(() => {
+    return [...incidents]
+      .filter(i => {
+        const d = parseISO(i.incident_date);
+        return isValid(d);
+      })
+      .sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
+  }, [incidents]);
+
+  // Consecutive gaps (DESC order: gap[0] = R0-R1, gap[1] = R1-R2, etc.)
+  const consecutiveGaps = useMemo(() => {
+    const gaps: number[] = [];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      gaps.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i + 1].incident_date)));
+    }
+    return gaps;
+  }, [sorted]);
 
   // --- Activity over time insights ---
   const activityInsights = useMemo(() => {
@@ -35,10 +49,8 @@ const InsightsScreen = () => {
     const results: Insight[] = [];
     const seen = new Set<string>();
 
-    // Ascending for cluster detection
+    // Clustering: 3+ within 7 days (use ascending order)
     const asc = [...sorted].reverse();
-
-    // Clustering: 3+ within 7 days
     for (let i = 0; i < asc.length - 2; i++) {
       const d1 = new Date(asc[i].incident_date).getTime();
       const d3 = new Date(asc[i + 2].incident_date).getTime();
@@ -61,46 +73,59 @@ const InsightsScreen = () => {
       }
     }
 
-    // Gap: between consecutive records (descending order), pick most recent meaningful gap
-    // Skip the gap that includes the most recent record (i=0)
-    let bestGap = { days: 0, index: -1 };
-    for (let i = 1; i < sorted.length - 1; i++) {
-      const gap = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i + 1].incident_date));
-      if (gap > bestGap.days) {
-        bestGap = { days: gap, index: i };
+    // Gap: pick ONE meaningful gap
+    if (consecutiveGaps.length > 0) {
+      const avgGap = consecutiveGaps.reduce((a, b) => a + b, 0) / consecutiveGaps.length;
+
+      // Priority 1: most recent gap (index 0)
+      // Priority 2: largest valid gap
+      let chosenGap: { days: number; label: string } | null = null;
+
+      // Check most recent gap first
+      if (consecutiveGaps[0] > 14 && consecutiveGaps[0] <= avgGap * 2) {
+        chosenGap = {
+          days: consecutiveGaps[0],
+          label: 'This is the time between your two most recent records',
+        };
       }
-    }
-    // Fallback: if no gap found excluding index 0, check index 0 but only if it's not the most recent
-    if (bestGap.days <= 14 && sorted.length >= 2) {
-      const gap0 = differenceInDays(parseISO(sorted[0].incident_date), parseISO(sorted[1].incident_date));
-      if (gap0 > 14 && gap0 > bestGap.days) {
-        bestGap = { days: gap0, index: 0 };
+
+      // Fallback: largest valid gap (not outlier)
+      if (!chosenGap) {
+        let largest = { days: 0, idx: -1 };
+        for (let i = 0; i < consecutiveGaps.length; i++) {
+          if (consecutiveGaps[i] > largest.days && consecutiveGaps[i] <= avgGap * 2) {
+            largest = { days: consecutiveGaps[i], idx: i };
+          }
+        }
+        if (largest.days > 14) {
+          chosenGap = {
+            days: largest.days,
+            label: 'There was a significant pause between entries',
+          };
+        }
       }
-    }
-    if (bestGap.days > 14) {
-      results.push({
-        id: `gap-${bestGap.days}`,
-        fact: `No incidents recorded for ${bestGap.days} days`,
-        explanation: 'There was a significant pause between entries',
-      });
+
+      if (chosenGap) {
+        results.push({
+          id: `gap-${chosenGap.days}`,
+          fact: `No incidents recorded for ${chosenGap.days} days`,
+          explanation: chosenGap.label,
+        });
+      }
     }
 
-    // Frequency trend
-    if (asc.length >= 4) {
-      const mid = Math.floor(asc.length / 2);
-      const firstHalf = asc.slice(0, mid);
-      const secondHalf = asc.slice(mid);
-      const firstSpan = differenceInDays(parseISO(firstHalf[firstHalf.length - 1].incident_date), parseISO(firstHalf[0].incident_date)) || 1;
-      const secondSpan = differenceInDays(parseISO(secondHalf[secondHalf.length - 1].incident_date), parseISO(secondHalf[0].incident_date)) || 1;
-      const firstRate = firstHalf.length / firstSpan;
-      const secondRate = secondHalf.length / secondSpan;
-      if (secondRate > firstRate * 1.5) {
+    // Frequency trend: compare last 2 gaps vs previous 2 gaps
+    if (consecutiveGaps.length >= 4) {
+      const recentAvg = (consecutiveGaps[0] + consecutiveGaps[1]) / 2;
+      const earlierAvg = (consecutiveGaps[2] + consecutiveGaps[3]) / 2;
+
+      if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) {
         results.push({
           id: 'freq-increase',
           fact: 'Records are becoming more frequent',
           explanation: 'Entries are closer together than earlier records',
         });
-      } else if (firstRate > secondRate * 1.5) {
+      } else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) {
         results.push({
           id: 'freq-decrease',
           fact: 'Records are becoming less frequent',
@@ -110,7 +135,7 @@ const InsightsScreen = () => {
     }
 
     return results;
-  }, [sorted]);
+  }, [sorted, consecutiveGaps]);
 
   // --- People ---
   const keyIndividuals = useMemo(() => {
@@ -138,16 +163,13 @@ const InsightsScreen = () => {
   const summaryLine = useMemo(() => {
     const parts: string[] = [];
     parts.push(`${incidents.length} record${incidents.length !== 1 ? 's' : ''}`);
-    
     const freqInsight = activityInsights.find(i => i.id.startsWith('freq-'));
     if (freqInsight) {
-      parts.push(freqInsight.id === 'freq-increase' ? 'Activity increasing' : 'Activity decreasing');
+      parts.push(freqInsight.id === 'freq-increase' ? 'Activity increasing' : 'Activity slowing');
     }
-    
     if (keyIndividuals.length > 0) {
       parts.push(`${keyIndividuals[0].name} appears most`);
     }
-    
     return parts.join(' · ');
   }, [incidents.length, activityInsights, keyIndividuals]);
 
@@ -190,7 +212,6 @@ const InsightsScreen = () => {
       {/* Accordion sections */}
       <div className="mx-5 mb-6">
         <Accordion type="multiple" defaultValue={['activity']} className="space-y-2">
-          {/* Activity over time */}
           {activityInsights.length > 0 && (
             <AccordionItem value="activity" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
@@ -214,7 +235,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* People appearing */}
           {keyIndividuals.length > 0 && (
             <AccordionItem value="people" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
@@ -243,7 +263,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Categories */}
           {categoryPatterns.length > 0 && (
             <AccordionItem value="categories" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
@@ -267,7 +286,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* Things you could add */}
           {dataGaps.length > 0 && (
             <AccordionItem value="gaps" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
               <AccordionTrigger className="px-4 py-3.5 text-[14px] font-medium text-foreground hover:no-underline gap-3">
