@@ -76,7 +76,7 @@ const IncidentDetailScreen = () => {
   };
 
   const handleDelete = async () => {
-    if (incident.locked) {
+    if (incident.locked && !devMode) {
       setShowLockedDeleteDialog(true);
       return;
     }
