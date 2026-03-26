@@ -10,6 +10,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import { generateNarrative } from '@/lib/narrativeEngine';
+import { generateWellnessNarrative } from '@/lib/wellnessNarrative';
 
 const categoryFilters = [
   'all',
@@ -30,6 +31,7 @@ const TimelineScreen = () => {
   const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
 
   const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
+  const wellnessNarrative = useMemo(() => generateWellnessNarrative(allIncidents), [allIncidents]);
 
   useEffect(() => {
     const gap = searchParams.get('gap');
@@ -224,24 +226,12 @@ const TimelineScreen = () => {
 
       {viewMode === 'narrative' && (
         <div className="px-5">
-          {/* Context notes */}
-          {(narrative.context.clusterNote || narrative.context.repeatedIndividuals.length > 0 || narrative.context.dominantCategory) && (
-            <div className="bg-card border border-border rounded-xl p-4 mb-4 space-y-1.5">
-              {narrative.context.clusterNote && (
-                <p className="text-[12px] text-muted-foreground leading-relaxed">{narrative.context.clusterNote}</p>
-              )}
-              {narrative.context.repeatedIndividuals.length > 0 && (
-                <p className="text-[12px] text-muted-foreground leading-relaxed">
-                  {narrative.context.repeatedIndividuals.length === 1
-                    ? `${narrative.context.repeatedIndividuals[0]} appears across multiple entries in this period.`
-                    : `${narrative.context.repeatedIndividuals.join(' and ')} appear across multiple entries in this period.`}
-                </p>
-              )}
-              {narrative.context.dominantCategory && (
-                <p className="text-[12px] text-muted-foreground leading-relaxed">
-                  Several entries relate to {narrative.context.dominantCategory.toLowerCase()}.
-                </p>
-              )}
+          {/* Wellness narrative */}
+          {wellnessNarrative.paragraphs.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-4 mb-5 space-y-2.5">
+              {wellnessNarrative.paragraphs.map((p, i) => (
+                <p key={i} className="text-[13px] text-foreground/80 leading-relaxed">{p}</p>
+              ))}
             </div>
           )}
 
