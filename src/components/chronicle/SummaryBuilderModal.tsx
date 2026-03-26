@@ -412,7 +412,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
       </div>
 
       {/* Footer navigation */}
-      <div className="px-5 py-4 border-t border-border bg-background flex items-center justify-between">
+      <div className="sticky bottom-0 px-5 py-4 pb-8 border-t border-border bg-background flex items-center justify-between">
         {step > 1 ? (
           <Button variant="ghost" size="sm" onClick={() => setStep((step - 1) as 1 | 2)}>
             <ChevronLeft className="h-4 w-4 mr-1" /> Back
