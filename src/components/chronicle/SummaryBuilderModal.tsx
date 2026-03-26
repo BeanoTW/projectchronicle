@@ -422,7 +422,12 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
         )}
 
         {step === 1 && (
-          <Button size="sm" disabled={selectedIds.size === 0} onClick={() => setStep(2)}>
+          <Button
+            size="sm"
+            disabled={selectedIds.size === 0}
+            onClick={() => setStep(2)}
+            className="shadow-lg shadow-black/10"
+          >
             Next <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         )}
