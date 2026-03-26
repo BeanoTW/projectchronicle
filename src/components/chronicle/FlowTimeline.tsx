@@ -71,14 +71,14 @@ function deriveTopSummary(
   else if (hasCluster) primary = 'Some incidents occurred close together';
   else if (trending === 'decreasing') primary = 'Activity decreasing';
 
-  // Secondary line
+  // Secondary line — no numbers, no duplication with escalation
   let secondary: string | null = null;
   if (trending === 'increasing' && hasCluster) {
     secondary = 'Several incidents occurred within a short period';
   } else if (hasPauseThenRecent && trending === 'increasing') {
     secondary = 'Recent records are more frequent than before';
-  } else if (sorted.length >= 5) {
-    secondary = `Spanning ${differenceInDays(parseISO(sorted[sorted.length - 1].incident_date), parseISO(sorted[0].incident_date))} days`;
+  } else if (hasCluster && !hasPauseThenRecent) {
+    secondary = 'Some events are grouped closely together';
   }
 
   return { primary, secondary };

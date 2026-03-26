@@ -71,21 +71,16 @@ export function useInsightsEngine(
     if (sorted.length < 2) return [] as Insight[];
     const results: Insight[] = [];
 
-    // Clustering
+    // Clustering — human language, no numbers
     const asc = [...sorted].reverse();
     for (let i = 0; i < asc.length - 2; i++) {
       const d1 = new Date(asc[i].incident_date).getTime();
       const d3 = new Date(asc[i + 2].incident_date).getTime();
       if (d3 - d1 <= 7 * 86400000) {
-        let count = 3;
-        for (let j = i + 3; j < asc.length; j++) {
-          if (new Date(asc[j].incident_date).getTime() - d1 <= 7 * 86400000) count++;
-          else break;
-        }
         results.push({
-          id: `cluster-${count}`,
-          fact: `${count} records occurred within 7 days`,
-          explanation: 'These events occurred in a short time period',
+          id: 'cluster',
+          fact: 'Several records occurred close together',
+          explanation: 'These events happened within a short time period',
         });
         break;
       }
@@ -272,7 +267,7 @@ export function useInsightsEngine(
     }
 
     // B. Clustering (skip if already in standout)
-    if (!standoutIds.has('cluster-2') && !standoutIds.has('cluster-3') && !standoutIds.has('cluster-4') && !standoutIds.has('cluster-5')) {
+    if (!standoutIds.has('cluster')) {
       const asc = [...sorted].reverse();
       for (let i = 0; i < asc.length - 1; i++) {
         const d1 = new Date(asc[i].incident_date).getTime();

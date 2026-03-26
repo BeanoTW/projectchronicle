@@ -23,6 +23,8 @@ interface Props {
   preSelected?: string[];
 }
 
+type SummaryMode = 'strict' | 'expanded';
+
 const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(preSelected || []));
@@ -31,8 +33,8 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
   const [options, setOptions] = useState<SummaryOptions>({ includePatterns: true, includeNames: true });
   const [editedText, setEditedText] = useState('');
   const [generated, setGenerated] = useState<GeneratedSummary | null>(null);
+  const [mode, setMode] = useState<SummaryMode>('strict');
 
-  // Valid incidents sorted newest first for selection
   const validIncidents = useMemo(() =>
     incidents
       .filter(i => !i.voided_at)
@@ -99,7 +101,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div>
-          <h2 className="text-[18px] font-bold text-foreground">Generate summary</h2>
+          <h2 className="text-[18px] font-bold text-foreground">Build a summary</h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">
             {step === 1 && 'Select incidents'}
             {step === 2 && 'Choose context'}
@@ -123,7 +125,6 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
-              {/* Counter + select all */}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[13px] font-medium text-foreground">
                   {selectedIds.size} incident{selectedIds.size !== 1 ? 's' : ''} selected
@@ -139,7 +140,6 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
                 </p>
               )}
 
-              {/* Incident list */}
               <div className="space-y-2">
                 {validIncidents.map(inc => (
                   <button
@@ -222,6 +222,36 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
 
           {step === 3 && (
             <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
+              {/* Mode toggle */}
+              <div className="flex gap-1.5 mb-3">
+                <button
+                  onClick={() => { setMode('strict'); regenerate(); }}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+                    mode === 'strict'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  Structured summary
+                </button>
+                <button
+                  onClick={() => { setMode('expanded'); }}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+                    mode === 'expanded'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  Expanded narrative
+                </button>
+              </div>
+
+              {mode === 'expanded' && (
+                <p className="text-[11px] text-muted-foreground/60 mb-2 italic">
+                  Editable — you may adjust phrasing freely
+                </p>
+              )}
+
               <div className="flex items-center gap-2 mb-3">
                 <button onClick={copyToClipboard} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-medium">
                   <Copy className="h-3 w-3" /> Copy
@@ -234,8 +264,17 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               <Textarea
                 value={editedText}
                 onChange={e => setEditedText(e.target.value)}
-                className="min-h-[400px] text-[13px] leading-relaxed font-mono border-border bg-card"
+                readOnly={mode === 'strict'}
+                className={`min-h-[400px] text-[13px] leading-relaxed font-mono border-border bg-card ${
+                  mode === 'strict' ? 'opacity-90' : ''
+                }`}
               />
+
+              {mode === 'strict' && (
+                <p className="text-[11px] text-muted-foreground/50 mt-2">
+                  Switch to expanded narrative to edit
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

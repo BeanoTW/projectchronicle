@@ -230,11 +230,13 @@ const TimelineScreen = () => {
               {narrative.context.clusterNote && (
                 <p className="text-[12px] text-muted-foreground leading-relaxed">{narrative.context.clusterNote}</p>
               )}
-              {narrative.context.repeatedIndividuals.map(name => (
-                <p key={name} className="text-[12px] text-muted-foreground leading-relaxed">
-                  {name} appears across multiple entries in this period.
+              {narrative.context.repeatedIndividuals.length > 0 && (
+                <p className="text-[12px] text-muted-foreground leading-relaxed">
+                  {narrative.context.repeatedIndividuals.length === 1
+                    ? `${narrative.context.repeatedIndividuals[0]} appears across multiple entries in this period.`
+                    : `${narrative.context.repeatedIndividuals.join(' and ')} appear across multiple entries in this period.`}
                 </p>
-              ))}
+              )}
               {narrative.context.dominantCategory && (
                 <p className="text-[12px] text-muted-foreground leading-relaxed">
                   Several entries relate to {narrative.context.dominantCategory.toLowerCase()}.
