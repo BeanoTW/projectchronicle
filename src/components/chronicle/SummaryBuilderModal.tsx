@@ -398,11 +398,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
                 readOnly={mode === "strict"}
-                className={`w-full min-h-[400px] text-[14px] leading-7 font-sans whitespace-pre-wrap break-words border-border bg-card ${
-  mode === 'strict' ? 'opacity-90' : ''
-}`}
-${mode === 'strict' ? 'opacity-90' : ''}
-`}
+                className={`min-h-[400px] text-[13px] leading-relaxed font-mono border-border bg-card ${
                   mode === "strict" ? "opacity-90" : ""
                 }`}
               />
