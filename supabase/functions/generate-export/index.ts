@@ -3,11 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 serve(async (req) => {
@@ -21,32 +22,48 @@ serve(async (req) => {
       global: { headers: { authorization: authHeader || "" } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { exportType, incidentId } = await req.json();
 
     // Fetch user's incidents
-    let incidentsQuery = supabase.from('incidents').select('*').order('incident_date', { ascending: true });
+    let incidentsQuery = supabase
+      .from("incidents")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("incident_date", { ascending: true });
+
     if (incidentId) {
-      incidentsQuery = incidentsQuery.eq('id', incidentId);
+      incidentsQuery = incidentsQuery.eq("id", incidentId);
+    }
+    if (incidentId) {
+      incidentsQuery = incidentsQuery.eq("id", incidentId);
     }
     const { data: incidents, error: incError } = await incidentsQuery;
     if (incError) throw incError;
 
     // Fetch evidence
-    const { data: evidence } = await supabase.from('evidence_files').select('*');
+    const { data: evidence } = await supabase.from("evidence_files").select("*");
 
     // Generate HTML content based on export type
-    let htmlContent = '';
-    const title = exportType === 'incident' ? 'Incident Report' :
-                  exportType === 'chronology' ? 'Incident Chronology' :
-                  exportType === 'evidence-index' ? 'Evidence Index' :
-                  'Full Case Bundle';
+    let htmlContent = "";
+    const title =
+      exportType === "incident"
+        ? "Incident Report"
+        : exportType === "chronology"
+          ? "Incident Chronology"
+          : exportType === "evidence-index"
+            ? "Evidence Index"
+            : "Full Case Bundle";
 
     const css = `
       body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1A2332; line-height: 1.6; }
@@ -70,58 +87,70 @@ serve(async (req) => {
       .page-break { page-break-after: always; }
     `;
 
-    if (exportType === 'incident' && incidents?.length === 1) {
+    if (exportType === "incident" && incidents?.length === 1) {
       const inc = incidents[0];
-      const linkedEvidence = evidence?.filter(e => e.incident_id === inc.id) || [];
+      const linkedEvidence = evidence?.filter((e) => e.incident_id === inc.id) || [];
       htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incident Report</title><style>${css}</style></head><body>
         <h1>Incident Report</h1>
-        <p class="meta">Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <h2>${escapeHtml(inc.title || 'Untitled Incident')}</h2>
-        <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? ' at ' + inc.incident_time : ''}${inc.location ? ' — ' + escapeHtml(inc.location) : ''}</p>
-        ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ''}
-        ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ''}
+        <p class="meta">Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <h2>${escapeHtml(inc.title || "Untitled Incident")}</h2>
+        <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}${inc.location ? " — " + escapeHtml(inc.location) : ""}</p>
+        ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
+        ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
         <h3>Account of Incident</h3>
         <div class="narrative">${escapeHtml(inc.raw_narrative)}</div>
-        ${inc.exact_words ? `<h3>Exact Wording Recorded</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ''}
-        ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ''}
-        ${inc.ai_summary ? `<h3>Structured Summary (AI-generated)</h3><p>${escapeHtml(inc.ai_summary)}</p>` : ''}
-        ${inc.people_involved.length > 0 ? `<h3>People Involved</h3><p>${inc.people_involved.map(escapeHtml).join(', ')}</p>` : ''}
-        ${inc.witnesses.length > 0 ? `<h3>Witnesses</h3><p>${inc.witnesses.map(escapeHtml).join(', ')}</p>` : ''}
-        ${linkedEvidence.length > 0 ? `<h3>Evidence (${linkedEvidence.length} file${linkedEvidence.length > 1 ? 's' : ''})</h3>
+        ${inc.exact_words ? `<h3>Exact Wording Recorded</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ""}
+        ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ""}
+        ${inc.ai_summary ? `<h3>Structured Summary (AI-generated)</h3><p>${escapeHtml(inc.ai_summary)}</p>` : ""}
+        ${inc.people_involved.length > 0 ? `<h3>People Involved</h3><p>${inc.people_involved.map(escapeHtml).join(", ")}</p>` : ""}
+        ${inc.witnesses.length > 0 ? `<h3>Witnesses</h3><p>${inc.witnesses.map(escapeHtml).join(", ")}</p>` : ""}
+        ${
+          linkedEvidence.length > 0
+            ? `<h3>Evidence (${linkedEvidence.length} file${linkedEvidence.length > 1 ? "s" : ""})</h3>
         <table><tr><th>Ref</th><th>File</th><th>Type</th><th>Uploaded</th></tr>
-        ${linkedEvidence.map((e, i) => `<tr><td>E-${String(i + 1).padStart(3, '0')}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || 'File')}</td><td>${e.upload_date?.split('T')[0] || ''}</td></tr>`).join('')}
-        </table>` : ''}
+        ${linkedEvidence.map((e, i) => `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td></tr>`).join("")}
+        </table>`
+            : ""
+        }
         <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.</div>
       </body></html>`;
-    } else if (exportType === 'chronology') {
+    } else if (exportType === "chronology") {
       htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incident Chronology</title><style>${css}</style></head><body>
         <h1>Incident Chronology</h1>
-        <p class="meta">Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <p class="meta">Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
         <p class="meta">${incidents?.length || 0} incidents recorded</p>
-        ${incidents?.map(inc => `
+        ${
+          incidents
+            ?.map(
+              (inc) => `
           <div class="card">
-            <p class="meta">${inc.incident_date}${inc.incident_time ? ' at ' + inc.incident_time : ''}</p>
-            <h3>${escapeHtml(inc.title || 'Untitled')}</h3>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ''}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ''}
-            <p style="margin-top:8px;font-size:14px">${escapeHtml(inc.ai_summary || inc.raw_narrative).substring(0, 300)}${(inc.ai_summary || inc.raw_narrative).length > 300 ? '...' : ''}</p>
-            ${inc.people_involved.length > 0 ? `<p class="meta">Involved: ${inc.people_involved.map(escapeHtml).join(', ')}</p>` : ''}
+            <p class="meta">${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}</p>
+            <h3>${escapeHtml(inc.title || "Untitled")}</h3>
+            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
+            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
+            <p style="margin-top:8px;font-size:14px">${escapeHtml(inc.ai_summary || inc.raw_narrative).substring(0, 300)}${(inc.ai_summary || inc.raw_narrative).length > 300 ? "..." : ""}</p>
+            ${inc.people_involved.length > 0 ? `<p class="meta">Involved: ${inc.people_involved.map(escapeHtml).join(", ")}</p>` : ""}
           </div>
-        `).join('') || ''}
+        `,
+            )
+            .join("") || ""
+        }
         <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice.</div>
       </body></html>`;
-    } else if (exportType === 'evidence-index') {
+    } else if (exportType === "evidence-index") {
       const allEvidence = evidence || [];
       htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Evidence Index</title><style>${css}</style></head><body>
         <h1>Evidence Index</h1>
-        <p class="meta">Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-        <p class="meta">${allEvidence.length} evidence file${allEvidence.length !== 1 ? 's' : ''} indexed</p>
+        <p class="meta">Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <p class="meta">${allEvidence.length} evidence file${allEvidence.length !== 1 ? "s" : ""} indexed</p>
         <table>
           <tr><th>Ref</th><th>File Name</th><th>Type</th><th>Uploaded</th><th>Linked Incident</th></tr>
-          ${allEvidence.map((e, i) => {
-            const linked = incidents?.find(inc => inc.id === e.incident_id);
-            return `<tr><td>E-${String(i + 1).padStart(3, '0')}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || 'File')}</td><td>${e.upload_date?.split('T')[0] || ''}</td><td>${linked ? escapeHtml(linked.title || 'Untitled') : '<em>Not linked</em>'}</td></tr>`;
-          }).join('')}
+          ${allEvidence
+            .map((e, i) => {
+              const linked = incidents?.find((inc) => inc.id === e.incident_id);
+              return `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td><td>${linked ? escapeHtml(linked.title || "Untitled") : "<em>Not linked</em>"}</td></tr>`;
+            })
+            .join("")}
         </table>
         <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice.</div>
       </body></html>`;
@@ -132,51 +161,63 @@ serve(async (req) => {
         <div class="cover">
           <h1>Case Bundle</h1>
           <p style="font-size:16px;color:#6B7280;margin-top:16px">Project Chronicle — Workplace Incident Documentation</p>
-          <p style="font-size:14px;color:#6B7280;margin-top:8px">Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <p style="font-size:14px;color:#6B7280;margin-top:8px">Generated: ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
           <p style="font-size:14px;color:#6B7280">${incidents?.length || 0} incidents · ${allEvidence.length} evidence files</p>
         </div>
         <div class="page-break"></div>
 
         <h1>Chronology</h1>
-        ${incidents?.map(inc => `
+        ${
+          incidents
+            ?.map(
+              (inc) => `
           <div class="card">
-            <p class="meta">${inc.incident_date}${inc.incident_time ? ' at ' + inc.incident_time : ''}</p>
-            <h3>${escapeHtml(inc.title || 'Untitled')}</h3>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ''}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ''}
-            <p style="margin-top:8px;font-size:14px">${escapeHtml(inc.ai_summary || inc.raw_narrative).substring(0, 300)}${(inc.ai_summary || inc.raw_narrative).length > 300 ? '...' : ''}</p>
+            <p class="meta">${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}</p>
+            <h3>${escapeHtml(inc.title || "Untitled")}</h3>
+            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
+            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
+            <p style="margin-top:8px;font-size:14px">${escapeHtml(inc.ai_summary || inc.raw_narrative).substring(0, 300)}${(inc.ai_summary || inc.raw_narrative).length > 300 ? "..." : ""}</p>
           </div>
-        `).join('') || ''}
+        `,
+            )
+            .join("") || ""
+        }
         <div class="page-break"></div>
 
         <h1>Evidence Index</h1>
         <table>
           <tr><th>Ref</th><th>File Name</th><th>Type</th><th>Uploaded</th><th>Linked Incident</th></tr>
-          ${allEvidence.map((e, i) => {
-            const linked = incidents?.find(inc => inc.id === e.incident_id);
-            return `<tr><td>E-${String(i + 1).padStart(3, '0')}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || 'File')}</td><td>${e.upload_date?.split('T')[0] || ''}</td><td>${linked ? escapeHtml(linked.title || 'Untitled') : '<em>Not linked</em>'}</td></tr>`;
-          }).join('')}
+          ${allEvidence
+            .map((e, i) => {
+              const linked = incidents?.find((inc) => inc.id === e.incident_id);
+              return `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td><td>${linked ? escapeHtml(linked.title || "Untitled") : "<em>Not linked</em>"}</td></tr>`;
+            })
+            .join("")}
         </table>
         <div class="page-break"></div>
 
         <h1>Full Incident Records</h1>
-        ${incidents?.map(inc => {
-          const linkedEvidence = allEvidence.filter(e => e.incident_id === inc.id);
-          return `
+        ${
+          incidents
+            ?.map((inc) => {
+              const linkedEvidence = allEvidence.filter((e) => e.incident_id === inc.id);
+              return `
           <div class="card">
-            <h2>${escapeHtml(inc.title || 'Untitled Incident')}</h2>
-            <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? ' at ' + inc.incident_time : ''}${inc.location ? ' — ' + escapeHtml(inc.location) : ''}</p>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ''}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ''}
+            <h2>${escapeHtml(inc.title || "Untitled Incident")}</h2>
+            <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}${inc.location ? " — " + escapeHtml(inc.location) : ""}</p>
+            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
+            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
             <h3>Account</h3>
             <div class="narrative">${escapeHtml(inc.raw_narrative)}</div>
-            ${inc.exact_words ? `<h3>Exact Wording</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ''}
-            ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ''}
-            ${inc.ai_summary ? `<h3>AI Summary</h3><p>${escapeHtml(inc.ai_summary)}</p>` : ''}
-            ${inc.people_involved.length > 0 ? `<p class="meta">Involved: ${inc.people_involved.map(escapeHtml).join(', ')}</p>` : ''}
-            ${linkedEvidence.length > 0 ? `<p class="meta">Evidence: ${linkedEvidence.map(e => escapeHtml(e.file_name)).join(', ')}</p>` : ''}
+            ${inc.exact_words ? `<h3>Exact Wording</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ""}
+            ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ""}
+            ${inc.ai_summary ? `<h3>AI Summary</h3><p>${escapeHtml(inc.ai_summary)}</p>` : ""}
+            ${inc.people_involved.length > 0 ? `<p class="meta">Involved: ${inc.people_involved.map(escapeHtml).join(", ")}</p>` : ""}
+            ${linkedEvidence.length > 0 ? `<p class="meta">Evidence: ${linkedEvidence.map((e) => escapeHtml(e.file_name)).join(", ")}</p>` : ""}
           </div>`;
-        }).join('') || ''}
+            })
+            .join("") || ""
+        }
 
         <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.</div>
       </body></html>`;
@@ -186,13 +227,14 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${title.replace(/\s+/g, '_')}.html"`,
+        "Content-Disposition": `attachment; filename="${title.replace(/\s+/g, "_")}.html"`,
       },
     });
   } catch (e) {
     console.error("generate-export error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
