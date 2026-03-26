@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { X, ChevronRight, ChevronLeft, Check, Copy, RefreshCw, FileText } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Check, Copy, RefreshCw, FileText, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,8 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
   const [editedText, setEditedText] = useState('');
   const [generated, setGenerated] = useState<GeneratedSummary | null>(null);
   const [mode, setMode] = useState<SummaryMode>('strict');
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [filterPerson, setFilterPerson] = useState<string | null>(null);
 
   const validIncidents = useMemo(() =>
     incidents
@@ -41,6 +43,24 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
       .sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime()),
     [incidents]
   );
+
+  // Quick filter options
+  const availableCategories = useMemo(() =>
+    [...new Set(validIncidents.map(i => i.category).filter(Boolean))] as string[],
+    [validIncidents]
+  );
+
+  const availablePeople = useMemo(() =>
+    [...new Set(validIncidents.flatMap(i => i.people_involved).filter(Boolean))],
+    [validIncidents]
+  );
+
+  const filteredIncidents = useMemo(() => {
+    let list = validIncidents;
+    if (filterCategory) list = list.filter(i => i.category === filterCategory);
+    if (filterPerson) list = list.filter(i => i.people_involved.includes(filterPerson));
+    return list;
+  }, [validIncidents, filterCategory, filterPerson]);
 
   const selectedIncidents = useMemo(() =>
     validIncidents.filter(i => selectedIds.has(i.id)),
@@ -67,12 +87,22 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
   }, []);
 
   const selectAll = useCallback(() => {
-    if (selectedIds.size === validIncidents.length) {
-      setSelectedIds(new Set());
+    const targetIds = filteredIncidents.map(i => i.id);
+    const allSelected = targetIds.every(id => selectedIds.has(id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        targetIds.forEach(id => next.delete(id));
+        return next;
+      });
     } else {
-      setSelectedIds(new Set(validIncidents.map(i => i.id)));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        targetIds.forEach(id => next.add(id));
+        return next;
+      });
     }
-  }, [validIncidents, selectedIds.size]);
+  }, [filteredIncidents, selectedIds]);
 
   const generate = useCallback(() => {
     const result = buildSummary(selectedIncidents, context, customLabel, options);
@@ -94,7 +124,14 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
     toast.success('Summary regenerated');
   }, [selectedIncidents, context, customLabel, options]);
 
+  const clearFilters = useCallback(() => {
+    setFilterCategory(null);
+    setFilterPerson(null);
+  }, []);
+
   if (!open) return null;
+
+  const hasFilters = filterCategory || filterPerson;
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col">
@@ -125,12 +162,52 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
+              {/* Quick filters */}
+              {(availableCategories.length > 1 || availablePeople.length > 0) && (
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+                    <Filter className="h-3 w-3" /> Quick filters
+                    {hasFilters && (
+                      <button onClick={clearFilters} className="text-primary ml-auto text-[11px]">Clear</button>
+                    )}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {availableCategories.slice(0, 5).map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setFilterCategory(filterCategory === cat ? null : cat)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                          filterCategory === cat
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                    {availablePeople.slice(0, 3).map(person => (
+                      <button
+                        key={person}
+                        onClick={() => setFilterPerson(filterPerson === person ? null : person)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                          filterPerson === person
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted/40 text-muted-foreground hover:bg-muted/60'
+                        }`}
+                      >
+                        {person}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[13px] font-medium text-foreground">
                   {selectedIds.size} incident{selectedIds.size !== 1 ? 's' : ''} selected
                 </p>
                 <button onClick={selectAll} className="text-[12px] text-primary font-medium">
-                  {selectedIds.size === validIncidents.length ? 'Deselect all' : 'Select all'}
+                  {filteredIncidents.every(i => selectedIds.has(i.id)) && filteredIncidents.length > 0 ? 'Deselect all' : 'Select all'}
                 </button>
               </div>
 
@@ -141,7 +218,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               )}
 
               <div className="space-y-2">
-                {validIncidents.map(inc => (
+                {filteredIncidents.map(inc => (
                   <button
                     key={inc.id}
                     onClick={() => toggleId(inc.id)}
@@ -222,6 +299,12 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
 
           {step === 3 && (
             <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
+              {/* Selection info */}
+              <div className="text-[12px] text-muted-foreground mb-3 space-y-0.5">
+                <p className="font-medium text-foreground/70">Based on {selectedIncidents.length} selected incident{selectedIncidents.length !== 1 ? 's' : ''}</p>
+                {dateRange && <p>Date range: {dateRange.from} – {dateRange.to}</p>}
+              </div>
+
               {/* Mode toggle */}
               <div className="flex gap-1.5 mb-3">
                 <button
