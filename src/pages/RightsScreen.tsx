@@ -114,7 +114,7 @@ const RightsScreen = () => {
                   <p className="text-[13px] text-muted-foreground/80 leading-relaxed line-clamp-2 mb-2">{g.description}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground/50 italic mb-2">
-                  Shown because this relates to your records
+                  Based on your records
                 </p>
                 <a href={g.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-medium hover:underline">
                   View guidance <ExternalLink className="h-3 w-3" />

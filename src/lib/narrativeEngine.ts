@@ -117,15 +117,16 @@ function deriveContext(sorted: Incident[]): NarrativeContext {
     }
   }
 
-  // Repeated individuals
+  // Repeated individuals — collapsed to max 2 names
   const peopleCounts: Record<string, number> = {};
   sorted.forEach(i => i.people_involved.forEach(p => {
     peopleCounts[p] = (peopleCounts[p] || 0) + 1;
   }));
-  Object.entries(peopleCounts)
+  const repeatedEntries = Object.entries(peopleCounts)
     .filter(([, c]) => c >= 2)
-    .sort((a, b) => b[1] - a[1])
-    .forEach(([name]) => repeatedIndividuals.push(name));
+    .sort((a, b) => b[1] - a[1]);
+  // Only keep top 2 names to avoid repetitive listing
+  repeatedEntries.slice(0, 2).forEach(([name]) => repeatedIndividuals.push(name));
 
   // Dominant category
   const catCounts: Record<string, number> = {};

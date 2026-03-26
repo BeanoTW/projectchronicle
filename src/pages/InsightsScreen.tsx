@@ -64,7 +64,7 @@ const InsightsScreen = () => {
         >
           <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <div>
-            <p className="text-[13px] font-medium text-foreground">Generate summary</p>
+          <p className="text-[13px] font-medium text-foreground">Build a summary</p>
             <p className="text-[11px] text-muted-foreground">Create a structured narrative from your records</p>
           </div>
         </button>
