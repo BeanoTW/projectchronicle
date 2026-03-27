@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp, Lightbulb, FileText } from 'lucide-react';
+import { BarChart3, Users, Clock, AlertCircle, Zap, ShieldAlert, TrendingUp, Lightbulb, FileText, Search } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useInsightsEngine } from '@/hooks/useInsightsEngine';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
-import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import {
   Accordion,
@@ -13,6 +12,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+
+const previewCategories = [
+  { icon: Users, label: 'Repeated individuals', desc: 'People who appear across multiple records' },
+  { icon: BarChart3, label: 'Common categories', desc: 'Which types of events come up most' },
+  { icon: Clock, label: 'Time clusters', desc: 'Periods where events happened close together' },
+  { icon: AlertCircle, label: 'Records without attachments', desc: 'Events that could be strengthened with evidence' },
+  { icon: ShieldAlert, label: 'Witness presence', desc: 'Which records include or lack witnesses' },
+];
 
 const InsightsScreen = () => {
   const navigate = useNavigate();
@@ -38,11 +45,39 @@ const InsightsScreen = () => {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
 
+  /* ── Empty / insufficient data state ── */
   if (incidents.length < 2) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8"><h1 className="text-[20px] font-semibold text-foreground">What your records show</h1></div>
-        <EmptyState icon={<BarChart3 className="h-10 w-10" />} heading="Not enough data yet" body="Patterns will become clearer as you add more records." />
+        <PageHeader title="What your records show" />
+
+        <div className="px-5 pt-2 pb-4 text-center">
+          <Search className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
+          <h3 className="text-[15px] font-semibold text-foreground mb-1">
+            {incidents.length === 0 ? 'No records yet' : 'One record so far'}
+          </h3>
+          <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
+            Patterns become clearer as you add more records. This screen will highlight what stands out across your entries.
+          </p>
+        </div>
+
+        {/* Preview of what will appear */}
+        <div className="px-5 mt-2">
+          <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
+            What you'll see here
+          </p>
+          <div className="space-y-2.5 opacity-50 pointer-events-none select-none">
+            {previewCategories.map((item, i) => (
+              <div key={i} className="flex items-start gap-3 bg-card border border-border rounded-xl px-4 py-3">
+                <item.icon className="h-4 w-4 text-muted-foreground/60 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-medium text-foreground/70">{item.label}</p>
+                  <p className="text-[12px] text-muted-foreground/60 leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -64,17 +99,16 @@ const InsightsScreen = () => {
         >
           <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <div>
-          <p className="text-[13px] font-medium text-foreground">Build a summary</p>
+            <p className="text-[13px] font-medium text-foreground">Build a summary</p>
             <p className="text-[11px] text-muted-foreground">Create a structured narrative from your records</p>
           </div>
         </button>
       </div>
 
-      {/* Accordion sections — strict hierarchy */}
+      {/* Accordion sections */}
       <div className="mx-5 mb-6">
         <Accordion type="multiple" defaultValue={['standout']} className="space-y-3">
 
-          {/* 1. What stands out (PRIMARY) */}
           {standoutSignals.length > 0 && (
             <AccordionItem value="standout" className="border rounded-xl overflow-hidden bg-accent/[0.06] border-accent/20">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -98,7 +132,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 2. What this may help with (NEW) */}
           {guidanceHints.length > 0 && (
             <AccordionItem value="guidance" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -121,7 +154,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 3. Pattern signals (SECONDARY) */}
           {patternSignals.length > 0 && (
             <AccordionItem value="signals" className="border rounded-xl overflow-hidden bg-accent/[0.04] border-accent/15">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -145,7 +177,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 4. Activity over time */}
           {filteredActivityInsights.length > 0 && (
             <AccordionItem value="activity" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -169,7 +200,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 5. People */}
           {keyIndividuals.length > 0 && (
             <AccordionItem value="people" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -184,14 +214,8 @@ const InsightsScreen = () => {
               <AccordionContent className="px-4 pb-4">
                 <div className="ml-10 space-y-3">
                   {keyIndividuals.map(({ name, count, isTop }) => (
-                    <button
-                      key={name}
-                      onClick={() => navigate(`/timeline?person=${encodeURIComponent(name)}`)}
-                      className="block w-full text-left"
-                    >
-                      <p className="text-[13px] text-foreground font-semibold">
-                        {name} — {count} record{count > 1 ? 's' : ''}
-                      </p>
+                    <button key={name} onClick={() => navigate(`/timeline?person=${encodeURIComponent(name)}`)} className="block w-full text-left">
+                      <p className="text-[13px] text-foreground font-semibold">{name} — {count} record{count > 1 ? 's' : ''}</p>
                       {isTop && !shouldSuppressPeopleExplanation && (
                         <p className="text-[12px] text-muted-foreground/80 mt-0.5">This individual appears more than others in your records</p>
                       )}
@@ -202,7 +226,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 6. Categories */}
           {categoryPatterns.length > 0 && (
             <AccordionItem value="categories" className="border rounded-xl overflow-hidden bg-primary/[0.03] border-primary/15">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -228,7 +251,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 7. Record strength */}
           {recordStrengthInsight && (
             <AccordionItem value="strength" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -248,7 +270,6 @@ const InsightsScreen = () => {
             </AccordionItem>
           )}
 
-          {/* 8. Things you could add */}
           {dataGaps.length > 0 && (
             <AccordionItem value="gaps" className="border rounded-xl overflow-hidden bg-muted/50 border-border">
               <AccordionTrigger className="px-4 py-4 text-[15px] font-semibold text-foreground hover:no-underline gap-3">
@@ -263,11 +284,7 @@ const InsightsScreen = () => {
               <AccordionContent className="px-4 pb-4">
                 <div className="ml-10 space-y-2">
                   {dataGaps.map((gap, i) => (
-                    <button
-                      key={i}
-                      onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)}
-                      className="w-full text-left py-2 hover:opacity-80 transition-opacity"
-                    >
+                    <button key={i} onClick={() => navigate(`/timeline?gap=${gap.filterKey}`)} className="w-full text-left py-2 hover:opacity-80 transition-opacity">
                       <p className="text-[13px] text-foreground">{gap.count} record{gap.count > 1 ? 's' : ''} with {gap.label}</p>
                       <p className="text-[12px] text-primary mt-0.5">{gap.action}</p>
                     </button>
@@ -278,8 +295,8 @@ const InsightsScreen = () => {
           )}
         </Accordion>
 
-      <SummaryBuilderModal open={showSummaryBuilder} onClose={() => setShowSummaryBuilder(false)} incidents={incidents} />
-    </div>
+        <SummaryBuilderModal open={showSummaryBuilder} onClose={() => setShowSummaryBuilder(false)} incidents={incidents} />
+      </div>
     </div>
   );
 };

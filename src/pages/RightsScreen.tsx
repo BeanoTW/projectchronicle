@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { useRightsGuidance } from '@/hooks/useRightsGuidance';
 import { useIncidents } from '@/hooks/useIncidents';
-import EmptyState from '@/components/chronicle/EmptyState';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import PageHeader from '@/components/chronicle/PageHeader';
 import RightsHero from '@/components/chronicle/RightsHero';
@@ -30,6 +29,8 @@ const sourceColors: Record<string, string> = {
 const RightsScreen = () => {
   const { data: allGuidance = [], isLoading: guidanceLoading } = useRightsGuidance();
   const { data: incidents = [], isLoading: incidentsLoading } = useIncidents();
+
+  const hasIncidents = incidents.length > 0;
 
   const userCategories = useMemo(() => {
     const cats = new Set<string>();
@@ -71,20 +72,114 @@ const RightsScreen = () => {
     return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
 
-  if (incidents.length === 0) {
+  /* ── No incidents: show general guidance without false personalisation ── */
+  if (!hasIncidents) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8"><h1>Rights & Guidance</h1></div>
-        <EmptyState icon={<ChronicleLogo size={48} />} heading="No guidance available yet" body="Record your first incident and relevant guidance will appear here." />
+      <div className="min-h-screen bg-background pb-24 page-enter">
+        <PageHeader title="Rights & Guidance" />
+
+        <RightsHero />
+
+        {/* Disclaimer */}
+        <div className="mx-5 mb-7 px-4 py-2.5 rounded-lg border border-border">
+          <p className="text-[12px] text-muted-foreground/70 leading-relaxed">
+            General information only — not legal advice. Speak to a qualified adviser before taking formal steps.
+          </p>
+        </div>
+
+        {/* Context line for empty state */}
+        <div className="mx-5 mb-5">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
+            Below is general workplace guidance. As you add records, this page will highlight the guidance most relevant to your situation.
+          </p>
+        </div>
+
+        {/* Core guidance — general, not personalised */}
+        {workGuidance.length > 0 && (
+          <div className="mx-5 mb-8">
+            <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
+              Core guidance
+            </p>
+            <div className="space-y-2">
+              {workGuidance.slice(0, 6).map(g => (
+                <a
+                  key={g.id}
+                  href={g.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 group"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${sourceColors[g.source] || 'bg-muted text-muted-foreground'}`}>
+                      {g.source}
+                    </span>
+                    <span className="text-[13px] text-foreground group-hover:underline line-clamp-1">{g.title}</span>
+                  </div>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 ml-2" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Image break */}
+        <div className="mx-5 mb-8 rounded-2xl overflow-hidden relative h-[120px]">
+          <img src={solidarityImg} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/[0.78] via-background/[0.65] to-background/[0.82]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-[14px] font-medium text-foreground/80 tracking-wide">You are not alone in this</p>
+          </div>
+        </div>
+
+        {/* Support */}
+        <div className="mx-5 mb-8">
+          <SupportServices incidents={incidents} />
+        </div>
+
+        {/* Mental health */}
+        <div className="mx-5 mb-8">
+          <MentalHealthSection />
+        </div>
+
+        {/* Browse all */}
+        {deduplicatedGuidance.length > 0 && (
+          <div className="mx-5 pb-4">
+            <Accordion type="single" collapsible className="border-none">
+              <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">
+                <AccordionTrigger className="px-4 py-4 text-[14px] font-semibold text-foreground hover:no-underline">
+                  Browse all guidance ({deduplicatedGuidance.length})
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-2">
+                    {deduplicatedGuidance.map(r => (
+                      <div key={r.id} className="border border-border rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${sourceColors[r.source] || 'bg-muted text-muted-foreground'}`}>
+                            {r.source}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/60">{r.incident_category}</span>
+                        </div>
+                        <h3 className="text-[13px] font-medium text-foreground mb-0.5">{r.title}</h3>
+                        <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-medium hover:underline">
+                          View <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        )}
       </div>
     );
   }
 
+  /* ── Has incidents: full personalised view ── */
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Rights & Guidance" />
 
-      {/* 1. Hero */}
       <RightsHero />
 
       {/* Disclaimer */}
@@ -94,7 +189,7 @@ const RightsScreen = () => {
         </p>
       </div>
 
-      {/* 2. Relevant to your records */}
+      {/* Relevant to your records */}
       {relevantGuidance.length > 0 && (
         <div className="mx-5 mb-8">
           <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
@@ -125,7 +220,7 @@ const RightsScreen = () => {
         </div>
       )}
 
-      {/* 3. Contextual signals — "What this may help with" */}
+      {/* Contextual signals */}
       <div className="mx-5 mb-8">
         <RightsContextualSignals incidents={incidents} />
       </div>
@@ -139,12 +234,12 @@ const RightsScreen = () => {
         </div>
       </div>
 
-      {/* 4. Get support */}
+      {/* Support */}
       <div className="mx-5 mb-8">
         <SupportServices incidents={incidents} />
       </div>
 
-      {/* 5. Work guidance */}
+      {/* Work guidance */}
       {workGuidance.length > 0 && (
         <div className="mx-5 mb-8">
           <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-4">
@@ -152,13 +247,7 @@ const RightsScreen = () => {
           </p>
           <div className="space-y-2">
             {workGuidance.slice(0, 5).map(g => (
-              <a
-                key={g.id}
-                href={g.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 group"
-              >
+              <a key={g.id} href={g.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3 group">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${sourceColors[g.source] || 'bg-muted text-muted-foreground'}`}>
                     {g.source}
@@ -172,19 +261,19 @@ const RightsScreen = () => {
         </div>
       )}
 
-      {/* 6. Mental health & wellbeing */}
+      {/* Mental health */}
       <div className="mx-5 mb-8">
         <MentalHealthSection />
       </div>
 
-      {/* 7. What you can do */}
+      {/* What you can do */}
       {suggestedActions.length > 0 && (
         <div className="mx-5 mb-8">
           <RightsActions actions={suggestedActions} />
         </div>
       )}
 
-      {/* 8. Browse all guidance */}
+      {/* Browse all */}
       <div className="mx-5 pb-4">
         <Accordion type="single" collapsible className="border-none">
           <AccordionItem value="browse-all" className="border rounded-xl overflow-hidden bg-card">

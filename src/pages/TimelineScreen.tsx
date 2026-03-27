@@ -5,7 +5,6 @@ import { useSearchParams } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
-import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
@@ -18,6 +17,13 @@ const categoryFilters = [
   'Scheduling or Shift Change', 'Disciplinary Meeting',
   'Management Conduct', 'Pay or Payroll Issue',
   'Policy Application', 'Workplace Meeting', 'Other',
+];
+
+/* ── Muted example cards for empty state ── */
+const exampleCards = [
+  { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Management Conduct' },
+  { title: 'Verbal comment from colleague', date: '22 Jan 2025', category: 'Verbal Comment' },
+  { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Scheduling or Shift Change' },
 ];
 
 const TimelineScreen = () => {
@@ -41,7 +47,6 @@ const TimelineScreen = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Newest-first
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
     if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
@@ -52,7 +57,6 @@ const TimelineScreen = () => {
     return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
   }, [allIncidents, filterCategory, gapFilter, allEvidence]);
 
-  // Pattern detection
   const repeatedCategories = useMemo(() => {
     const catCounts: Record<string, number> = {};
     allIncidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
@@ -87,7 +91,6 @@ const TimelineScreen = () => {
     return null;
   };
 
-  // Grouped by month
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
     incidents.forEach(inc => {
@@ -106,15 +109,40 @@ const TimelineScreen = () => {
     );
   }
 
-  if (incidents.length === 0 && filterCategory === 'all') {
+  /* ── Empty state ── */
+  if (allIncidents.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8"><h1>Timeline</h1></div>
-        <EmptyState
-          icon={<CalendarDays className="h-10 w-10" />}
-          heading="No incidents yet"
-          body="Your timeline will appear here as you record incidents."
-        />
+        <PageHeader title="Timeline" subtitle="Your record over time" />
+
+        <div className="px-5 pt-2 pb-4 text-center">
+          <CalendarDays className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
+          <h3 className="text-[15px] font-semibold text-foreground mb-1">No records yet</h3>
+          <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
+            Your timeline will show events in order as you record them. Each entry is preserved exactly as you wrote it.
+          </p>
+        </div>
+
+        {/* Preview example cards */}
+        <div className="px-5 mt-2">
+          <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
+            Example of how records appear
+          </p>
+          <div className="space-y-2.5 opacity-50 pointer-events-none select-none">
+            {exampleCards.map((card, i) => (
+              <div
+                key={i}
+                className="bg-card border border-border rounded-xl px-4 py-3"
+              >
+                <p className="text-[11px] text-muted-foreground/60 mb-0.5">{card.date}</p>
+                <p className="text-[13px] font-medium text-foreground/70">{card.title}</p>
+                <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                  {card.category}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -125,7 +153,7 @@ const TimelineScreen = () => {
         <button
           onClick={() => setShowSummaryBuilder(true)}
           className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors"
-          aria-label="Generate summary"
+          aria-label="Build a summary"
         >
           <FileText className="h-[18px] w-[18px]" strokeWidth={1.5} />
         </button>
@@ -176,7 +204,6 @@ const TimelineScreen = () => {
 
       {viewMode === 'timeline' && (
         <>
-          {/* Category chips */}
           <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
             <div className="flex gap-1.5 min-w-max">
               {categoryFilters.map(c => (
@@ -195,38 +222,43 @@ const TimelineScreen = () => {
             </div>
           </div>
 
-          <div className="px-5">
-            <div className="pl-6 timeline-spine space-y-6">
-              {Object.entries(grouped).map(([month, items]) => (
-                <div key={month}>
-                  <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
-                  <div className="space-y-3">
-                    {items.map(inc => {
-                      const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
-                      return (
-                        <div key={inc.id} className="timeline-node">
-                          <IncidentCard
-                            incident={inc}
-                            showPatternLabel={isPartOfPattern(inc)}
-                            occurrenceLabel={getOccurrenceLabel(inc)}
-                            attachmentCount={attachmentCount}
-                            compact
-                            expandable
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+          {incidents.length === 0 ? (
+            <div className="px-5 py-12 text-center">
+              <p className="text-[13px] text-muted-foreground">No records match this filter.</p>
             </div>
-          </div>
+          ) : (
+            <div className="px-5">
+              <div className="pl-6 timeline-spine space-y-6">
+                {Object.entries(grouped).map(([month, items]) => (
+                  <div key={month}>
+                    <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
+                    <div className="space-y-3">
+                      {items.map(inc => {
+                        const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
+                        return (
+                          <div key={inc.id} className="timeline-node">
+                            <IncidentCard
+                              incident={inc}
+                              showPatternLabel={isPartOfPattern(inc)}
+                              occurrenceLabel={getOccurrenceLabel(inc)}
+                              attachmentCount={attachmentCount}
+                              compact
+                              expandable
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
       {viewMode === 'narrative' && (
         <div className="px-5">
-          {/* Wellness narrative */}
           {wellnessNarrative.paragraphs.length > 0 && (
             <div className="bg-card border border-border rounded-xl p-4 mb-5 space-y-2.5">
               {wellnessNarrative.paragraphs.map((p, i) => (
@@ -235,7 +267,6 @@ const TimelineScreen = () => {
             </div>
           )}
 
-          {/* Narrative entries */}
           <div className="space-y-3">
             {narrative.entries.map((entry, i) => (
               <p key={entry.id} className="text-[13px] text-foreground leading-relaxed">
