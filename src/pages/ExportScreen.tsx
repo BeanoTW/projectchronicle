@@ -3,41 +3,50 @@ import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2 } from
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
+import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AILabel from '@/components/chronicle/AILabel';
-
-interface CaseNarrative {
-  title: string;
-  overview: string;
-  chronology: string;
-  patterns_summary: string;
-  impact_summary: string;
-  key_individuals: { name: string; involvement_count: number; context: string }[];
-}
+import {
+  generateSummary,
+  type SummaryResult,
+  type SummaryMode,
+} from '@/lib/summaryPipeline';
 
 const ExportScreen = () => {
   const { data: incidents = [] } = useIncidents();
   const { data: evidence = [] } = useEvidence();
+  const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
   const [exporting, setExporting] = useState<string | null>(null);
-  const [caseNarrative, setCaseNarrative] = useState<CaseNarrative | null>(null);
+  const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
 
-  const patterns = useMemo(() => {
-    const result: string[] = [];
-    const peopleCounts: Record<string, number> = {};
-    incidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    Object.entries(peopleCounts).filter(([, c]) => c >= 2).forEach(([name, count]) => {
-      result.push(`${name} appears in ${count} incidents.`);
-    });
-    const catCounts: Record<string, number> = {};
-    incidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
-    Object.entries(catCounts).filter(([, c]) => c >= 3).forEach(([cat, count]) => {
-      result.push(`${count} incidents relate to ${cat}.`);
-    });
-    return result;
-  }, [incidents]);
+  const handleCaseNarrative = () => {
+    if (incidents.length < 2) {
+      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
+      return;
+    }
+    setNarrativeLoading(true);
+    try {
+      const allIds = incidents.filter(i => !i.voided_at).map(i => i.id);
+      const result = generateSummary({
+        incidents,
+        selectedIds: allIds,
+        allIncidentCount: allIds.length,
+        mode: 'general' as SummaryMode,
+        customPurpose: '',
+        options: { includePatterns: true, includeNames: true },
+        followUpNotes,
+        evidenceFiles: evidence,
+      });
+      setSummaryResult(result);
+    } catch (e) {
+      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setNarrativeLoading(false);
+    }
+  };
 
   const handleExport = async (exportType: string) => {
     setExporting(exportType);
@@ -61,34 +70,6 @@ const ExportScreen = () => {
     }
   };
 
-  const handleCaseNarrative = async () => {
-    if (incidents.length < 2) {
-      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
-      return;
-    }
-    setNarrativeLoading(true);
-    try {
-      const incidentSummaries = incidents.map(i => ({
-        date: i.incident_date,
-        title: i.title,
-        category: i.category,
-        summary: i.ai_summary || i.raw_narrative.substring(0, 200),
-        people_involved: i.people_involved,
-        impact: i.impact_note,
-      }));
-      const { data, error } = await supabase.functions.invoke('generate-case-narrative', {
-        body: { incidents: incidentSummaries, patterns },
-      });
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      setCaseNarrative(data);
-    } catch (e) {
-      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      setNarrativeLoading(false);
-    }
-  };
-
   const exportTypes = [
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, witnesses, and record strength.', icon: FileText, comingSoon: true },
     { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
@@ -103,7 +84,7 @@ const ExportScreen = () => {
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
 
-      {/* Case Summary */}
+      {/* Case Summary — uses shared pipeline */}
       <div className="mx-5 mb-5 bg-card border border-border rounded-xl p-5">
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -111,41 +92,17 @@ const ExportScreen = () => {
             <h3 className="text-[15px] font-semibold text-foreground">Your situation so far</h3>
             <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured narrative combining all your incidents.</p>
             
-            {caseNarrative ? (
+            {summaryResult ? (
               <div className="mt-3 space-y-3">
-                <div className="mb-1"><AILabel /></div>
-                <h4 className="text-[14px] font-semibold text-foreground">{caseNarrative.title}</h4>
-                <p className="text-[13px] text-body leading-relaxed">{caseNarrative.overview}</p>
-                
-                <div>
-                  <p className="text-[12px] font-semibold text-foreground mb-1">What happened over time</p>
-                  <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{caseNarrative.chronology}</p>
-                </div>
-
-                {caseNarrative.key_individuals.length > 0 && (
-                  <div>
-                    <p className="text-[12px] font-semibold text-foreground mb-1">People involved</p>
-                    <div className="space-y-1.5">
-                      {caseNarrative.key_individuals.map((ind, i) => (
-                        <p key={i} className="text-[13px] text-body leading-relaxed">
-                          <span className="font-medium">{ind.name}</span> ({ind.involvement_count} incidents) — {ind.context}
-                        </p>
-                      ))}
-                    </div>
+                {summaryResult.sections.map((section) => (
+                  <div key={section.key}>
+                    {section.title && (
+                      <p className="text-[12px] font-semibold text-foreground mb-1">{section.title}</p>
+                    )}
+                    <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{section.content}</p>
                   </div>
-                )}
-
-                <div>
-                  <p className="text-[12px] font-semibold text-foreground mb-1">Things that come up more than once</p>
-                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.patterns_summary}</p>
-                </div>
-
-                <div>
-                  <p className="text-[12px] font-semibold text-foreground mb-1">How this has affected you</p>
-                  <p className="text-[13px] text-body leading-relaxed">{caseNarrative.impact_summary}</p>
-                </div>
-
-                <button onClick={() => setCaseNarrative(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
+                ))}
+                <button onClick={() => setSummaryResult(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
               </div>
             ) : (
               <Button

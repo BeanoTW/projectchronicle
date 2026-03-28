@@ -8,32 +8,36 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { Incident } from "@/hooks/useIncidents";
+import type { FollowUpNote } from "@/hooks/useFollowUpNotes";
+import type { EvidenceFile } from "@/hooks/useEvidence";
 import {
-  buildSummary,
-  CONTEXT_OPTIONS,
-  type SummaryContext,
+  generateSummary,
+  SUMMARY_MODE_OPTIONS,
+  type SummaryMode,
   type SummaryOptions,
-  type GeneratedSummary,
-} from "@/lib/summaryBuilder";
+  type SummaryResult,
+} from "@/lib/summaryPipeline";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   incidents: Incident[];
   preSelected?: string[];
+  followUpNotes?: FollowUpNote[];
+  evidenceFiles?: EvidenceFile[];
 }
 
-type SummaryMode = "strict" | "expanded";
+type ViewMode = "strict" | "expanded";
 
-const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) => {
+const SummaryBuilderModal = ({ open, onClose, incidents, preSelected, followUpNotes = [], evidenceFiles = [] }: Props) => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(preSelected || []));
-  const [context, setContext] = useState<SummaryContext>("general");
+  const [mode, setMode] = useState<SummaryMode>("general");
   const [customLabel, setCustomLabel] = useState("");
   const [options, setOptions] = useState<SummaryOptions>({ includePatterns: true, includeNames: true });
   const [editedText, setEditedText] = useState("");
-  const [generated, setGenerated] = useState<GeneratedSummary | null>(null);
-  const [mode, setMode] = useState<SummaryMode>("strict");
+  const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("strict");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [filterPerson, setFilterPerson] = useState<string | null>(null);
 
@@ -45,7 +49,6 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
     [incidents],
   );
 
-  // Quick filter options
   const availableCategories = useMemo(
     () => [...new Set(validIncidents.map((i) => i.category).filter(Boolean))] as string[],
     [validIncidents],
@@ -107,11 +110,20 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
   }, [filteredIncidents, selectedIds]);
 
   const generate = useCallback(() => {
-    const result = buildSummary(selectedIncidents, context, customLabel, options);
-    setGenerated(result);
-    setEditedText(result.fullText);
+    const result = generateSummary({
+      incidents: validIncidents,
+      selectedIds: Array.from(selectedIds),
+      allIncidentCount: validIncidents.length,
+      mode,
+      customPurpose: customLabel,
+      options,
+      followUpNotes,
+      evidenceFiles,
+    });
+    setSummaryResult(result);
+    setEditedText(result.renderedText);
     setStep(3);
-  }, [selectedIncidents, context, customLabel, options]);
+  }, [validIncidents, selectedIds, mode, customLabel, options, followUpNotes, evidenceFiles]);
 
   const copyToClipboard = useCallback(() => {
     navigator.clipboard.writeText(editedText).then(() => {
@@ -120,11 +132,20 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
   }, [editedText]);
 
   const regenerate = useCallback(() => {
-    const result = buildSummary(selectedIncidents, context, customLabel, options);
-    setGenerated(result);
-    setEditedText(result.fullText);
+    const result = generateSummary({
+      incidents: validIncidents,
+      selectedIds: Array.from(selectedIds),
+      allIncidentCount: validIncidents.length,
+      mode,
+      customPurpose: customLabel,
+      options,
+      followUpNotes,
+      evidenceFiles,
+    });
+    setSummaryResult(result);
+    setEditedText(result.renderedText);
     toast.success("Summary regenerated");
-  }, [selectedIncidents, context, customLabel, options]);
+  }, [validIncidents, selectedIds, mode, customLabel, options, followUpNotes, evidenceFiles]);
 
   const clearFilters = useCallback(() => {
     setFilterCategory(null);
@@ -276,12 +297,12 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               </p>
 
               <div className="space-y-2">
-                {CONTEXT_OPTIONS.map((opt) => (
+                {SUMMARY_MODE_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setContext(opt.value)}
+                    onClick={() => setMode(opt.value)}
                     className={`w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-150 ${
-                      context === opt.value
+                      mode === opt.value
                         ? "border-primary/30 bg-primary/[0.04]"
                         : "border-border bg-card hover:bg-muted/20"
                     }`}
@@ -292,7 +313,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
                 ))}
               </div>
 
-              {context === "custom" && (
+              {mode === "custom" && (
                 <div className="mt-3">
                   <input
                     type="text"
@@ -336,6 +357,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               <div className="text-[12px] text-muted-foreground mb-3 space-y-0.5">
                 <p className="font-medium text-foreground/70">
                   Based on {selectedIncidents.length} selected incident{selectedIncidents.length !== 1 ? "s" : ""}
+                  {summaryResult?.selectedScope === 'manual' && ' (manual selection)'}
                 </p>
                 {dateRange && (
                   <p>
@@ -348,11 +370,11 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               <div className="flex gap-1.5 mb-3">
                 <button
                   onClick={() => {
-                    setMode("strict");
-                    regenerate();
+                    setViewMode("strict");
+                    if (summaryResult) setEditedText(summaryResult.renderedText);
                   }}
                   className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
-                    mode === "strict"
+                    viewMode === "strict"
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
                   }`}
@@ -360,11 +382,9 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
                   Structured summary
                 </button>
                 <button
-                  onClick={() => {
-                    setMode("expanded");
-                  }}
+                  onClick={() => setViewMode("expanded")}
                   className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
-                    mode === "expanded"
+                    viewMode === "expanded"
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
                   }`}
@@ -373,7 +393,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
                 </button>
               </div>
 
-              {mode === "expanded" && (
+              {viewMode === "expanded" && (
                 <p className="text-[11px] text-muted-foreground/60 mb-2 italic">
                   Editable — you may adjust phrasing freely
                 </p>
@@ -397,13 +417,13 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected }: Props) =
               <Textarea
                 value={editedText}
                 onChange={(e) => setEditedText(e.target.value)}
-                readOnly={mode === "strict"}
+                readOnly={viewMode === "strict"}
                 className={`min-h-[400px] text-[13px] leading-relaxed font-mono border-border bg-card ${
-                  mode === "strict" ? "opacity-90" : ""
+                  viewMode === "strict" ? "opacity-90" : ""
                 }`}
               />
 
-              {mode === "strict" && (
+              {viewMode === "strict" && (
                 <p className="text-[11px] text-muted-foreground/50 mt-2">Switch to expanded narrative to edit</p>
               )}
             </motion.div>
