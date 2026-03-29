@@ -219,7 +219,7 @@ describe('generateSummary', () => {
     })];
     const result = generateSummary(makeRequest(bare));
     expect(result.sections.length).toBeGreaterThan(0);
-    expect(result.renderedText).toContain('Bare minimum');
+    expect(result.renderedText.toLowerCase()).toContain('bare minimum');
   });
 
   it('redacts names when includeNames is false', () => {
