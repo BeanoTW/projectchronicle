@@ -1,0 +1,334 @@
+import { describe, it, expect } from 'vitest';
+import {
+  safeArray,
+  normaliseIncident,
+  sortIncidentsForSummary,
+  deriveRepeatedIndividuals,
+  deriveRepeatedCategories,
+  deriveFrequencyClusters,
+  buildSummaryMetadata,
+  generateSummary,
+  formatSummaryByMode,
+  renderSummaryText,
+  type SummaryMode,
+  type SummaryRequest,
+  type NormalisedIncident,
+} from '@/lib/summaryPipeline';
+
+// ─── Test helpers ─────────────────────────────────────────────
+
+function makeIncident(overrides: Partial<any> = {}) {
+  return {
+    id: overrides.id ?? 'inc-1',
+    incident_date: overrides.incident_date ?? '2025-06-01',
+    incident_time: overrides.incident_time ?? null,
+    location: overrides.location ?? null,
+    people_involved: overrides.people_involved ?? [],
+    witnesses: overrides.witnesses ?? [],
+    category: overrides.category ?? null,
+    severity: overrides.severity ?? null,
+    raw_narrative: overrides.raw_narrative ?? 'Something happened.',
+    exact_words: overrides.exact_words ?? null,
+    ai_summary: overrides.ai_summary ?? null,
+    impact_note: overrides.impact_note ?? null,
+    tags: overrides.tags ?? [],
+    status: overrides.status ?? 'Open',
+    locked: overrides.locked ?? false,
+    excluded_from_rep: overrides.excluded_from_rep ?? false,
+    record_method: overrides.record_method ?? 'text',
+    created_at: overrides.created_at ?? '2025-06-01T10:00:00Z',
+    updated_at: overrides.updated_at ?? '2025-06-01T10:00:00Z',
+    title: overrides.title ?? null,
+    user_id: overrides.user_id ?? 'user-1',
+    voided_at: overrides.voided_at ?? null,
+    void_reason: overrides.void_reason ?? null,
+  } as any;
+}
+
+function makeRequest(incidents: any[], overrides: Partial<SummaryRequest> = {}): SummaryRequest {
+  return {
+    incidents,
+    selectedIds: overrides.selectedIds ?? incidents.map((i: any) => i.id),
+    allIncidentCount: overrides.allIncidentCount ?? incidents.length,
+    mode: overrides.mode ?? 'general',
+    customPurpose: overrides.customPurpose ?? '',
+    options: overrides.options ?? { includePatterns: true, includeNames: true },
+    followUpNotes: overrides.followUpNotes ?? [],
+    evidenceFiles: overrides.evidenceFiles ?? [],
+  };
+}
+
+// ─── safeArray ────────────────────────────────────────────────
+
+describe('safeArray', () => {
+  it('returns empty array for null/undefined', () => {
+    expect(safeArray(null)).toEqual([]);
+    expect(safeArray(undefined)).toEqual([]);
+  });
+  it('filters non-strings and empty strings', () => {
+    expect(safeArray(['a', '', 3, 'b'])).toEqual(['a', 'b']);
+  });
+});
+
+// ─── normaliseIncident ────────────────────────────────────────
+
+describe('normaliseIncident', () => {
+  it('handles missing optional fields', () => {
+    const inc = makeIncident({ incident_time: null, location: null, exact_words: null });
+    const n = normaliseIncident(inc, [], 0);
+    expect(n.incident_time).toBe('');
+    expect(n.location).toBe('');
+    expect(n.exact_words).toBe('');
+    expect(n.follow_up_notes).toEqual([]);
+    expect(n.attachment_count).toBe(0);
+  });
+});
+
+// ─── sortIncidentsForSummary ──────────────────────────────────
+
+describe('sortIncidentsForSummary', () => {
+  it('sorts by date ASC, then time, then created_at, then id', () => {
+    const a: NormalisedIncident = normaliseIncident(makeIncident({ id: 'b', incident_date: '2025-06-01', created_at: '2025-06-01T12:00:00Z' }), [], 0);
+    const b: NormalisedIncident = normaliseIncident(makeIncident({ id: 'a', incident_date: '2025-06-01', created_at: '2025-06-01T10:00:00Z' }), [], 0);
+    const c: NormalisedIncident = normaliseIncident(makeIncident({ id: 'c', incident_date: '2025-05-01' }), [], 0);
+    const sorted = sortIncidentsForSummary([a, b, c]);
+    expect(sorted.map(s => s.id)).toEqual(['c', 'a', 'b']);
+  });
+});
+
+// ─── deriveRepeatedIndividuals ────────────────────────────────
+
+describe('deriveRepeatedIndividuals', () => {
+  it('returns empty when no repeats', () => {
+    const incs = [
+      normaliseIncident(makeIncident({ people_involved: ['Alice'] }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', people_involved: ['Bob'] }), [], 0),
+    ];
+    expect(deriveRepeatedIndividuals(incs)).toEqual([]);
+  });
+  it('detects repeated individuals sorted by count desc', () => {
+    const incs = [
+      normaliseIncident(makeIncident({ people_involved: ['Alice', 'Bob'] }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', people_involved: ['Alice'] }), [], 0),
+      normaliseIncident(makeIncident({ id: '3', people_involved: ['Alice', 'Bob'] }), [], 0),
+    ];
+    const result = deriveRepeatedIndividuals(incs);
+    expect(result[0].name).toBe('Alice');
+    expect(result[0].count).toBe(3);
+    expect(result[1].name).toBe('Bob');
+    expect(result[1].count).toBe(2);
+  });
+});
+
+// ─── deriveRepeatedCategories ─────────────────────────────────
+
+describe('deriveRepeatedCategories', () => {
+  it('only counts categories appearing 2+ times', () => {
+    const incs = [
+      normaliseIncident(makeIncident({ category: 'Pay or Payroll Issue' }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', category: 'Pay or Payroll Issue' }), [], 0),
+      normaliseIncident(makeIncident({ id: '3', category: 'Other' }), [], 0),
+    ];
+    const result = deriveRepeatedCategories(incs);
+    expect(result.length).toBe(1);
+    expect(result[0].name).toBe('Pay or Payroll Issue');
+  });
+});
+
+// ─── deriveFrequencyClusters ──────────────────────────────────
+
+describe('deriveFrequencyClusters', () => {
+  it('returns empty for < 2 incidents', () => {
+    const incs = [normaliseIncident(makeIncident({}), [], 0)];
+    expect(deriveFrequencyClusters(incs)).toEqual([]);
+  });
+  it('detects cluster within 14 days', () => {
+    const incs = [
+      normaliseIncident(makeIncident({ id: '1', incident_date: '2025-06-01' }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', incident_date: '2025-06-05' }), [], 0),
+      normaliseIncident(makeIncident({ id: '3', incident_date: '2025-06-10' }), [], 0),
+    ];
+    const clusters = deriveFrequencyClusters(incs);
+    expect(clusters.length).toBe(1);
+    expect(clusters[0].count).toBe(3);
+  });
+  it('splits non-adjacent clusters', () => {
+    const incs = [
+      normaliseIncident(makeIncident({ id: '1', incident_date: '2025-01-01' }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', incident_date: '2025-01-05' }), [], 0),
+      normaliseIncident(makeIncident({ id: '3', incident_date: '2025-06-01' }), [], 0),
+      normaliseIncident(makeIncident({ id: '4', incident_date: '2025-06-05' }), [], 0),
+    ];
+    const clusters = deriveFrequencyClusters(incs);
+    expect(clusters.length).toBe(2);
+  });
+});
+
+// ─── generateSummary ─────────────────────────────────────────
+
+describe('generateSummary', () => {
+  const twoIncidents = [
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+  ];
+
+  it('returns structured result with correct shape', () => {
+    const result = generateSummary(makeRequest(twoIncidents));
+    expect(result.mode).toBe('general');
+    expect(result.selectedIncidentIds).toEqual(['1', '2']);
+    expect(result.metadata.totalIncidentCount).toBe(2);
+    expect(result.sections.length).toBeGreaterThan(0);
+    expect(typeof result.renderedText).toBe('string');
+    expect(result.renderedText.length).toBeGreaterThan(0);
+  });
+
+  it('respects manual selection scope', () => {
+    const result = generateSummary(makeRequest(twoIncidents, { selectedIds: ['1'], allIncidentCount: 2 }));
+    expect(result.selectedScope).toBe('manual');
+    expect(result.metadata.totalIncidentCount).toBe(1);
+  });
+
+  it('uses "all" scope when all selected', () => {
+    const result = generateSummary(makeRequest(twoIncidents));
+    expect(result.selectedScope).toBe('all');
+  });
+
+  it('excludes voided incidents', () => {
+    const withVoided = [...twoIncidents, makeIncident({ id: '3', voided_at: '2025-05-01' })];
+    const result = generateSummary(makeRequest(withVoided, { selectedIds: ['1', '2', '3'], allIncidentCount: 3 }));
+    expect(result.metadata.totalIncidentCount).toBe(2);
+  });
+
+  it('handles single incident without pattern language', () => {
+    const single = [makeIncident({ id: '1', raw_narrative: 'One event.' })];
+    const result = generateSummary(makeRequest(single));
+    expect(result.sections.find(s => s.key === 'repeated-individuals')).toBeUndefined();
+    expect(result.sections.find(s => s.key === 'repeated-categories')).toBeUndefined();
+  });
+
+  it('handles incident with all missing optional fields', () => {
+    const bare = [makeIncident({
+      id: '1',
+      incident_time: null,
+      location: null,
+      people_involved: [],
+      witnesses: [],
+      category: null,
+      exact_words: null,
+      raw_narrative: 'Bare minimum.',
+    })];
+    const result = generateSummary(makeRequest(bare));
+    expect(result.sections.length).toBeGreaterThan(0);
+    expect(result.renderedText.toLowerCase()).toContain('bare minimum');
+  });
+
+  it('redacts names when includeNames is false', () => {
+    const result = generateSummary(makeRequest(twoIncidents, {
+      options: { includePatterns: true, includeNames: false },
+    }));
+    expect(result.renderedText).not.toContain('Sarah');
+    expect(result.renderedText).toContain('[Individual 1]');
+  });
+});
+
+// ─── Mode differentiation ─────────────────────────────────────
+
+describe('mode differentiation', () => {
+  const incidents = [
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+    makeIncident({ id: '3', incident_date: '2025-05-01', category: 'Pay or Payroll Issue', people_involved: ['Sarah', 'HR'], raw_narrative: 'Payslip incorrect for second month.' }),
+  ];
+
+  const allModes: SummaryMode[] = ['general', 'workplace-grievance', 'hr-discussion', 'formal-complaint', 'university', 'personal', 'custom'];
+
+  it('each mode produces different header titles', () => {
+    const headers = allModes.map(mode => {
+      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test purpose' }));
+      return result.sections.find(s => s.key === 'header')?.title;
+    });
+    const unique = new Set(headers);
+    // At least 5 unique headers (custom without purpose falls back to general)
+    expect(unique.size).toBeGreaterThanOrEqual(5);
+  });
+
+  it('each mode produces different section keys', () => {
+    const sectionKeySets = allModes.map(mode => {
+      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }));
+      return result.sections.map(s => s.key).join(',');
+    });
+    // At least 4 distinct section structures
+    const unique = new Set(sectionKeySets);
+    expect(unique.size).toBeGreaterThanOrEqual(4);
+  });
+
+  it('workplace grievance includes workplace-specific sections', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'workplace-grievance' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('workplace-themes');
+    expect(result.sections.find(s => s.key === 'header')?.title).toContain('Workplace Grievance');
+  });
+
+  it('HR discussion includes discussion points', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'hr-discussion' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('discussion-points');
+    expect(result.sections.find(s => s.key === 'header')?.title).toContain('Briefing Note');
+  });
+
+  it('formal complaint uses "Recorded incidents" not "Chronology"', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'formal-complaint' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('incidents');
+    expect(keys).not.toContain('chronology');
+  });
+
+  it('personal record uses simple "What was recorded" and "Timeline"', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'personal' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('recap');
+    expect(keys).toContain('timeline');
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Personal Record');
+  });
+
+  it('university mode uses neutral academic framing', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'university' }));
+    expect(result.sections.find(s => s.key === 'header')?.content).toContain('educational or university');
+  });
+
+  it('custom with empty purpose falls back to general', () => {
+    const custom = generateSummary(makeRequest(incidents, { mode: 'custom', customPurpose: '' }));
+    const general = generateSummary(makeRequest(incidents, { mode: 'general' }));
+    expect(custom.sections.find(s => s.key === 'header')?.title).toBe(general.sections.find(s => s.key === 'header')?.title);
+  });
+
+  it('custom with purpose uses custom framing', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'custom', customPurpose: 'housing dispute' }));
+    expect(result.sections.find(s => s.key === 'header')?.content).toContain('housing dispute');
+  });
+
+  it('renderedText is derived from sections consistently', () => {
+    for (const mode of allModes) {
+      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }));
+      // Each section title or content should appear in rendered text
+      for (const section of result.sections) {
+        if (section.title) {
+          expect(result.renderedText).toContain(section.title);
+        }
+        expect(result.renderedText).toContain(section.content);
+      }
+    }
+  });
+
+  it('facts remain consistent across modes', () => {
+    const results = allModes.map(mode =>
+      generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }))
+    );
+    // All should have same metadata
+    for (const r of results) {
+      expect(r.metadata.totalIncidentCount).toBe(3);
+      expect(r.metadata.repeatedIndividuals.length).toBeGreaterThan(0);
+      expect(r.metadata.repeatedCategories.length).toBeGreaterThan(0);
+    }
+  });
+});
