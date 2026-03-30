@@ -1,11 +1,19 @@
 /**
- * Summary Pipeline — Two-layer deterministic architecture
+ * Summary Pipeline v3 — Four-mode deterministic architecture
  *
  * Layer A: Normalisation + metadata derivation (deterministic, reusable)
- * Layer B: Mode-specific formatting (presentation only, never mutates data)
+ * Layer B: Mode-specific formatting (RECORD, PATTERNS, BRIEFING, TRIBUNAL)
+ *
+ * UI label → mode mapping:
+ *   General summary      → PATTERNS
+ *   Workplace grievance  → TRIBUNAL
+ *   HR discussion        → BRIEFING
+ *   Formal complaint     → RECORD (formal tone)
+ *   University/education → RECORD (neutral tone)
+ *   Personal record      → BRIEFING (simplified tone)
+ *   Custom               → user selects mode directly
  *
  * This module is READ-ONLY with respect to incident data.
- * It never writes back to the database or mutates input.
  */
 
 import { format, parseISO, isValid } from 'date-fns';
@@ -15,6 +23,7 @@ import type { EvidenceFile } from '@/hooks/useEvidence';
 
 // ─── Types ────────────────────────────────────────────────────
 
+/** UI-facing mode labels */
 export type SummaryMode =
   | 'general'
   | 'workplace-grievance'
@@ -24,6 +33,12 @@ export type SummaryMode =
   | 'personal'
   | 'custom';
 
+/** Internal engine modes */
+type EngineMode = 'RECORD' | 'PATTERNS' | 'BRIEFING' | 'TRIBUNAL';
+
+/** Tone variant applied within an engine mode */
+type ToneVariant = 'formal' | 'neutral' | 'simplified' | 'default';
+
 export interface SummaryModeOption {
   value: SummaryMode;
   label: string;
@@ -31,12 +46,12 @@ export interface SummaryModeOption {
 }
 
 export const SUMMARY_MODE_OPTIONS: SummaryModeOption[] = [
-  { value: 'general', label: 'General summary', description: 'Default neutral overview' },
-  { value: 'workplace-grievance', label: 'Workplace grievance', description: 'Structured workplace narrative' },
-  { value: 'hr-discussion', label: 'HR discussion', description: 'Concise discussion brief' },
-  { value: 'formal-complaint', label: 'Formal complaint', description: 'Tighter formal complaint summary' },
-  { value: 'university', label: 'University / education', description: 'Neutral academic-style summary' },
-  { value: 'personal', label: 'Personal record', description: 'Simple direct recap' },
+  { value: 'general', label: 'General summary', description: 'Pattern-focused overview of activity and structure' },
+  { value: 'workplace-grievance', label: 'Workplace grievance', description: 'Issue-based structure for formal review' },
+  { value: 'hr-discussion', label: 'HR discussion', description: 'Concise briefing for discussion' },
+  { value: 'formal-complaint', label: 'Formal complaint', description: 'Complete authoritative record' },
+  { value: 'university', label: 'University / education', description: 'Neutral institutional record' },
+  { value: 'personal', label: 'Personal record', description: 'Simple recap for personal reference' },
   { value: 'custom', label: 'Custom', description: 'You define the purpose' },
 ];
 
@@ -75,6 +90,7 @@ export interface SummaryMetadata {
   latestIncidentDate: string;
   repeatedIndividuals: RepeatedEntry[];
   repeatedCategories: RepeatedEntry[];
+  categoryCounts: Record<string, number>;
   attachmentCoverage: number;
   witnessCoverage: number;
   hasFollowUps: boolean;
@@ -185,6 +201,15 @@ export function deriveRepeatedCategories(incidents: NormalisedIncident[]): Repea
     .map(([name, count]) => ({ name, count }));
 }
 
+function deriveCategoryCounts(incidents: NormalisedIncident[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  incidents.forEach(i => {
+    const cat = i.category || 'Other';
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+  return counts;
+}
+
 export function deriveFrequencyClusters(incidents: NormalisedIncident[]): FrequencyCluster[] {
   if (incidents.length < 2) return [];
   const sorted = sortIncidentsForSummary(incidents);
@@ -224,6 +249,7 @@ export function buildSummaryMetadata(
     latestIncidentDate: sorted.length > 0 ? sorted[sorted.length - 1].incident_date : '',
     repeatedIndividuals: deriveRepeatedIndividuals(normalised),
     repeatedCategories: deriveRepeatedCategories(normalised),
+    categoryCounts: deriveCategoryCounts(normalised),
     attachmentCoverage: normalised.filter(i => i.attachment_count > 0).length,
     witnessCoverage: normalised.filter(i => i.witnesses.length > 0).length,
     hasFollowUps: normalised.some(i => i.follow_up_notes.length > 0),
@@ -254,6 +280,30 @@ export function buildSummaryPayload(request: SummaryRequest) {
   return { sorted, metadata, mode, customPurpose, options };
 }
 
+// ─── Mode Mapping ─────────────────────────────────────────────
+
+function resolveEngineMode(mode: SummaryMode, customPurpose: string): { engine: EngineMode; tone: ToneVariant } {
+  switch (mode) {
+    case 'general':
+      return { engine: 'PATTERNS', tone: 'default' };
+    case 'workplace-grievance':
+      return { engine: 'TRIBUNAL', tone: 'default' };
+    case 'hr-discussion':
+      return { engine: 'BRIEFING', tone: 'default' };
+    case 'formal-complaint':
+      return { engine: 'RECORD', tone: 'formal' };
+    case 'university':
+      return { engine: 'RECORD', tone: 'neutral' };
+    case 'personal':
+      return { engine: 'BRIEFING', tone: 'simplified' };
+    case 'custom':
+      if (!customPurpose.trim()) return { engine: 'PATTERNS', tone: 'default' };
+      return { engine: 'PATTERNS', tone: 'default' };
+    default:
+      return { engine: 'PATTERNS', tone: 'default' };
+  }
+}
+
 // ─── Shared formatting helpers ────────────────────────────────
 
 function formatDate(dateStr: string): string {
@@ -273,10 +323,12 @@ function redactName(_name: string, index: number): string {
   return `[Individual ${index + 1}]`;
 }
 
+function personRef(name: string, includeNames: boolean, allPeople: string[]): string {
+  return includeNames ? name : redactName(name, allPeople.indexOf(name));
+}
+
 function buildPeopleList(people: string[], includeNames: boolean, allPeople: string[]): string {
-  return people
-    .map(p => includeNames ? p : redactName(p, allPeople.indexOf(p)))
-    .join(' and ');
+  return people.map(p => personRef(p, includeNames, allPeople)).join(' and ');
 }
 
 function redactText(text: string, allPeople: string[]): string {
@@ -288,7 +340,6 @@ function redactText(text: string, allPeople: string[]): string {
   return result;
 }
 
-/** Extract a concise description from a narrative — full first sentence, no truncation */
 function extractFirstSentence(narrative: string): string {
   if (!narrative) return '';
   const match = narrative.match(/^[^.!?]+[.!?]/);
@@ -296,591 +347,490 @@ function extractFirstSentence(narrative: string): string {
   return sentence.charAt(0).toLowerCase() + sentence.slice(1);
 }
 
-// ─── Chronology builders (mode-specific) ──────────────────────
-
-/** General / Custom: numbered chronology with category + first sentence */
-function buildNumberedChronology(
-  sorted: NormalisedIncident[],
+/** Format incident as standard line: [date] — [category] — [person] */
+function formatIncidentLine(
+  inc: NormalisedIncident,
   includeNames: boolean,
   allPeople: string[],
-): string[] {
-  return sorted.map(inc => {
-    const dateStr = formatDate(inc.incident_date);
-    const timeStr = inc.incident_time ? ` at ${inc.incident_time}` : '';
-    const category = inc.category ? inc.category.toLowerCase() : 'incident';
-    let people = '';
-    if (inc.people_involved.length > 0) {
-      people = ` involving ${buildPeopleList(inc.people_involved, includeNames, allPeople)}`;
-    }
-    const desc = extractFirstSentence(inc.raw_narrative);
-    const descPart = desc ? `, ${desc}` : '';
-    let line = `On ${dateStr}${timeStr}, a ${category} was recorded${people}${descPart}`;
-    if (!line.endsWith('.')) line += '.';
-    if (!includeNames) line = redactText(line, allPeople);
-    return line;
-  });
+): string {
+  const dateStr = formatDate(inc.incident_date);
+  const category = inc.category || 'Other';
+  const person = inc.people_involved.length > 0
+    ? buildPeopleList(inc.people_involved, includeNames, allPeople)
+    : '';
+  let line = `${dateStr} — ${category}`;
+  if (person) line += ` — ${person}`;
+  return line;
 }
 
-/** Workplace Grievance: narrative-style entries with fuller context */
-function buildGrievanceChronology(
-  sorted: NormalisedIncident[],
-  includeNames: boolean,
-  allPeople: string[],
-): string[] {
-  return sorted.map(inc => {
-    const dateStr = formatDate(inc.incident_date);
-    const timeStr = inc.incident_time ? ` at ${inc.incident_time}` : '';
-    const locationStr = inc.location ? ` at ${inc.location}` : '';
-    let people = '';
-    if (inc.people_involved.length > 0) {
-      people = `${buildPeopleList(inc.people_involved, includeNames, allPeople)} was involved. `;
-    }
-    const narrative = inc.raw_narrative || '';
-    const desc = extractFirstSentence(narrative);
-    const exactQuote = inc.exact_words ? ` The following was recorded verbatim: "${inc.exact_words}"` : '';
-    let line = `${dateStr}${timeStr}${locationStr}: ${people}${desc}${exactQuote}`;
-    if (!line.endsWith('.')) line += '.';
-    if (!includeNames) line = redactText(line, allPeople);
-    return line;
-  });
-}
+// ═══════════════════════════════════════════════════════════════
+// MODE: RECORD — Complete authoritative record
+// ═══════════════════════════════════════════════════════════════
 
-/** HR Discussion: bullet-style key-point entries */
-function buildHRBullets(
-  sorted: NormalisedIncident[],
-  includeNames: boolean,
-  allPeople: string[],
-): string[] {
-  return sorted.map(inc => {
-    const dateStr = formatDate(inc.incident_date);
-    const category = inc.category ? inc.category : 'Event';
-    let people = '';
-    if (inc.people_involved.length > 0) {
-      people = ` — ${buildPeopleList(inc.people_involved, includeNames, allPeople)}`;
-    }
-    const desc = extractFirstSentence(inc.raw_narrative);
-    let line = `${dateStr}: ${category}${people}. ${desc}`;
-    if (!line.endsWith('.')) line += '.';
-    if (!includeNames) line = redactText(line, allPeople);
-    return line;
-  });
-}
-
-/** Personal: date-dash-description, minimal */
-function buildPersonalTimeline(
-  sorted: NormalisedIncident[],
-  includeNames: boolean,
-  allPeople: string[],
-): string[] {
-  return sorted.map(inc => {
-    const dateStr = formatDate(inc.incident_date);
-    const category = inc.category ? inc.category.toLowerCase() : 'event';
-    const desc = extractFirstSentence(inc.raw_narrative);
-    let line = `${dateStr} — ${category}${desc ? ': ' + desc : ''}`;
-    if (!line.endsWith('.')) line += '.';
-    if (!includeNames) line = redactText(line, allPeople);
-    return line;
-  });
-}
-
-// ─── Formatter: General ───────────────────────────────────────
-
-function formatGeneral(
+function formatRecord(
   sorted: NormalisedIncident[],
   metadata: SummaryMetadata,
   options: SummaryOptions,
+  tone: ToneVariant,
 ): SummarySection[] {
   const sections: SummarySection[] = [];
   const allPeople = collectAllPeople(sorted);
+  const isFormal = tone === 'formal';
 
+  // Header
   sections.push({
     key: 'header',
-    title: 'Summary of recorded incidents',
-    content: 'Prepared for: general reference',
+    title: isFormal ? 'Formal Complaint — Record of Events' : 'Record of Events',
+    content: isFormal
+      ? `This document records ${sorted.length} incident${sorted.length !== 1 ? 's' : ''} submitted as part of a formal complaint.`
+      : `This document provides a complete record of ${sorted.length} event${sorted.length !== 1 ? 's' : ''} as recorded.`,
   });
 
+  // Overview (count + date range)
   if (sorted.length > 0) {
     const start = formatDate(metadata.dateRangeStart);
     const end = formatDate(metadata.dateRangeEnd);
-    const cats = metadata.repeatedCategories.map(c => c.name.toLowerCase());
-    const catPhrase = cats.length > 0
-      ? `, involving ${cats.slice(0, 3).join(', ')}${cats.length > 3 ? ' and other matters' : ''}`
-      : '';
     sections.push({
       key: 'overview',
       title: 'Overview',
-      content: `This summary outlines ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''} between ${start} and ${end}${catPhrase}. The entries reflect events as recorded at the time.`,
+      content: `${sorted.length} incident${sorted.length !== 1 ? 's were' : ' was'} recorded between ${start} and ${end}. Each entry reflects events as documented at the time.`,
     });
   }
 
-  const entries = buildNumberedChronology(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
+  // Category breakdown
+  const catEntries = Object.entries(metadata.categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, count]) => `${cat}: ${count}`);
+  if (catEntries.length > 0) {
     sections.push({
-      key: 'chronology',
-      title: 'Chronology',
-      content: entries.map((e, i) => `${i + 1}. ${e}`).join('\n'),
+      key: 'category-breakdown',
+      title: 'Category breakdown',
+      content: catEntries.join('\n'),
     });
   }
 
+  // Repeated individuals (with counts)
   if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => r.name).join(', ')
-      : metadata.repeatedIndividuals.map((_, i) => `[Individual ${i + 1}]`).join(', ');
+    const names = metadata.repeatedIndividuals.map(r => {
+      const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
+      return `${n} (${r.count} incidents)`;
+    });
     sections.push({
       key: 'repeated-individuals',
       title: 'Repeated individuals',
-      content: `The following individual${metadata.repeatedIndividuals.length !== 1 ? 's appear' : ' appears'} across multiple entries: ${names}.`,
+      content: names.join('\n'),
     });
   }
 
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
-    const catList = metadata.repeatedCategories
-      .map(c => `${c.name.toLowerCase()} (${c.count} entries)`)
-      .join(', ');
-    sections.push({
-      key: 'repeated-categories',
-      title: 'Recurring themes',
-      content: `The following categories recur: ${catList}.`,
-    });
-  }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This summary reflects recorded entries as documented.',
-  });
-
-  return sections;
-}
-
-// ─── Formatter: Workplace Grievance ───────────────────────────
-
-function formatWorkplaceGrievance(
-  sorted: NormalisedIncident[],
-  metadata: SummaryMetadata,
-  options: SummaryOptions,
-): SummarySection[] {
-  const sections: SummarySection[] = [];
-  const allPeople = collectAllPeople(sorted);
-
-  sections.push({
-    key: 'header',
-    title: 'Workplace Grievance — Summary of Events',
-    content: 'This document outlines a series of recorded workplace incidents for the purpose of a grievance process.',
-  });
-
+  // Full chronology — ALL incidents, appears ONCE only
   if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    const workplaceThemes = metadata.repeatedCategories
-      .filter(c => ['Management Conduct', 'Pay or Payroll Issue', 'Scheduling or Shift Change', 'Disciplinary Meeting', 'Policy Application'].includes(c.name))
-      .map(c => c.name.toLowerCase());
-    const themePhrase = workplaceThemes.length > 0
-      ? ` The concerns primarily relate to ${workplaceThemes.join(' and ')}.`
-      : '';
-    sections.push({
-      key: 'overview',
-      title: 'Overview of concerns',
-      content: `Between ${start} and ${end}, ${sorted.length} incident${sorted.length !== 1 ? 's were' : ' was'} recorded relating to workplace conduct and conditions.${themePhrase}`,
+    const entries = sorted.map((inc, idx) => {
+      const line = formatIncidentLine(inc, options.includeNames, allPeople);
+      const desc = extractFirstSentence(inc.raw_narrative);
+      const quote = inc.exact_words ? `\n   Verbatim: "${inc.exact_words}"` : '';
+      let entry = `${idx + 1}. ${line}\n   ${desc}${quote}`;
+      if (!options.includeNames) entry = redactText(entry, allPeople);
+      return entry;
     });
-  }
-
-  const entries = buildGrievanceChronology(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
     sections.push({
       key: 'chronology',
-      title: 'Chronology of events',
-      content: entries.map((e, i) => `${i + 1}. ${e}`).join('\n'),
+      title: 'Full chronology',
+      content: entries.join('\n\n'),
     });
   }
 
-  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => `${r.name} (${r.count} incidents)`).join('; ')
-      : metadata.repeatedIndividuals.map((r, i) => `[Individual ${i + 1}] (${r.count} incidents)`).join('; ');
-    sections.push({
-      key: 'repeated-individuals',
-      title: 'Individuals involved across incidents',
-      content: names,
-    });
-  }
-
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
-    sections.push({
-      key: 'workplace-themes',
-      title: 'Workplace themes',
-      content: metadata.repeatedCategories
-        .map(c => `${c.name}: ${c.count} recorded instances`)
-        .join('\n'),
-    });
-  }
-
-  // Impact — only if follow-ups exist
-  if (metadata.hasFollowUps) {
-    sections.push({
-      key: 'impact',
-      title: 'Recorded impact',
-      content: 'Impact observations have been noted in follow-up entries attached to the relevant incidents.',
-    });
-  }
-
+  // Record integrity
   sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This record has been prepared to outline events as they were experienced and recorded.',
+    key: 'integrity',
+    title: 'Record integrity',
+    content: `${metadata.attachmentCoverage} incident${metadata.attachmentCoverage !== 1 ? 's have' : ' has'} supporting attachments. ${metadata.witnessCoverage} incident${metadata.witnessCoverage !== 1 ? 's have' : ' has'} named witnesses.`,
   });
 
   return sections;
 }
 
-// ─── Formatter: HR Discussion ─────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MODE: PATTERNS — Reveal structure without narrative
+// ═══════════════════════════════════════════════════════════════
 
-function formatHRDiscussion(
-  sorted: NormalisedIncident[],
-  metadata: SummaryMetadata,
-  options: SummaryOptions,
-): SummarySection[] {
-  const sections: SummarySection[] = [];
-  const allPeople = collectAllPeople(sorted);
-
-  sections.push({
-    key: 'header',
-    title: 'Briefing Note — HR Discussion',
-    content: `Covering ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''}.`,
-  });
-
-  if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    sections.push({
-      key: 'overview',
-      title: 'Summary',
-      content: `This briefing covers events recorded between ${start} and ${end} to support an HR discussion.`,
-    });
-  }
-
-  // Key issues — top categories as bullet list
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
-    sections.push({
-      key: 'key-issues',
-      title: 'Key issues',
-      content: metadata.repeatedCategories
-        .slice(0, 4)
-        .map(c => `• ${c.name} (${c.count} occurrences)`)
-        .join('\n'),
-    });
-  }
-
-  // All incidents as HR-style bullets
-  const bullets = buildHRBullets(sorted, options.includeNames, allPeople);
-  if (bullets.length > 0) {
-    sections.push({
-      key: 'incidents',
-      title: 'Incident log',
-      content: bullets.map(b => `• ${b}`).join('\n'),
-    });
-  }
-
-  // People
-  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => r.name).join(', ')
-      : metadata.repeatedIndividuals.map((_, i) => `[Individual ${i + 1}]`).join(', ');
-    sections.push({
-      key: 'people-involved',
-      title: 'People involved',
-      content: `Recurring across incidents: ${names}.`,
-    });
-  }
-
-  // Discussion points
-  const points: string[] = [];
-  if (metadata.frequencyClusters.length > 0) points.push('Events cluster within short timeframes.');
-  if (metadata.repeatedIndividuals.length > 0) points.push('The same individuals appear in multiple records.');
-  if (metadata.attachmentCoverage > 0) points.push(`${metadata.attachmentCoverage} incident${metadata.attachmentCoverage !== 1 ? 's have' : ' has'} supporting attachments.`);
-  if (metadata.witnessCoverage > 0) points.push(`${metadata.witnessCoverage} incident${metadata.witnessCoverage !== 1 ? 's have' : ' has'} named witnesses.`);
-  if (points.length > 0) {
-    sections.push({
-      key: 'discussion-points',
-      title: 'Points for discussion',
-      content: points.map(p => `• ${p}`).join('\n'),
-    });
-  }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This summary is intended to support a discussion of recorded events.',
-  });
-
-  return sections;
-}
-
-// ─── Formatter: Formal Complaint ──────────────────────────────
-
-function formatFormalComplaint(
-  sorted: NormalisedIncident[],
-  metadata: SummaryMetadata,
-  options: SummaryOptions,
-): SummarySection[] {
-  const sections: SummarySection[] = [];
-  const allPeople = collectAllPeople(sorted);
-
-  sections.push({
-    key: 'header',
-    title: 'Formal Complaint — Record of Events',
-    content: `This document records ${sorted.length} incident${sorted.length !== 1 ? 's' : ''} submitted as part of a formal complaint.`,
-  });
-
-  if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    const topCats = metadata.repeatedCategories.slice(0, 2).map(c => c.name.toLowerCase());
-    const catPhrase = topCats.length > 0 ? `, primarily concerning ${topCats.join(' and ')}` : '';
-    sections.push({
-      key: 'summary',
-      title: 'Summary',
-      content: `Events occurred between ${start} and ${end}${catPhrase}. Each incident was recorded at or near the time it occurred.`,
-    });
-  }
-
-  // Key incidents — numbered, full chronology
-  const entries = buildNumberedChronology(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
-    sections.push({
-      key: 'incidents',
-      title: 'Recorded incidents',
-      content: entries.map((e, i) => `${i + 1}. ${e}`).join('\n'),
-    });
-  }
-
-  // Repeated conduct
-  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => `${r.name} (${r.count})`).join(', ')
-      : metadata.repeatedIndividuals.map((r, i) => `[Individual ${i + 1}] (${r.count})`).join(', ');
-    sections.push({
-      key: 'repeated-conduct',
-      title: 'Repeated involvement',
-      content: `The following individual${metadata.repeatedIndividuals.length !== 1 ? 's are' : ' is'} named in multiple incidents: ${names}.`,
-    });
-  }
-
-  // Effect — only when follow-ups contain real notes
-  if (metadata.hasFollowUps) {
-    sections.push({
-      key: 'effect',
-      title: 'Effect',
-      content: 'The cumulative impact of these events has been noted in follow-up entries where applicable.',
-    });
-  }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This summary provides a structured account of recorded events for review.',
-  });
-
-  return sections;
-}
-
-// ─── Formatter: University / Education ────────────────────────
-
-function formatUniversity(
-  sorted: NormalisedIncident[],
-  metadata: SummaryMetadata,
-  options: SummaryOptions,
-): SummarySection[] {
-  const sections: SummarySection[] = [];
-  const allPeople = collectAllPeople(sorted);
-
-  sections.push({
-    key: 'header',
-    title: 'Summary of Recorded Events',
-    content: 'Prepared for consideration in an educational or university context.',
-  });
-
-  if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    sections.push({
-      key: 'overview',
-      title: 'Overview',
-      content: `This summary covers ${sorted.length} recorded event${sorted.length !== 1 ? 's' : ''} between ${start} and ${end}. The events are presented neutrally and chronologically.`,
-    });
-  }
-
-  // Timeline — numbered entries
-  const entries = buildNumberedChronology(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
-    sections.push({
-      key: 'timeline',
-      title: 'Timeline',
-      content: entries.map((e, i) => `${i + 1}. ${e}`).join('\n'),
-    });
-  }
-
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
-    sections.push({
-      key: 'recurring-issues',
-      title: 'Recurring issues',
-      content: metadata.repeatedCategories
-        .map(c => `${c.name}: recorded ${c.count} times`)
-        .join('\n'),
-    });
-  }
-
-  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => r.name).join(', ')
-      : metadata.repeatedIndividuals.map((_, i) => `[Individual ${i + 1}]`).join(', ');
-    sections.push({
-      key: 'individuals',
-      title: 'Individuals referenced',
-      content: `The following individual${metadata.repeatedIndividuals.length !== 1 ? 's are' : ' is'} referenced in more than one entry: ${names}.`,
-    });
-  }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This summary provides a chronological account of recorded events for consideration.',
-  });
-
-  return sections;
-}
-
-// ─── Formatter: Personal Record ───────────────────────────────
-
-function formatPersonal(
-  sorted: NormalisedIncident[],
-  metadata: SummaryMetadata,
-  options: SummaryOptions,
-): SummarySection[] {
-  const sections: SummarySection[] = [];
-  const allPeople = collectAllPeople(sorted);
-
-  sections.push({
-    key: 'header',
-    title: 'Personal Record',
-    content: 'A summary of events as recorded.',
-  });
-
-  if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    sections.push({
-      key: 'recap',
-      title: 'What was recorded',
-      content: `${sorted.length} event${sorted.length !== 1 ? 's were' : ' was'} documented between ${start} and ${end}.`,
-    });
-  }
-
-  // Simple date-dash timeline
-  const entries = buildPersonalTimeline(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
-    sections.push({
-      key: 'timeline',
-      title: 'Timeline',
-      content: entries.join('\n'),
-    });
-  }
-
-  // Who was involved
-  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => r.name).join(', ')
-      : metadata.repeatedIndividuals.map((_, i) => `[Individual ${i + 1}]`).join(', ');
-    sections.push({
-      key: 'who',
-      title: 'Who was involved',
-      content: names,
-    });
-  }
-
-  // What repeated
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
-    sections.push({
-      key: 'patterns',
-      title: 'What came up more than once',
-      content: metadata.repeatedCategories.map(c => c.name).join(', '),
-    });
-  }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This record reflects events as they were noted at the time.',
-  });
-
-  return sections;
-}
-
-// ─── Formatter: Custom ────────────────────────────────────────
-
-function formatCustom(
+function formatPatterns(
   sorted: NormalisedIncident[],
   metadata: SummaryMetadata,
   options: SummaryOptions,
   customPurpose: string,
 ): SummarySection[] {
-  // Fall back to general if no custom purpose
-  if (!customPurpose.trim()) {
-    return formatGeneral(sorted, metadata, options);
+  const sections: SummarySection[] = [];
+  const allPeople = collectAllPeople(sorted);
+
+  // Header
+  const purposeLine = customPurpose.trim()
+    ? `Prepared for: ${customPurpose}`
+    : 'Structural overview of recorded activity.';
+
+  sections.push({
+    key: 'header',
+    title: 'Pattern Analysis',
+    content: purposeLine,
+  });
+
+  // Activity distribution — category dominance
+  const catEntries = Object.entries(metadata.categoryCounts)
+    .sort((a, b) => b[1] - a[1]);
+  if (catEntries.length > 0) {
+    const total = sorted.length;
+    const lines = catEntries.map(([cat, count]) => {
+      const pct = Math.round((count / total) * 100);
+      return `• ${cat}: ${count} (${pct}%)`;
+    });
+    sections.push({
+      key: 'activity-distribution',
+      title: 'Activity distribution',
+      content: lines.join('\n'),
+    });
   }
 
+  // Repeated individuals (with counts)
+  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
+    const lines = metadata.repeatedIndividuals.map(r => {
+      const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
+      return `• ${n}: ${r.count} incidents`;
+    });
+    sections.push({
+      key: 'repeated-individuals',
+      title: 'Repeated individuals',
+      content: lines.join('\n'),
+    });
+  }
+
+  // Category overlap — where categories co-occur with same people
+  if (metadata.repeatedIndividuals.length > 0 && metadata.repeatedCategories.length > 1 && options.includePatterns) {
+    const overlapLines: string[] = [];
+    for (const person of metadata.repeatedIndividuals) {
+      const personIncs = sorted.filter(i => i.people_involved.includes(person.name));
+      const personCats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+      if (personCats.length > 1) {
+        const pName = options.includeNames ? person.name : redactName(person.name, allPeople.indexOf(person.name));
+        overlapLines.push(`• ${pName} appears across: ${personCats.join(', ')}`);
+      }
+    }
+    if (overlapLines.length > 0) {
+      sections.push({
+        key: 'category-overlap',
+        title: 'Category overlap',
+        content: overlapLines.join('\n'),
+      });
+    }
+  }
+
+  // Time distribution — clusters or density periods
+  if (metadata.frequencyClusters.length > 0 && options.includePatterns) {
+    const lines = metadata.frequencyClusters.map(c =>
+      `• ${formatDate(c.startDate)} – ${formatDate(c.endDate)}: ${c.count} incidents`
+    );
+    sections.push({
+      key: 'time-distribution',
+      title: 'Time distribution',
+      content: lines.join('\n'),
+    });
+  }
+
+  // Escalation structure — sequence of event types only (no interpretation)
+  if (sorted.length >= 3 && options.includePatterns) {
+    const typeSequence = sorted.map(i => i.category || 'Other');
+    // Only show if types change over time
+    const uniqueTypes = [...new Set(typeSequence)];
+    if (uniqueTypes.length > 1) {
+      // Split into thirds for early/mid/late
+      const third = Math.ceil(sorted.length / 3);
+      const early = sorted.slice(0, third).map(i => i.category || 'Other');
+      const mid = sorted.slice(third, third * 2).map(i => i.category || 'Other');
+      const late = sorted.slice(third * 2).map(i => i.category || 'Other');
+
+      const earlyCats = [...new Set(early)].join(', ');
+      const midCats = [...new Set(mid)].join(', ');
+      const lateCats = [...new Set(late)].join(', ');
+
+      sections.push({
+        key: 'escalation-structure',
+        title: 'Escalation structure',
+        content: `Early: ${earlyCats}\nMid: ${midCats}\nLate: ${lateCats}`,
+      });
+    }
+  }
+
+  return sections;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODE: BRIEFING — Human-readable compressed understanding
+// ═══════════════════════════════════════════════════════════════
+
+function formatBriefing(
+  sorted: NormalisedIncident[],
+  metadata: SummaryMetadata,
+  options: SummaryOptions,
+  tone: ToneVariant,
+): SummarySection[] {
+  const sections: SummarySection[] = [];
+  const allPeople = collectAllPeople(sorted);
+  const isSimplified = tone === 'simplified';
+
+  // Header
+  sections.push({
+    key: 'header',
+    title: isSimplified ? 'Personal Record' : 'Briefing Note',
+    content: isSimplified
+      ? 'A summary of events as recorded.'
+      : `Covering ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''}.`,
+  });
+
+  // Short summary paragraph
+  if (sorted.length > 0) {
+    const start = formatDate(metadata.dateRangeStart);
+    const end = formatDate(metadata.dateRangeEnd);
+    const topCat = metadata.repeatedCategories.length > 0
+      ? metadata.repeatedCategories[0].name.toLowerCase()
+      : null;
+    const catNote = topCat ? `, most frequently involving ${topCat}` : '';
+
+    const summary = isSimplified
+      ? `${sorted.length} event${sorted.length !== 1 ? 's were' : ' was'} recorded between ${start} and ${end}${catNote}.`
+      : `Between ${start} and ${end}, ${sorted.length} incident${sorted.length !== 1 ? 's were' : ' was'} recorded${catNote}. This briefing provides a compressed overview.`;
+
+    sections.push({
+      key: 'summary',
+      title: isSimplified ? 'What was recorded' : 'Summary',
+      content: summary,
+    });
+  }
+
+  // Development over time (early → mid → later)
+  if (sorted.length >= 3) {
+    const third = Math.ceil(sorted.length / 3);
+    const earlyIncs = sorted.slice(0, third);
+    const midIncs = sorted.slice(third, third * 2);
+    const lateIncs = sorted.slice(third * 2);
+
+    const describePhase = (incs: NormalisedIncident[], label: string): string => {
+      const cats = [...new Set(incs.map(i => i.category || 'Other'))].join(', ');
+      const dateRange = incs.length > 1
+        ? `${formatDate(incs[0].incident_date)} – ${formatDate(incs[incs.length - 1].incident_date)}`
+        : formatDate(incs[0].incident_date);
+      return `${label} (${dateRange}): ${incs.length} event${incs.length !== 1 ? 's' : ''} — ${cats}`;
+    };
+
+    const lines = [
+      describePhase(earlyIncs, 'Early'),
+      describePhase(midIncs, 'Mid'),
+      describePhase(lateIncs, 'Later'),
+    ];
+
+    sections.push({
+      key: 'development',
+      title: isSimplified ? 'How things developed' : 'Development over time',
+      content: lines.join('\n'),
+    });
+  }
+
+  // Repetition (people + categories)
+  const repLines: string[] = [];
+  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
+    const names = metadata.repeatedIndividuals.map(r => {
+      const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
+      return `${n} (${r.count})`;
+    });
+    repLines.push(`People: ${names.join(', ')}`);
+  }
+  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
+    const cats = metadata.repeatedCategories.map(c => `${c.name} (${c.count})`);
+    repLines.push(`Categories: ${cats.join(', ')}`);
+  }
+  if (repLines.length > 0) {
+    sections.push({
+      key: 'repetition',
+      title: isSimplified ? 'What came up more than once' : 'Repetition',
+      content: repLines.join('\n'),
+    });
+  }
+
+  // Notable features (quotes, clustering, witnesses)
+  const notableLines: string[] = [];
+  const quotedIncs = sorted.filter(i => i.exact_words);
+  if (quotedIncs.length > 0) {
+    notableLines.push(`${quotedIncs.length} incident${quotedIncs.length !== 1 ? 's include' : ' includes'} verbatim quotes.`);
+  }
+  if (metadata.frequencyClusters.length > 0) {
+    notableLines.push(`Activity clusters within short timeframes on ${metadata.frequencyClusters.length} occasion${metadata.frequencyClusters.length !== 1 ? 's' : ''}.`);
+  }
+  if (metadata.witnessCoverage > 0) {
+    notableLines.push(`${metadata.witnessCoverage} incident${metadata.witnessCoverage !== 1 ? 's have' : ' has'} named witnesses.`);
+  }
+  if (metadata.attachmentCoverage > 0) {
+    notableLines.push(`${metadata.attachmentCoverage} incident${metadata.attachmentCoverage !== 1 ? 's have' : ' has'} supporting attachments.`);
+  }
+  if (notableLines.length > 0 && !isSimplified) {
+    sections.push({
+      key: 'notable',
+      title: 'Notable features',
+      content: notableLines.join('\n'),
+    });
+  }
+
+  // Simplified closing
+  sections.push({
+    key: 'closing',
+    title: '',
+    content: isSimplified
+      ? 'This record reflects events as they were noted at the time.'
+      : 'This briefing summarises recorded events for discussion purposes.',
+  });
+
+  return sections;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODE: TRIBUNAL — Issue-based grouping for formal review
+// ═══════════════════════════════════════════════════════════════
+
+interface IssueGroup {
+  issue: string;
+  coreIncidents: NormalisedIncident[];
+  supportingIncidents: NormalisedIncident[];
+}
+
+function deriveIssueGroups(sorted: NormalisedIncident[]): IssueGroup[] {
+  // Group by category
+  const catMap: Record<string, NormalisedIncident[]> = {};
+  sorted.forEach(inc => {
+    const cat = inc.category || 'Other';
+    if (!catMap[cat]) catMap[cat] = [];
+    catMap[cat].push(inc);
+  });
+
+  // Build issue groups — core = most direct, supporting = contextual
+  return Object.entries(catMap)
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([issue, incs]) => {
+      // For larger groups, select most relevant as core (max 5), rest as supporting
+      const core = incs.slice(0, Math.min(5, incs.length));
+      const supporting = incs.slice(5);
+      return { issue, coreIncidents: core, supportingIncidents: supporting };
+    });
+}
+
+function formatTribunal(
+  sorted: NormalisedIncident[],
+  metadata: SummaryMetadata,
+  options: SummaryOptions,
+): SummarySection[] {
   const sections: SummarySection[] = [];
   const allPeople = collectAllPeople(sorted);
 
   sections.push({
     key: 'header',
-    title: 'Summary of recorded incidents',
-    content: `Prepared for: ${customPurpose}`,
+    title: 'Workplace Grievance — Structured Summary',
+    content: `This summary groups ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''} by issue for review.`,
   });
 
-  if (sorted.length > 0) {
-    const start = formatDate(metadata.dateRangeStart);
-    const end = formatDate(metadata.dateRangeEnd);
-    sections.push({
-      key: 'overview',
-      title: 'Overview',
-      content: `This summary covers ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''} between ${start} and ${end}.`,
-    });
-  }
+  // STEP 1+2: Issue groups
+  const groups = deriveIssueGroups(sorted);
 
-  const entries = buildNumberedChronology(sorted, options.includeNames, allPeople);
-  if (entries.length > 0) {
-    sections.push({
-      key: 'chronology',
-      title: 'Chronology',
-      content: entries.map((e, i) => `${i + 1}. ${e}`).join('\n'),
-    });
-  }
+  groups.forEach((group, gIdx) => {
+    const lines: string[] = [];
 
+    // Core incidents (1-2 lines each)
+    if (group.coreIncidents.length > 0) {
+      lines.push('Core incidents:');
+      group.coreIncidents.forEach(inc => {
+        let line = formatIncidentLine(inc, options.includeNames, allPeople);
+        if (!options.includeNames) line = redactText(line, allPeople);
+        lines.push(`  ${line}`);
+      });
+    }
+
+    // Supporting incidents
+    if (group.supportingIncidents.length > 0) {
+      lines.push('');
+      lines.push('Supporting incidents:');
+      group.supportingIncidents.forEach(inc => {
+        let line = formatIncidentLine(inc, options.includeNames, allPeople);
+        if (!options.includeNames) line = redactText(line, allPeople);
+        lines.push(`  ${line}`);
+      });
+    }
+
+    // Sequence (order only, no causal language)
+    if (group.coreIncidents.length >= 2) {
+      const first = formatDate(group.coreIncidents[0].incident_date);
+      const last = formatDate(group.coreIncidents[group.coreIncidents.length - 1].incident_date);
+      lines.push('');
+      lines.push(`Sequence: initial event ${first}, followed by subsequent events through ${last}.`);
+    }
+
+    // Observed features — factual only (repetition, timing, type)
+    const features: string[] = [];
+    const peopleInGroup = group.coreIncidents.flatMap(i => i.people_involved);
+    const peopleCounts: Record<string, number> = {};
+    peopleInGroup.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; });
+    const repeatedInGroup = Object.entries(peopleCounts)
+      .filter(([, c]) => c >= 2)
+      .map(([name]) => personRef(name, options.includeNames, allPeople));
+    if (repeatedInGroup.length > 0) {
+      features.push(`Repeated involvement: ${repeatedInGroup.join(', ')}`);
+    }
+
+    const totalInGroup = group.coreIncidents.length + group.supportingIncidents.length;
+    if (totalInGroup >= 3) {
+      features.push(`${totalInGroup} events recorded under this issue`);
+    }
+
+    if (features.length > 0) {
+      lines.push('');
+      lines.push('Observed features:');
+      features.forEach(f => lines.push(`  • ${f}`));
+    }
+
+    sections.push({
+      key: `issue-${gIdx}`,
+      title: group.issue,
+      content: lines.join('\n'),
+    });
+  });
+
+  // STEP 3: Cross-issue observations
+  const crossLines: string[] = [];
+
+  // Repeated individuals across issues
   if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
-    const names = options.includeNames
-      ? metadata.repeatedIndividuals.map(r => r.name).join(', ')
-      : metadata.repeatedIndividuals.map((_, i) => `[Individual ${i + 1}]`).join(', ');
-    sections.push({
-      key: 'repeated-individuals',
-      title: 'Recurring individuals',
-      content: names,
+    const crossPeople = metadata.repeatedIndividuals.filter(r => {
+      const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
+      const personCats = new Set(personIncs.map(i => i.category || 'Other'));
+      return personCats.size > 1;
+    });
+    if (crossPeople.length > 0) {
+      crossPeople.forEach(r => {
+        const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
+        const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
+        const cats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+        crossLines.push(`• ${n} appears across: ${cats.join(', ')}`);
+      });
+    }
+  }
+
+  // Timing relationships between issue groups
+  if (metadata.frequencyClusters.length > 0) {
+    metadata.frequencyClusters.forEach(c => {
+      crossLines.push(`• ${c.count} events clustered between ${formatDate(c.startDate)} and ${formatDate(c.endDate)}`);
     });
   }
 
-  if (metadata.repeatedCategories.length > 0 && options.includePatterns) {
+  if (crossLines.length > 0) {
     sections.push({
-      key: 'repeated-categories',
-      title: 'Recurring themes',
-      content: metadata.repeatedCategories.map(c => `${c.name} (${c.count})`).join(', '),
+      key: 'cross-issue',
+      title: 'Cross-issue observations',
+      content: crossLines.join('\n'),
     });
   }
-
-  sections.push({
-    key: 'closing',
-    title: '',
-    content: 'This summary reflects recorded entries as documented.',
-  });
 
   return sections;
 }
@@ -894,22 +844,19 @@ export function formatSummaryByMode(
   customPurpose: string,
   options: SummaryOptions,
 ): SummarySection[] {
-  switch (mode) {
-    case 'workplace-grievance':
-      return formatWorkplaceGrievance(sorted, metadata, options);
-    case 'hr-discussion':
-      return formatHRDiscussion(sorted, metadata, options);
-    case 'formal-complaint':
-      return formatFormalComplaint(sorted, metadata, options);
-    case 'university':
-      return formatUniversity(sorted, metadata, options);
-    case 'personal':
-      return formatPersonal(sorted, metadata, options);
-    case 'custom':
-      return formatCustom(sorted, metadata, options, customPurpose);
-    case 'general':
+  const { engine, tone } = resolveEngineMode(mode, customPurpose);
+
+  switch (engine) {
+    case 'RECORD':
+      return formatRecord(sorted, metadata, options, tone);
+    case 'PATTERNS':
+      return formatPatterns(sorted, metadata, options, customPurpose);
+    case 'BRIEFING':
+      return formatBriefing(sorted, metadata, options, tone);
+    case 'TRIBUNAL':
+      return formatTribunal(sorted, metadata, options);
     default:
-      return formatGeneral(sorted, metadata, options);
+      return formatPatterns(sorted, metadata, options, customPurpose);
   }
 }
 

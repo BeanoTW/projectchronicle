@@ -203,7 +203,6 @@ describe('generateSummary', () => {
     const single = [makeIncident({ id: '1', raw_narrative: 'One event.' })];
     const result = generateSummary(makeRequest(single));
     expect(result.sections.find(s => s.key === 'repeated-individuals')).toBeUndefined();
-    expect(result.sections.find(s => s.key === 'repeated-categories')).toBeUndefined();
   });
 
   it('handles incident with all missing optional fields', () => {
@@ -231,9 +230,9 @@ describe('generateSummary', () => {
   });
 });
 
-// ─── Mode differentiation ─────────────────────────────────────
+// ─── V3 Mode differentiation (4 engine modes) ────────────────
 
-describe('mode differentiation', () => {
+describe('V3 mode differentiation', () => {
   const incidents = [
     makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
     makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
@@ -242,75 +241,95 @@ describe('mode differentiation', () => {
 
   const allModes: SummaryMode[] = ['general', 'workplace-grievance', 'hr-discussion', 'formal-complaint', 'university', 'personal', 'custom'];
 
-  it('each mode produces different header titles', () => {
-    const headers = allModes.map(mode => {
-      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test purpose' }));
-      return result.sections.find(s => s.key === 'header')?.title;
-    });
-    const unique = new Set(headers);
-    // At least 5 unique headers (custom without purpose falls back to general)
-    expect(unique.size).toBeGreaterThanOrEqual(5);
+  it('general → PATTERNS mode: no full chronology, has activity distribution', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'general' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('activity-distribution');
+    expect(keys).not.toContain('chronology');
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Pattern Analysis');
   });
 
-  it('each mode produces different section keys', () => {
-    const sectionKeySets = allModes.map(mode => {
-      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }));
-      return result.sections.map(s => s.key).join(',');
-    });
-    // At least 4 distinct section structures
-    const unique = new Set(sectionKeySets);
-    expect(unique.size).toBeGreaterThanOrEqual(4);
-  });
-
-  it('workplace grievance includes workplace-specific sections', () => {
+  it('workplace-grievance → TRIBUNAL mode: issue-based grouping', () => {
     const result = generateSummary(makeRequest(incidents, { mode: 'workplace-grievance' }));
     const keys = result.sections.map(s => s.key);
-    expect(keys).toContain('workplace-themes');
+    // Should have issue-N sections
+    expect(keys.some(k => k.startsWith('issue-'))).toBe(true);
     expect(result.sections.find(s => s.key === 'header')?.title).toContain('Workplace Grievance');
   });
 
-  it('HR discussion includes discussion points', () => {
+  it('hr-discussion → BRIEFING mode: has summary + development', () => {
     const result = generateSummary(makeRequest(incidents, { mode: 'hr-discussion' }));
     const keys = result.sections.map(s => s.key);
-    expect(keys).toContain('discussion-points');
-    expect(result.sections.find(s => s.key === 'header')?.title).toContain('Briefing Note');
+    expect(keys).toContain('summary');
+    expect(keys).toContain('development');
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Briefing Note');
   });
 
-  it('formal complaint uses "Recorded incidents" not "Chronology"', () => {
+  it('formal-complaint → RECORD mode (formal): has full chronology', () => {
     const result = generateSummary(makeRequest(incidents, { mode: 'formal-complaint' }));
     const keys = result.sections.map(s => s.key);
-    expect(keys).toContain('incidents');
+    expect(keys).toContain('chronology');
+    expect(keys).toContain('category-breakdown');
+    expect(keys).toContain('integrity');
+    expect(result.sections.find(s => s.key === 'header')?.title).toContain('Formal Complaint');
+  });
+
+  it('university → RECORD mode (neutral): has full chronology, neutral title', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'university' }));
+    const keys = result.sections.map(s => s.key);
+    expect(keys).toContain('chronology');
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Record of Events');
+  });
+
+  it('personal → BRIEFING mode (simplified): simple headings', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'personal' }));
+    const keys = result.sections.map(s => s.key);
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Personal Record');
+    expect(result.sections.find(s => s.key === 'summary')?.title).toBe('What was recorded');
+    // Should NOT have full chronology
     expect(keys).not.toContain('chronology');
   });
 
-  it('personal record uses simple "What was recorded" and "Timeline"', () => {
-    const result = generateSummary(makeRequest(incidents, { mode: 'personal' }));
+  it('custom with empty purpose falls back to PATTERNS', () => {
+    const result = generateSummary(makeRequest(incidents, { mode: 'custom', customPurpose: '' }));
     const keys = result.sections.map(s => s.key);
-    expect(keys).toContain('recap');
-    expect(keys).toContain('timeline');
-    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Personal Record');
+    expect(keys).toContain('activity-distribution');
+    expect(result.sections.find(s => s.key === 'header')?.title).toBe('Pattern Analysis');
   });
 
-  it('university mode uses neutral academic framing', () => {
-    const result = generateSummary(makeRequest(incidents, { mode: 'university' }));
-    expect(result.sections.find(s => s.key === 'header')?.content).toContain('educational or university');
-  });
-
-  it('custom with empty purpose falls back to general', () => {
-    const custom = generateSummary(makeRequest(incidents, { mode: 'custom', customPurpose: '' }));
-    const general = generateSummary(makeRequest(incidents, { mode: 'general' }));
-    expect(custom.sections.find(s => s.key === 'header')?.title).toBe(general.sections.find(s => s.key === 'header')?.title);
-  });
-
-  it('custom with purpose uses custom framing', () => {
+  it('custom with purpose uses PATTERNS with custom framing', () => {
     const result = generateSummary(makeRequest(incidents, { mode: 'custom', customPurpose: 'housing dispute' }));
     expect(result.sections.find(s => s.key === 'header')?.content).toContain('housing dispute');
+  });
+
+  it('RECORD has full chronology, PATTERNS does not', () => {
+    const record = generateSummary(makeRequest(incidents, { mode: 'formal-complaint' }));
+    const patterns = generateSummary(makeRequest(incidents, { mode: 'general' }));
+    expect(record.sections.some(s => s.key === 'chronology')).toBe(true);
+    expect(patterns.sections.some(s => s.key === 'chronology')).toBe(false);
+  });
+
+  it('TRIBUNAL groups by issue, BRIEFING does not', () => {
+    const tribunal = generateSummary(makeRequest(incidents, { mode: 'workplace-grievance' }));
+    const briefing = generateSummary(makeRequest(incidents, { mode: 'hr-discussion' }));
+    expect(tribunal.sections.some(s => s.key.startsWith('issue-'))).toBe(true);
+    expect(briefing.sections.some(s => s.key.startsWith('issue-'))).toBe(false);
+  });
+
+  it('facts remain consistent across all modes', () => {
+    const results = allModes.map(mode =>
+      generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }))
+    );
+    for (const r of results) {
+      expect(r.metadata.totalIncidentCount).toBe(3);
+      expect(r.metadata.repeatedIndividuals.length).toBeGreaterThan(0);
+      expect(r.metadata.repeatedCategories.length).toBeGreaterThan(0);
+    }
   });
 
   it('renderedText is derived from sections consistently', () => {
     for (const mode of allModes) {
       const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }));
-      // Each section title or content should appear in rendered text
       for (const section of result.sections) {
         if (section.title) {
           expect(result.renderedText).toContain(section.title);
@@ -320,15 +339,13 @@ describe('mode differentiation', () => {
     }
   });
 
-  it('facts remain consistent across modes', () => {
-    const results = allModes.map(mode =>
-      generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }))
-    );
-    // All should have same metadata
-    for (const r of results) {
-      expect(r.metadata.totalIncidentCount).toBe(3);
-      expect(r.metadata.repeatedIndividuals.length).toBeGreaterThan(0);
-      expect(r.metadata.repeatedCategories.length).toBeGreaterThan(0);
+  it('no mode produces timeline duplication', () => {
+    for (const mode of allModes) {
+      const result = generateSummary(makeRequest(incidents, { mode, customPurpose: 'test' }));
+      const chronoSections = result.sections.filter(s =>
+        s.key === 'chronology' || s.key === 'timeline'
+      );
+      expect(chronoSections.length).toBeLessThanOrEqual(1);
     }
   });
 });
