@@ -218,7 +218,10 @@ describe('generateSummary', () => {
     })];
     const result = generateSummary(makeRequest(bare));
     expect(result.sections.length).toBeGreaterThan(0);
-    expect(result.renderedText.toLowerCase()).toContain('bare minimum');
+    expect(result.renderedText.length).toBeGreaterThan(0);
+    // PATTERNS mode won't include narrative, but RECORD mode should
+    const recordResult = generateSummary(makeRequest(bare, { mode: 'formal-complaint' }));
+    expect(recordResult.renderedText.toLowerCase()).toContain('bare minimum');
   });
 
   it('redacts names when includeNames is false', () => {
