@@ -1,10 +1,11 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import FlowFrequencyChart from './FlowFrequencyChart';
 import { deriveEscalationSignal } from '@/lib/flowEscalation';
+import { Search, ZoomIn } from 'lucide-react';
 
 const categoryColors: Record<string, string> = {
   'Management Conduct': 'hsl(var(--primary))',
@@ -41,6 +42,18 @@ const ZOOM_LEVELS = [
   { name: 'Mid',      spacingMin: 10, spacingMax: 48, dotBase: 10, labelMode: 'week' as const },
   { name: 'Detail',   spacingMin: 20, spacingMax: 80, dotBase: 12, labelMode: 'day' as const },
 ];
+
+/* ── Interpolate between two zoom levels ── */
+function lerpZoom(from: typeof ZOOM_LEVELS[0], to: typeof ZOOM_LEVELS[0], t: number) {
+  const lerp = (a: number, b: number) => a + (b - a) * t;
+  return {
+    spacingMin: lerp(from.spacingMin, to.spacingMin),
+    spacingMax: lerp(from.spacingMax, to.spacingMax),
+    dotBase: lerp(from.dotBase, to.dotBase),
+    labelMode: t < 0.5 ? from.labelMode : to.labelMode,
+    name: t < 0.5 ? from.name : to.name,
+  };
+}
 
 /* ── Top summary ── */
 function deriveTopSummary(
@@ -99,17 +112,32 @@ function groupByDay(sorted: Incident[]): { date: string; incidents: Incident[] }
   return groups;
 }
 
+const HINT_STORAGE_KEY = 'chronicle_timeline_hint_dismissed';
+
 const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1); // 0=overview, 1=mid, 2=detail
+  const [zoomLevel, setZoomLevel] = useState(1);
+
+  // Continuous zoom value for interpolation (0-2)
+  const continuousZoom = useMotionValue(1);
+  const smoothZoom = useSpring(continuousZoom, { stiffness: 300, damping: 30 });
+  const [renderZoom, setRenderZoom] = useState(1);
+
+  // Discoverability hint
+  const [showHint, setShowHint] = useState(() => {
+    try { return !localStorage.getItem(HINT_STORAGE_KEY); } catch { return true; }
+  });
+
+  // Resistance flash at limits
+  const [resistanceFlash, setResistanceFlash] = useState<'min' | 'max' | null>(null);
 
   // Drag state
-  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0 });
+  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0, movedEnough: false });
   // Pinch state
-  const pinchState = useRef({ initialDist: 0, initialZoom: 1 });
+  const pinchState = useRef({ initialDist: 0, initialZoom: 1, centerX: 0 });
 
   const sorted = useMemo(() =>
     [...incidents]
@@ -137,14 +165,34 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     return span >= 2;
   }, [sortedDates]);
 
-  const zoom = ZOOM_LEVELS[zoomLevel];
-
-  // Day groups for detail zoom
+  // Day groups
   const dayGroups = useMemo(() => groupByDay(sorted), [sorted]);
 
-  // Build dot data based on zoom level
+  // Listen to smoothZoom for rendering
+  useEffect(() => {
+    const unsub = smoothZoom.on('change', (v) => {
+      setRenderZoom(v);
+    });
+    return unsub;
+  }, [smoothZoom]);
+
+  // Interpolated zoom config
+  const interpolatedZoom = useMemo(() => {
+    const clamped = Math.max(0, Math.min(2, renderZoom));
+    const lower = Math.floor(clamped);
+    const upper = Math.min(2, lower + 1);
+    const t = clamped - lower;
+    if (lower === upper) return ZOOM_LEVELS[lower];
+    return lerpZoom(ZOOM_LEVELS[lower], ZOOM_LEVELS[upper], t);
+  }, [renderZoom]);
+
+  // Snap zoom level (discrete) from renderZoom
+  const activeLevel = Math.round(Math.max(0, Math.min(2, renderZoom)));
+
+  // Build dot data with interpolated zoom
   const dotData = useMemo(() => {
     if (sorted.length === 0) return [];
+    const zoom = interpolatedZoom;
 
     return sorted.map((inc, i) => {
       const gap = i > 0
@@ -162,20 +210,20 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
       const baseSize = (isCluster ? zoom.dotBase + 4 : zoom.dotBase) + recencyBoost;
 
-      // Same-day grouping info
       const sameDayGroup = dayGroups.find(g => g.date === inc.incident_date);
       const sameDayCount = sameDayGroup ? sameDayGroup.incidents.length : 1;
       const isFirstInDay = sameDayGroup ? sameDayGroup.incidents[0].id === inc.id : true;
 
       return { inc, gap, spacing, isCluster, hasRing, color, baseSize, sameDayCount, isFirstInDay };
     });
-  }, [sorted, repeatedPeople, zoom, dayGroups]);
+  }, [sorted, repeatedPeople, interpolatedZoom, dayGroups]);
 
-  // Labels based on zoom level
+  // Labels based on active level's label mode
   const labels = useMemo(() => {
+    const labelMode = interpolatedZoom.labelMode;
     const result: { index: number; label: string }[] = [];
 
-    if (zoom.labelMode === 'month') {
+    if (labelMode === 'month') {
       let currentMonth = '';
       sorted.forEach((inc, i) => {
         const m = format(parseISO(inc.incident_date), 'MMM yyyy');
@@ -184,7 +232,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
           currentMonth = m;
         }
       });
-      // Cap at 5
       if (result.length > 5) {
         const sampled: typeof result = [];
         for (let k = 0; k < 5; k++) {
@@ -193,13 +240,11 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         }
         return sampled;
       }
-    } else if (zoom.labelMode === 'week') {
+    } else if (labelMode === 'week') {
       let lastWeekLabel = '';
       sorted.forEach((inc, i) => {
         const d = parseISO(inc.incident_date);
-        const weekLabel = format(d, "'w'II MMM");
         const monthLabel = format(d, 'MMM yyyy');
-        // Show month start or every ~7 days
         if (monthLabel !== lastWeekLabel) {
           result.push({ index: i, label: monthLabel });
           lastWeekLabel = monthLabel;
@@ -219,7 +264,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         return sampled;
       }
     } else {
-      // Detail: show date for each incident or group
       const seen = new Set<string>();
       sorted.forEach((inc, i) => {
         const dateStr = format(parseISO(inc.incident_date), 'd MMM yyyy');
@@ -228,7 +272,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
           seen.add(dateStr);
         }
       });
-      // Cap at 12
       if (result.length > 12) {
         const sampled: typeof result = [];
         for (let k = 0; k < 12; k++) {
@@ -240,13 +283,33 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     }
 
     return result;
-  }, [sorted, zoom.labelMode]);
+  }, [sorted, interpolatedZoom.labelMode]);
+
+  // Dismiss hint
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem(HINT_STORAGE_KEY, '1'); } catch {}
+  }, []);
+
+  // Auto-dismiss hint after first zoom
+  useEffect(() => {
+    if (!showHint) return;
+    const timer = setTimeout(dismissHint, 6000);
+    return () => clearTimeout(timer);
+  }, [showHint, dismissHint]);
+
+  // Snap to nearest level with spring animation
+  const snapToLevel = useCallback((level: number) => {
+    const clamped = Math.max(0, Math.min(2, level));
+    setZoomLevel(clamped);
+    continuousZoom.set(clamped);
+  }, [continuousZoom]);
 
   // ── Drag handlers ──
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const el = containerRef.current;
     if (!el) return;
-    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft };
+    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft, movedEnough: false };
     el.setPointerCapture(e.pointerId);
   }, []);
 
@@ -255,6 +318,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     const el = containerRef.current;
     if (!el) return;
     const dx = e.clientX - dragState.current.startX;
+    if (Math.abs(dx) > 3) dragState.current.movedEnough = true;
     el.scrollLeft = dragState.current.scrollLeft - dx;
   }, []);
 
@@ -263,7 +327,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     containerRef.current?.releasePointerCapture(e.pointerId);
   }, []);
 
-  // ── Pinch-to-zoom ──
+  // ── Pinch-to-zoom with anchor ──
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -272,7 +336,13 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       if (e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
-        pinchState.current = { initialDist: Math.hypot(dx, dy), initialZoom: zoomLevel };
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        pinchState.current = {
+          initialDist: Math.hypot(dx, dy),
+          initialZoom: continuousZoom.get(),
+          centerX,
+        };
+        dismissHint();
       }
     };
 
@@ -284,25 +354,47 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       const dist = Math.hypot(dx, dy);
       const ratio = dist / pinchState.current.initialDist;
 
-      if (ratio > 1.3 && pinchState.current.initialZoom < 2) {
-        setZoomLevel(Math.min(2, pinchState.current.initialZoom + 1));
-        pinchState.current.initialDist = dist;
-        pinchState.current.initialZoom = Math.min(2, pinchState.current.initialZoom + 1);
-      } else if (ratio < 0.7 && pinchState.current.initialZoom > 0) {
-        setZoomLevel(Math.max(0, pinchState.current.initialZoom - 1));
-        pinchState.current.initialDist = dist;
-        pinchState.current.initialZoom = Math.max(0, pinchState.current.initialZoom - 1);
+      // Map ratio to zoom delta: ln-based for natural feel
+      const rawZoom = pinchState.current.initialZoom + Math.log2(ratio);
+
+      // Add resistance at boundaries
+      let targetZoom: number;
+      if (rawZoom < 0) {
+        targetZoom = -0.15 * Math.tanh(-rawZoom / 0.15); // rubber-band below 0
+      } else if (rawZoom > 2) {
+        targetZoom = 2 + 0.15 * Math.tanh((rawZoom - 2) / 0.15); // rubber-band above 2
+      } else {
+        targetZoom = rawZoom;
+      }
+
+      continuousZoom.set(targetZoom);
+
+      // Show resistance flash at limits
+      if (rawZoom < -0.1 && resistanceFlash !== 'min') setResistanceFlash('min');
+      else if (rawZoom > 2.1 && resistanceFlash !== 'max') setResistanceFlash('max');
+      else if (rawZoom >= -0.1 && rawZoom <= 2.1 && resistanceFlash) setResistanceFlash(null);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        // Snap to nearest level
+        const current = continuousZoom.get();
+        const nearest = Math.round(Math.max(0, Math.min(2, current)));
+        snapToLevel(nearest);
+        setResistanceFlash(null);
       }
     };
 
     el.addEventListener('touchstart', handleTouchStart, { passive: true });
     el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       el.removeEventListener('touchstart', handleTouchStart);
       el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [zoomLevel]);
+  }, [continuousZoom, snapToLevel, dismissHint, resistanceFlash]);
 
   // ── Wheel zoom (desktop) ──
   useEffect(() => {
@@ -312,20 +404,22 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        if (e.deltaY < 0 && zoomLevel < 2) setZoomLevel(z => Math.min(2, z + 1));
-        else if (e.deltaY > 0 && zoomLevel > 0) setZoomLevel(z => Math.max(0, z - 1));
+        const current = continuousZoom.get();
+        const delta = e.deltaY < 0 ? 1 : -1;
+        const nearest = Math.round(Math.max(0, Math.min(2, current + delta)));
+        snapToLevel(nearest);
+        dismissHint();
       }
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
-  }, [zoomLevel]);
+  }, [continuousZoom, snapToLevel, dismissHint]);
 
   // ── Auto-centre on selection ──
   const handleSelect = useCallback((id: string, dotIndex: number) => {
     setSelectedId(prev => prev === id ? null : id);
 
-    // Scroll to centre the dot
     const el = containerRef.current;
     const timeline = timelineRef.current;
     if (!el || !timeline) return;
@@ -339,6 +433,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
   }, []);
 
   const selectedIncident = sorted.find(i => i.id === selectedId);
+  const isDetailLevel = activeLevel >= 2;
 
   return (
     <div className="space-y-5">
@@ -350,14 +445,17 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         )}
       </div>
 
-      {/* Zoom level indicator */}
+      {/* Zoom level tabs */}
       <div className="flex items-center gap-1.5 px-1">
         {ZOOM_LEVELS.map((z, i) => (
           <button
             key={z.name}
-            onClick={() => setZoomLevel(i)}
-            className={`text-[10px] px-2.5 py-1 rounded-full transition-all duration-200 ${
-              i === zoomLevel
+            onClick={() => {
+              snapToLevel(i);
+              dismissHint();
+            }}
+            className={`text-[10px] px-2.5 py-1 rounded-full transition-all duration-300 ${
+              i === activeLevel
                 ? 'bg-primary/10 text-primary font-medium'
                 : 'text-muted-foreground/50 hover:text-muted-foreground'
             }`}
@@ -365,12 +463,56 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
             {z.name}
           </button>
         ))}
+
+        {/* Zoom depth indicator */}
+        <div className="ml-auto flex items-center gap-1 mr-1">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: 4,
+                height: 4,
+                backgroundColor: i <= activeLevel
+                  ? 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.2)',
+              }}
+            />
+          ))}
+        </div>
       </div>
+
+      {/* Discoverability hint */}
+      <AnimatePresence>
+        {showHint && sorted.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center gap-2 px-3 py-2 mx-1 rounded-lg bg-primary/[0.05] border border-primary/[0.08]"
+          >
+            <ZoomIn className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+            <span className="text-[11px] text-muted-foreground">
+              Pinch to explore timeline depth
+            </span>
+            <button
+              onClick={dismissHint}
+              className="ml-auto text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Interactive dot timeline */}
       <div
         ref={containerRef}
-        className="overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x"
+        className={`overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x relative ${
+          resistanceFlash ? 'opacity-90' : ''
+        }`}
+        style={{ transition: 'opacity 0.15s ease' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -378,7 +520,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       >
         <div
           ref={timelineRef}
-          className="flex items-end min-w-max pb-7 pt-6 relative transition-all duration-300"
+          className="flex items-end min-w-max pb-7 pt-6 relative"
         >
           {/* Baseline */}
           <div className="absolute bottom-[24px] left-0 right-0 h-[1.5px] bg-border" />
@@ -387,59 +529,70 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
             const isSelected = selectedId === d.inc.id;
             const label = labels.find(m => m.index === i);
 
-            // In overview/mid, hide non-first same-day dots by stacking
-            const isHiddenInGroup = zoomLevel < 2 && d.sameDayCount > 1 && !d.isFirstInDay;
-
+            const isHiddenInGroup = activeLevel < 2 && d.sameDayCount > 1 && !d.isFirstInDay;
             if (isHiddenInGroup) return null;
 
             return (
-              <div
+              <motion.div
                 key={d.inc.id}
                 data-dot-index={i}
                 className="relative flex flex-col items-center"
-                style={{
-                  marginLeft: d.spacing,
-                  transition: 'margin-left 0.3s ease',
-                }}
+                animate={{ marginLeft: d.spacing }}
+                transition={{ type: 'spring', stiffness: 250, damping: 28, mass: 0.8 }}
               >
                 <button
                   onClick={(e) => {
+                    if (dragState.current.movedEnough) return;
                     e.stopPropagation();
                     handleSelect(d.inc.id, i);
                   }}
-                  className="relative z-10 min-w-[28px] min-h-[28px] flex items-center justify-center"
+                  className="relative z-10 min-w-[32px] min-h-[32px] flex items-center justify-center"
                   aria-label={`Incident on ${d.inc.incident_date}`}
                 >
                   <motion.div
-                    layout
                     className="rounded-full"
-                    style={{
-                      width: isSelected ? d.baseSize * 1.4 : d.baseSize,
-                      height: isSelected ? d.baseSize * 1.4 : d.baseSize,
+                    animate={{
+                      width: isSelected ? d.baseSize * 1.5 : d.baseSize,
+                      height: isSelected ? d.baseSize * 1.5 : d.baseSize,
                       backgroundColor: d.color,
                       boxShadow: isSelected
-                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}`
+                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}, 0 0 12px ${d.color}40`
                         : d.hasRing
                           ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${d.color}`
-                          : 'none',
+                          : '0 0 0 0px transparent',
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    whileTap={{ scale: 1.3 }}
                   />
 
                   {/* Same-day count badge */}
-                  {d.sameDayCount > 1 && d.isFirstInDay && zoomLevel < 2 && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                  {d.sameDayCount > 1 && d.isFirstInDay && activeLevel < 2 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                    >
                       {d.sameDayCount}
-                    </span>
+                    </motion.span>
                   )}
                 </button>
 
-                {label && (
-                  <span className="absolute -bottom-5 text-[9px] text-muted-foreground/50 whitespace-nowrap select-none">
-                    {label.label}
-                  </span>
-                )}
-              </div>
+                {/* Date labels with fade */}
+                <AnimatePresence mode="wait">
+                  {label && (
+                    <motion.span
+                      key={`${label.label}-${activeLevel}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute -bottom-5 text-[9px] text-muted-foreground whitespace-nowrap select-none"
+                    >
+                      {label.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
         </div>
