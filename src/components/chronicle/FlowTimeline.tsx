@@ -93,16 +93,29 @@ function deriveTopSummary(sorted: Incident[], gaps: number[]): { primary: string
   return { primary, secondary: null };
 }
 
-/* ── Build SVG curve path from incident density ── */
+/* ── Density computation: returns normalised density [0,1] at each x position ── */
+function computeDensityAtPositions(positions: number[], windowRadius: number): number[] {
+  if (positions.length === 0) return [];
+  const densities = positions.map(px => {
+    let d = 0;
+    for (const other of positions) {
+      const dist = Math.abs(px - other);
+      if (dist < windowRadius) d += 1 - dist / windowRadius;
+    }
+    return d;
+  });
+  const max = Math.max(...densities, 1);
+  return densities.map(d => d / max);
+}
+
+/* ── Build SVG curve path from positions and their densities ── */
 function buildCurvePath(
-  sorted: Incident[],
   totalWidth: number,
   curveHeight: number,
   positions: number[],
 ): string {
-  if (sorted.length < 2 || positions.length < 2) return '';
+  if (positions.length < 2) return '';
 
-  // Sample density at regular intervals
   const sampleCount = Math.max(20, Math.min(60, Math.floor(totalWidth / 8)));
   const maxX = positions[positions.length - 1] || totalWidth;
   const minX = positions[0] || 0;
@@ -117,9 +130,7 @@ function buildCurvePath(
     let density = 0;
     for (const px of positions) {
       const dist = Math.abs(px - x);
-      if (dist < windowRadius) {
-        density += 1 - (dist / windowRadius);
-      }
+      if (dist < windowRadius) density += 1 - (dist / windowRadius);
     }
     if (density > maxDensity) maxDensity = density;
     points.push({ x, y: density });
@@ -127,7 +138,6 @@ function buildCurvePath(
 
   if (maxDensity === 0) return '';
 
-  // Normalize and build smooth path
   const normalized = points.map(p => ({
     x: p.x,
     y: curveHeight - (p.y / maxDensity) * (curveHeight * 0.7),
@@ -149,15 +159,14 @@ function buildCurvePath(
 }
 
 const HINT_KEY = 'chronicle_timeline_hint_dismissed';
+const PINCH_THRESHOLD = 12; // px distance change before zoom activates
 
 /* ═══════════════════════════════════════════════ */
 const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Continuous zoom (0 – MAX_ZOOM)
   const continuousZoom = useMotionValue(0);
   const smoothZoom = useSpring(continuousZoom, { stiffness: 280, damping: 30 });
   const [renderZoom, setRenderZoom] = useState(0);
@@ -166,8 +175,20 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     try { return !localStorage.getItem(HINT_KEY); } catch { return true; }
   });
 
-  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0, movedEnough: false });
-  const pinchState = useRef({ initialDist: 0, initialZoom: 0, centerX: 0 });
+  // Gesture state refs
+  const gestureRef = useRef<{
+    type: 'none' | 'scroll' | 'pan' | 'pinch';
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    movedEnough: boolean;
+    pinchInitialDist: number;
+    pinchInitialZoom: number;
+    pinchActivated: boolean;
+  }>({
+    type: 'none', startX: 0, startY: 0, scrollLeft: 0, movedEnough: false,
+    pinchInitialDist: 0, pinchInitialZoom: 0, pinchActivated: false,
+  });
 
   /* ── Sorted data ── */
   const sorted = useMemo(() =>
@@ -185,7 +206,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
   const topSummary = useMemo(() => deriveTopSummary(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
   const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
 
-  // Listen to spring
   useEffect(() => {
     const unsub = smoothZoom.on('change', v => setRenderZoom(v));
     return unsub;
@@ -194,25 +214,22 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
   const iz = useMemo(() => getInterpolatedZoom(renderZoom), [renderZoom]);
   const activeLevel = Math.round(Math.max(0, Math.min(MAX_ZOOM, renderZoom)));
 
-  /* ── Structured Detail: compute day columns ── */
+  /* ── Structured Detail: day columns ── */
   const structuredDays = useMemo(() => {
     if (sorted.length < 2) return [];
     const first = parseISO(sorted[0].incident_date);
     const last = parseISO(sorted[sorted.length - 1].incident_date);
     const days = eachDayOfInterval({ start: startOfDay(first), end: startOfDay(last) });
 
-    // Only keep days that have events (or are adjacent for context)
     const eventDaySet = new Set(sorted.map(i => format(parseISO(i.incident_date), 'yyyy-MM-dd')));
     const relevantDays = days.filter(d => {
       const key = format(d, 'yyyy-MM-dd');
       if (eventDaySet.has(key)) return true;
-      // Include adjacent days for spacing context
       const prev = format(addDays(d, -1), 'yyyy-MM-dd');
       const next = format(addDays(d, 1), 'yyyy-MM-dd');
       return eventDaySet.has(prev) || eventDaySet.has(next);
     });
 
-    // Limit to reasonable count
     const maxDays = 60;
     const sampled = relevantDays.length > maxDays
       ? relevantDays.filter((_, i) => i % Math.ceil(relevantDays.length / maxDays) === 0)
@@ -220,15 +237,11 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
 
     return sampled.map(d => {
       const key = format(d, 'yyyy-MM-dd');
-      return {
-        date: d,
-        key,
-        incidents: sorted.filter(inc => inc.incident_date === key),
-      };
+      return { date: d, key, incidents: sorted.filter(inc => inc.incident_date === key) };
     });
   }, [sorted]);
 
-  /* ── Dot timeline positions (for Overview/Mid/Detail) ── */
+  /* ── Dot positions (x) ── */
   const dotPositions = useMemo(() => {
     if (sorted.length === 0) return [];
     let x = 20;
@@ -249,24 +262,31 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
 
   const CURVE_HEIGHT = 80;
 
+  /* ── Density at each dot position (for vertical placement on curve) ── */
+  const dotDensities = useMemo(() => {
+    if (dotPositions.length < 2) return dotPositions.map(() => 0);
+    const range = (dotPositions[dotPositions.length - 1] - dotPositions[0]) || 1;
+    const windowRadius = range / Math.max(20, Math.min(60, Math.floor(timelineWidth / 8))) * 1.5;
+    return computeDensityAtPositions(dotPositions, windowRadius);
+  }, [dotPositions, timelineWidth]);
+
   /* ── SVG curve path ── */
   const curvePath = useMemo(() => {
     if (iz.isStructured) {
-      // In structured mode, use day column positions
       const dayXPositions = structuredDays
         .filter(d => d.incidents.length > 0)
-        .map((d, i, arr) => {
+        .map(d => {
           const idx = structuredDays.indexOf(d);
           return 30 + idx * iz.spacing;
         });
-      return buildCurvePath(sorted, timelineWidth, CURVE_HEIGHT, dayXPositions);
+      return buildCurvePath(timelineWidth, CURVE_HEIGHT, dayXPositions);
     }
-    return buildCurvePath(sorted, timelineWidth, CURVE_HEIGHT, dotPositions);
-  }, [sorted, timelineWidth, dotPositions, iz.isStructured, structuredDays, iz.spacing]);
+    return buildCurvePath(timelineWidth, CURVE_HEIGHT, dotPositions);
+  }, [timelineWidth, dotPositions, iz.isStructured, structuredDays, iz.spacing]);
 
   /* ── Labels ── */
   const labels = useMemo(() => {
-    if (iz.isStructured) return []; // Structured mode has its own labels
+    if (iz.isStructured) return [];
     const mode = iz.labelMode;
     const result: { posIndex: number; label: string }[] = [];
 
@@ -276,7 +296,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         const m = format(parseISO(inc.incident_date), 'MMM yyyy');
         if (m !== currentMonth) { result.push({ posIndex: i, label: m }); currentMonth = m; }
       });
-      // Sample to max 5
       if (result.length > 5) {
         const sampled: typeof result = [];
         for (let k = 0; k < 5; k++) sampled.push(result[Math.round((k / 4) * (result.length - 1))]);
@@ -328,65 +347,166 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     continuousZoom.set(Math.max(0, Math.min(MAX_ZOOM, level)));
   }, [continuousZoom]);
 
-  /* ── Drag ── */
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    const el = containerRef.current;
-    if (!el) return;
-    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft, movedEnough: false };
-    el.setPointerCapture(e.pointerId);
-  }, []);
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragState.current.isDragging) return;
-    const el = containerRef.current;
-    if (!el) return;
-    const dx = e.clientX - dragState.current.startX;
-    if (Math.abs(dx) > 3) dragState.current.movedEnough = true;
-    el.scrollLeft = dragState.current.scrollLeft - dx;
-  }, []);
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    dragState.current.isDragging = false;
-    containerRef.current?.releasePointerCapture(e.pointerId);
-  }, []);
-
-  /* ── Pinch-to-zoom ── */
+  /* ════════════════════════════════════════════
+     GESTURE HANDLING — directional locking model
+     ════════════════════════════════════════════ */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    const g = gestureRef.current;
+
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
+        // Two-finger: prepare for pinch
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
-        pinchState.current = { initialDist: Math.hypot(dx, dy), initialZoom: continuousZoom.get(), centerX: (e.touches[0].clientX + e.touches[1].clientX) / 2 };
-        dismissHint();
+        g.type = 'pinch';
+        g.pinchInitialDist = Math.hypot(dx, dy);
+        g.pinchInitialZoom = continuousZoom.get();
+        g.pinchActivated = false;
+        g.movedEnough = false;
+      } else if (e.touches.length === 1) {
+        // Single finger: direction TBD
+        g.type = 'none';
+        g.startX = e.touches[0].clientX;
+        g.startY = e.touches[0].clientY;
+        g.scrollLeft = el.scrollLeft;
+        g.movedEnough = false;
       }
     };
+
     const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return;
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const ratio = dist / pinchState.current.initialDist;
-      const raw = pinchState.current.initialZoom + Math.log2(ratio) * 1.5;
-      let target: number;
-      if (raw < 0) target = -0.12 * Math.tanh(-raw / 0.12);
-      else if (raw > MAX_ZOOM) target = MAX_ZOOM + 0.12 * Math.tanh((raw - MAX_ZOOM) / 0.12);
-      else target = raw;
-      continuousZoom.set(target);
+      if (e.touches.length === 2) {
+        // Pinch zoom
+        if (g.type !== 'pinch') {
+          // Transitioned from single to double — init pinch
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          g.type = 'pinch';
+          g.pinchInitialDist = Math.hypot(dx, dy);
+          g.pinchInitialZoom = continuousZoom.get();
+          g.pinchActivated = false;
+        }
+
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const delta = Math.abs(dist - g.pinchInitialDist);
+
+        // Only activate zoom after threshold
+        if (!g.pinchActivated) {
+          if (delta < PINCH_THRESHOLD) return; // let page scroll
+          g.pinchActivated = true;
+          g.pinchInitialDist = dist; // reset baseline
+          g.pinchInitialZoom = continuousZoom.get();
+          dismissHint();
+        }
+
+        // Prevent scroll during active pinch
+        e.preventDefault();
+
+        const ratio = dist / g.pinchInitialDist;
+        const raw = g.pinchInitialZoom + Math.log2(ratio) * 1.5;
+        let target: number;
+        if (raw < 0) target = -0.12 * Math.tanh(-raw / 0.12);
+        else if (raw > MAX_ZOOM) target = MAX_ZOOM + 0.12 * Math.tanh((raw - MAX_ZOOM) / 0.12);
+        else target = raw;
+        continuousZoom.set(target);
+        return;
+      }
+
+      if (e.touches.length !== 1) return;
+
+      const moveX = e.touches[0].clientX - g.startX;
+      const moveY = e.touches[0].clientY - g.startY;
+
+      // Direction lock: decide once
+      if (g.type === 'none') {
+        const absMoveX = Math.abs(moveX);
+        const absMoveY = Math.abs(moveY);
+        // Need minimum movement to decide
+        if (absMoveX < 5 && absMoveY < 5) return;
+
+        if (absMoveY > absMoveX) {
+          // Vertical wins → allow page scroll, do nothing
+          g.type = 'scroll';
+          return;
+        } else {
+          // Horizontal wins → pan timeline (only at Detail+ zoom)
+          const currentZoom = continuousZoom.get();
+          if (currentZoom >= 1.5) {
+            g.type = 'pan';
+          } else {
+            // At Overview/low-Mid, allow page to handle
+            g.type = 'scroll';
+            return;
+          }
+        }
+      }
+
+      if (g.type === 'pan') {
+        e.preventDefault();
+        if (Math.abs(moveX) > 3) g.movedEnough = true;
+        el.scrollLeft = g.scrollLeft - moveX;
+      }
+      // g.type === 'scroll' → do nothing, browser handles it
     };
+
     const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        const c = continuousZoom.get();
-        snapToLevel(Math.round(Math.max(0, Math.min(MAX_ZOOM, c))));
+      if (g.type === 'pinch' && e.touches.length < 2) {
+        // Snap to nearest level
+        if (g.pinchActivated) {
+          const c = continuousZoom.get();
+          snapToLevel(Math.round(Math.max(0, Math.min(MAX_ZOOM, c))));
+        }
+      }
+      if (e.touches.length === 0) {
+        g.type = 'none';
       }
     };
+
+    // Use passive: false on touchmove so we can conditionally preventDefault
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => { el.removeEventListener('touchstart', onTouchStart); el.removeEventListener('touchmove', onTouchMove); el.removeEventListener('touchend', onTouchEnd); };
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
   }, [continuousZoom, snapToLevel, dismissHint]);
 
-  /* ── Wheel zoom ── */
+  /* ── Desktop: mouse drag for pan ── */
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Only handle mouse, not touch (touch is handled above)
+    if (e.pointerType === 'touch') return;
+    const el = containerRef.current;
+    if (!el) return;
+    const g = gestureRef.current;
+    g.type = 'pan';
+    g.startX = e.clientX;
+    g.scrollLeft = el.scrollLeft;
+    g.movedEnough = false;
+    el.setPointerCapture(e.pointerId);
+  }, []);
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    const g = gestureRef.current;
+    if (g.type !== 'pan') return;
+    const el = containerRef.current;
+    if (!el) return;
+    const dx = e.clientX - g.startX;
+    if (Math.abs(dx) > 3) g.movedEnough = true;
+    el.scrollLeft = g.scrollLeft - dx;
+  }, []);
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') return;
+    gestureRef.current.type = 'none';
+    containerRef.current?.releasePointerCapture(e.pointerId);
+  }, []);
+
+  /* ── Wheel zoom (Ctrl/Cmd + scroll) ── */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -458,13 +578,14 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
       {/* ═══ UNIFIED TIMELINE CANVAS ═══ */}
       <div
         ref={containerRef}
-        className="overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x relative"
+        className="overflow-x-auto scrollbar-hide -mx-5 px-5 relative"
+        style={{ touchAction: 'pan-y' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <div ref={timelineRef} className="relative" style={{ width: timelineWidth, minHeight: iz.isStructured ? 200 : CURVE_HEIGHT + 60 }}>
+        <div className="relative" style={{ width: timelineWidth, minHeight: iz.isStructured ? 200 : CURVE_HEIGHT + 60 }}>
 
           {/* ── Single activity curve (all levels) ── */}
           {curvePath && (
@@ -493,10 +614,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
 
           {/* ── Dot layer (Overview / Mid / Detail) ── */}
           {!iz.isStructured && (
-            <div className="absolute left-0 right-0" style={{ top: CURVE_HEIGHT - 16 }}>
-              {/* Baseline */}
-              <div className="absolute left-0 right-0 top-[16px] h-[1px] bg-border/60" />
-
+            <div className="absolute left-0 right-0 top-0" style={{ height: CURVE_HEIGHT + 40 }}>
               {sorted.map((inc, i) => {
                 const x = dotPositions[i];
                 if (x === undefined) return null;
@@ -505,7 +623,18 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                 const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
                 const label = labels.find(l => l.posIndex === i);
 
-                // Check if same day as prev → stack slightly
+                // Density-based Y: dots sit ON the curve
+                // density=1 → top of curve, density=0 → baseline
+                const density = dotDensities[i] ?? 0;
+                const curveY = CURVE_HEIGHT - density * (CURVE_HEIGHT * 0.7);
+                // As zoom increases, dots drop toward a flat baseline
+                const baselineY = CURVE_HEIGHT - 4;
+                // At Overview (renderZoom=0), dots are fully on the curve
+                // At Detail (renderZoom=2+), dots are on the baseline
+                const curveInfluence = Math.max(0, 1 - renderZoom / 1.5);
+                const dotY = lerp(baselineY, curveY, curveInfluence);
+
+                // Same day stacking
                 const sameDayAsPrev = i > 0 && sorted[i - 1].incident_date === inc.incident_date;
                 const yOffset = sameDayAsPrev ? -iz.dotSize * 0.8 : 0;
 
@@ -515,14 +644,14 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                     className="absolute flex flex-col items-center"
                     animate={{
                       left: x - iz.dotSize / 2,
-                      top: 16 - iz.dotSize / 2 + yOffset,
+                      top: dotY - iz.dotSize / 2 + yOffset,
                       opacity: iz.dotOpacity,
                     }}
                     transition={{ type: 'spring', stiffness: 200, damping: 25, mass: 0.8 }}
                   >
                     <button
                       onClick={(e) => {
-                        if (dragState.current.movedEnough) return;
+                        if (gestureRef.current.movedEnough) return;
                         e.stopPropagation();
                         handleSelect(inc.id);
                       }}
@@ -578,21 +707,16 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                       animate={{ width: iz.spacing }}
                       transition={{ type: 'spring', stiffness: 200, damping: 25 }}
                     >
-                      {/* Day header */}
                       <div className="text-center mb-2">
                         <span className="text-[8px] text-muted-foreground/40 uppercase tracking-wider block">{dayLabel}</span>
                         <span className="text-[10px] text-muted-foreground/60 font-medium">{dateLabel}</span>
                       </div>
 
-                      {/* Day column line */}
                       <div className={`w-[1px] flex-1 min-h-[60px] relative ${hasEvents ? 'bg-border/40' : 'bg-border/15'}`}>
-                        {/* Events along the column */}
                         {day.incidents.map((inc, eIdx) => {
                           const isSelected = selectedId === inc.id;
                           const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
                           const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
-
-                          // Vertical position based on time or index
                           const yPos = 8 + eIdx * 28;
 
                           return (
@@ -606,7 +730,7 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                             >
                               <button
                                 onClick={(e) => {
-                                  if (dragState.current.movedEnough) return;
+                                  if (gestureRef.current.movedEnough) return;
                                   e.stopPropagation();
                                   handleSelect(inc.id);
                                 }}
@@ -630,14 +754,12 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                                 />
                               </button>
 
-                              {/* Time label */}
                               {inc.incident_time && (
                                 <span className="text-[9px] text-primary/70 font-medium whitespace-nowrap absolute -left-1 -top-3">
                                   {inc.incident_time}
                                 </span>
                               )}
 
-                              {/* Short category label */}
                               <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap absolute left-8 top-1/2 -translate-y-1/2 pointer-events-none">
                                 {(inc.category || 'Event').split(' ').slice(0, 2).join(' ')}
                               </span>
@@ -645,7 +767,6 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
                           );
                         })}
 
-                        {/* No events marker */}
                         {!hasEvents && (
                           <div className="absolute left-1/2 top-4 -translate-x-1/2">
                             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/10" />
