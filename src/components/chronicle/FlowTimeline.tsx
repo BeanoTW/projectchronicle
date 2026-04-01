@@ -1,12 +1,12 @@
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { format, parseISO, differenceInDays, isValid, startOfDay, addDays, eachDayOfInterval } from 'date-fns';
+import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
+import FlowFrequencyChart from './FlowFrequencyChart';
 import { deriveEscalationSignal } from '@/lib/flowEscalation';
-import { ZoomIn } from 'lucide-react';
+import { Search, ZoomIn } from 'lucide-react';
 
-/* ── Category colours ── */
 const categoryColors: Record<string, string> = {
   'Management Conduct': 'hsl(var(--primary))',
   'Verbal Comment': 'hsl(var(--warm-accent))',
@@ -36,39 +36,32 @@ interface Props {
   mostFrequentPerson: string | null;
 }
 
-/* ── 4 zoom levels (0-3) ── */
+/* ── Zoom levels ── */
 const ZOOM_LEVELS = [
-  { name: 'Overview',   dotSize: 6,  dotOpacity: 0.5, curveOpacity: 0.6,  spacing: 8,   labelMode: 'month' as const },
-  { name: 'Mid',        dotSize: 10, dotOpacity: 0.8, curveOpacity: 0.35, spacing: 24,  labelMode: 'week' as const },
-  { name: 'Detail',     dotSize: 12, dotOpacity: 1,   curveOpacity: 0.15, spacing: 48,  labelMode: 'day' as const },
-  { name: 'Structured', dotSize: 14, dotOpacity: 1,   curveOpacity: 0.06, spacing: 80,  labelMode: 'day-full' as const },
+  { name: 'Overview', spacingMin: 4, spacingMax: 20, dotBase: 8, labelMode: 'month' as const },
+  { name: 'Mid',      spacingMin: 10, spacingMax: 48, dotBase: 10, labelMode: 'week' as const },
+  { name: 'Detail',   spacingMin: 20, spacingMax: 80, dotBase: 12, labelMode: 'day' as const },
 ];
 
-const MAX_ZOOM = ZOOM_LEVELS.length - 1;
-
-function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
-
-function getInterpolatedZoom(z: number) {
-  const clamped = Math.max(0, Math.min(MAX_ZOOM, z));
-  const lower = Math.floor(clamped);
-  const upper = Math.min(MAX_ZOOM, lower + 1);
-  const t = clamped - lower;
-  const lo = ZOOM_LEVELS[lower];
-  const hi = ZOOM_LEVELS[upper];
+/* ── Interpolate between two zoom levels ── */
+function lerpZoom(from: typeof ZOOM_LEVELS[0], to: typeof ZOOM_LEVELS[0], t: number) {
+  const lerp = (a: number, b: number) => a + (b - a) * t;
   return {
-    dotSize: lerp(lo.dotSize, hi.dotSize, t),
-    dotOpacity: lerp(lo.dotOpacity, hi.dotOpacity, t),
-    curveOpacity: lerp(lo.curveOpacity, hi.curveOpacity, t),
-    spacing: lerp(lo.spacing, hi.spacing, t),
-    labelMode: t < 0.5 ? lo.labelMode : hi.labelMode,
-    name: t < 0.5 ? lo.name : hi.name,
-    isStructured: clamped >= 2.5,
+    spacingMin: lerp(from.spacingMin, to.spacingMin),
+    spacingMax: lerp(from.spacingMax, to.spacingMax),
+    dotBase: lerp(from.dotBase, to.dotBase),
+    labelMode: t < 0.5 ? from.labelMode : to.labelMode,
+    name: t < 0.5 ? from.name : to.name,
   };
 }
 
-/* ── Top summary (single signal) ── */
-function deriveTopSummary(sorted: Incident[], gaps: number[]): { primary: string; secondary: string | null } {
+/* ── Top summary ── */
+function deriveTopSummary(
+  sorted: Incident[],
+  gaps: number[],
+): { primary: string; secondary: string | null } {
   if (sorted.length < 2) return { primary: `${sorted.length} record`, secondary: null };
+
   let trending: 'increasing' | 'decreasing' | null = null;
   if (gaps.length >= 4) {
     const recentAvg = (gaps[gaps.length - 1] + gaps[gaps.length - 2]) / 2;
@@ -76,10 +69,13 @@ function deriveTopSummary(sorted: Incident[], gaps: number[]): { primary: string
     if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) trending = 'increasing';
     else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) trending = 'decreasing';
   }
+
   let hasCluster = false;
   for (let i = 1; i < sorted.length; i++) {
-    if (differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)) <= 3) { hasCluster = true; break; }
+    const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+    if (span <= 3) { hasCluster = true; break; }
   }
+
   const longestGap = gaps.length > 0 ? Math.max(...gaps) : 0;
   const longestGapIdx = gaps.indexOf(longestGap);
   const hasPauseThenRecent = longestGap >= 21 && longestGapIdx < gaps.length - 1;
@@ -90,459 +86,374 @@ function deriveTopSummary(sorted: Incident[], gaps: number[]): { primary: string
   else if (hasCluster) primary = 'Some incidents occurred close together';
   else if (trending === 'decreasing') primary = 'Activity decreasing';
 
-  return { primary, secondary: null };
-}
-
-/* ── Density computation: returns normalised density [0,1] at each x position ── */
-function computeDensityAtPositions(positions: number[], windowRadius: number): number[] {
-  if (positions.length === 0) return [];
-  const densities = positions.map(px => {
-    let d = 0;
-    for (const other of positions) {
-      const dist = Math.abs(px - other);
-      if (dist < windowRadius) d += 1 - dist / windowRadius;
-    }
-    return d;
-  });
-  const max = Math.max(...densities, 1);
-  return densities.map(d => d / max);
-}
-
-/* ── Build SVG curve path from positions and their densities ── */
-function buildCurvePath(
-  totalWidth: number,
-  curveHeight: number,
-  positions: number[],
-): string {
-  if (positions.length < 2) return '';
-
-  const sampleCount = Math.max(20, Math.min(60, Math.floor(totalWidth / 8)));
-  const maxX = positions[positions.length - 1] || totalWidth;
-  const minX = positions[0] || 0;
-  const range = maxX - minX || 1;
-  const windowRadius = range / sampleCount * 1.5;
-
-  const points: { x: number; y: number }[] = [];
-  let maxDensity = 0;
-
-  for (let s = 0; s <= sampleCount; s++) {
-    const x = minX + (s / sampleCount) * range;
-    let density = 0;
-    for (const px of positions) {
-      const dist = Math.abs(px - x);
-      if (dist < windowRadius) density += 1 - (dist / windowRadius);
-    }
-    if (density > maxDensity) maxDensity = density;
-    points.push({ x, y: density });
+  let secondary: string | null = null;
+  if (trending === 'increasing' && hasCluster) {
+    secondary = 'Several incidents occurred within a short period';
+  } else if (hasPauseThenRecent && trending === 'increasing') {
+    secondary = 'Recent records are more frequent than before';
+  } else if (hasCluster && !hasPauseThenRecent) {
+    secondary = 'Some events are grouped closely together';
   }
 
-  if (maxDensity === 0) return '';
-
-  const normalized = points.map(p => ({
-    x: p.x,
-    y: curveHeight - (p.y / maxDensity) * (curveHeight * 0.7),
-  }));
-
-  let d = `M ${normalized[0].x} ${curveHeight}`;
-  d += ` L ${normalized[0].x} ${normalized[0].y}`;
-
-  for (let i = 1; i < normalized.length; i++) {
-    const prev = normalized[i - 1];
-    const curr = normalized[i];
-    const cpx = (prev.x + curr.x) / 2;
-    d += ` C ${cpx} ${prev.y}, ${cpx} ${curr.y}, ${curr.x} ${curr.y}`;
-  }
-
-  d += ` L ${normalized[normalized.length - 1].x} ${curveHeight}`;
-  d += ' Z';
-  return d;
+  return { primary, secondary };
 }
 
-const HINT_KEY = 'chronicle_timeline_hint_dismissed';
-const PINCH_THRESHOLD = 12; // px distance change before zoom activates
+/* ── Same-day grouping helper ── */
+function groupByDay(sorted: Incident[]): { date: string; incidents: Incident[] }[] {
+  const groups: { date: string; incidents: Incident[] }[] = [];
+  for (const inc of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.date === inc.incident_date) {
+      last.incidents.push(inc);
+    } else {
+      groups.push({ date: inc.incident_date, incidents: [inc] });
+    }
+  }
+  return groups;
+}
 
-/* ═══════════════════════════════════════════════ */
+const HINT_STORAGE_KEY = 'chronicle_timeline_hint_dismissed';
+
 const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-  const continuousZoom = useMotionValue(0);
-  const smoothZoom = useSpring(continuousZoom, { stiffness: 280, damping: 30 });
-  const [renderZoom, setRenderZoom] = useState(0);
+  // Continuous zoom value for interpolation (0-2)
+  const continuousZoom = useMotionValue(1);
+  const smoothZoom = useSpring(continuousZoom, { stiffness: 300, damping: 30 });
+  const [renderZoom, setRenderZoom] = useState(1);
 
+  // Discoverability hint
   const [showHint, setShowHint] = useState(() => {
-    try { return !localStorage.getItem(HINT_KEY); } catch { return true; }
+    try { return !localStorage.getItem(HINT_STORAGE_KEY); } catch { return true; }
   });
 
-  // Gesture state refs
-  const gestureRef = useRef<{
-    type: 'none' | 'scroll' | 'pan' | 'pinch';
-    startX: number;
-    startY: number;
-    scrollLeft: number;
-    movedEnough: boolean;
-    pinchInitialDist: number;
-    pinchInitialZoom: number;
-    pinchActivated: boolean;
-  }>({
-    type: 'none', startX: 0, startY: 0, scrollLeft: 0, movedEnough: false,
-    pinchInitialDist: 0, pinchInitialZoom: 0, pinchActivated: false,
-  });
+  // Resistance flash at limits
+  const [resistanceFlash, setResistanceFlash] = useState<'min' | 'max' | null>(null);
 
-  /* ── Sorted data ── */
+  // Drag state
+  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0, movedEnough: false });
+  // Pinch state
+  const pinchState = useRef({ initialDist: 0, initialZoom: 1, centerX: 0 });
+
   const sorted = useMemo(() =>
-    [...incidents].filter(i => isValid(parseISO(i.incident_date)))
+    [...incidents]
+      .filter(i => isValid(parseISO(i.incident_date)))
       .sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime()),
     [incidents]
   );
+
   const sortedDates = useMemo(() => sorted.map(i => parseISO(i.incident_date)), [sorted]);
+
   const consecutiveGaps = useMemo(() => {
     const g: number[] = [];
-    for (let i = 1; i < sorted.length; i++) g.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+    for (let i = 1; i < sorted.length; i++) {
+      g.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+    }
     return g;
   }, [sorted]);
 
   const topSummary = useMemo(() => deriveTopSummary(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
   const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
 
+  const showChart = useMemo(() => {
+    if (sortedDates.length < 3) return false;
+    const span = differenceInDays(sortedDates[sortedDates.length - 1], sortedDates[0]);
+    return span >= 2;
+  }, [sortedDates]);
+
+  // Day groups
+  const dayGroups = useMemo(() => groupByDay(sorted), [sorted]);
+
+  // Listen to smoothZoom for rendering
   useEffect(() => {
-    const unsub = smoothZoom.on('change', v => setRenderZoom(v));
+    const unsub = smoothZoom.on('change', (v) => {
+      setRenderZoom(v);
+    });
     return unsub;
   }, [smoothZoom]);
 
-  const iz = useMemo(() => getInterpolatedZoom(renderZoom), [renderZoom]);
-  const activeLevel = Math.round(Math.max(0, Math.min(MAX_ZOOM, renderZoom)));
+  // Interpolated zoom config
+  const interpolatedZoom = useMemo(() => {
+    const clamped = Math.max(0, Math.min(2, renderZoom));
+    const lower = Math.floor(clamped);
+    const upper = Math.min(2, lower + 1);
+    const t = clamped - lower;
+    if (lower === upper) return ZOOM_LEVELS[lower];
+    return lerpZoom(ZOOM_LEVELS[lower], ZOOM_LEVELS[upper], t);
+  }, [renderZoom]);
 
-  /* ── Structured Detail: day columns ── */
-  const structuredDays = useMemo(() => {
-    if (sorted.length < 2) return [];
-    const first = parseISO(sorted[0].incident_date);
-    const last = parseISO(sorted[sorted.length - 1].incident_date);
-    const days = eachDayOfInterval({ start: startOfDay(first), end: startOfDay(last) });
+  // Snap zoom level (discrete) from renderZoom
+  const activeLevel = Math.round(Math.max(0, Math.min(2, renderZoom)));
 
-    const eventDaySet = new Set(sorted.map(i => format(parseISO(i.incident_date), 'yyyy-MM-dd')));
-    const relevantDays = days.filter(d => {
-      const key = format(d, 'yyyy-MM-dd');
-      if (eventDaySet.has(key)) return true;
-      const prev = format(addDays(d, -1), 'yyyy-MM-dd');
-      const next = format(addDays(d, 1), 'yyyy-MM-dd');
-      return eventDaySet.has(prev) || eventDaySet.has(next);
-    });
-
-    const maxDays = 60;
-    const sampled = relevantDays.length > maxDays
-      ? relevantDays.filter((_, i) => i % Math.ceil(relevantDays.length / maxDays) === 0)
-      : relevantDays;
-
-    return sampled.map(d => {
-      const key = format(d, 'yyyy-MM-dd');
-      return { date: d, key, incidents: sorted.filter(inc => inc.incident_date === key) };
-    });
-  }, [sorted]);
-
-  /* ── Dot positions (x) ── */
-  const dotPositions = useMemo(() => {
+  // Build dot data with interpolated zoom
+  const dotData = useMemo(() => {
     if (sorted.length === 0) return [];
-    let x = 20;
+    const zoom = interpolatedZoom;
+
     return sorted.map((inc, i) => {
-      if (i > 0) {
-        const gap = differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date));
-        const gapFactor = Math.max(0.3, Math.min(1, gap / 30));
-        x += iz.spacing * gapFactor + iz.spacing * 0.3;
-      }
-      return x;
+      const gap = i > 0
+        ? differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date))
+        : 0;
+
+      const spacing = i === 0 ? 0 : Math.max(
+        zoom.spacingMin,
+        Math.min(zoom.spacingMax, zoom.spacingMin + (gap / 30) * (zoom.spacingMax - zoom.spacingMin))
+      );
+
+      const isCluster = gap <= 3 && i > 0;
+      const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
+      const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
+      const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
+      const baseSize = (isCluster ? zoom.dotBase + 4 : zoom.dotBase) + recencyBoost;
+
+      const sameDayGroup = dayGroups.find(g => g.date === inc.incident_date);
+      const sameDayCount = sameDayGroup ? sameDayGroup.incidents.length : 1;
+      const isFirstInDay = sameDayGroup ? sameDayGroup.incidents[0].id === inc.id : true;
+
+      return { inc, gap, spacing, isCluster, hasRing, color, baseSize, sameDayCount, isFirstInDay };
     });
-  }, [sorted, iz.spacing]);
+  }, [sorted, repeatedPeople, interpolatedZoom, dayGroups]);
 
-  const timelineWidth = useMemo(() => {
-    if (iz.isStructured) return Math.max(350, structuredDays.length * iz.spacing + 60);
-    return dotPositions.length > 0 ? dotPositions[dotPositions.length - 1] + 40 : 350;
-  }, [iz.isStructured, structuredDays, dotPositions, iz.spacing]);
-
-  const CURVE_HEIGHT = 80;
-
-  /* ── Density at each dot position (for vertical placement on curve) ── */
-  const dotDensities = useMemo(() => {
-    if (dotPositions.length < 2) return dotPositions.map(() => 0);
-    const range = (dotPositions[dotPositions.length - 1] - dotPositions[0]) || 1;
-    const windowRadius = range / Math.max(20, Math.min(60, Math.floor(timelineWidth / 8))) * 1.5;
-    return computeDensityAtPositions(dotPositions, windowRadius);
-  }, [dotPositions, timelineWidth]);
-
-  /* ── SVG curve path ── */
-  const curvePath = useMemo(() => {
-    if (iz.isStructured) {
-      const dayXPositions = structuredDays
-        .filter(d => d.incidents.length > 0)
-        .map(d => {
-          const idx = structuredDays.indexOf(d);
-          return 30 + idx * iz.spacing;
-        });
-      return buildCurvePath(timelineWidth, CURVE_HEIGHT, dayXPositions);
-    }
-    return buildCurvePath(timelineWidth, CURVE_HEIGHT, dotPositions);
-  }, [timelineWidth, dotPositions, iz.isStructured, structuredDays, iz.spacing]);
-
-  /* ── Labels ── */
+  // Labels based on active level's label mode
   const labels = useMemo(() => {
-    if (iz.isStructured) return [];
-    const mode = iz.labelMode;
-    const result: { posIndex: number; label: string }[] = [];
+    const labelMode = interpolatedZoom.labelMode;
+    const result: { index: number; label: string }[] = [];
 
-    if (mode === 'month') {
+    if (labelMode === 'month') {
       let currentMonth = '';
       sorted.forEach((inc, i) => {
         const m = format(parseISO(inc.incident_date), 'MMM yyyy');
-        if (m !== currentMonth) { result.push({ posIndex: i, label: m }); currentMonth = m; }
+        if (m !== currentMonth) {
+          result.push({ index: i, label: m });
+          currentMonth = m;
+        }
       });
       if (result.length > 5) {
         const sampled: typeof result = [];
-        for (let k = 0; k < 5; k++) sampled.push(result[Math.round((k / 4) * (result.length - 1))]);
+        for (let k = 0; k < 5; k++) {
+          const idx = Math.round((k / 4) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
         return sampled;
       }
-    } else if (mode === 'week') {
-      let lastLabel = '';
+    } else if (labelMode === 'week') {
+      let lastWeekLabel = '';
       sorted.forEach((inc, i) => {
         const d = parseISO(inc.incident_date);
-        const ml = format(d, 'MMM yyyy');
-        if (ml !== lastLabel) { result.push({ posIndex: i, label: ml }); lastLabel = ml; }
-        else if (i > 0 && differenceInDays(d, parseISO(sorted[i - 1].incident_date)) >= 7) {
-          result.push({ posIndex: i, label: format(d, 'd MMM') });
+        const monthLabel = format(d, 'MMM yyyy');
+        if (monthLabel !== lastWeekLabel) {
+          result.push({ index: i, label: monthLabel });
+          lastWeekLabel = monthLabel;
+        } else if (i > 0) {
+          const gapDays = differenceInDays(d, parseISO(sorted[i - 1].incident_date));
+          if (gapDays >= 7) {
+            result.push({ index: i, label: format(d, 'd MMM') });
+          }
         }
       });
       if (result.length > 8) {
         const sampled: typeof result = [];
-        for (let k = 0; k < 8; k++) sampled.push(result[Math.round((k / 7) * (result.length - 1))]);
+        for (let k = 0; k < 8; k++) {
+          const idx = Math.round((k / 7) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
         return sampled;
       }
     } else {
       const seen = new Set<string>();
       sorted.forEach((inc, i) => {
-        const ds = format(parseISO(inc.incident_date), 'd MMM yyyy');
-        if (!seen.has(ds)) { result.push({ posIndex: i, label: ds }); seen.add(ds); }
+        const dateStr = format(parseISO(inc.incident_date), 'd MMM yyyy');
+        if (!seen.has(dateStr)) {
+          result.push({ index: i, label: dateStr });
+          seen.add(dateStr);
+        }
       });
-      if (result.length > 10) {
+      if (result.length > 12) {
         const sampled: typeof result = [];
-        for (let k = 0; k < 10; k++) sampled.push(result[Math.round((k / 9) * (result.length - 1))]);
+        for (let k = 0; k < 12; k++) {
+          const idx = Math.round((k / 11) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
         return sampled;
       }
     }
-    return result;
-  }, [sorted, iz.labelMode, iz.isStructured]);
 
-  /* ── Hint dismiss ── */
+    return result;
+  }, [sorted, interpolatedZoom.labelMode]);
+
+  // Dismiss hint
   const dismissHint = useCallback(() => {
     setShowHint(false);
-    try { localStorage.setItem(HINT_KEY, '1'); } catch {}
+    try { localStorage.setItem(HINT_STORAGE_KEY, '1'); } catch {}
   }, []);
+
+  // Auto-dismiss hint after first zoom
   useEffect(() => {
     if (!showHint) return;
-    const t = setTimeout(dismissHint, 6000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(dismissHint, 6000);
+    return () => clearTimeout(timer);
   }, [showHint, dismissHint]);
 
-  /* ── Snap ── */
+  // Snap to nearest level with spring animation
   const snapToLevel = useCallback((level: number) => {
-    continuousZoom.set(Math.max(0, Math.min(MAX_ZOOM, level)));
+    const clamped = Math.max(0, Math.min(2, level));
+    setZoomLevel(clamped);
+    continuousZoom.set(clamped);
   }, [continuousZoom]);
 
-  /* ════════════════════════════════════════════
-     GESTURE HANDLING — directional locking model
-     ════════════════════════════════════════════ */
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const g = gestureRef.current;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        // Two-finger: prepare for pinch
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        g.type = 'pinch';
-        g.pinchInitialDist = Math.hypot(dx, dy);
-        g.pinchInitialZoom = continuousZoom.get();
-        g.pinchActivated = false;
-        g.movedEnough = false;
-      } else if (e.touches.length === 1) {
-        // Single finger: direction TBD
-        g.type = 'none';
-        g.startX = e.touches[0].clientX;
-        g.startY = e.touches[0].clientY;
-        g.scrollLeft = el.scrollLeft;
-        g.movedEnough = false;
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        // Pinch zoom
-        if (g.type !== 'pinch') {
-          // Transitioned from single to double — init pinch
-          const dx = e.touches[0].clientX - e.touches[1].clientX;
-          const dy = e.touches[0].clientY - e.touches[1].clientY;
-          g.type = 'pinch';
-          g.pinchInitialDist = Math.hypot(dx, dy);
-          g.pinchInitialZoom = continuousZoom.get();
-          g.pinchActivated = false;
-        }
-
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.hypot(dx, dy);
-        const delta = Math.abs(dist - g.pinchInitialDist);
-
-        // Only activate zoom after threshold
-        if (!g.pinchActivated) {
-          if (delta < PINCH_THRESHOLD) return; // let page scroll
-          g.pinchActivated = true;
-          g.pinchInitialDist = dist; // reset baseline
-          g.pinchInitialZoom = continuousZoom.get();
-          dismissHint();
-        }
-
-        // Prevent scroll during active pinch
-        e.preventDefault();
-
-        const ratio = dist / g.pinchInitialDist;
-        const raw = g.pinchInitialZoom + Math.log2(ratio) * 1.5;
-        let target: number;
-        if (raw < 0) target = -0.12 * Math.tanh(-raw / 0.12);
-        else if (raw > MAX_ZOOM) target = MAX_ZOOM + 0.12 * Math.tanh((raw - MAX_ZOOM) / 0.12);
-        else target = raw;
-        continuousZoom.set(target);
-        return;
-      }
-
-      if (e.touches.length !== 1) return;
-
-      const moveX = e.touches[0].clientX - g.startX;
-      const moveY = e.touches[0].clientY - g.startY;
-
-      // Direction lock: decide once
-      if (g.type === 'none') {
-        const absMoveX = Math.abs(moveX);
-        const absMoveY = Math.abs(moveY);
-        // Need minimum movement to decide
-        if (absMoveX < 5 && absMoveY < 5) return;
-
-        if (absMoveY > absMoveX) {
-          // Vertical wins → allow page scroll, do nothing
-          g.type = 'scroll';
-          return;
-        } else {
-          // Horizontal wins → pan timeline (only at Detail+ zoom)
-          const currentZoom = continuousZoom.get();
-          if (currentZoom >= 1.5) {
-            g.type = 'pan';
-          } else {
-            // At Overview/low-Mid, allow page to handle
-            g.type = 'scroll';
-            return;
-          }
-        }
-      }
-
-      if (g.type === 'pan') {
-        e.preventDefault();
-        if (Math.abs(moveX) > 3) g.movedEnough = true;
-        el.scrollLeft = g.scrollLeft - moveX;
-      }
-      // g.type === 'scroll' → do nothing, browser handles it
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (g.type === 'pinch' && e.touches.length < 2) {
-        // Snap to nearest level
-        if (g.pinchActivated) {
-          const c = continuousZoom.get();
-          snapToLevel(Math.round(Math.max(0, Math.min(MAX_ZOOM, c))));
-        }
-      }
-      if (e.touches.length === 0) {
-        g.type = 'none';
-      }
-    };
-
-    // Use passive: false on touchmove so we can conditionally preventDefault
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchmove', onTouchMove, { passive: false });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchmove', onTouchMove);
-      el.removeEventListener('touchend', onTouchEnd);
-    };
-  }, [continuousZoom, snapToLevel, dismissHint]);
-
-  /* ── Desktop: mouse drag for pan ── */
+  // ── Drag handlers ──
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // Only handle mouse, not touch (touch is handled above)
-    if (e.pointerType === 'touch') return;
     const el = containerRef.current;
     if (!el) return;
-    const g = gestureRef.current;
-    g.type = 'pan';
-    g.startX = e.clientX;
-    g.scrollLeft = el.scrollLeft;
-    g.movedEnough = false;
+    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft, movedEnough: false };
     el.setPointerCapture(e.pointerId);
   }, []);
+
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') return;
-    const g = gestureRef.current;
-    if (g.type !== 'pan') return;
+    if (!dragState.current.isDragging) return;
     const el = containerRef.current;
     if (!el) return;
-    const dx = e.clientX - g.startX;
-    if (Math.abs(dx) > 3) g.movedEnough = true;
-    el.scrollLeft = g.scrollLeft - dx;
+    const dx = e.clientX - dragState.current.startX;
+    if (Math.abs(dx) > 3) dragState.current.movedEnough = true;
+    el.scrollLeft = dragState.current.scrollLeft - dx;
   }, []);
+
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (e.pointerType === 'touch') return;
-    gestureRef.current.type = 'none';
+    dragState.current.isDragging = false;
     containerRef.current?.releasePointerCapture(e.pointerId);
   }, []);
 
-  /* ── Wheel zoom (Ctrl/Cmd + scroll) ── */
+  // ── Pinch-to-zoom with anchor ──
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const c = continuousZoom.get();
-        snapToLevel(Math.round(Math.max(0, Math.min(MAX_ZOOM, c + (e.deltaY < 0 ? 1 : -1)))));
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        pinchState.current = {
+          initialDist: Math.hypot(dx, dy),
+          initialZoom: continuousZoom.get(),
+          centerX,
+        };
         dismissHint();
       }
     };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchState.current.initialDist;
+
+      // Map ratio to zoom delta: ln-based for natural feel
+      const rawZoom = pinchState.current.initialZoom + Math.log2(ratio);
+
+      // Add resistance at boundaries
+      let targetZoom: number;
+      if (rawZoom < 0) {
+        targetZoom = -0.15 * Math.tanh(-rawZoom / 0.15); // rubber-band below 0
+      } else if (rawZoom > 2) {
+        targetZoom = 2 + 0.15 * Math.tanh((rawZoom - 2) / 0.15); // rubber-band above 2
+      } else {
+        targetZoom = rawZoom;
+      }
+
+      continuousZoom.set(targetZoom);
+
+      // Show resistance flash at limits
+      if (rawZoom < -0.1 && resistanceFlash !== 'min') setResistanceFlash('min');
+      else if (rawZoom > 2.1 && resistanceFlash !== 'max') setResistanceFlash('max');
+      else if (rawZoom >= -0.1 && rawZoom <= 2.1 && resistanceFlash) setResistanceFlash(null);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        // Snap to nearest level
+        const current = continuousZoom.get();
+        const nearest = Math.round(Math.max(0, Math.min(2, current)));
+        snapToLevel(nearest);
+        setResistanceFlash(null);
+      }
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [continuousZoom, snapToLevel, dismissHint, resistanceFlash]);
+
+  // ── Wheel zoom (desktop) ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const current = continuousZoom.get();
+        const delta = e.deltaY < 0 ? 1 : -1;
+        const nearest = Math.round(Math.max(0, Math.min(2, current + delta)));
+        snapToLevel(nearest);
+        dismissHint();
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
   }, [continuousZoom, snapToLevel, dismissHint]);
 
-  /* ── Select ── */
-  const handleSelect = useCallback((id: string) => {
+  // ── Auto-centre on selection ──
+  const handleSelect = useCallback((id: string, dotIndex: number) => {
     setSelectedId(prev => prev === id ? null : id);
+
+    const el = containerRef.current;
+    const timeline = timelineRef.current;
+    if (!el || !timeline) return;
+    const dots = timeline.querySelectorAll('[data-dot-index]');
+    const dot = dots[dotIndex] as HTMLElement | undefined;
+    if (dot) {
+      const dotCenter = dot.offsetLeft + dot.offsetWidth / 2;
+      const containerWidth = el.clientWidth;
+      el.scrollTo({ left: dotCenter - containerWidth / 2, behavior: 'smooth' });
+    }
   }, []);
 
   const selectedIncident = sorted.find(i => i.id === selectedId);
+  const isDetailLevel = activeLevel >= 2;
 
-  /* ═══ RENDER ═══ */
   return (
-    <div className="space-y-4">
-      {/* Summary */}
+    <div className="space-y-5">
+      {/* Top summary */}
       <div className="px-1">
         <p className="text-[14px] font-semibold text-foreground leading-snug">{topSummary.primary}</p>
+        {topSummary.secondary && (
+          <p className="text-[13px] text-muted-foreground leading-snug mt-0.5">{topSummary.secondary}</p>
+        )}
       </div>
 
-      {/* Zoom tabs */}
-      <div className="flex items-center gap-1 px-1">
+      {/* Zoom level tabs */}
+      <div className="flex items-center gap-1.5 px-1">
         {ZOOM_LEVELS.map((z, i) => (
           <button
             key={z.name}
-            onClick={() => { snapToLevel(i); dismissHint(); }}
+            onClick={() => {
+              snapToLevel(i);
+              dismissHint();
+            }}
             className={`text-[10px] px-2.5 py-1 rounded-full transition-all duration-300 ${
               i === activeLevel
                 ? 'bg-primary/10 text-primary font-medium'
@@ -552,237 +463,142 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
             {z.name}
           </button>
         ))}
+
+        {/* Zoom depth indicator */}
         <div className="ml-auto flex items-center gap-1 mr-1">
-          {ZOOM_LEVELS.map((_, i) => (
-            <div key={i} className="rounded-full transition-all duration-300" style={{
-              width: 4, height: 4,
-              backgroundColor: i <= activeLevel ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.15)',
-            }} />
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: 4,
+                height: 4,
+                backgroundColor: i <= activeLevel
+                  ? 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.2)',
+              }}
+            />
           ))}
         </div>
       </div>
 
-      {/* Hint */}
+      {/* Discoverability hint */}
       <AnimatePresence>
         {showHint && sorted.length >= 2 && (
-          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3 }}
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
             className="flex items-center gap-2 px-3 py-2 mx-1 rounded-lg bg-primary/[0.05] border border-primary/[0.08]"
           >
             <ZoomIn className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
-            <span className="text-[11px] text-muted-foreground">Pinch to explore timeline depth</span>
-            <button onClick={dismissHint} className="ml-auto text-[10px] text-muted-foreground/40 hover:text-muted-foreground">✕</button>
+            <span className="text-[11px] text-muted-foreground">
+              Pinch to explore timeline depth
+            </span>
+            <button
+              onClick={dismissHint}
+              className="ml-auto text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+            >
+              ✕
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ═══ UNIFIED TIMELINE CANVAS ═══ */}
+      {/* Interactive dot timeline */}
       <div
         ref={containerRef}
-        className="overflow-x-auto scrollbar-hide -mx-5 px-5 relative"
-        style={{ touchAction: 'pan-y' }}
+        className={`overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x relative ${
+          resistanceFlash ? 'opacity-90' : ''
+        }`}
+        style={{ transition: 'opacity 0.15s ease' }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        <div className="relative" style={{ width: timelineWidth, minHeight: iz.isStructured ? 200 : CURVE_HEIGHT + 60 }}>
+        <div
+          ref={timelineRef}
+          className="flex items-end min-w-max pb-7 pt-6 relative"
+        >
+          {/* Baseline */}
+          <div className="absolute bottom-[24px] left-0 right-0 h-[1.5px] bg-border" />
 
-          {/* ── Single activity curve (all levels) ── */}
-          {curvePath && (
-            <svg
-              width={timelineWidth}
-              height={CURVE_HEIGHT}
-              className="absolute top-0 left-0 pointer-events-none"
-              style={{ opacity: iz.curveOpacity, transition: 'opacity 0.4s ease' }}
-            >
-              <defs>
-                <linearGradient id="activityCurveGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <path d={curvePath} fill="url(#activityCurveGrad)" />
-              <path
-                d={curvePath.replace(/ Z$/, '').replace(/M [^ ]+ [^ ]+ L /, 'M ').replace(/ L [^ ]+ [^ ]+$/, '')}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth={1.5}
-                strokeOpacity={0.5}
-              />
-            </svg>
-          )}
+          {dotData.map((d, i) => {
+            const isSelected = selectedId === d.inc.id;
+            const label = labels.find(m => m.index === i);
 
-          {/* ── Dot layer (Overview / Mid / Detail) ── */}
-          {!iz.isStructured && (
-            <div className="absolute left-0 right-0 top-0" style={{ height: CURVE_HEIGHT + 40 }}>
-              {sorted.map((inc, i) => {
-                const x = dotPositions[i];
-                if (x === undefined) return null;
-                const isSelected = selectedId === inc.id;
-                const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
-                const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
-                const label = labels.find(l => l.posIndex === i);
+            const isHiddenInGroup = activeLevel < 2 && d.sameDayCount > 1 && !d.isFirstInDay;
+            if (isHiddenInGroup) return null;
 
-                // Density-based Y: dots sit ON the curve
-                // density=1 → top of curve, density=0 → baseline
-                const density = dotDensities[i] ?? 0;
-                const curveY = CURVE_HEIGHT - density * (CURVE_HEIGHT * 0.7);
-                // As zoom increases, dots drop toward a flat baseline
-                const baselineY = CURVE_HEIGHT - 4;
-                // At Overview (renderZoom=0), dots are fully on the curve
-                // At Detail (renderZoom=2+), dots are on the baseline
-                const curveInfluence = Math.max(0, 1 - renderZoom / 1.5);
-                const dotY = lerp(baselineY, curveY, curveInfluence);
-
-                // Same day stacking
-                const sameDayAsPrev = i > 0 && sorted[i - 1].incident_date === inc.incident_date;
-                const yOffset = sameDayAsPrev ? -iz.dotSize * 0.8 : 0;
-
-                return (
+            return (
+              <motion.div
+                key={d.inc.id}
+                data-dot-index={i}
+                className="relative flex flex-col items-center"
+                animate={{ marginLeft: d.spacing }}
+                transition={{ type: 'spring', stiffness: 250, damping: 28, mass: 0.8 }}
+              >
+                <button
+                  onClick={(e) => {
+                    if (dragState.current.movedEnough) return;
+                    e.stopPropagation();
+                    handleSelect(d.inc.id, i);
+                  }}
+                  className="relative z-10 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                  aria-label={`Incident on ${d.inc.incident_date}`}
+                >
                   <motion.div
-                    key={inc.id}
-                    className="absolute flex flex-col items-center"
+                    className="rounded-full"
                     animate={{
-                      left: x - iz.dotSize / 2,
-                      top: dotY - iz.dotSize / 2 + yOffset,
-                      opacity: iz.dotOpacity,
+                      width: isSelected ? d.baseSize * 1.5 : d.baseSize,
+                      height: isSelected ? d.baseSize * 1.5 : d.baseSize,
+                      backgroundColor: d.color,
+                      boxShadow: isSelected
+                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}, 0 0 12px ${d.color}40`
+                        : d.hasRing
+                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${d.color}`
+                          : '0 0 0 0px transparent',
                     }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 25, mass: 0.8 }}
-                  >
-                    <button
-                      onClick={(e) => {
-                        if (gestureRef.current.movedEnough) return;
-                        e.stopPropagation();
-                        handleSelect(inc.id);
-                      }}
-                      className="relative z-10 flex items-center justify-center"
-                      style={{ width: Math.max(28, iz.dotSize * 2.5), height: Math.max(28, iz.dotSize * 2.5) }}
-                      aria-label={`Incident on ${inc.incident_date}`}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                    whileTap={{ scale: 1.3 }}
+                  />
+
+                  {/* Same-day count badge */}
+                  {d.sameDayCount > 1 && d.isFirstInDay && activeLevel < 2 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center"
                     >
-                      <motion.div
-                        className="rounded-full"
-                        animate={{
-                          width: isSelected ? iz.dotSize * 1.6 : iz.dotSize,
-                          height: isSelected ? iz.dotSize * 1.6 : iz.dotSize,
-                          backgroundColor: color,
-                          boxShadow: isSelected
-                            ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${color}, 0 0 12px ${color}40`
-                            : hasRing
-                              ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${color}`
-                              : '0 0 0 0px transparent',
-                        }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                        whileTap={{ scale: 1.3 }}
-                      />
-                    </button>
+                      {d.sameDayCount}
+                    </motion.span>
+                  )}
+                </button>
 
-                    {/* Label */}
-                    {label && (
-                      <span
-                        className="absolute text-muted-foreground whitespace-nowrap select-none"
-                        style={{ top: iz.dotSize + 14, fontSize: 9, opacity: 0.5 }}
-                      >
-                        {label.label}
-                      </span>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── Structured Detail (day columns) ── */}
-          {iz.isStructured && (
-            <div className="absolute left-0 right-0 top-0" style={{ paddingTop: CURVE_HEIGHT + 4 }}>
-              <div className="flex" style={{ gap: 0 }}>
-                {structuredDays.map((day, dayIdx) => {
-                  const hasEvents = day.incidents.length > 0;
-                  const dayLabel = format(day.date, 'EEE');
-                  const dateLabel = format(day.date, 'd MMM');
-
-                  return (
-                    <motion.div
-                      key={day.key}
-                      className="flex flex-col items-center flex-shrink-0"
-                      animate={{ width: iz.spacing }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+                {/* Date labels with fade */}
+                <AnimatePresence mode="wait">
+                  {label && (
+                    <motion.span
+                      key={`${label.label}-${activeLevel}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute -bottom-5 text-[9px] text-muted-foreground whitespace-nowrap select-none"
                     >
-                      <div className="text-center mb-2">
-                        <span className="text-[8px] text-muted-foreground/40 uppercase tracking-wider block">{dayLabel}</span>
-                        <span className="text-[10px] text-muted-foreground/60 font-medium">{dateLabel}</span>
-                      </div>
-
-                      <div className={`w-[1px] flex-1 min-h-[60px] relative ${hasEvents ? 'bg-border/40' : 'bg-border/15'}`}>
-                        {day.incidents.map((inc, eIdx) => {
-                          const isSelected = selectedId === inc.id;
-                          const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
-                          const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
-                          const yPos = 8 + eIdx * 28;
-
-                          return (
-                            <motion.div
-                              key={inc.id}
-                              className="absolute left-1/2 flex items-center gap-1.5"
-                              style={{ top: yPos, transform: 'translateX(-50%)' }}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: dayIdx * 0.01, duration: 0.2 }}
-                            >
-                              <button
-                                onClick={(e) => {
-                                  if (gestureRef.current.movedEnough) return;
-                                  e.stopPropagation();
-                                  handleSelect(inc.id);
-                                }}
-                                className="relative z-10 flex items-center justify-center"
-                                style={{ width: 32, height: 32 }}
-                              >
-                                <motion.div
-                                  className="rounded-full"
-                                  animate={{
-                                    width: isSelected ? iz.dotSize * 1.4 : iz.dotSize,
-                                    height: isSelected ? iz.dotSize * 1.4 : iz.dotSize,
-                                    backgroundColor: color,
-                                    boxShadow: isSelected
-                                      ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${color}, 0 0 10px ${color}30`
-                                      : hasRing
-                                        ? `0 0 0 2px hsl(var(--background)), 0 0 0 3px ${color}`
-                                        : 'none',
-                                  }}
-                                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                                  whileTap={{ scale: 1.2 }}
-                                />
-                              </button>
-
-                              {inc.incident_time && (
-                                <span className="text-[9px] text-primary/70 font-medium whitespace-nowrap absolute -left-1 -top-3">
-                                  {inc.incident_time}
-                                </span>
-                              )}
-
-                              <span className="text-[9px] text-muted-foreground/60 whitespace-nowrap absolute left-8 top-1/2 -translate-y-1/2 pointer-events-none">
-                                {(inc.category || 'Event').split(' ').slice(0, 2).join(' ')}
-                              </span>
-                            </motion.div>
-                          );
-                        })}
-
-                        {!hasEvents && (
-                          <div className="absolute left-1/2 top-4 -translate-x-1/2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/10" />
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                      {label.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── Selected record card ── */}
+      {/* Selected record preview */}
       <AnimatePresence>
         {selectedIncident && (
           <motion.div
@@ -818,24 +634,22 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
         )}
       </AnimatePresence>
 
-      {/* ── Escalation signal ── */}
+      {/* Escalation signal */}
       {escalation && (
         <div className="bg-primary/[0.04] border border-primary/[0.12] rounded-xl px-4 py-3">
-          <p className="text-[13px] font-semibold text-foreground leading-snug">{escalation.headline}</p>
-          <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">{escalation.explanation}</p>
+          <p className="text-[13px] font-semibold text-foreground leading-snug">
+            {escalation.headline}
+          </p>
+          <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
+            {escalation.explanation}
+          </p>
         </div>
       )}
 
-      {/* ── Interaction hints ── */}
-      <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground/35 select-none">
-        <span>Pinch to zoom</span>
-        <span>·</span>
-        <span>Drag to pan</span>
-        <span>·</span>
-        <span>Tap any event</span>
-      </div>
+      {/* Frequency chart */}
+      {showChart && <FlowFrequencyChart dates={sortedDates} />}
 
-      {/* ── Legend ── */}
+      {/* Legend */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/50">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
