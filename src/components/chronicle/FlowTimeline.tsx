@@ -1,31 +1,12 @@
-/**
- * FlowTimeline — Integrated Activity System
- *
- * Three connected components driven from ONE shared data model:
- *   1. Density curve (SVG) — rolling window density
- *   2. Dot strip — individual incident dots on timeline
- *   3. Insight card — data-driven, neutral text
- *
- * Selection state is shared: tapping a dot highlights
- * the corresponding region on the chart and updates the insight.
- * Tapping the chart highlights corresponding dots.
- */
-
-import { useRef, useMemo, useState, useCallback } from 'react';
-import { format } from 'date-fns';
+import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
+import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
-import {
-  buildActivityModel,
-  computeInsight,
-  densityAt,
-  type ActivityModel,
-  type ActivitySelection,
-  type DotStripGroup,
-} from '@/lib/activityModel';
+import FlowFrequencyChart from './FlowFrequencyChart';
+import { deriveEscalationSignal } from '@/lib/flowEscalation';
+import { Search, ZoomIn } from 'lucide-react';
 
-/* ── Category colours using design tokens ── */
 const categoryColors: Record<string, string> = {
   'Management Conduct': 'hsl(var(--primary))',
   'Verbal Comment': 'hsl(var(--warm-accent))',
@@ -36,71 +17,18 @@ const categoryColors: Record<string, string> = {
   'Pay or Payroll Issue': 'hsl(var(--warm-accent))',
   'Policy Application': 'hsl(var(--info))',
   'Workplace Meeting': 'hsl(var(--primary))',
+  'Academic Misconduct': 'hsl(var(--destructive))',
+  'Accommodation Issue': 'hsl(var(--warm-accent))',
+  'Teaching or Supervision': 'hsl(var(--primary))',
+  'Noise Complaint': 'hsl(var(--severity-serious))',
+  'Property Damage': 'hsl(var(--destructive))',
+  'Shared Space Dispute': 'hsl(var(--warm-accent))',
+  'Antisocial Behaviour': 'hsl(var(--severity-serious))',
+  'Public Safety': 'hsl(var(--destructive))',
+  'Transport Incident': 'hsl(var(--info))',
   'Other': 'hsl(var(--muted-foreground))',
 };
 
-function getColor(category: string): string {
-  return categoryColors[category] || 'hsl(var(--muted-foreground))';
-}
-
-/* ── Chart geometry ── */
-const CHART_W = 362;
-const CHART_H = 140;
-const PAD_L = 12;
-const PAD_R = 12;
-const PAD_T = 16;
-const PAD_B = 20;
-
-function toX(norm: number): number {
-  return PAD_L + norm * (CHART_W - PAD_L - PAD_R);
-}
-function toY(val: number): number {
-  return CHART_H - PAD_B - val * (CHART_H - PAD_T - PAD_B);
-}
-
-/* ── Build SVG path from density samples ── */
-function buildCurvePath(model: ActivityModel): string {
-  const { density } = model;
-  if (density.length === 0) return '';
-  let d = `M ${toX(density[0].norm)} ${toY(density[0].value)}`;
-  for (let i = 1; i < density.length; i++) {
-    d += ` L ${toX(density[i].norm)} ${toY(density[i].value)}`;
-  }
-  return d;
-}
-
-function buildAreaPath(model: ActivityModel): string {
-  const { density } = model;
-  if (density.length === 0) return '';
-  let d = `M ${toX(density[0].norm)} ${toY(density[0].value)}`;
-  for (let i = 1; i < density.length; i++) {
-    d += ` L ${toX(density[i].norm)} ${toY(density[i].value)}`;
-  }
-  d += ` L ${toX(1)} ${toY(0)} L ${toX(0)} ${toY(0)} Z`;
-  return d;
-}
-
-/* ── Date axis labels ── */
-function buildDateLabels(model: ActivityModel): { norm: number; label: string }[] {
-  const { totalMin, totalRange, events } = model;
-  if (events.length === 0) return [];
-
-  const count = Math.min(5, Math.max(2, events.length));
-  const labels: { norm: number; label: string }[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const norm = i / (count - 1);
-    const t = totalMin + norm * totalRange;
-    const d = new Date(t);
-    labels.push({
-      norm,
-      label: d.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
-    });
-  }
-  return labels;
-}
-
-/* ── Props ── */
 interface Props {
   incidents: Incident[];
   repeatedPeople: Set<string>;
@@ -108,359 +36,571 @@ interface Props {
   mostFrequentPerson: string | null;
 }
 
-/* ── Component ── */
-const FlowTimeline = ({ incidents, repeatedPeople }: Props) => {
+/* ── Zoom levels ── */
+const ZOOM_LEVELS = [
+  { name: 'Overview', spacingMin: 4, spacingMax: 20, dotBase: 8, labelMode: 'month' as const },
+  { name: 'Mid',      spacingMin: 10, spacingMax: 48, dotBase: 10, labelMode: 'week' as const },
+  { name: 'Detail',   spacingMin: 20, spacingMax: 80, dotBase: 12, labelMode: 'day' as const },
+];
+
+/* ── Interpolate between two zoom levels ── */
+function lerpZoom(from: typeof ZOOM_LEVELS[0], to: typeof ZOOM_LEVELS[0], t: number) {
+  const lerp = (a: number, b: number) => a + (b - a) * t;
+  return {
+    spacingMin: lerp(from.spacingMin, to.spacingMin),
+    spacingMax: lerp(from.spacingMax, to.spacingMax),
+    dotBase: lerp(from.dotBase, to.dotBase),
+    labelMode: t < 0.5 ? from.labelMode : to.labelMode,
+    name: t < 0.5 ? from.name : to.name,
+  };
+}
+
+/* ── Top summary ── */
+function deriveTopSummary(
+  sorted: Incident[],
+  gaps: number[],
+): { primary: string; secondary: string | null } {
+  if (sorted.length < 2) return { primary: `${sorted.length} record`, secondary: null };
+
+  let trending: 'increasing' | 'decreasing' | null = null;
+  if (gaps.length >= 4) {
+    const recentAvg = (gaps[gaps.length - 1] + gaps[gaps.length - 2]) / 2;
+    const earlierAvg = (gaps[gaps.length - 3] + gaps[gaps.length - 4]) / 2;
+    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) trending = 'increasing';
+    else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) trending = 'decreasing';
+  }
+
+  let hasCluster = false;
+  for (let i = 1; i < sorted.length; i++) {
+    const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
+    if (span <= 3) { hasCluster = true; break; }
+  }
+
+  const longestGap = gaps.length > 0 ? Math.max(...gaps) : 0;
+  const longestGapIdx = gaps.indexOf(longestGap);
+  const hasPauseThenRecent = longestGap >= 21 && longestGapIdx < gaps.length - 1;
+
+  let primary = `${sorted.length} records over time`;
+  if (trending === 'increasing') primary = 'Activity increasing';
+  else if (hasPauseThenRecent) primary = 'Long pause followed by recent activity';
+  else if (hasCluster) primary = 'Some incidents occurred close together';
+  else if (trending === 'decreasing') primary = 'Activity decreasing';
+
+  let secondary: string | null = null;
+  if (trending === 'increasing' && hasCluster) {
+    secondary = 'Several incidents occurred within a short period';
+  } else if (hasPauseThenRecent && trending === 'increasing') {
+    secondary = 'Recent records are more frequent than before';
+  } else if (hasCluster && !hasPauseThenRecent) {
+    secondary = 'Some events are grouped closely together';
+  }
+
+  return { primary, secondary };
+}
+
+/* ── Same-day grouping helper ── */
+function groupByDay(sorted: Incident[]): { date: string; incidents: Incident[] }[] {
+  const groups: { date: string; incidents: Incident[] }[] = [];
+  for (const inc of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.date === inc.incident_date) {
+      last.incidents.push(inc);
+    } else {
+      groups.push({ date: inc.incident_date, incidents: [inc] });
+    }
+  }
+  return groups;
+}
+
+const HINT_STORAGE_KEY = 'chronicle_timeline_hint_dismissed';
+
+const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const stripRef = useRef<HTMLDivElement>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
-  const [selection, setSelection] = useState<ActivitySelection | null>(null);
+  // Continuous zoom value for interpolation (0-2)
+  const continuousZoom = useMotionValue(1);
+  const smoothZoom = useSpring(continuousZoom, { stiffness: 300, damping: 30 });
+  const [renderZoom, setRenderZoom] = useState(1);
 
-  // Build shared model
-  const model = useMemo(() => buildActivityModel(incidents), [incidents]);
+  // Discoverability hint
+  const [showHint, setShowHint] = useState(() => {
+    try { return !localStorage.getItem(HINT_STORAGE_KEY); } catch { return true; }
+  });
 
-  // Insight computed from model + selection
-  const insight = useMemo(
-    () => model ? computeInsight(model, selection) : null,
-    [model, selection],
+  // Resistance flash at limits
+  const [resistanceFlash, setResistanceFlash] = useState<'min' | 'max' | null>(null);
+
+  // Drag state
+  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0, movedEnough: false });
+  // Pinch state
+  const pinchState = useRef({ initialDist: 0, initialZoom: 1, centerX: 0 });
+
+  const sorted = useMemo(() =>
+    [...incidents]
+      .filter(i => isValid(parseISO(i.incident_date)))
+      .sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime()),
+    [incidents]
   );
 
-  // SVG paths
-  const curvePath = useMemo(() => model ? buildCurvePath(model) : '', [model]);
-  const areaPath = useMemo(() => model ? buildAreaPath(model) : '', [model]);
-  const dateLabels = useMemo(() => model ? buildDateLabels(model) : [], [model]);
+  const sortedDates = useMemo(() => sorted.map(i => parseISO(i.incident_date)), [sorted]);
 
-  // Selection band normalised coords
-  const selectionBand = useMemo(() => {
-    if (!selection || !model) return null;
-    const l = Math.max(0, (selection.startT - model.totalMin) / model.totalRange);
-    const r = Math.min(1, (selection.endT - model.totalMin) / model.totalRange);
-    return { l, r };
-  }, [selection, model]);
+  const consecutiveGaps = useMemo(() => {
+    const g: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      g.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+    }
+    return g;
+  }, [sorted]);
 
-  // Handle dot strip group tap
-  const handleDotTap = useCallback((group: DotStripGroup) => {
-    setSelection(prev => {
-      if (prev && prev.startT === group.startT && prev.endT === group.endT) {
-        return null; // toggle off
-      }
-      return {
-        startT: group.startT,
-        endT: group.endT,
-        events: group.events,
-      };
+  const topSummary = useMemo(() => deriveTopSummary(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
+  const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
+
+  const showChart = useMemo(() => {
+    if (sortedDates.length < 3) return false;
+    const span = differenceInDays(sortedDates[sortedDates.length - 1], sortedDates[0]);
+    return span >= 2;
+  }, [sortedDates]);
+
+  // Day groups
+  const dayGroups = useMemo(() => groupByDay(sorted), [sorted]);
+
+  // Listen to smoothZoom for rendering
+  useEffect(() => {
+    const unsub = smoothZoom.on('change', (v) => {
+      setRenderZoom(v);
     });
+    return unsub;
+  }, [smoothZoom]);
+
+  // Interpolated zoom config
+  const interpolatedZoom = useMemo(() => {
+    const clamped = Math.max(0, Math.min(2, renderZoom));
+    const lower = Math.floor(clamped);
+    const upper = Math.min(2, lower + 1);
+    const t = clamped - lower;
+    if (lower === upper) return ZOOM_LEVELS[lower];
+    return lerpZoom(ZOOM_LEVELS[lower], ZOOM_LEVELS[upper], t);
+  }, [renderZoom]);
+
+  // Snap zoom level (discrete) from renderZoom
+  const activeLevel = Math.round(Math.max(0, Math.min(2, renderZoom)));
+
+  // Build dot data with interpolated zoom
+  const dotData = useMemo(() => {
+    if (sorted.length === 0) return [];
+    const zoom = interpolatedZoom;
+
+    return sorted.map((inc, i) => {
+      const gap = i > 0
+        ? differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date))
+        : 0;
+
+      const spacing = i === 0 ? 0 : Math.max(
+        zoom.spacingMin,
+        Math.min(zoom.spacingMax, zoom.spacingMin + (gap / 30) * (zoom.spacingMax - zoom.spacingMin))
+      );
+
+      const isCluster = gap <= 3 && i > 0;
+      const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
+      const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
+      const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
+      const baseSize = (isCluster ? zoom.dotBase + 4 : zoom.dotBase) + recencyBoost;
+
+      const sameDayGroup = dayGroups.find(g => g.date === inc.incident_date);
+      const sameDayCount = sameDayGroup ? sameDayGroup.incidents.length : 1;
+      const isFirstInDay = sameDayGroup ? sameDayGroup.incidents[0].id === inc.id : true;
+
+      return { inc, gap, spacing, isCluster, hasRing, color, baseSize, sameDayCount, isFirstInDay };
+    });
+  }, [sorted, repeatedPeople, interpolatedZoom, dayGroups]);
+
+  // Labels based on active level's label mode
+  const labels = useMemo(() => {
+    const labelMode = interpolatedZoom.labelMode;
+    const result: { index: number; label: string }[] = [];
+
+    if (labelMode === 'month') {
+      let currentMonth = '';
+      sorted.forEach((inc, i) => {
+        const m = format(parseISO(inc.incident_date), 'MMM yyyy');
+        if (m !== currentMonth) {
+          result.push({ index: i, label: m });
+          currentMonth = m;
+        }
+      });
+      if (result.length > 5) {
+        const sampled: typeof result = [];
+        for (let k = 0; k < 5; k++) {
+          const idx = Math.round((k / 4) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
+        return sampled;
+      }
+    } else if (labelMode === 'week') {
+      let lastWeekLabel = '';
+      sorted.forEach((inc, i) => {
+        const d = parseISO(inc.incident_date);
+        const monthLabel = format(d, 'MMM yyyy');
+        if (monthLabel !== lastWeekLabel) {
+          result.push({ index: i, label: monthLabel });
+          lastWeekLabel = monthLabel;
+        } else if (i > 0) {
+          const gapDays = differenceInDays(d, parseISO(sorted[i - 1].incident_date));
+          if (gapDays >= 7) {
+            result.push({ index: i, label: format(d, 'd MMM') });
+          }
+        }
+      });
+      if (result.length > 8) {
+        const sampled: typeof result = [];
+        for (let k = 0; k < 8; k++) {
+          const idx = Math.round((k / 7) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
+        return sampled;
+      }
+    } else {
+      const seen = new Set<string>();
+      sorted.forEach((inc, i) => {
+        const dateStr = format(parseISO(inc.incident_date), 'd MMM yyyy');
+        if (!seen.has(dateStr)) {
+          result.push({ index: i, label: dateStr });
+          seen.add(dateStr);
+        }
+      });
+      if (result.length > 12) {
+        const sampled: typeof result = [];
+        for (let k = 0; k < 12; k++) {
+          const idx = Math.round((k / 11) * (result.length - 1));
+          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
+        }
+        return sampled;
+      }
+    }
+
+    return result;
+  }, [sorted, interpolatedZoom.labelMode]);
+
+  // Dismiss hint
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem(HINT_STORAGE_KEY, '1'); } catch {}
   }, []);
 
-  // Handle chart tap — find nearest dot group
-  const handleChartClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!model) return;
-    const svg = e.currentTarget;
-    const rect = svg.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) / rect.width * CHART_W;
+  // Auto-dismiss hint after first zoom
+  useEffect(() => {
+    if (!showHint) return;
+    const timer = setTimeout(dismissHint, 6000);
+    return () => clearTimeout(timer);
+  }, [showHint, dismissHint]);
 
-    // Convert click X to normalised position
-    const normClick = (mx - PAD_L) / (CHART_W - PAD_L - PAD_R);
-    if (normClick < 0 || normClick > 1) { setSelection(null); return; }
+  // Snap to nearest level with spring animation
+  const snapToLevel = useCallback((level: number) => {
+    const clamped = Math.max(0, Math.min(2, level));
+    setZoomLevel(clamped);
+    continuousZoom.set(clamped);
+  }, [continuousZoom]);
 
-    const clickT = model.totalMin + normClick * model.totalRange;
+  // ── Drag handlers ──
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    const el = containerRef.current;
+    if (!el) return;
+    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft, movedEnough: false };
+    el.setPointerCapture(e.pointerId);
+  }, []);
 
-    // Find nearest dot group
-    let best: DotStripGroup | null = null;
-    let bestDist = Infinity;
-    for (const g of model.dotGroups) {
-      const midT = (g.startT + g.endT) / 2;
-      const dist = Math.abs(midT - clickT);
-      if (dist < bestDist) { bestDist = dist; best = g; }
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragState.current.isDragging) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const dx = e.clientX - dragState.current.startX;
+    if (Math.abs(dx) > 3) dragState.current.movedEnough = true;
+    el.scrollLeft = dragState.current.scrollLeft - dx;
+  }, []);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    dragState.current.isDragging = false;
+    containerRef.current?.releasePointerCapture(e.pointerId);
+  }, []);
+
+  // ── Pinch-to-zoom with anchor ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        pinchState.current = {
+          initialDist: Math.hypot(dx, dy),
+          initialZoom: continuousZoom.get(),
+          centerX,
+        };
+        dismissHint();
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchState.current.initialDist;
+
+      // Map ratio to zoom delta: ln-based for natural feel
+      const rawZoom = pinchState.current.initialZoom + Math.log2(ratio);
+
+      // Add resistance at boundaries
+      let targetZoom: number;
+      if (rawZoom < 0) {
+        targetZoom = -0.15 * Math.tanh(-rawZoom / 0.15); // rubber-band below 0
+      } else if (rawZoom > 2) {
+        targetZoom = 2 + 0.15 * Math.tanh((rawZoom - 2) / 0.15); // rubber-band above 2
+      } else {
+        targetZoom = rawZoom;
+      }
+
+      continuousZoom.set(targetZoom);
+
+      // Show resistance flash at limits
+      if (rawZoom < -0.1 && resistanceFlash !== 'min') setResistanceFlash('min');
+      else if (rawZoom > 2.1 && resistanceFlash !== 'max') setResistanceFlash('max');
+      else if (rawZoom >= -0.1 && rawZoom <= 2.1 && resistanceFlash) setResistanceFlash(null);
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        // Snap to nearest level
+        const current = continuousZoom.get();
+        const nearest = Math.round(Math.max(0, Math.min(2, current)));
+        snapToLevel(nearest);
+        setResistanceFlash(null);
+      }
+    };
+
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [continuousZoom, snapToLevel, dismissHint, resistanceFlash]);
+
+  // ── Wheel zoom (desktop) ──
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const current = continuousZoom.get();
+        const delta = e.deltaY < 0 ? 1 : -1;
+        const nearest = Math.round(Math.max(0, Math.min(2, current + delta)));
+        snapToLevel(nearest);
+        dismissHint();
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [continuousZoom, snapToLevel, dismissHint]);
+
+  // ── Auto-centre on selection ──
+  const handleSelect = useCallback((id: string, dotIndex: number) => {
+    setSelectedId(prev => prev === id ? null : id);
+
+    const el = containerRef.current;
+    const timeline = timelineRef.current;
+    if (!el || !timeline) return;
+    const dots = timeline.querySelectorAll('[data-dot-index]');
+    const dot = dots[dotIndex] as HTMLElement | undefined;
+    if (dot) {
+      const dotCenter = dot.offsetLeft + dot.offsetWidth / 2;
+      const containerWidth = el.clientWidth;
+      el.scrollTo({ left: dotCenter - containerWidth / 2, behavior: 'smooth' });
     }
+  }, []);
 
-    if (best && bestDist < model.totalRange * 0.15) {
-      setSelection(prev => {
-        if (prev && prev.startT === best!.startT && prev.endT === best!.endT) return null;
-        return { startT: best!.startT, endT: best!.endT, events: best!.events };
-      });
-    } else {
-      setSelection(null);
-    }
-  }, [model]);
-
-  // Navigate to incident
-  const handleOpenIncident = useCallback((id: string) => {
-    navigate(`/incident/${id}`);
-  }, [navigate]);
-
-  if (!model || model.events.length === 0) return null;
-
-  const hasEnoughForChart = model.events.length >= 3;
-
-  // Cluster markers on the chart (for clusters with 2+ events)
-  const clusterMarkers = model.clusters.filter(c => c.count >= 2);
+  const selectedIncident = sorted.find(i => i.id === selectedId);
+  const isDetailLevel = activeLevel >= 2;
 
   return (
-    <div className="space-y-4">
-      {/* Provenance line */}
-      <p className="text-[10px] text-muted-foreground/50 px-1">
-        Based on {model.events.length} records between{' '}
-        {format(model.events[0].date, 'd MMM yyyy')} and{' '}
-        {format(model.events[model.events.length - 1].date, 'd MMM yyyy')}
-      </p>
-
-      {/* ─── DENSITY CHART (SVG) ─── */}
-      {hasEnoughForChart && (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <svg
-            viewBox={`0 0 ${CHART_W} ${CHART_H}`}
-            className="w-full h-auto cursor-pointer"
-            onClick={handleChartClick}
-            style={{ touchAction: 'manipulation' }}
-          >
-            <defs>
-              <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.01} />
-              </linearGradient>
-            </defs>
-
-            {/* Selection highlight band */}
-            {selectionBand && selectionBand.r > selectionBand.l && (
-              <>
-                <rect
-                  x={toX(selectionBand.l)}
-                  y={PAD_T}
-                  width={toX(selectionBand.r) - toX(selectionBand.l)}
-                  height={CHART_H - PAD_T - PAD_B}
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.08}
-                />
-                <line
-                  x1={toX(selectionBand.l)} y1={PAD_T}
-                  x2={toX(selectionBand.l)} y2={CHART_H - PAD_B}
-                  stroke="hsl(var(--primary))" strokeOpacity={0.25}
-                  strokeWidth={0.8} strokeDasharray="3 3"
-                />
-                <line
-                  x1={toX(selectionBand.r)} y1={PAD_T}
-                  x2={toX(selectionBand.r)} y2={CHART_H - PAD_B}
-                  stroke="hsl(var(--primary))" strokeOpacity={0.25}
-                  strokeWidth={0.8} strokeDasharray="3 3"
-                />
-              </>
-            )}
-
-            {/* Filled area */}
-            <path d={areaPath} fill="url(#activityFill)" />
-
-            {/* Curve line */}
-            <path
-              d={curvePath}
-              fill="none"
-              stroke="hsl(var(--primary))"
-              strokeWidth={1.8}
-              strokeLinejoin="round"
-              strokeOpacity={0.6}
-            />
-
-            {/* Cluster markers on curve */}
-            {clusterMarkers.map((cl, idx) => {
-              const norm = (cl.centroidT - model.totalMin) / model.totalRange;
-              const cx = toX(norm);
-              const cy = toY(densityAt(model.density, norm));
-              const r = Math.min(16, 7 + cl.count * 2);
-              const isSelected = selection &&
-                cl.startT <= selection.endT && cl.endT >= selection.startT;
-
-              return (
-                <g key={idx}>
-                  {/* Anchor stem */}
-                  <line
-                    x1={cx} y1={cy - r}
-                    x2={cx} y2={cy}
-                    stroke="hsl(var(--primary))"
-                    strokeOpacity={0.2}
-                    strokeWidth={0.8}
-                    strokeDasharray="2 2"
-                  />
-                  {/* Bubble */}
-                  <circle
-                    cx={cx}
-                    cy={cy - r}
-                    r={r}
-                    fill={isSelected ? 'hsl(var(--primary))' : 'hsl(var(--primary))'}
-                    fillOpacity={isSelected ? 0.2 : 0.08}
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={isSelected ? 1.8 : 1.2}
-                    strokeOpacity={isSelected ? 0.8 : 0.5}
-                  />
-                  {/* Count */}
-                  <text
-                    x={cx}
-                    y={cy - r + 3.5}
-                    textAnchor="middle"
-                    fontSize={Math.min(11, 8 + cl.count)}
-                    fontWeight={600}
-                    fill="hsl(var(--primary))"
-                    fillOpacity={0.8}
-                  >
-                    {cl.count}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Date axis labels */}
-            {dateLabels.map((lbl, i) => (
-              <text
-                key={i}
-                x={toX(lbl.norm)}
-                y={CHART_H - 4}
-                textAnchor="middle"
-                fontSize={8}
-                fill="hsl(var(--muted-foreground))"
-                fillOpacity={0.6}
-              >
-                {lbl.label}
-              </text>
-            ))}
-          </svg>
-        </div>
-      )}
-
-      {/* ─── DOT STRIP ─── */}
+    <div className="space-y-5">
+      {/* Top summary */}
       <div className="px-1">
-        <p className="text-[9px] font-medium text-muted-foreground/40 uppercase tracking-wider mb-2">
-          Incidents over time
-        </p>
+        <p className="text-[14px] font-semibold text-foreground leading-snug">{topSummary.primary}</p>
+        {topSummary.secondary && (
+          <p className="text-[13px] text-muted-foreground leading-snug mt-0.5">{topSummary.secondary}</p>
+        )}
+      </div>
+
+      {/* Zoom level tabs */}
+      <div className="flex items-center gap-1.5 px-1">
+        {ZOOM_LEVELS.map((z, i) => (
+          <button
+            key={z.name}
+            onClick={() => {
+              snapToLevel(i);
+              dismissHint();
+            }}
+            className={`text-[10px] px-2.5 py-1 rounded-full transition-all duration-300 ${
+              i === activeLevel
+                ? 'bg-primary/10 text-primary font-medium'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
+            }`}
+          >
+            {z.name}
+          </button>
+        ))}
+
+        {/* Zoom depth indicator */}
+        <div className="ml-auto flex items-center gap-1 mr-1">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: 4,
+                height: 4,
+                backgroundColor: i <= activeLevel
+                  ? 'hsl(var(--primary))'
+                  : 'hsl(var(--muted-foreground) / 0.2)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Discoverability hint */}
+      <AnimatePresence>
+        {showHint && sorted.length >= 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center gap-2 px-3 py-2 mx-1 rounded-lg bg-primary/[0.05] border border-primary/[0.08]"
+          >
+            <ZoomIn className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
+            <span className="text-[11px] text-muted-foreground">
+              Pinch to explore timeline depth
+            </span>
+            <button
+              onClick={dismissHint}
+              className="ml-auto text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Interactive dot timeline */}
+      <div
+        ref={containerRef}
+        className={`overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x relative ${
+          resistanceFlash ? 'opacity-90' : ''
+        }`}
+        style={{ transition: 'opacity 0.15s ease' }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
         <div
-          ref={stripRef}
-          className="relative h-[32px] overflow-x-auto scrollbar-hide"
+          ref={timelineRef}
+          className="flex items-end min-w-max pb-7 pt-6 relative"
         >
           {/* Baseline */}
-          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-border" />
+          <div className="absolute bottom-[24px] left-0 right-0 h-[1.5px] bg-border" />
 
-          {model.dotGroups.map((group, gi) => {
-            const isSelected = selection &&
-              group.startT <= selection.endT && group.endT >= selection.startT;
-            const dimmed = selection && !isSelected;
+          {dotData.map((d, i) => {
+            const isSelected = selectedId === d.inc.id;
+            const label = labels.find(m => m.index === i);
 
-            // Position based on normalised centroid
-            const leftPct = `${group.centroidNorm * 100}%`;
+            const isHiddenInGroup = activeLevel < 2 && d.sameDayCount > 1 && !d.isFirstInDay;
+            if (isHiddenInGroup) return null;
 
-            if (group.events.length === 1) {
-              const ev = group.events[0];
-              const color = getColor(ev.category);
-              const hasRing = ev.people.some(p => repeatedPeople.has(p));
-
-              return (
+            return (
+              <motion.div
+                key={d.inc.id}
+                data-dot-index={i}
+                className="relative flex flex-col items-center"
+                animate={{ marginLeft: d.spacing }}
+                transition={{ type: 'spring', stiffness: 250, damping: 28, mass: 0.8 }}
+              >
                 <button
-                  key={ev.id}
-                  onClick={() => handleDotTap(group)}
-                  className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
-                  style={{ left: leftPct }}
-                  aria-label={`Incident on ${format(ev.date, 'd MMM yyyy')}`}
+                  onClick={(e) => {
+                    if (dragState.current.movedEnough) return;
+                    e.stopPropagation();
+                    handleSelect(d.inc.id, i);
+                  }}
+                  className="relative z-10 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                  aria-label={`Incident on ${d.inc.incident_date}`}
                 >
                   <motion.div
                     className="rounded-full"
                     animate={{
-                      width: isSelected ? 14 : 10,
-                      height: isSelected ? 14 : 10,
-                      opacity: dimmed ? 0.25 : 1,
+                      width: isSelected ? d.baseSize * 1.5 : d.baseSize,
+                      height: isSelected ? d.baseSize * 1.5 : d.baseSize,
+                      backgroundColor: d.color,
+                      boxShadow: isSelected
+                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}, 0 0 12px ${d.color}40`
+                        : d.hasRing
+                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${d.color}`
+                          : '0 0 0 0px transparent',
                     }}
                     transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    style={{
-                      backgroundColor: color,
-                      boxShadow: isSelected
-                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${color}`
-                        : hasRing
-                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${color}`
-                          : 'none',
-                    }}
+                    whileTap={{ scale: 1.3 }}
                   />
-                </button>
-              );
-            }
 
-            // Group of multiple events
-            const primaryColor = getColor(group.events[0].category);
-
-            return (
-              <button
-                key={`g-${gi}`}
-                onClick={() => handleDotTap(group)}
-                className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center"
-                style={{ left: leftPct }}
-                aria-label={`${group.events.length} incidents`}
-              >
-                <motion.div
-                  className="relative flex items-center"
-                  animate={{ opacity: dimmed ? 0.25 : 1 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {/* Stacked dots */}
-                  {group.events.slice(0, 4).map((ev, ei) => (
-                    <div
-                      key={ev.id}
-                      className="rounded-full border border-background"
-                      style={{
-                        width: isSelected ? 12 : 9,
-                        height: isSelected ? 12 : 9,
-                        backgroundColor: getColor(ev.category),
-                        marginLeft: ei === 0 ? 0 : -4,
-                        zIndex: group.events.length - ei,
-                        boxShadow: isSelected
-                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3px ${primaryColor}`
-                          : 'none',
-                      }}
-                    />
-                  ))}
-                  {/* Count badge */}
-                  {group.events.length >= 3 && (
-                    <span
-                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[7px] font-bold text-primary-foreground rounded-full flex items-center justify-center"
-                      style={{
-                        width: 14,
-                        height: 14,
-                        backgroundColor: 'hsl(var(--primary))',
-                      }}
+                  {/* Same-day count badge */}
+                  {d.sameDayCount > 1 && d.isFirstInDay && activeLevel < 2 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center"
                     >
-                      {group.events.length}
-                    </span>
+                      {d.sameDayCount}
+                    </motion.span>
                   )}
-                </motion.div>
-              </button>
+                </button>
+
+                {/* Date labels with fade */}
+                <AnimatePresence mode="wait">
+                  {label && (
+                    <motion.span
+                      key={`${label.label}-${activeLevel}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute -bottom-5 text-[9px] text-muted-foreground whitespace-nowrap select-none"
+                    >
+                      {label.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             );
           })}
         </div>
       </div>
 
-      {/* ─── INSIGHT CARD ─── */}
-      {insight && (
-        <motion.div
-          key={insight.title}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.15 }}
-          className={`rounded-xl px-4 py-3 border ${
-            insight.isSelection
-              ? 'bg-accent border-accent-foreground/15'
-              : 'bg-card border-border'
-          }`}
-        >
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-primary/70 mb-1">
-            {insight.label}
-          </p>
-          <p className="text-[13px] font-semibold text-foreground leading-snug">
-            {insight.title}
-          </p>
-          {insight.subtitle && (
-            <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-              {insight.subtitle}
-            </p>
-          )}
-        </motion.div>
-      )}
-
-      {/* ─── SELECTED INCIDENT CARD ─── */}
+      {/* Selected record preview */}
       <AnimatePresence>
-        {selection && selection.events.length === 1 && (
+        {selectedIncident && (
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -468,97 +608,58 @@ const FlowTimeline = ({ incidents, repeatedPeople }: Props) => {
             transition={{ duration: 0.15 }}
             className="bg-card border border-border rounded-xl px-4 py-3 shadow-[var(--shadow-card)]"
           >
-            {(() => {
-              const ev = selection.events[0];
-              return (
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="text-[10px] text-muted-foreground/60 block">
-                      {format(ev.date, 'dd MMM yyyy')}
-                      {ev.incident.incident_time && ` · ${ev.incident.incident_time}`}
-                    </span>
-                    <p className="text-[13px] font-semibold text-foreground leading-snug mt-0.5 truncate">
-                      {ev.incident.title || 'Untitled'}
-                    </p>
-                    {ev.people.length > 0 && (
-                      <p className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">
-                        {ev.people.join(', ')}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => handleOpenIncident(ev.id)}
-                    className="text-[11px] text-primary font-medium whitespace-nowrap flex-shrink-0 mt-1"
-                  >
-                    Open →
-                  </button>
-                </div>
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ─── SELECTED MULTIPLE ─── */}
-      <AnimatePresence>
-        {selection && selection.events.length > 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.15 }}
-            className="bg-card border border-border rounded-xl px-4 py-3 shadow-[var(--shadow-card)]"
-          >
-            <p className="text-[11px] text-muted-foreground/60 mb-1.5">
-              {selection.events.length} incidents in this group
-            </p>
-            <div className="space-y-1.5">
-              {selection.events.slice(0, 5).map(ev => (
-                <button
-                  key={ev.id}
-                  onClick={() => handleOpenIncident(ev.id)}
-                  className="flex items-center gap-2 w-full text-left group"
-                >
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getColor(ev.category) }}
-                  />
-                  <span className="text-[12px] text-foreground truncate group-hover:text-primary transition-colors">
-                    {ev.incident.title || format(ev.date, 'd MMM yyyy')}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/40 ml-auto flex-shrink-0">
-                    {format(ev.date, 'd MMM')}
-                  </span>
-                </button>
-              ))}
-              {selection.events.length > 5 && (
-                <p className="text-[10px] text-muted-foreground/40">
-                  +{selection.events.length - 5} more
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] text-muted-foreground/60 block">
+                  {format(parseISO(selectedIncident.incident_date), 'dd MMM yyyy')}
+                  {selectedIncident.incident_time && ` · ${selectedIncident.incident_time}`}
+                </span>
+                <p className="text-[13px] font-semibold text-foreground leading-snug mt-0.5 truncate">
+                  {selectedIncident.title || 'Untitled'}
                 </p>
-              )}
+                {selectedIncident.people_involved.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">
+                    {selectedIncident.people_involved.join(', ')}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => navigate(`/incident/${selectedIncident.id}`)}
+                className="text-[11px] text-primary font-medium whitespace-nowrap flex-shrink-0 mt-1"
+              >
+                Open →
+              </button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ─── LEGEND ─── */}
+      {/* Escalation signal */}
+      {escalation && (
+        <div className="bg-primary/[0.04] border border-primary/[0.12] rounded-xl px-4 py-3">
+          <p className="text-[13px] font-semibold text-foreground leading-snug">
+            {escalation.headline}
+          </p>
+          <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
+            {escalation.explanation}
+          </p>
+        </div>
+      )}
+
+      {/* Frequency chart */}
+      {showChart && <FlowFrequencyChart dates={sortedDates} />}
+
+      {/* Legend */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/50">
-        {Object.entries(
-          model.events.reduce<Record<string, string>>((acc, ev) => {
-            if (!acc[ev.category]) acc[ev.category] = getColor(ev.category);
-            return acc;
-          }, {}),
-        )
-          .slice(0, 5)
-          .map(([cat, color]) => (
-            <span key={cat} className="flex items-center gap-1">
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              {cat}
-            </span>
-          ))}
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full border border-current" style={{ boxShadow: '0 0 0 1.5px currentColor' }} /> Repeated person
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
+        </span>
       </div>
     </div>
   );
