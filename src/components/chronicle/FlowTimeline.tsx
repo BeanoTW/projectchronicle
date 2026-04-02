@@ -1,34 +1,18 @@
-import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
-import { format, parseISO, differenceInDays, isValid } from 'date-fns';
+import { useMemo, useState, useCallback } from 'react';
+import { format, parseISO, differenceInDays, isValid, subMonths, subWeeks } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
 import type { Incident } from '@/hooks/useIncidents';
-import FlowFrequencyChart from './FlowFrequencyChart';
-import { deriveEscalationSignal } from '@/lib/flowEscalation';
-import { Search, ZoomIn } from 'lucide-react';
 
-const categoryColors: Record<string, string> = {
-  'Management Conduct': 'hsl(var(--primary))',
-  'Verbal Comment': 'hsl(var(--warm-accent))',
-  'Safety Concern': 'hsl(var(--severity-serious))',
-  'Written Communication': 'hsl(var(--info))',
-  'Scheduling or Shift Change': 'hsl(var(--muted-foreground))',
-  'Disciplinary Meeting': 'hsl(var(--destructive))',
-  'Pay or Payroll Issue': 'hsl(var(--warm-accent))',
-  'Policy Application': 'hsl(var(--info))',
-  'Workplace Meeting': 'hsl(var(--primary))',
-  'Academic Misconduct': 'hsl(var(--destructive))',
-  'Accommodation Issue': 'hsl(var(--warm-accent))',
-  'Teaching or Supervision': 'hsl(var(--primary))',
-  'Noise Complaint': 'hsl(var(--severity-serious))',
-  'Property Damage': 'hsl(var(--destructive))',
-  'Shared Space Dispute': 'hsl(var(--warm-accent))',
-  'Antisocial Behaviour': 'hsl(var(--severity-serious))',
-  'Public Safety': 'hsl(var(--destructive))',
-  'Transport Incident': 'hsl(var(--info))',
-  'Other': 'hsl(var(--muted-foreground))',
-};
-
+/* ── Types ── */
 interface Props {
   incidents: Incident[];
   repeatedPeople: Set<string>;
@@ -36,109 +20,112 @@ interface Props {
   mostFrequentPerson: string | null;
 }
 
-/* ── Zoom levels ── */
-const ZOOM_LEVELS = [
-  { name: 'Overview', spacingMin: 4, spacingMax: 20, dotBase: 8, labelMode: 'month' as const },
-  { name: 'Mid',      spacingMin: 10, spacingMax: 48, dotBase: 10, labelMode: 'week' as const },
-  { name: 'Detail',   spacingMin: 20, spacingMax: 80, dotBase: 12, labelMode: 'day' as const },
+interface Bucket {
+  start: Date;
+  end: Date;
+  count: number;
+  label: string;
+}
+
+/* ── Range presets ── */
+type RangeKey = 'all' | '6m' | '1m' | '2w';
+
+const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
+  { key: 'all', label: 'Full range' },
+  { key: '6m', label: '6 months' },
+  { key: '1m', label: '1 month' },
+  { key: '2w', label: '2 weeks' },
 ];
 
-/* ── Interpolate between two zoom levels ── */
-function lerpZoom(from: typeof ZOOM_LEVELS[0], to: typeof ZOOM_LEVELS[0], t: number) {
-  const lerp = (a: number, b: number) => a + (b - a) * t;
-  return {
-    spacingMin: lerp(from.spacingMin, to.spacingMin),
-    spacingMax: lerp(from.spacingMax, to.spacingMax),
-    dotBase: lerp(from.dotBase, to.dotBase),
-    labelMode: t < 0.5 ? from.labelMode : to.labelMode,
-    name: t < 0.5 ? from.name : to.name,
-  };
+const RANGE_STORAGE_KEY = 'chronicle_activity_range';
+
+/* ── Bucket builder ── */
+function buildBuckets(sorted: Incident[], visMin: Date, visMax: Date): Bucket[] {
+  const totalDays = differenceInDays(visMax, visMin) + 1;
+  let bucketDays: number;
+  if (totalDays <= 14) bucketDays = 1;
+  else if (totalDays <= 60) bucketDays = 7;
+  else if (totalDays <= 180) bucketDays = 14;
+  else bucketDays = 30;
+
+  const buckets: Bucket[] = [];
+  let cursor = new Date(visMin);
+
+  while (cursor <= visMax) {
+    const bucketEnd = new Date(cursor);
+    bucketEnd.setDate(bucketEnd.getDate() + bucketDays - 1);
+    if (bucketEnd > visMax) bucketEnd.setTime(visMax.getTime());
+
+    const count = sorted.filter(inc => {
+      const d = parseISO(inc.incident_date);
+      return d >= cursor && d <= bucketEnd;
+    }).length;
+
+    let label: string;
+    if (bucketDays <= 1) label = format(cursor, 'd MMM');
+    else if (bucketDays <= 7) label = format(cursor, 'd MMM');
+    else if (bucketDays <= 14) label = format(cursor, 'd MMM');
+    else label = format(cursor, 'MMM yyyy');
+
+    buckets.push({ start: new Date(cursor), end: new Date(bucketEnd), count, label });
+
+    cursor = new Date(cursor);
+    cursor.setDate(cursor.getDate() + bucketDays);
+  }
+
+  return buckets;
 }
 
-/* ── Top summary ── */
-function deriveTopSummary(
-  sorted: Incident[],
-  gaps: number[],
-): { primary: string; secondary: string | null } {
-  if (sorted.length < 2) return { primary: `${sorted.length} record`, secondary: null };
-
-  let trending: 'increasing' | 'decreasing' | null = null;
-  if (gaps.length >= 4) {
-    const recentAvg = (gaps[gaps.length - 1] + gaps[gaps.length - 2]) / 2;
-    const earlierAvg = (gaps[gaps.length - 3] + gaps[gaps.length - 4]) / 2;
-    if (earlierAvg > 0 && recentAvg <= earlierAvg * 0.75) trending = 'increasing';
-    else if (recentAvg > 0 && recentAvg >= earlierAvg * 1.25 && earlierAvg > 0) trending = 'decreasing';
-  }
-
-  let hasCluster = false;
-  for (let i = 1; i < sorted.length; i++) {
-    const span = differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date));
-    if (span <= 3) { hasCluster = true; break; }
-  }
-
-  const longestGap = gaps.length > 0 ? Math.max(...gaps) : 0;
-  const longestGapIdx = gaps.indexOf(longestGap);
-  const hasPauseThenRecent = longestGap >= 21 && longestGapIdx < gaps.length - 1;
-
-  let primary = `${sorted.length} records over time`;
-  if (trending === 'increasing') primary = 'Activity increasing';
-  else if (hasPauseThenRecent) primary = 'Long pause followed by recent activity';
-  else if (hasCluster) primary = 'Some incidents occurred close together';
-  else if (trending === 'decreasing') primary = 'Activity decreasing';
-
-  let secondary: string | null = null;
-  if (trending === 'increasing' && hasCluster) {
-    secondary = 'Several incidents occurred within a short period';
-  } else if (hasPauseThenRecent && trending === 'increasing') {
-    secondary = 'Recent records are more frequent than before';
-  } else if (hasCluster && !hasPauseThenRecent) {
-    secondary = 'Some events are grouped closely together';
-  }
-
-  return { primary, secondary };
-}
-
-/* ── Same-day grouping helper ── */
-function groupByDay(sorted: Incident[]): { date: string; incidents: Incident[] }[] {
-  const groups: { date: string; incidents: Incident[] }[] = [];
-  for (const inc of sorted) {
-    const last = groups[groups.length - 1];
-    if (last && last.date === inc.incident_date) {
-      last.incidents.push(inc);
-    } else {
-      groups.push({ date: inc.incident_date, incidents: [inc] });
-    }
-  }
-  return groups;
-}
-
-const HINT_STORAGE_KEY = 'chronicle_timeline_hint_dismissed';
-
-const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentPerson }: Props) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(1);
-
-  // Continuous zoom value for interpolation (0-2)
-  const continuousZoom = useMotionValue(1);
-  const smoothZoom = useSpring(continuousZoom, { stiffness: 300, damping: 30 });
-  const [renderZoom, setRenderZoom] = useState(1);
-
-  // Discoverability hint
-  const [showHint, setShowHint] = useState(() => {
-    try { return !localStorage.getItem(HINT_STORAGE_KEY); } catch { return true; }
+/* ── Summary builder ── */
+function buildSummary(incidents: Incident[], visMin: Date, visMax: Date): string {
+  const visible = incidents.filter(inc => {
+    const d = parseISO(inc.incident_date);
+    return d >= visMin && d <= visMax;
   });
 
-  // Resistance flash at limits
-  const [resistanceFlash, setResistanceFlash] = useState<'min' | 'max' | null>(null);
+  if (visible.length === 0) return 'No incidents recorded in this period.';
 
-  // Drag state
-  const dragState = useRef({ isDragging: false, startX: 0, scrollLeft: 0, movedEnough: false });
-  // Pinch state
-  const pinchState = useRef({ initialDist: 0, initialZoom: 1, centerX: 0 });
+  if (visible.length === 1) {
+    const d = parseISO(visible[0].incident_date);
+    return `1 incident recorded on ${format(d, 'd MMMM yyyy')}.`;
+  }
 
+  const dates = visible.map(i => parseISO(i.incident_date)).sort((a, b) => a.getTime() - b.getTime());
+  const span = differenceInDays(dates[dates.length - 1], dates[0]);
+  const startStr = format(dates[0], 'd MMMM yyyy');
+  const endStr = format(dates[dates.length - 1], 'd MMMM yyyy');
+
+  return `${visible.length} incidents recorded within ${span} days — ${startStr} to ${endStr}.`;
+}
+
+/* ── Label sampling for axis ── */
+function sampleLabels(buckets: Bucket[], maxLabels: number): Set<number> {
+  if (buckets.length <= maxLabels) return new Set(buckets.map((_, i) => i));
+  const indices = new Set<number>();
+  for (let k = 0; k < maxLabels; k++) {
+    indices.add(Math.round((k / (maxLabels - 1)) * (buckets.length - 1)));
+  }
+  return indices;
+}
+
+/* ── Component ── */
+const FlowTimeline = ({ incidents }: Props) => {
+  const navigate = useNavigate();
+
+  const [range, setRange] = useState<RangeKey>(() => {
+    try {
+      const stored = localStorage.getItem(RANGE_STORAGE_KEY);
+      if (stored && RANGE_OPTIONS.some(r => r.key === stored)) return stored as RangeKey;
+    } catch {}
+    return 'all';
+  });
+
+  const handleRangeChange = useCallback((key: RangeKey) => {
+    setRange(key);
+    try { localStorage.setItem(RANGE_STORAGE_KEY, key); } catch {}
+  }, []);
+
+  // Sorted incidents
   const sorted = useMemo(() =>
     [...incidents]
       .filter(i => isValid(parseISO(i.incident_date)))
@@ -146,521 +133,179 @@ const FlowTimeline = ({ incidents, repeatedPeople, totalIncidents, mostFrequentP
     [incidents]
   );
 
-  const sortedDates = useMemo(() => sorted.map(i => parseISO(i.incident_date)), [sorted]);
+  // Global date range
+  const globalMin = useMemo(() => sorted.length > 0 ? parseISO(sorted[0].incident_date) : new Date(), [sorted]);
+  const globalMax = useMemo(() => sorted.length > 0 ? parseISO(sorted[sorted.length - 1].incident_date) : new Date(), [sorted]);
 
-  const consecutiveGaps = useMemo(() => {
-    const g: number[] = [];
-    for (let i = 1; i < sorted.length; i++) {
-      g.push(differenceInDays(parseISO(sorted[i].incident_date), parseISO(sorted[i - 1].incident_date)));
+  // Visible window
+  const { visMin, visMax } = useMemo(() => {
+    const max = globalMax;
+    switch (range) {
+      case '6m': return { visMin: subMonths(max, 6), visMax: max };
+      case '1m': return { visMin: subMonths(max, 1), visMax: max };
+      case '2w': return { visMin: subWeeks(max, 2), visMax: max };
+      default: return { visMin: globalMin, visMax: max };
     }
-    return g;
-  }, [sorted]);
+  }, [range, globalMin, globalMax]);
 
-  const topSummary = useMemo(() => deriveTopSummary(sorted, consecutiveGaps), [sorted, consecutiveGaps]);
-  const escalation = useMemo(() => deriveEscalationSignal(sorted, sortedDates), [sorted, sortedDates]);
+  // Shared buckets
+  const buckets = useMemo(() => buildBuckets(sorted, visMin, visMax), [sorted, visMin, visMax]);
+  const maxCount = useMemo(() => Math.max(1, ...buckets.map(b => b.count)), [buckets]);
 
-  const showChart = useMemo(() => {
-    if (sortedDates.length < 3) return false;
-    const span = differenceInDays(sortedDates[sortedDates.length - 1], sortedDates[0]);
-    return span >= 2;
-  }, [sortedDates]);
+  // Chart data
+  const chartData = useMemo(() => buckets.map(b => ({ label: b.label, count: b.count })), [buckets]);
 
-  // Day groups
-  const dayGroups = useMemo(() => groupByDay(sorted), [sorted]);
+  // Labels to show (max 5 on mobile)
+  const visibleLabelIndices = useMemo(() => sampleLabels(buckets, 5), [buckets]);
 
-  // Listen to smoothZoom for rendering
-  useEffect(() => {
-    const unsub = smoothZoom.on('change', (v) => {
-      setRenderZoom(v);
-    });
-    return unsub;
-  }, [smoothZoom]);
+  // Summary
+  const summary = useMemo(() => buildSummary(sorted, visMin, visMax), [sorted, visMin, visMax]);
 
-  // Interpolated zoom config
-  const interpolatedZoom = useMemo(() => {
-    const clamped = Math.max(0, Math.min(2, renderZoom));
-    const lower = Math.floor(clamped);
-    const upper = Math.min(2, lower + 1);
-    const t = clamped - lower;
-    if (lower === upper) return ZOOM_LEVELS[lower];
-    return lerpZoom(ZOOM_LEVELS[lower], ZOOM_LEVELS[upper], t);
-  }, [renderZoom]);
+  // Visible incidents for card list
+  const visibleIncidents = useMemo(() =>
+    sorted.filter(inc => {
+      const d = parseISO(inc.incident_date);
+      return d >= visMin && d <= visMax;
+    }),
+    [sorted, visMin, visMax]
+  );
 
-  // Snap zoom level (discrete) from renderZoom
-  const activeLevel = Math.round(Math.max(0, Math.min(2, renderZoom)));
-
-  // Build dot data with interpolated zoom
-  const dotData = useMemo(() => {
-    if (sorted.length === 0) return [];
-    const zoom = interpolatedZoom;
-
-    return sorted.map((inc, i) => {
-      const gap = i > 0
-        ? differenceInDays(parseISO(inc.incident_date), parseISO(sorted[i - 1].incident_date))
-        : 0;
-
-      const spacing = i === 0 ? 0 : Math.max(
-        zoom.spacingMin,
-        Math.min(zoom.spacingMax, zoom.spacingMin + (gap / 30) * (zoom.spacingMax - zoom.spacingMin))
-      );
-
-      const isCluster = gap <= 3 && i > 0;
-      const hasRing = inc.people_involved.some(p => repeatedPeople.has(p));
-      const color = categoryColors[inc.category || ''] || 'hsl(var(--muted-foreground))';
-      const recencyBoost = i >= sorted.length - 2 ? 2 : 0;
-      const baseSize = (isCluster ? zoom.dotBase + 4 : zoom.dotBase) + recencyBoost;
-
-      const sameDayGroup = dayGroups.find(g => g.date === inc.incident_date);
-      const sameDayCount = sameDayGroup ? sameDayGroup.incidents.length : 1;
-      const isFirstInDay = sameDayGroup ? sameDayGroup.incidents[0].id === inc.id : true;
-
-      return { inc, gap, spacing, isCluster, hasRing, color, baseSize, sameDayCount, isFirstInDay };
-    });
-  }, [sorted, repeatedPeople, interpolatedZoom, dayGroups]);
-
-  // Labels based on active level's label mode
-  const labels = useMemo(() => {
-    const labelMode = interpolatedZoom.labelMode;
-    const result: { index: number; label: string }[] = [];
-
-    if (labelMode === 'month') {
-      let currentMonth = '';
-      sorted.forEach((inc, i) => {
-        const m = format(parseISO(inc.incident_date), 'MMM yyyy');
-        if (m !== currentMonth) {
-          result.push({ index: i, label: m });
-          currentMonth = m;
-        }
-      });
-      if (result.length > 5) {
-        const sampled: typeof result = [];
-        for (let k = 0; k < 5; k++) {
-          const idx = Math.round((k / 4) * (result.length - 1));
-          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
-        }
-        return sampled;
-      }
-    } else if (labelMode === 'week') {
-      let lastWeekLabel = '';
-      sorted.forEach((inc, i) => {
-        const d = parseISO(inc.incident_date);
-        const monthLabel = format(d, 'MMM yyyy');
-        if (monthLabel !== lastWeekLabel) {
-          result.push({ index: i, label: monthLabel });
-          lastWeekLabel = monthLabel;
-        } else if (i > 0) {
-          const gapDays = differenceInDays(d, parseISO(sorted[i - 1].incident_date));
-          if (gapDays >= 7) {
-            result.push({ index: i, label: format(d, 'd MMM') });
-          }
-        }
-      });
-      if (result.length > 8) {
-        const sampled: typeof result = [];
-        for (let k = 0; k < 8; k++) {
-          const idx = Math.round((k / 7) * (result.length - 1));
-          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
-        }
-        return sampled;
-      }
-    } else {
-      const seen = new Set<string>();
-      sorted.forEach((inc, i) => {
-        const dateStr = format(parseISO(inc.incident_date), 'd MMM yyyy');
-        if (!seen.has(dateStr)) {
-          result.push({ index: i, label: dateStr });
-          seen.add(dateStr);
-        }
-      });
-      if (result.length > 12) {
-        const sampled: typeof result = [];
-        for (let k = 0; k < 12; k++) {
-          const idx = Math.round((k / 11) * (result.length - 1));
-          if (!sampled.find(r => r.index === result[idx].index)) sampled.push(result[idx]);
-        }
-        return sampled;
-      }
-    }
-
-    return result;
-  }, [sorted, interpolatedZoom.labelMode]);
-
-  // Dismiss hint
-  const dismissHint = useCallback(() => {
-    setShowHint(false);
-    try { localStorage.setItem(HINT_STORAGE_KEY, '1'); } catch {}
-  }, []);
-
-  // Auto-dismiss hint after first zoom
-  useEffect(() => {
-    if (!showHint) return;
-    const timer = setTimeout(dismissHint, 6000);
-    return () => clearTimeout(timer);
-  }, [showHint, dismissHint]);
-
-  // Snap to nearest level with spring animation
-  const snapToLevel = useCallback((level: number) => {
-    const clamped = Math.max(0, Math.min(2, level));
-    setZoomLevel(clamped);
-    continuousZoom.set(clamped);
-  }, [continuousZoom]);
-
-  // ── Drag handlers ──
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    const el = containerRef.current;
-    if (!el) return;
-    dragState.current = { isDragging: true, startX: e.clientX, scrollLeft: el.scrollLeft, movedEnough: false };
-    el.setPointerCapture(e.pointerId);
-  }, []);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragState.current.isDragging) return;
-    const el = containerRef.current;
-    if (!el) return;
-    const dx = e.clientX - dragState.current.startX;
-    if (Math.abs(dx) > 3) dragState.current.movedEnough = true;
-    el.scrollLeft = dragState.current.scrollLeft - dx;
-  }, []);
-
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    dragState.current.isDragging = false;
-    containerRef.current?.releasePointerCapture(e.pointerId);
-  }, []);
-
-  // ── Pinch-to-zoom with anchor ──
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        pinchState.current = {
-          initialDist: Math.hypot(dx, dy),
-          initialZoom: continuousZoom.get(),
-          centerX,
-        };
-        dismissHint();
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return;
-      e.preventDefault();
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const ratio = dist / pinchState.current.initialDist;
-
-      // Map ratio to zoom delta: ln-based for natural feel
-      const rawZoom = pinchState.current.initialZoom + Math.log2(ratio);
-
-      // Add resistance at boundaries
-      let targetZoom: number;
-      if (rawZoom < 0) {
-        targetZoom = -0.15 * Math.tanh(-rawZoom / 0.15); // rubber-band below 0
-      } else if (rawZoom > 2) {
-        targetZoom = 2 + 0.15 * Math.tanh((rawZoom - 2) / 0.15); // rubber-band above 2
-      } else {
-        targetZoom = rawZoom;
-      }
-
-      continuousZoom.set(targetZoom);
-
-      // Show resistance flash at limits
-      if (rawZoom < -0.1 && resistanceFlash !== 'min') setResistanceFlash('min');
-      else if (rawZoom > 2.1 && resistanceFlash !== 'max') setResistanceFlash('max');
-      else if (rawZoom >= -0.1 && rawZoom <= 2.1 && resistanceFlash) setResistanceFlash(null);
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        // Snap to nearest level
-        const current = continuousZoom.get();
-        const nearest = Math.round(Math.max(0, Math.min(2, current)));
-        snapToLevel(nearest);
-        setResistanceFlash(null);
-      }
-    };
-
-    el.addEventListener('touchstart', handleTouchStart, { passive: true });
-    el.addEventListener('touchmove', handleTouchMove, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-    return () => {
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-      el.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [continuousZoom, snapToLevel, dismissHint, resistanceFlash]);
-
-  // ── Wheel zoom (desktop) ──
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const current = continuousZoom.get();
-        const delta = e.deltaY < 0 ? 1 : -1;
-        const nearest = Math.round(Math.max(0, Math.min(2, current + delta)));
-        snapToLevel(nearest);
-        dismissHint();
-      }
-    };
-
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [continuousZoom, snapToLevel, dismissHint]);
-
-  // ── Auto-centre on selection ──
-  const handleSelect = useCallback((id: string, dotIndex: number) => {
-    setSelectedId(prev => prev === id ? null : id);
-
-    const el = containerRef.current;
-    const timeline = timelineRef.current;
-    if (!el || !timeline) return;
-    const dots = timeline.querySelectorAll('[data-dot-index]');
-    const dot = dots[dotIndex] as HTMLElement | undefined;
-    if (dot) {
-      const dotCenter = dot.offsetLeft + dot.offsetWidth / 2;
-      const containerWidth = el.clientWidth;
-      el.scrollTo({ left: dotCenter - containerWidth / 2, behavior: 'smooth' });
-    }
-  }, []);
-
-  const selectedIncident = sorted.find(i => i.id === selectedId);
-  const isDetailLevel = activeLevel >= 2;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIncident = visibleIncidents.find(i => i.id === selectedId);
 
   return (
-    <div className="space-y-5">
-      {/* Top summary */}
-      <div className="px-1">
-        <p className="text-[14px] font-semibold text-foreground leading-snug">{topSummary.primary}</p>
-        {topSummary.secondary && (
-          <p className="text-[13px] text-muted-foreground leading-snug mt-0.5">{topSummary.secondary}</p>
-        )}
-      </div>
-
-      {/* Zoom level tabs */}
-      <div className="flex items-center gap-1.5 px-1">
-        {ZOOM_LEVELS.map((z, i) => (
+    <div className="space-y-4">
+      {/* Range selector */}
+      <div className="flex items-center gap-1.5">
+        {RANGE_OPTIONS.map(opt => (
           <button
-            key={z.name}
-            onClick={() => {
-              snapToLevel(i);
-              dismissHint();
-            }}
-            className={`text-[10px] px-2.5 py-1 rounded-full transition-all duration-300 ${
-              i === activeLevel
+            key={opt.key}
+            onClick={() => handleRangeChange(opt.key)}
+            className={`text-[11px] px-3 py-1.5 rounded-full transition-all duration-200 ${
+              range === opt.key
                 ? 'bg-primary/10 text-primary font-medium'
                 : 'text-muted-foreground/50 hover:text-muted-foreground'
             }`}
           >
-            {z.name}
+            {opt.label}
           </button>
         ))}
-
-        {/* Zoom depth indicator */}
-        <div className="ml-auto flex items-center gap-1 mr-1">
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              className="rounded-full transition-all duration-300"
-              style={{
-                width: 4,
-                height: 4,
-                backgroundColor: i <= activeLevel
-                  ? 'hsl(var(--primary))'
-                  : 'hsl(var(--muted-foreground) / 0.2)',
-              }}
-            />
-          ))}
-        </div>
       </div>
 
-      {/* Discoverability hint */}
-      <AnimatePresence>
-        {showHint && sorted.length >= 2 && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.3 }}
-            className="flex items-center gap-2 px-3 py-2 mx-1 rounded-lg bg-primary/[0.05] border border-primary/[0.08]"
-          >
-            <ZoomIn className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
-            <span className="text-[11px] text-muted-foreground">
-              Pinch to explore timeline depth
-            </span>
-            <button
-              onClick={dismissHint}
-              className="ml-auto text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
-            >
-              ✕
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Interactive dot timeline */}
-      <div
-        ref={containerRef}
-        className={`overflow-x-auto scrollbar-hide -mx-5 px-5 cursor-grab active:cursor-grabbing touch-pan-x relative ${
-          resistanceFlash ? 'opacity-90' : ''
-        }`}
-        style={{ transition: 'opacity 0.15s ease' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
-        <div
-          ref={timelineRef}
-          className="flex items-end min-w-max pb-7 pt-6 relative"
-        >
-          {/* Baseline */}
-          <div className="absolute bottom-[24px] left-0 right-0 h-[1.5px] bg-border" />
-
-          {dotData.map((d, i) => {
-            const isSelected = selectedId === d.inc.id;
-            const label = labels.find(m => m.index === i);
-
-            const isHiddenInGroup = activeLevel < 2 && d.sameDayCount > 1 && !d.isFirstInDay;
-            if (isHiddenInGroup) return null;
-
-            return (
-              <motion.div
-                key={d.inc.id}
-                data-dot-index={i}
-                className="relative flex flex-col items-center"
-                animate={{ marginLeft: d.spacing }}
-                transition={{ type: 'spring', stiffness: 250, damping: 28, mass: 0.8 }}
-              >
-                <button
-                  onClick={(e) => {
-                    if (dragState.current.movedEnough) return;
-                    e.stopPropagation();
-                    handleSelect(d.inc.id, i);
-                  }}
-                  className="relative z-10 min-w-[32px] min-h-[32px] flex items-center justify-center"
-                  aria-label={`Incident on ${d.inc.incident_date}`}
-                >
-                  <motion.div
-                    className="rounded-full"
-                    animate={{
-                      width: isSelected ? d.baseSize * 1.5 : d.baseSize,
-                      height: isSelected ? d.baseSize * 1.5 : d.baseSize,
-                      backgroundColor: d.color,
-                      boxShadow: isSelected
-                        ? `0 0 0 3px hsl(var(--background)), 0 0 0 5px ${d.color}, 0 0 12px ${d.color}40`
-                        : d.hasRing
-                          ? `0 0 0 2px hsl(var(--background)), 0 0 0 3.5px ${d.color}`
-                          : '0 0 0 0px transparent',
-                    }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    whileTap={{ scale: 1.3 }}
-                  />
-
-                  {/* Same-day count badge */}
-                  {d.sameDayCount > 1 && d.isFirstInDay && activeLevel < 2 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                    >
-                      {d.sameDayCount}
-                    </motion.span>
-                  )}
-                </button>
-
-                {/* Date labels with fade */}
-                <AnimatePresence mode="wait">
-                  {label && (
-                    <motion.span
-                      key={`${label.label}-${activeLevel}`}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.5 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute -bottom-5 text-[9px] text-muted-foreground whitespace-nowrap select-none"
-                    >
-                      {label.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
+      {/* Density graph */}
+      {chartData.length >= 2 ? (
+        <div className="w-full h-[120px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
+              <defs>
+                <linearGradient id="activityFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                strokeOpacity={0.2}
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={false}
+                axisLine={false}
+                interval={0}
+                tickFormatter={(value, index) => visibleLabelIndices.has(index) ? value : ''}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }}
+                tickLine={false}
+                axisLine={false}
+                width={28}
+              />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke="hsl(var(--primary))"
+                strokeWidth={1.5}
+                fill="url(#activityFill)"
+                dot={false}
+                activeDot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
-
-      {/* Selected record preview */}
-      <AnimatePresence>
-        {selectedIncident && (
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.15 }}
-            className="bg-card border border-border rounded-xl px-4 py-3 shadow-[var(--shadow-card)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <span className="text-[10px] text-muted-foreground/60 block">
-                  {format(parseISO(selectedIncident.incident_date), 'dd MMM yyyy')}
-                  {selectedIncident.incident_time && ` · ${selectedIncident.incident_time}`}
-                </span>
-                <p className="text-[13px] font-semibold text-foreground leading-snug mt-0.5 truncate">
-                  {selectedIncident.title || 'Untitled'}
-                </p>
-                {selectedIncident.people_involved.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">
-                    {selectedIncident.people_involved.join(', ')}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => navigate(`/incident/${selectedIncident.id}`)}
-                className="text-[11px] text-primary font-medium whitespace-nowrap flex-shrink-0 mt-1"
-              >
-                Open →
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Escalation signal */}
-      {escalation && (
-        <div className="bg-primary/[0.04] border border-primary/[0.12] rounded-xl px-4 py-3">
-          <p className="text-[13px] font-semibold text-foreground leading-snug">
-            {escalation.headline}
-          </p>
-          <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
-            {escalation.explanation}
-          </p>
+      ) : (
+        <div className="w-full h-[120px] flex items-center justify-center">
+          <p className="text-[12px] text-muted-foreground/40">Not enough data for graph</p>
         </div>
       )}
 
-      {/* Frequency chart */}
-      {showChart && <FlowFrequencyChart dates={sortedDates} />}
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[10px] text-muted-foreground/50">
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-primary" /> Grouped
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full border border-current" style={{ boxShadow: '0 0 0 1.5px currentColor' }} /> Repeated person
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" /> Spaced
-        </span>
+      {/* Heat strip */}
+      <div className="flex w-full h-[6px] rounded-full overflow-hidden gap-[1px]">
+        {buckets.map((b, i) => {
+          const opacity = b.count === 0 ? 0.05 : 0.15 + (b.count / maxCount) * 0.75;
+          return (
+            <div
+              key={i}
+              className="flex-1 rounded-[1px]"
+              style={{
+                backgroundColor: `hsl(var(--primary) / ${opacity})`,
+              }}
+            />
+          );
+        })}
       </div>
+
+      {/* Summary */}
+      <p className="text-[13px] text-muted-foreground leading-relaxed">{summary}</p>
+
+      {/* Incident list for visible period */}
+      {visibleIncidents.length > 0 && (
+        <div className="space-y-1.5">
+          {visibleIncidents.slice(0, 10).map(inc => {
+            const isSelected = selectedId === inc.id;
+            return (
+              <button
+                key={inc.id}
+                onClick={() => setSelectedId(prev => prev === inc.id ? null : inc.id)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-150 ${
+                  isSelected
+                    ? 'bg-primary/[0.06] border-primary/20'
+                    : 'bg-card border-border hover:border-border/80'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-muted-foreground/50 block">
+                      {format(parseISO(inc.incident_date), 'd MMM yyyy')}
+                    </span>
+                    <p className="text-[13px] font-medium text-foreground leading-snug truncate">
+                      {inc.title || inc.category || 'Untitled'}
+                    </p>
+                  </div>
+                  {isSelected && (
+                    <motion.button
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/incident/${inc.id}`); }}
+                      className="text-[11px] text-primary font-medium whitespace-nowrap flex-shrink-0"
+                    >
+                      Open →
+                    </motion.button>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+          {visibleIncidents.length > 10 && (
+            <p className="text-[11px] text-muted-foreground/40 text-center pt-1">
+              +{visibleIncidents.length - 10} more in this period
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };
