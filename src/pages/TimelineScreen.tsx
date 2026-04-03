@@ -8,8 +8,7 @@ import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
-import { generateNarrative } from '@/lib/narrativeEngine';
-import { generateWellnessNarrative } from '@/lib/wellnessNarrative';
+import NarrativeDayView from '@/components/chronicle/NarrativeDayView';
 
 const categoryFilters = [
   'all',
