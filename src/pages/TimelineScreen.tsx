@@ -8,8 +8,7 @@ import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
-import { generateNarrative } from '@/lib/narrativeEngine';
-import { generateWellnessNarrative } from '@/lib/wellnessNarrative';
+import NarrativeDayView from '@/components/chronicle/NarrativeDayView';
 
 const categoryFilters = [
   'all',
@@ -35,8 +34,7 @@ const TimelineScreen = () => {
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
 
-  const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
-  const wellnessNarrative = useMemo(() => generateWellnessNarrative(allIncidents), [allIncidents]);
+
 
   useEffect(() => {
     const gap = searchParams.get('gap');
@@ -257,28 +255,7 @@ const TimelineScreen = () => {
       )}
 
       {viewMode === 'narrative' && (
-        <div className="px-5">
-          {wellnessNarrative.paragraphs.length > 0 && (
-            <div className="bg-card border border-border rounded-xl p-4 mb-5 space-y-2.5">
-              {wellnessNarrative.paragraphs.map((p, i) => (
-                <p key={i} className="text-[13px] text-foreground/80 leading-relaxed">{p}</p>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {narrative.entries.map((entry, i) => (
-              <p key={entry.id} className="text-[13px] text-foreground leading-relaxed">
-                <span className="text-muted-foreground/50 text-[11px] font-medium mr-2">{i + 1}.</span>
-                {entry.text}
-              </p>
-            ))}
-          </div>
-
-          {narrative.entries.length === 0 && (
-            <p className="text-[13px] text-muted-foreground text-center py-8">No records to narrate.</p>
-          )}
-        </div>
+        <NarrativeDayView incidents={allIncidents} />
       )}
 
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
