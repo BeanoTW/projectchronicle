@@ -32,7 +32,7 @@ export const mockIncidents: Incident[] = [
     location: 'Office floor',
     people_involved: ['Sarah Thompson'],
     witnesses: [],
-    category: 'Scheduling or Shift Change',
+    category: 'Action / Change',
     severity: 'Moderate',
     impact_note: 'My childcare arrangements were disrupted with very short notice.',
     raw_narrative: 'I was informed by Sarah Thompson that my shift pattern was being changed from next week without any prior consultation. I had been on the same rota for 6 months. No reason was given for the change.',
