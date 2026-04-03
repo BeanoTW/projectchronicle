@@ -5,9 +5,9 @@ import type { Incident } from '@/hooks/useIncidents';
 
 /* ── Category → left-border colour mapping ── */
 const categoryBorderColor: Record<string, string> = {
-  'Communication': 'border-l-amber-500',
+  'Communication': 'border-l-warm-accent',
   'Action / Change': 'border-l-primary',
-  'Record Issued': 'border-l-blue-500',
+  'Record Issued': 'border-l-info',
 };
 const defaultBorder = 'border-l-muted-foreground/40';
 
