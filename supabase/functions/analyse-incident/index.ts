@@ -49,7 +49,22 @@ RULES:
   GOOD titles: "Manager A said I was 'too slow' in front of customers", "Colleague made comments about me in car"
   BAD titles: "Interaction with Manager A regarding work pace", "Report of colleague conduct and verbal comments"
   Avoid vague words like "interaction", "regarding", "report of", "incident involving".
-- For potential_relevance: identify possible workplace issue types (e.g. management conduct, communication failure, safety concern) and note if similar incidents exist. State facts only — no interpretation.`
+- For potential_relevance: identify possible issue types (e.g. communication issue, working conditions, pay concern) and note if similar incidents exist. State facts only — no interpretation.
+
+CATEGORY CLASSIFICATION:
+Assign exactly one primary category per incident using trigger-based logic.
+Categories and their triggers:
+- Communication → said, told, asked, emailed, messaged, called, wrote (verbal or written statements involving the user)
+- Action / Change → removed, changed, denied, assigned, moved, excluded, cut, taken off (something done that affected the user)
+- Process Event → meeting, grievance, review, hearing, investigation, disciplinary (a formal or informal procedure)
+- Pay / Benefits → pay, wage, wages, holiday pay, deduction, expense, salary, SSP (financial or entitlement-related)
+- Working Conditions → hours, break, workload, shift length, equipment, temperature, staffing (environment or workload, NOT decisions or actions)
+- Observed Behaviour → I saw, I observed, they did to someone else, ignored another person (behaviour observed, not directed at user)
+- Record Issued → letter, policy, notice, outcome, report, formal warning (formal document created, given, requested, or withheld)
+- Other → fallback only when no trigger fits
+
+PRIORITY ORDER when multiple categories triggered: Record Issued > Pay / Benefits > Process Event > Communication > Action / Change > Working Conditions > Observed Behaviour > Other
+If confidence is low, still assign the best match — do not default to Other unless no triggers are present.`
           },
           {
             role: "user",
@@ -71,8 +86,8 @@ RULES:
                   people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
                   category: {
                     type: "string",
-                    enum: ["Verbal Comment", "Written Communication", "Safety Concern", "Scheduling or Shift Change", "Disciplinary Meeting", "Management Conduct", "Pay or Payroll Issue", "Policy Application", "Workplace Meeting", "Other"],
-                    description: "Best matching category"
+                    enum: ["Communication", "Action / Change", "Process Event", "Pay / Benefits", "Working Conditions", "Observed Behaviour", "Record Issued", "Other"],
+                    description: "Best matching category based on trigger-based classification. Use priority order for tiebreaks."
                   },
                   severity: {
                     type: "string",

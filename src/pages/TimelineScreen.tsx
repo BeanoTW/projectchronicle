@@ -13,17 +13,16 @@ import { generateWellnessNarrative } from '@/lib/wellnessNarrative';
 
 const categoryFilters = [
   'all',
-  'Verbal Comment', 'Written Communication', 'Safety Concern',
-  'Scheduling or Shift Change', 'Disciplinary Meeting',
-  'Management Conduct', 'Pay or Payroll Issue',
-  'Policy Application', 'Workplace Meeting', 'Other',
+  'Communication', 'Action / Change', 'Process Event',
+  'Pay / Benefits', 'Working Conditions',
+  'Observed Behaviour', 'Record Issued', 'Other',
 ];
 
 /* ── Muted example cards for empty state ── */
 const exampleCards = [
-  { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Management Conduct' },
-  { title: 'Verbal comment from colleague', date: '22 Jan 2025', category: 'Verbal Comment' },
-  { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Scheduling or Shift Change' },
+  { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Process Event' },
+  { title: 'Comment from colleague', date: '22 Jan 2025', category: 'Communication' },
+  { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Action / Change' },
 ];
 
 const TimelineScreen = () => {

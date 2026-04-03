@@ -3,15 +3,13 @@ interface CategoryBadgeProps {
 }
 
 const categoryTints: Record<string, string> = {
-  'Management Conduct': 'bg-primary/8 text-primary border-primary/15',
-  'Verbal Comment': 'bg-warm-accent-light text-warm-accent-foreground border-warm-accent/15',
-  'Safety Concern': 'bg-severity-serious/8 text-severity-serious border-severity-serious/15',
-  'Written Communication': 'bg-secondary text-secondary-foreground border-secondary-foreground/15',
-  'Scheduling or Shift Change': 'bg-muted text-muted-foreground border-border',
-  'Disciplinary Meeting': 'bg-destructive/8 text-destructive border-destructive/15',
-  'Pay or Payroll Issue': 'bg-warm-accent-light text-warm-accent-foreground border-warm-accent/15',
-  'Policy Application': 'bg-secondary text-secondary-foreground border-secondary-foreground/15',
-  'Workplace Meeting': 'bg-primary/8 text-primary border-primary/15',
+  'Communication': 'bg-primary/8 text-primary border-primary/15',
+  'Action / Change': 'bg-warm-accent-light text-warm-accent-foreground border-warm-accent/15',
+  'Process Event': 'bg-secondary text-secondary-foreground border-secondary-foreground/15',
+  'Pay / Benefits': 'bg-warm-accent-light text-warm-accent-foreground border-warm-accent/15',
+  'Working Conditions': 'bg-muted text-muted-foreground border-border',
+  'Observed Behaviour': 'bg-info/8 text-info border-info/15',
+  'Record Issued': 'bg-destructive/8 text-destructive border-destructive/15',
 };
 
 const CategoryBadge = ({ category }: CategoryBadgeProps) => {

@@ -17,15 +17,13 @@ interface IncidentCardProps {
 }
 
 const categoryCardTints: Record<string, string> = {
-  'Management Conduct': 'border-l-primary/40 bg-primary/[0.02]',
-  'Verbal Comment': 'border-l-warm-accent/40 bg-warm-accent/[0.03]',
-  'Safety Concern': 'border-l-severity-serious/40 bg-severity-serious/[0.02]',
-  'Written Communication': 'border-l-info/30 bg-info/[0.02]',
-  'Scheduling or Shift Change': 'border-l-muted-foreground/25 bg-muted/30',
-  'Disciplinary Meeting': 'border-l-destructive/30 bg-destructive/[0.02]',
-  'Pay or Payroll Issue': 'border-l-warm-accent/35 bg-warm-accent/[0.02]',
-  'Policy Application': 'border-l-info/25 bg-info/[0.02]',
-  'Workplace Meeting': 'border-l-primary/30 bg-primary/[0.02]',
+  'Communication': 'border-l-primary/40 bg-primary/[0.02]',
+  'Action / Change': 'border-l-warm-accent/40 bg-warm-accent/[0.03]',
+  'Process Event': 'border-l-info/30 bg-info/[0.02]',
+  'Pay / Benefits': 'border-l-warm-accent/35 bg-warm-accent/[0.02]',
+  'Working Conditions': 'border-l-muted-foreground/25 bg-muted/30',
+  'Observed Behaviour': 'border-l-info/25 bg-info/[0.02]',
+  'Record Issued': 'border-l-destructive/30 bg-destructive/[0.02]',
 };
 
 // Format pattern labels per spec

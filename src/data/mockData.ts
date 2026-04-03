@@ -9,7 +9,7 @@ export const mockIncidents: Incident[] = [
     location: 'Staff kitchen',
     people_involved: ['Sarah Thompson', 'Mark Davies'],
     witnesses: ['James Wilson'],
-    category: 'Management Conduct',
+    category: 'Communication',
     severity: 'Serious',
     impact_note: 'I felt anxious and unable to concentrate for the rest of the shift.',
     raw_narrative: 'During my break in the staff kitchen, my supervisor Sarah Thompson made a comment about my recent absence. She said "people who take too many sick days shouldn\'t expect to keep their hours." Mark Davies from HR was present but did not intervene. I felt this was targeted at me specifically as I had taken two days off the previous week due to a medical appointment.',
@@ -32,7 +32,7 @@ export const mockIncidents: Incident[] = [
     location: 'Office floor',
     people_involved: ['Sarah Thompson'],
     witnesses: [],
-    category: 'Scheduling or Shift Change',
+    category: 'Action / Change',
     severity: 'Moderate',
     impact_note: 'My childcare arrangements were disrupted with very short notice.',
     raw_narrative: 'I was informed by Sarah Thompson that my shift pattern was being changed from next week without any prior consultation. I had been on the same rota for 6 months. No reason was given for the change.',
@@ -53,7 +53,7 @@ export const mockIncidents: Incident[] = [
     location: 'Meeting room B',
     people_involved: ['Sarah Thompson', 'David Chen'],
     witnesses: ['Lisa Park'],
-    category: 'Disciplinary Meeting',
+    category: 'Process Event',
     severity: 'Critical',
     impact_note: 'I felt intimidated and unsupported during the meeting.',
     raw_narrative: 'I was called to an unscheduled meeting with Sarah Thompson and David Chen from senior management. I was not told the purpose of the meeting in advance and was not offered the option of having a representative present. During the meeting I was told that my "attitude" needed to change. When I asked for specifics, no concrete examples were provided.',
@@ -119,9 +119,9 @@ export const mockFollowUpNotes: FollowUpNote[] = [
 ];
 
 export const mockRightsGuidance: RightsGuidance[] = [
-  { id: 'r1', incident_category: 'Disciplinary Meeting', title: 'ACAS Code of Practice on Disciplinary Procedures', description: 'Guidance on the proper conduct of disciplinary meetings including the right to be accompanied.', url: 'https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures', source: 'ACAS', active: true, display_order: 1, updated_at: '2026-01-01T00:00:00Z' },
-  { id: 'r2', incident_category: 'Management Conduct', title: 'ACAS Guidance on Workplace Behaviour', description: 'Information on expected standards of behaviour in the workplace.', url: 'https://www.acas.org.uk/dealing-with-workplace-problems', source: 'ACAS', active: true, display_order: 2, updated_at: '2026-01-01T00:00:00Z' },
-  { id: 'r3', incident_category: 'Safety Concern', title: 'HSE Workplace Safety Guidance', description: 'Health and Safety Executive guidance on reporting workplace safety concerns.', url: 'https://www.hse.gov.uk/', source: 'HSE', active: true, display_order: 3, updated_at: '2026-01-01T00:00:00Z' },
-  { id: 'r4', incident_category: 'Pay or Payroll Issue', title: 'gov.uk Wage Guidance', description: 'Government guidance on pay, deductions, and your rights regarding wages.', url: 'https://www.gov.uk/pay-and-work-rights', source: 'gov.uk', active: true, display_order: 4, updated_at: '2026-01-01T00:00:00Z' },
-  { id: 'r5', incident_category: 'Scheduling or Shift Change', title: 'ACAS Flexible Working Guidance', description: 'Guidance on your rights regarding working hours and shift patterns.', url: 'https://www.acas.org.uk/flexible-working', source: 'ACAS', active: true, display_order: 5, updated_at: '2026-01-01T00:00:00Z' },
+  { id: 'r1', incident_category: 'Process Event', title: 'ACAS Code of Practice on Disciplinary Procedures', description: 'Guidance on the proper conduct of disciplinary meetings including the right to be accompanied.', url: 'https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures', source: 'ACAS', active: true, display_order: 1, updated_at: '2026-01-01T00:00:00Z' },
+  { id: 'r2', incident_category: 'Communication', title: 'ACAS Guidance on Workplace Behaviour', description: 'Information on expected standards of behaviour in the workplace.', url: 'https://www.acas.org.uk/dealing-with-workplace-problems', source: 'ACAS', active: true, display_order: 2, updated_at: '2026-01-01T00:00:00Z' },
+  { id: 'r3', incident_category: 'Working Conditions', title: 'HSE Workplace Safety Guidance', description: 'Health and Safety Executive guidance on reporting workplace safety concerns.', url: 'https://www.hse.gov.uk/', source: 'HSE', active: true, display_order: 3, updated_at: '2026-01-01T00:00:00Z' },
+  { id: 'r4', incident_category: 'Pay / Benefits', title: 'gov.uk Wage Guidance', description: 'Government guidance on pay, deductions, and your rights regarding wages.', url: 'https://www.gov.uk/pay-and-work-rights', source: 'gov.uk', active: true, display_order: 4, updated_at: '2026-01-01T00:00:00Z' },
+  { id: 'r5', incident_category: 'Action / Change', title: 'ACAS Flexible Working Guidance', description: 'Guidance on your rights regarding working hours and shift patterns.', url: 'https://www.acas.org.uk/flexible-working', source: 'ACAS', active: true, display_order: 5, updated_at: '2026-01-01T00:00:00Z' },
 ];

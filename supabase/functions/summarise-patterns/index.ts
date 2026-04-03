@@ -41,7 +41,7 @@ RULES:
 
 EXAMPLE STYLE:
 - "Mark Taylor appears in 5 recorded incidents between January and March 2026."
-- "Management Conduct is the most frequently recorded category (7 incidents)."
+- "Communication is the most frequently recorded category (7 incidents)."
 - "3 incidents were recorded within a 7-day period."
 - "4 incidents have no linked evidence files."`
           },

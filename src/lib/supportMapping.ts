@@ -30,15 +30,13 @@ const SERVICES: SupportService[] = [
 /* ------------------------------------------------------------------ */
 
 const CATEGORY_CONTEXT: Record<string, ('workplace' | 'housing' | 'education' | 'safety')[]> = {
-  'Management Conduct':        ['workplace'],
-  'Verbal Comment':            ['workplace'],
-  'Written Communication':     ['workplace'],
-  'Disciplinary Meeting':      ['workplace'],
-  'Pay or Payroll Issue':      ['workplace'],
-  'Policy Application':        ['workplace'],
-  'Workplace Meeting':         ['workplace'],
-  'Scheduling or Shift Change':['workplace'],
-  'Safety Concern':            ['safety'],
+  'Communication':             ['workplace'],
+  'Action / Change':           ['workplace'],
+  'Process Event':             ['workplace'],
+  'Pay / Benefits':            ['workplace'],
+  'Working Conditions':        ['workplace'],
+  'Observed Behaviour':        ['workplace'],
+  'Record Issued':             ['workplace'],
   'Noise Complaint':           ['housing'],
   'Property Damage':           ['housing'],
   'Shared Space Dispute':      ['housing'],

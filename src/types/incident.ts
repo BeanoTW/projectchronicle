@@ -1,13 +1,11 @@
 export type IncidentCategory =
-  | 'Verbal Comment'
-  | 'Written Communication'
-  | 'Safety Concern'
-  | 'Scheduling or Shift Change'
-  | 'Disciplinary Meeting'
-  | 'Management Conduct'
-  | 'Pay or Payroll Issue'
-  | 'Policy Application'
-  | 'Workplace Meeting'
+  | 'Communication'
+  | 'Action / Change'
+  | 'Process Event'
+  | 'Pay / Benefits'
+  | 'Working Conditions'
+  | 'Observed Behaviour'
+  | 'Record Issued'
   | 'Other';
 
 export type IncidentSeverity = 'Low' | 'Moderate' | 'Serious' | 'Critical';
