@@ -168,8 +168,8 @@ describe('deriveFrequencyClusters', () => {
 
 describe('generateSummary', () => {
   const twoIncidents = [
-    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
-    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
   ];
 
   it('returns structured result with correct shape', () => {

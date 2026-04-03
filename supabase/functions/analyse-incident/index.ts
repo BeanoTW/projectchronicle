@@ -86,8 +86,8 @@ If confidence is low, still assign the best match — do not default to Other un
                   people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
                   category: {
                     type: "string",
-                    enum: ["Verbal Comment", "Written Communication", "Safety Concern", "Scheduling or Shift Change", "Disciplinary Meeting", "Management Conduct", "Pay or Payroll Issue", "Policy Application", "Workplace Meeting", "Other"],
-                    description: "Best matching category"
+                    enum: ["Communication", "Action / Change", "Process Event", "Pay / Benefits", "Working Conditions", "Observed Behaviour", "Record Issued", "Other"],
+                    description: "Best matching category based on trigger-based classification. Use priority order for tiebreaks."
                   },
                   severity: {
                     type: "string",
