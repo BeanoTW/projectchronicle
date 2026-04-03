@@ -237,9 +237,9 @@ describe('generateSummary', () => {
 
 describe('V3 mode differentiation', () => {
   const incidents = [
-    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
-    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Management Conduct', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
-    makeIncident({ id: '3', incident_date: '2025-05-01', category: 'Pay or Payroll Issue', people_involved: ['Sarah', 'HR'], raw_narrative: 'Payslip incorrect for second month.' }),
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+    makeIncident({ id: '3', incident_date: '2025-05-01', category: 'Pay / Benefits', people_involved: ['Sarah', 'HR'], raw_narrative: 'Payslip incorrect for second month.' }),
   ];
 
   const allModes: SummaryMode[] = ['general', 'workplace-grievance', 'hr-discussion', 'formal-complaint', 'university', 'personal', 'custom'];
