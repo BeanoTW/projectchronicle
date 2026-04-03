@@ -255,28 +255,7 @@ const TimelineScreen = () => {
       )}
 
       {viewMode === 'narrative' && (
-        <div className="px-5">
-          {wellnessNarrative.paragraphs.length > 0 && (
-            <div className="bg-card border border-border rounded-xl p-4 mb-5 space-y-2.5">
-              {wellnessNarrative.paragraphs.map((p, i) => (
-                <p key={i} className="text-[13px] text-foreground/80 leading-relaxed">{p}</p>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {narrative.entries.map((entry, i) => (
-              <p key={entry.id} className="text-[13px] text-foreground leading-relaxed">
-                <span className="text-muted-foreground/50 text-[11px] font-medium mr-2">{i + 1}.</span>
-                {entry.text}
-              </p>
-            ))}
-          </div>
-
-          {narrative.entries.length === 0 && (
-            <p className="text-[13px] text-muted-foreground text-center py-8">No records to narrate.</p>
-          )}
-        </div>
+        <NarrativeDayView incidents={allIncidents} />
       )}
 
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
