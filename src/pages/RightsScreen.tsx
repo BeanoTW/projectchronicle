@@ -41,9 +41,9 @@ const RightsScreen = () => {
   const relevantGuidance = allGuidance.filter(r => userCategories.has(r.incident_category));
 
   const workCategories = [
-    'Management Conduct', 'Verbal Comment', 'Written Communication',
-    'Disciplinary Meeting', 'Pay or Payroll Issue', 'Policy Application',
-    'Workplace Meeting', 'Scheduling or Shift Change', 'Safety Concern',
+    'Communication', 'Action / Change', 'Process Event',
+    'Pay / Benefits', 'Working Conditions', 'Observed Behaviour',
+    'Record Issued',
   ];
   const workGuidance = allGuidance.filter(r => workCategories.includes(r.incident_category));
 

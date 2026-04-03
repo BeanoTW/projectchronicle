@@ -28,10 +28,9 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const categories = [
-  'Verbal Comment', 'Written Communication', 'Safety Concern',
-  'Scheduling or Shift Change', 'Disciplinary Meeting',
-  'Management Conduct', 'Pay or Payroll Issue',
-  'Policy Application', 'Workplace Meeting', 'Other',
+  'Communication', 'Action / Change', 'Process Event',
+  'Pay / Benefits', 'Working Conditions',
+  'Observed Behaviour', 'Record Issued', 'Other',
 ];
 
 const RecordScreen = () => {
