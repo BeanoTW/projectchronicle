@@ -125,13 +125,13 @@ describe('deriveRepeatedIndividuals', () => {
 describe('deriveRepeatedCategories', () => {
   it('only counts categories appearing 2+ times', () => {
     const incs = [
-      normaliseIncident(makeIncident({ category: 'Pay or Payroll Issue' }), [], 0),
-      normaliseIncident(makeIncident({ id: '2', category: 'Pay or Payroll Issue' }), [], 0),
+      normaliseIncident(makeIncident({ category: 'Pay / Benefits' }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', category: 'Pay / Benefits' }), [], 0),
       normaliseIncident(makeIncident({ id: '3', category: 'Other' }), [], 0),
     ];
     const result = deriveRepeatedCategories(incs);
     expect(result.length).toBe(1);
-    expect(result[0].name).toBe('Pay or Payroll Issue');
+    expect(result[0].name).toBe('Pay / Benefits');
   });
 });
 
