@@ -53,7 +53,7 @@ export const mockIncidents: Incident[] = [
     location: 'Meeting room B',
     people_involved: ['Sarah Thompson', 'David Chen'],
     witnesses: ['Lisa Park'],
-    category: 'Disciplinary Meeting',
+    category: 'Process Event',
     severity: 'Critical',
     impact_note: 'I felt intimidated and unsupported during the meeting.',
     raw_narrative: 'I was called to an unscheduled meeting with Sarah Thompson and David Chen from senior management. I was not told the purpose of the meeting in advance and was not offered the option of having a representative present. During the meeting I was told that my "attitude" needed to change. When I asked for specifics, no concrete examples were provided.',
