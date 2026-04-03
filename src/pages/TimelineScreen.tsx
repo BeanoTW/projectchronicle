@@ -34,8 +34,7 @@ const TimelineScreen = () => {
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
 
-  const narrative = useMemo(() => generateNarrative(allIncidents), [allIncidents]);
-  const wellnessNarrative = useMemo(() => generateWellnessNarrative(allIncidents), [allIncidents]);
+
 
   useEffect(() => {
     const gap = searchParams.get('gap');
