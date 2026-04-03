@@ -272,7 +272,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
         {/* Legend */}
         <div className="flex flex-wrap gap-4 px-4 pb-4 text-[12px] text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-full bg-amber-500" /> Communication
+            <span className="w-3 h-3 rounded-full bg-warm-accent" /> Communication
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-primary" /> Action / Change
