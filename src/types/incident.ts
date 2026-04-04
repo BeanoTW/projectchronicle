@@ -1,12 +1,14 @@
 export type IncidentCategory =
-  | 'Communication'
-  | 'Action / Change'
-  | 'Process Event'
-  | 'Pay / Benefits'
-  | 'Working Conditions'
-  | 'Observed Behaviour'
-  | 'Record Issued'
+  | 'Verbal Comment'
+  | 'Non-Verbal Behaviour'
+  | 'Written Communication'
+  | 'Work Allocation'
+  | 'Process / Procedure'
+  | 'Management Handling'
+  | 'Safety / Operational'
   | 'Other';
+
+export type IncidentSubtype = string;
 
 export type IncidentSeverity = 'Low' | 'Moderate' | 'Serious' | 'Critical';
 
@@ -25,6 +27,7 @@ export interface Incident {
   people_involved: string[];
   witnesses: string[];
   category?: IncidentCategory;
+  subtype?: IncidentSubtype;
   severity?: IncidentSeverity;
   impact_note?: string;
   raw_narrative: string;
