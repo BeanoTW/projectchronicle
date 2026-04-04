@@ -27,11 +27,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const categories = [
-  'Communication', 'Action / Change', 'Process Event',
-  'Pay / Benefits', 'Working Conditions',
-  'Observed Behaviour', 'Record Issued', 'Other',
-];
+import { PRIMARY_CATEGORIES, SUBTYPES, type PrimaryCategory } from '@/lib/categories';
+
+const categories = [...PRIMARY_CATEGORIES];
 
 const RecordScreen = () => {
   const navigate = useNavigate();
