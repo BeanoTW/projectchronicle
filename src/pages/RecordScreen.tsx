@@ -103,7 +103,7 @@ const RecordScreen = () => {
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2000);
     }
-  }, [narrative, incidentDate, incidentTime, location, category, peopleInvolved, witnesses, exactWords, impactNote, title]);
+  }, [narrative, incidentDate, incidentTime, location, category, subtype, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
   // Load draft on mount — ONLY user-entered fields, never analysis/AI output
   useEffect(() => {
