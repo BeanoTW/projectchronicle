@@ -199,6 +199,7 @@ const RecordScreen = () => {
       if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
       if (data.location && !location) setLocation(data.location);
       if (data.category && !category) setCategory(data.category);
+      if (data.subtype && !subtype) setSubtype(data.subtype);
       if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
       if (data.exact_words && !exactWords) setExactWords(data.exact_words);
       if (data.summary) setAiSummary(data.summary);
