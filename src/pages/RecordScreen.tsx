@@ -343,13 +343,24 @@ const RecordScreen = () => {
       </div>
       <div>
         <Label className="text-[13px] font-medium">Category</Label>
-        <Select value={category} onValueChange={setCategory}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setSubtype(''); }}>
           <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
           <SelectContent>
             {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
+      {category && SUBTYPES[category as PrimaryCategory] && (
+        <div>
+          <Label className="text-[13px] font-medium">Subtype</Label>
+          <Select value={subtype} onValueChange={setSubtype}>
+            <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select subtype" /></SelectTrigger>
+            <SelectContent>
+              {SUBTYPES[category as PrimaryCategory].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div>
         <Label htmlFor="people" className="text-[13px] font-medium">People involved</Label>
         <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
