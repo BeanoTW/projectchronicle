@@ -53,6 +53,7 @@ const RecordScreen = () => {
   const [incidentTime, setIncidentTime] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [subtype, setSubtype] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
   const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
