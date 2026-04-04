@@ -157,7 +157,7 @@ const IncidentDetailScreen = () => {
         </h1>
 
         <div className="flex flex-wrap gap-1.5 mt-2.5">
-          {incident.category && <CategoryBadge category={incident.category} />}
+          {incident.category && <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />}
           <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         </div>
 
