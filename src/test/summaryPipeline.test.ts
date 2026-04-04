@@ -125,13 +125,13 @@ describe('deriveRepeatedIndividuals', () => {
 describe('deriveRepeatedCategories', () => {
   it('only counts categories appearing 2+ times', () => {
     const incs = [
-      normaliseIncident(makeIncident({ category: 'Pay / Benefits' }), [], 0),
-      normaliseIncident(makeIncident({ id: '2', category: 'Pay / Benefits' }), [], 0),
+      normaliseIncident(makeIncident({ category: 'Work Allocation' }), [], 0),
+      normaliseIncident(makeIncident({ id: '2', category: 'Work Allocation' }), [], 0),
       normaliseIncident(makeIncident({ id: '3', category: 'Other' }), [], 0),
     ];
     const result = deriveRepeatedCategories(incs);
     expect(result.length).toBe(1);
-    expect(result[0].name).toBe('Pay / Benefits');
+    expect(result[0].name).toBe('Work Allocation');
   });
 });
 
@@ -168,8 +168,8 @@ describe('deriveFrequencyClusters', () => {
 
 describe('generateSummary', () => {
   const twoIncidents = [
-    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
-    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Verbal Comment', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Verbal Comment', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
   ];
 
   it('returns structured result with correct shape', () => {
@@ -237,9 +237,9 @@ describe('generateSummary', () => {
 
 describe('V3 mode differentiation', () => {
   const incidents = [
-    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
-    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Communication', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
-    makeIncident({ id: '3', incident_date: '2025-05-01', category: 'Pay / Benefits', people_involved: ['Sarah', 'HR'], raw_narrative: 'Payslip incorrect for second month.' }),
+    makeIncident({ id: '1', incident_date: '2025-03-01', category: 'Verbal Comment', people_involved: ['Sarah'], raw_narrative: 'Manager raised voice during meeting.' }),
+    makeIncident({ id: '2', incident_date: '2025-04-15', category: 'Verbal Comment', people_involved: ['Sarah'], raw_narrative: 'Shift changed without notice or discussion.' }),
+    makeIncident({ id: '3', incident_date: '2025-05-01', category: 'Work Allocation', people_involved: ['Sarah', 'HR'], raw_narrative: 'Payslip incorrect for second month.' }),
   ];
 
   const allModes: SummaryMode[] = ['general', 'workplace-grievance', 'hr-discussion', 'formal-complaint', 'university', 'personal', 'custom'];
