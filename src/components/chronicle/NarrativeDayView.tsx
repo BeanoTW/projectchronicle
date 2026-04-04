@@ -201,7 +201,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
 
                     {/* Event cards */}
                     {day.incidents.map(inc => {
-                      const borderClass = (inc.category && categoryBorderColor[inc.category]) || defaultBorder;
+                      const borderClass = (inc.category && CATEGORY_BORDER_COLORS[inc.category]) || defaultBorder;
                       return (
                         <button
                           key={inc.id}
