@@ -245,6 +245,7 @@ const RecordScreen = () => {
         incident_time: incidentTime || null,
         location: location || null,
         category: category || null,
+        subtype: subtype || null,
         severity: null,
         people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
         witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
