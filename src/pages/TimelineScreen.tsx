@@ -10,11 +10,11 @@ import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import NarrativeDayView from '@/components/chronicle/NarrativeDayView';
 
+import { PRIMARY_CATEGORIES } from '@/lib/categories';
+
 const categoryFilters = [
   'all',
-  'Communication', 'Action / Change', 'Process Event',
-  'Pay / Benefits', 'Working Conditions',
-  'Observed Behaviour', 'Record Issued', 'Other',
+  ...PRIMARY_CATEGORIES,
 ];
 
 /* ── Muted example cards for empty state ── */
