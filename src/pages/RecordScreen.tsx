@@ -96,7 +96,7 @@ const RecordScreen = () => {
   const saveDraft = useCallback(() => {
     if (narrative.trim()) {
       localStorage.setItem('chronicle-draft', JSON.stringify({
-        narrative, incidentDate, incidentTime, location, category,
+        narrative, incidentDate, incidentTime, location, category, subtype,
         peopleInvolved, witnesses, exactWords, impactNote, title,
         // NEVER store: aiSummary, aiRelevance, aiSuggested — these are analysis/preview only
       }));
