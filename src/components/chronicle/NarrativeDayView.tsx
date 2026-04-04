@@ -108,7 +108,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
     });
     const orderedCats = Object.entries(catCounts)
       .sort((a, b) => b[1] - a[1])
-      .map(([cat]) => categoryLabel[cat] || cat.toLowerCase());
+      .map(([cat]) => CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] || cat.toLowerCase());
 
     const n = allEvents.length;
     const span = Math.abs(differenceInDays(parseISO(last.dateISO), parseISO(first.dateISO)));
