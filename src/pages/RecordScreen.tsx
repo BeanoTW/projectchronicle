@@ -116,6 +116,7 @@ const RecordScreen = () => {
         if (draft.incidentTime) setIncidentTime(draft.incidentTime);
         if (draft.location) setLocation(draft.location);
         if (draft.category) setCategory(draft.category);
+        if (draft.subtype) setSubtype(draft.subtype);
         if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
         if (draft.witnesses) setWitnesses(draft.witnesses);
         if (draft.exactWords) setExactWords(draft.exactWords);
