@@ -51,20 +51,45 @@ RULES:
   Avoid vague words like "interaction", "regarding", "report of", "incident involving".
 - For potential_relevance: identify possible issue types (e.g. communication issue, working conditions, pay concern) and note if similar incidents exist. State facts only — no interpretation.
 
-CATEGORY CLASSIFICATION:
-Assign exactly one primary category per incident using trigger-based logic.
-Categories and their triggers:
-- Communication → said, told, asked, emailed, messaged, called, wrote (verbal or written statements involving the user)
-- Action / Change → removed, changed, denied, assigned, moved, excluded, cut, taken off (something done that affected the user)
-- Process Event → meeting, grievance, review, hearing, investigation, disciplinary (a formal or informal procedure)
-- Pay / Benefits → pay, wage, wages, holiday pay, deduction, expense, salary, SSP (financial or entitlement-related)
-- Working Conditions → hours, break, workload, shift length, equipment, temperature, staffing (environment or workload, NOT decisions or actions)
-- Observed Behaviour → I saw, I observed, they did to someone else, ignored another person (behaviour observed, not directed at user)
-- Record Issued → letter, policy, notice, outcome, report, formal warning (formal document created, given, requested, or withheld)
-- Other → fallback only when no trigger fits
+PRIMARY CATEGORY CLASSIFICATION:
+Assign exactly one primary category based on the dominant observable behaviour described. Categories describe what happened — not interpretation, intent, or legality.
 
-PRIORITY ORDER when multiple categories triggered: Record Issued > Pay / Benefits > Process Event > Communication > Action / Change > Working Conditions > Observed Behaviour > Other
-If confidence is low, still assign the best match — do not default to Other unless no triggers are present.`
+Categories and definitions:
+- Verbal Comment → Spoken words directed at or around the user. Includes: remarks, instructions, conversations. Excludes: written messages, physical actions.
+- Non-Verbal Behaviour → Observable actions without spoken or written words. Includes: gestures, physical behaviour, exclusion. Excludes: anything spoken or written.
+- Written Communication → Any recorded or digital communication where the communication itself is the primary behaviour. Includes: messages, emails, documents, logs. Excludes: situations where writing is only the delivery method for another behaviour.
+- Work Allocation → Assignment, removal, or distribution of work tasks or responsibilities. Includes: duties, workload, role expectations. Excludes: general communication about work.
+- Process / Procedure → Application or execution of a formal or informal process. Includes: disciplinary, grievance, policy use, procedural decisions. Excludes: general managerial responses outside a process.
+- Management Handling → How a person in authority responds to a situation, concern, or incident outside the process itself. Includes: action, inaction, dismissal, escalation, delay. Excludes: formal procedural steps or policy execution.
+- Safety / Operational → Conditions affecting safety or operational functioning. Includes: risks, environment, equipment, staffing. Excludes: interpersonal behaviour.
+- Other → Used only when no category reasonably applies.
+
+SUBTYPE CLASSIFICATION:
+After assigning the primary category, assign exactly one subtype from the valid set for that category:
+- Verbal Comment: Statement, Instruction, Confrontation, Joke / Informal Remark, Other
+- Non-Verbal Behaviour: Gesture / Expression, Physical Action, Exclusion Behaviour, Presence / Absence Behaviour, Other
+- Written Communication: Message, Formal Communication, Recorded System Entry, Other
+- Work Allocation: Task Assignment, Task Removal, Unequal Distribution, Role Change, Other
+- Process / Procedure: Disciplinary Process, Grievance Process, Policy Application, Decision Outcome, Other
+- Management Handling: No Action Taken, Dismissive Response, Escalation Action, Delayed Response, Other
+- Safety / Operational: Unsafe Condition, Equipment Issue, Staffing Issue, Environmental Risk, Other
+- Other: Unclassified
+
+CLASSIFICATION RULES:
+- Classify based on the primary behaviour described, not every behaviour mentioned.
+- Where multiple categories seem relevant, assign the most behaviourally specific one.
+- Communication format alone must not determine category — if writing is only the delivery channel, classify the underlying behaviour.
+- Use "Other" only when no trigger fits. If any trigger exists, assign the best match.
+
+PRIORITY ORDER (tie-breaker when multiple categories equally match):
+1. Written Communication
+2. Verbal Comment
+3. Work Allocation
+4. Process / Procedure
+5. Management Handling
+6. Safety / Operational
+7. Non-Verbal Behaviour
+8. Other`
           },
           {
             role: "user",
@@ -86,8 +111,12 @@ If confidence is low, still assign the best match — do not default to Other un
                   people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
                   category: {
                     type: "string",
-                    enum: ["Communication", "Action / Change", "Process Event", "Pay / Benefits", "Working Conditions", "Observed Behaviour", "Record Issued", "Other"],
-                    description: "Best matching category based on trigger-based classification. Use priority order for tiebreaks."
+                    enum: ["Verbal Comment", "Non-Verbal Behaviour", "Written Communication", "Work Allocation", "Process / Procedure", "Management Handling", "Safety / Operational", "Other"],
+                    description: "Primary category based on dominant observable behaviour."
+                  },
+                  subtype: {
+                    type: "string",
+                    description: "Subtype within the assigned primary category. Must be one of the valid subtypes for the chosen category."
                   },
                   severity: {
                     type: "string",
@@ -103,7 +132,7 @@ If confidence is low, still assign the best match — do not default to Other un
                     description: "1-3 neutral factual observations about possible workplace issue types this relates to. Not legal advice."
                   }
                 },
-                required: ["people_involved", "summary", "title", "potential_relevance"],
+                required: ["people_involved", "summary", "title", "potential_relevance", "category", "subtype"],
                 additionalProperties: false
               }
             }

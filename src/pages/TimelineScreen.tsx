@@ -10,18 +10,18 @@ import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import NarrativeDayView from '@/components/chronicle/NarrativeDayView';
 
+import { PRIMARY_CATEGORIES } from '@/lib/categories';
+
 const categoryFilters = [
   'all',
-  'Communication', 'Action / Change', 'Process Event',
-  'Pay / Benefits', 'Working Conditions',
-  'Observed Behaviour', 'Record Issued', 'Other',
+  ...PRIMARY_CATEGORIES,
 ];
 
 /* ── Muted example cards for empty state ── */
 const exampleCards = [
-  { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Process Event' },
-  { title: 'Comment from colleague', date: '22 Jan 2025', category: 'Communication' },
-  { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Action / Change' },
+  { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Process / Procedure' },
+  { title: 'Comment from colleague', date: '22 Jan 2025', category: 'Verbal Comment' },
+  { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Work Allocation' },
 ];
 
 const TimelineScreen = () => {

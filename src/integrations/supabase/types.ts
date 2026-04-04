@@ -161,6 +161,7 @@ export type Database = {
           record_method: string | null
           severity: string | null
           status: string
+          subtype: string | null
           tags: string[]
           title: string | null
           updated_at: string
@@ -186,6 +187,7 @@ export type Database = {
           record_method?: string | null
           severity?: string | null
           status?: string
+          subtype?: string | null
           tags?: string[]
           title?: string | null
           updated_at?: string
@@ -211,6 +213,7 @@ export type Database = {
           record_method?: string | null
           severity?: string | null
           status?: string
+          subtype?: string | null
           tags?: string[]
           title?: string | null
           updated_at?: string

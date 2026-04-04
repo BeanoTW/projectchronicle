@@ -27,11 +27,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-const categories = [
-  'Communication', 'Action / Change', 'Process Event',
-  'Pay / Benefits', 'Working Conditions',
-  'Observed Behaviour', 'Record Issued', 'Other',
-];
+import { PRIMARY_CATEGORIES, SUBTYPES, type PrimaryCategory } from '@/lib/categories';
+
+const categories = [...PRIMARY_CATEGORIES];
 
 const RecordScreen = () => {
   const navigate = useNavigate();
@@ -55,6 +53,7 @@ const RecordScreen = () => {
   const [incidentTime, setIncidentTime] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [subtype, setSubtype] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
   const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
@@ -97,14 +96,14 @@ const RecordScreen = () => {
   const saveDraft = useCallback(() => {
     if (narrative.trim()) {
       localStorage.setItem('chronicle-draft', JSON.stringify({
-        narrative, incidentDate, incidentTime, location, category,
+        narrative, incidentDate, incidentTime, location, category, subtype,
         peopleInvolved, witnesses, exactWords, impactNote, title,
         // NEVER store: aiSummary, aiRelevance, aiSuggested — these are analysis/preview only
       }));
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2000);
     }
-  }, [narrative, incidentDate, incidentTime, location, category, peopleInvolved, witnesses, exactWords, impactNote, title]);
+  }, [narrative, incidentDate, incidentTime, location, category, subtype, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
   // Load draft on mount — ONLY user-entered fields, never analysis/AI output
   useEffect(() => {
@@ -117,6 +116,7 @@ const RecordScreen = () => {
         if (draft.incidentTime) setIncidentTime(draft.incidentTime);
         if (draft.location) setLocation(draft.location);
         if (draft.category) setCategory(draft.category);
+        if (draft.subtype) setSubtype(draft.subtype);
         if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
         if (draft.witnesses) setWitnesses(draft.witnesses);
         if (draft.exactWords) setExactWords(draft.exactWords);
@@ -200,6 +200,7 @@ const RecordScreen = () => {
       if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
       if (data.location && !location) setLocation(data.location);
       if (data.category && !category) setCategory(data.category);
+      if (data.subtype && !subtype) setSubtype(data.subtype);
       if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
       if (data.exact_words && !exactWords) setExactWords(data.exact_words);
       if (data.summary) setAiSummary(data.summary);
@@ -245,6 +246,7 @@ const RecordScreen = () => {
         incident_time: incidentTime || null,
         location: location || null,
         category: category || null,
+        subtype: subtype || null,
         severity: null,
         people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
         witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -342,13 +344,24 @@ const RecordScreen = () => {
       </div>
       <div>
         <Label className="text-[13px] font-medium">Category</Label>
-        <Select value={category} onValueChange={setCategory}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setSubtype(''); }}>
           <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
           <SelectContent>
             {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
+      {category && SUBTYPES[category as PrimaryCategory] && (
+        <div>
+          <Label className="text-[13px] font-medium">Subtype</Label>
+          <Select value={subtype} onValueChange={setSubtype}>
+            <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select subtype" /></SelectTrigger>
+            <SelectContent>
+              {SUBTYPES[category as PrimaryCategory].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div>
         <Label htmlFor="people" className="text-[13px] font-medium">People involved</Label>
         <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />

@@ -3,25 +3,9 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import type { Incident } from '@/hooks/useIncidents';
 
-/* ── Category → left-border colour mapping ── */
-const categoryBorderColor: Record<string, string> = {
-  'Communication': 'border-l-warm-accent',
-  'Action / Change': 'border-l-primary',
-  'Record Issued': 'border-l-info',
-};
-const defaultBorder = 'border-l-muted-foreground/40';
+import { CATEGORY_BORDER_COLORS, CATEGORY_LABELS } from '@/lib/categories';
 
-/* ── Category display names for summary ── */
-const categoryLabel: Record<string, string> = {
-  'Communication': 'communication',
-  'Action / Change': 'action / change',
-  'Process Event': 'process event',
-  'Pay / Benefits': 'pay / benefits',
-  'Working Conditions': 'working conditions',
-  'Observed Behaviour': 'observed behaviour',
-  'Record Issued': 'record issued',
-  'Other': 'other',
-};
+const defaultBorder = 'border-l-muted-foreground/40';
 
 interface DayGroup {
   dateISO: string;
@@ -124,7 +108,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
     });
     const orderedCats = Object.entries(catCounts)
       .sort((a, b) => b[1] - a[1])
-      .map(([cat]) => categoryLabel[cat] || cat.toLowerCase());
+      .map(([cat]) => CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] || cat.toLowerCase());
 
     const n = allEvents.length;
     const span = Math.abs(differenceInDays(parseISO(last.dateISO), parseISO(first.dateISO)));
@@ -217,7 +201,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
 
                     {/* Event cards */}
                     {day.incidents.map(inc => {
-                      const borderClass = (inc.category && categoryBorderColor[inc.category]) || defaultBorder;
+                      const borderClass = (inc.category && CATEGORY_BORDER_COLORS[inc.category]) || defaultBorder;
                       return (
                         <button
                           key={inc.id}

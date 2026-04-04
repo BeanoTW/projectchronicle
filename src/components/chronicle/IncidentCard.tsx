@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 import RecordAgeChip from './RecordAgeChip';
+import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 
 interface IncidentCardProps {
   incident: Incident;
@@ -15,16 +16,6 @@ interface IncidentCardProps {
   compact?: boolean;
   expandable?: boolean;
 }
-
-const categoryCardTints: Record<string, string> = {
-  'Communication': 'border-l-primary/40 bg-primary/[0.02]',
-  'Action / Change': 'border-l-warm-accent/40 bg-warm-accent/[0.03]',
-  'Process Event': 'border-l-info/30 bg-info/[0.02]',
-  'Pay / Benefits': 'border-l-warm-accent/35 bg-warm-accent/[0.02]',
-  'Working Conditions': 'border-l-muted-foreground/25 bg-muted/30',
-  'Observed Behaviour': 'border-l-info/25 bg-info/[0.02]',
-  'Record Issued': 'border-l-destructive/30 bg-destructive/[0.02]',
-};
 
 // Format pattern labels per spec
 function formatPatternLabel(raw: string | null | undefined): string | null {
@@ -39,7 +30,7 @@ function formatPatternLabel(raw: string | null | undefined): string | null {
 const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentCount, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
-  const tint = incident.category ? categoryCardTints[incident.category] || '' : '';
+  const tint = incident.category ? CATEGORY_CARD_TINTS[incident.category as keyof typeof CATEGORY_CARD_TINTS] || '' : '';
 
   const handleClick = () => {
     if (expandable) {
@@ -82,7 +73,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
             </p>
           )}
           <div className="flex items-center gap-1.5 mt-2">
-            {incident.category && <CategoryBadge category={incident.category} />}
+            {incident.category && <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />}
             {patternText && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
                 {patternText}
@@ -149,7 +140,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-2.5">
-        {incident.category && <CategoryBadge category={incident.category} />}
+        {incident.category && <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />}
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
         {patternText && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
