@@ -264,7 +264,7 @@ const MyRecordScreen = () => {
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[12px] text-muted-foreground font-medium">{dateStr}</span>
                       {inc.category && (
-                        <CategoryBadge category={inc.category} subtype={inc.subtype} compact />
+                        <CategoryBadge category={inc.category} subtype={inc.subtype ?? undefined} />
                       )}
                     </div>
                     <p className="text-[13px] text-foreground font-medium truncate">
