@@ -4,7 +4,7 @@ import { FileText, Users, ChevronRight } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
-import { useFollowUpNotes } from '@/hooks/useFollowUpNotes';
+import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import {
   generateSummary,
   renderSummaryText,
@@ -12,7 +12,6 @@ import {
   sortIncidentsForSummary,
   buildSummaryMetadata,
 } from '@/lib/summaryPipeline';
-import { getCategoryStyle } from '@/lib/categories';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
@@ -113,7 +112,7 @@ const MyRecordScreen = () => {
   const navigate = useNavigate();
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
-  const { data: followUpNotes = [] } = useFollowUpNotes();
+  const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
 
   // Filter out voided
