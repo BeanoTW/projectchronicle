@@ -1,9 +1,9 @@
-import { Mic, CalendarDays, Activity, FileText, Shield } from 'lucide-react';
+import { Mic, CalendarDays, CalendarRange, FileText, Shield } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const navItems = [
   { path: '/timeline', label: 'Timeline', icon: CalendarDays },
-  { path: '/activity', label: 'Activity', icon: Activity },
+  { path: '/calendar', label: 'Calendar', icon: CalendarRange },
   { path: '/record', label: 'Record', icon: Mic, primary: true },
   { path: '/my-record', label: 'My Record', icon: FileText },
   { path: '/rights', label: 'Rights', icon: Shield },

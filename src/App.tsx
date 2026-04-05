@@ -13,6 +13,7 @@ import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
 import FlowScreen from "./pages/FlowScreen";
+import CalendarScreen from "./pages/CalendarScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";
@@ -59,8 +60,9 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/activity" element={<ProtectedRoute><AppLayout><FlowScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/flow" element={<Navigate to="/activity" replace />} />
+            <Route path="/calendar" element={<ProtectedRoute><AppLayout><CalendarScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/activity" element={<Navigate to="/calendar" replace />} />
+            <Route path="/flow" element={<Navigate to="/calendar" replace />} />
             <Route path="/my-record" element={<ProtectedRoute><AppLayout><MyRecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/patterns" element={<Navigate to="/my-record" replace />} />
             <Route path="/insights" element={<Navigate to="/my-record" replace />} />
