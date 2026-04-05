@@ -13,6 +13,7 @@ import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
 import FlowScreen from "./pages/FlowScreen";
+import CalendarScreen from "./pages/CalendarScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import RightsScreen from "./pages/RightsScreen";

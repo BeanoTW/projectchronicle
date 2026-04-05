@@ -1,30 +1,57 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, Paperclip, BookOpen, List, FileText } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { CalendarDays, Paperclip, FileText } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
-import NarrativeDayView from '@/components/chronicle/NarrativeDayView';
+import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS } from '@/lib/categories';
+import type { Incident } from '@/hooks/useIncidents';
 
-import { PRIMARY_CATEGORIES } from '@/lib/categories';
+type DensityScale = 'detail' | 'compact' | 'overview';
 
-const categoryFilters = [
-  'all',
-  ...PRIMARY_CATEGORIES,
+const categoryFilters = ['all', ...PRIMARY_CATEGORIES];
+
+const scaleLabels: { value: DensityScale; label: string }[] = [
+  { value: 'detail', label: 'Detail' },
+  { value: 'compact', label: 'Compact' },
+  { value: 'overview', label: 'Overview' },
 ];
 
-/* ── Muted example cards for empty state ── */
 const exampleCards = [
   { title: 'Meeting with manager', date: '14 Jan 2025', category: 'Process / Procedure' },
   { title: 'Comment from colleague', date: '22 Jan 2025', category: 'Verbal Comment' },
   { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Work Allocation' },
 ];
 
+/* ── Overview marker component ── */
+const OverviewMarker = ({
+  incident,
+  onClick,
+}: {
+  incident: Incident;
+  onClick: () => void;
+}) => {
+  const borderClass = (incident.category && CATEGORY_BORDER_COLORS[incident.category]) || 'border-l-muted-foreground/40';
+  const dotColour = borderClass.replace('border-l-', 'bg-');
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 py-0.5 w-full hover:bg-muted/20 rounded transition-colors active:scale-[0.98]"
+    >
+      <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotColour}`} />
+      <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
+        {format(parseISO(incident.incident_date), 'dd MMM')}
+      </span>
+    </button>
+  );
+};
+
 const TimelineScreen = () => {
+  const navigate = useNavigate();
   const { data: allIncidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,15 +59,27 @@ const TimelineScreen = () => {
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
-  const [viewMode, setViewMode] = useState<'timeline' | 'narrative'>('timeline');
+  const [scale, setScale] = useState<DensityScale>('compact');
 
-
+  // Refs for scroll-to on overview tap
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const gap = searchParams.get('gap');
     if (gap) {
       setGapFilter(gap);
       setSearchParams({}, { replace: true });
+    }
+    // Focus date from Calendar
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      setSearchParams({}, { replace: true });
+      // Scroll to date after render
+      setTimeout(() => {
+        const el = itemRefs.current[dateParam];
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     }
   }, [searchParams, setSearchParams]);
 
@@ -98,6 +137,14 @@ const TimelineScreen = () => {
     return groups;
   }, [incidents]);
 
+  const handleOverviewTap = useCallback((incidentId: string) => {
+    setScale('compact');
+    setTimeout(() => {
+      const el = itemRefs.current[incidentId];
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
@@ -106,12 +153,10 @@ const TimelineScreen = () => {
     );
   }
 
-  /* ── Empty state ── */
   if (allIncidents.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
         <PageHeader title="Timeline" subtitle="Your record over time" />
-
         <div className="px-5 pt-2 pb-4 text-center">
           <CalendarDays className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-[15px] font-semibold text-foreground mb-1">No records yet</h3>
@@ -119,18 +164,13 @@ const TimelineScreen = () => {
             Your timeline will show events in order as you record them. Each entry is preserved exactly as you wrote it.
           </p>
         </div>
-
-        {/* Preview example cards */}
         <div className="px-5 mt-2">
           <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
             Example of how records appear
           </p>
           <div className="space-y-2.5 opacity-50 pointer-events-none select-none">
             {exampleCards.map((card, i) => (
-              <div
-                key={i}
-                className="bg-card border border-border rounded-xl px-4 py-3"
-              >
+              <div key={i} className="bg-card border border-border rounded-xl px-4 py-3">
                 <p className="text-[11px] text-muted-foreground/60 mb-0.5">{card.date}</p>
                 <p className="text-[13px] font-medium text-foreground/70">{card.title}</p>
                 <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
@@ -168,39 +208,32 @@ const TimelineScreen = () => {
         </button>
       </PageHeader>
 
-      {/* View toggle */}
+      {/* Scale selector */}
       <div className="px-5 mb-3 flex gap-1.5">
-        <button
-          onClick={() => setViewMode('timeline')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
-            viewMode === 'timeline'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-          }`}
-        >
-          <List className="h-3 w-3" /> Timeline
-        </button>
-        <button
-          onClick={() => setViewMode('narrative')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
-            viewMode === 'narrative'
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-          }`}
-        >
-          <BookOpen className="h-3 w-3" /> Narrative
-        </button>
+        {scaleLabels.map(s => (
+          <button
+            key={s.value}
+            onClick={() => setScale(s.value)}
+            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+              scale === s.value
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
-      {gapFilter && (
-        <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
-          <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
-          <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
-        </div>
-      )}
-
-      {viewMode === 'timeline' && (
+      {/* Category filters — hidden in Overview */}
+      {scale !== 'overview' && (
         <>
+          {gapFilter && (
+            <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-warm-accent-light text-warm-accent-foreground text-[13px] font-medium flex items-center justify-between border border-warm-accent/15">
+              <span>Filtered: {gapFilter.replace('no-', 'missing ').replace('-', ' ')}</span>
+              <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
+            </div>
+          )}
           <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
             <div className="flex gap-1.5 min-w-max">
               {categoryFilters.map(c => (
@@ -218,44 +251,115 @@ const TimelineScreen = () => {
               ))}
             </div>
           </div>
-
-          {incidents.length === 0 ? (
-            <div className="px-5 py-12 text-center">
-              <p className="text-[13px] text-muted-foreground">No records match this filter.</p>
-            </div>
-          ) : (
-            <div className="px-5">
-              <div className="pl-6 timeline-spine space-y-6">
-                {Object.entries(grouped).map(([month, items]) => (
-                  <div key={month}>
-                    <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">{month}</h2>
-                    <div className="space-y-3">
-                      {items.map(inc => {
-                        const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
-                        return (
-                          <div key={inc.id} className="timeline-node">
-                            <IncidentCard
-                              incident={inc}
-                              showPatternLabel={isPartOfPattern(inc)}
-                              occurrenceLabel={getOccurrenceLabel(inc)}
-                              attachmentCount={attachmentCount}
-                              compact
-                              expandable
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </>
       )}
 
-      {viewMode === 'narrative' && (
-        <NarrativeDayView incidents={allIncidents} />
+      {incidents.length === 0 ? (
+        <div className="px-5 py-12 text-center">
+          <p className="text-[13px] text-muted-foreground">No records match this filter.</p>
+        </div>
+      ) : (
+        <div className="px-5" ref={scrollContainerRef}>
+          {/* ─── OVERVIEW ─── */}
+          {scale === 'overview' && (
+            <div className="space-y-4">
+              {Object.entries(grouped).map(([month, items]) => (
+                <div key={month}>
+                  <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+                    {month}
+                  </h2>
+                  <div className="space-y-0.5">
+                    {items.map(inc => (
+                      <div key={inc.id} ref={el => { itemRefs.current[inc.id] = el; }}>
+                        <OverviewMarker
+                          incident={inc}
+                          onClick={() => handleOverviewTap(inc.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ─── COMPACT ─── */}
+          {scale === 'compact' && (
+            <div className="space-y-5">
+              {Object.entries(grouped).map(([month, items]) => (
+                <div key={month}>
+                  <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                    {month}
+                  </h2>
+                  <div className="space-y-1.5">
+                    {items.map(inc => {
+                      const isVoided = !!inc.voided_at;
+                      const tintClass = inc.category
+                        ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
+                        : 'border-l-muted-foreground/40';
+                      return (
+                        <div
+                          key={inc.id}
+                          ref={el => { itemRefs.current[inc.id] = el; itemRefs.current[inc.incident_date.slice(0, 10)] = el; }}
+                        >
+                          <button
+                            onClick={() => navigate(`/incident/${inc.id}`)}
+                            className={`w-full flex items-center justify-between gap-2 rounded-lg border border-border border-l-4 ${tintClass} px-3 py-2.5 bg-card hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''}`}
+                          >
+                            <span className={`text-[13px] font-semibold truncate flex-1 text-left leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                              {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
+                              {inc.title || 'Untitled incident'}
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              {inc.locked && <span className="text-primary text-[10px]">🔒</span>}
+                              <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
+                                {format(parseISO(inc.incident_date), 'dd MMM')}
+                              </span>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ─── DETAIL ─── */}
+          {scale === 'detail' && (
+            <div className="pl-6 timeline-spine space-y-6">
+              {Object.entries(grouped).map(([month, items]) => (
+                <div key={month}>
+                  <h2 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest mb-3 -ml-6">
+                    {month}
+                  </h2>
+                  <div className="space-y-3">
+                    {items.map(inc => {
+                      const attachmentCount = allEvidence.filter(e => e.incident_id === inc.id).length;
+                      return (
+                        <div
+                          key={inc.id}
+                          className="timeline-node"
+                          ref={el => { itemRefs.current[inc.id] = el; }}
+                        >
+                          <IncidentCard
+                            incident={inc}
+                            showPatternLabel={isPartOfPattern(inc)}
+                            occurrenceLabel={getOccurrenceLabel(inc)}
+                            attachmentCount={attachmentCount}
+                            compact
+                            expandable
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
