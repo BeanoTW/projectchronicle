@@ -71,7 +71,7 @@ const ExportScreen = () => {
   };
 
   const exportTypes = [
-    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, witnesses, and record strength.', icon: FileText, comingSoon: true },
+    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true },
     { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
     { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true },
     { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.', icon: Package, comingSoon: true },
@@ -154,7 +154,10 @@ const ExportScreen = () => {
         </div>
       </div>
 
-      <div className="mx-5 mt-6 mb-4 px-1">
+      <div className="mx-5 mt-6 mb-4 px-1 space-y-2">
+        <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
+          This record reflects incidents as recorded by the user. Each entry includes an incident date and a recorded timestamp. Updates are appended and do not overwrite original records.
+        </p>
         <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
           This tool supports record-keeping and organisation. It does not provide legal advice.
         </p>

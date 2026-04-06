@@ -288,6 +288,11 @@ const MyRecordScreen = () => {
           </div>
         </div>
 
+        {/* INTEGRITY STATEMENT */}
+        <p className="text-[11px] text-muted-foreground/50 leading-relaxed px-1">
+          This record reflects incidents as recorded by the user. Each entry includes an incident date and a recorded timestamp. Updates are appended and do not overwrite original records.
+        </p>
+
         {/* 6. EXPORT BLOCK */}
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
           <p className="text-[13px] text-muted-foreground leading-relaxed">
