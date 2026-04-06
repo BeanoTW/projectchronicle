@@ -16,7 +16,7 @@ import FlowScreen from "./pages/FlowScreen";
 import CalendarScreen from "./pages/CalendarScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
-import RightsScreen from "./pages/RightsScreen";
+import SupportScreen from "./pages/SupportScreen";
 import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
@@ -68,7 +68,8 @@ const App = () => (
             <Route path="/insights" element={<Navigate to="/my-record" replace />} />
             <Route path="/attachments" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/rights" element={<ProtectedRoute><AppLayout><RightsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/support" element={<ProtectedRoute><AppLayout><SupportScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/rights" element={<Navigate to="/support" replace />} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
