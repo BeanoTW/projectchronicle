@@ -6,7 +6,7 @@ const navItems = [
   { path: '/calendar', label: 'Calendar', icon: CalendarRange },
   { path: '/record', label: 'Record', icon: Mic, primary: true },
   { path: '/my-record', label: 'My Record', icon: FileText },
-  { path: '/rights', label: 'Rights', icon: Shield },
+  { path: '/support', label: 'Support', icon: Shield },
 ];
 
 const BottomNav = () => {
