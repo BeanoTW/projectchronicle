@@ -67,13 +67,6 @@ const SettingsScreen = () => {
               <ShieldCheck className="h-4 w-4 text-primary" />
               <span className="text-[14px] font-semibold text-foreground">Privacy & control</span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Lock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[14px] text-foreground">Lock records after saving</span>
-              </div>
-              <Switch />
-            </div>
             <div className="flex items-center justify-between opacity-40">
               <div className="flex items-center gap-2.5">
                 <Fingerprint className="h-4 w-4 text-muted-foreground" />
