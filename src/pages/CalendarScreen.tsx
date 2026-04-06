@@ -160,17 +160,15 @@ const CalendarScreen = () => {
               }`}>
                 {format(day, 'd')}
               </span>
+              {/* Dots (max 3) + count badge */}
               {hasRecords && (
-                <span className="text-[10px] font-bold text-primary mt-0.5">
-                  {dayIncidents.length}
-                </span>
-              )}
-              {/* Category dots (max 3) */}
-              {hasRecords && (
-                <div className="flex gap-0.5 mt-0.5">
-                  {[...new Set(dayIncidents.map(i => i.category))].slice(0, 3).map((cat, ci) => (
-                    <span key={ci} className={`w-1.5 h-1.5 rounded-full ${categoryDotColour(cat)}`} />
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  {dayIncidents.slice(0, 3).map((inc, ci) => (
+                    <span key={ci} className={`w-1.5 h-1.5 rounded-full ${categoryDotColour(inc.category)}`} />
                   ))}
+                  {dayIncidents.length > 3 && (
+                    <span className="text-[8px] font-bold text-primary ml-0.5">+{dayIncidents.length - 3}</span>
+                  )}
                 </div>
               )}
             </button>

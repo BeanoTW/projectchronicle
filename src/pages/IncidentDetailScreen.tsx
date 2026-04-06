@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Lock, EyeOff, Trash2, Plus, Shield, AlertTriangle, Archive } from 'lucide-react';
+import { ArrowLeft, EyeOff, Trash2, Plus, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
@@ -9,25 +9,15 @@ import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import RecordAgeChip from '@/components/chronicle/RecordAgeChip';
-import IntegrityPanel from '@/components/chronicle/IntegrityPanel';
-import EditHistoryPanel from '@/components/chronicle/EditHistoryPanel';
 import AILabel from '@/components/chronicle/AILabel';
-import LockBanner from '@/components/chronicle/LockBanner';
 import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { calculateScoring } from '@/lib/scoring';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-const recordStrengthStyles: Record<string, string> = {
-  Weak: 'text-destructive bg-destructive/8',
-  Moderate: 'text-severity-serious bg-severity-serious/8',
-  Strong: 'text-severity-low bg-severity-low/8',
-};
 
 const IncidentDetailScreen = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,12 +40,17 @@ const IncidentDetailScreen = () => {
   const followUpRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
-  const [showLockedDeleteDialog, setShowLockedDeleteDialog] = useState(false);
 
-  const scoring = useMemo(() => {
+  // Record details (neutral completeness counts)
+  const recordDetails = useMemo(() => {
     if (!incident) return null;
-    return calculateScoring(incident, allIncidents, allEvidence);
-  }, [incident, allIncidents, allEvidence]);
+    const linkedEvidence = allEvidence.filter(e => e.incident_id === incident.id);
+    return {
+      attachments: linkedEvidence.length,
+      followUps: notes.length,
+      peopleInvolved: incident.people_involved.length,
+    };
+  }, [incident, allEvidence, notes]);
 
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
@@ -67,17 +62,7 @@ const IncidentDetailScreen = () => {
 
   const isVoided = !!incident.voided_at;
 
-  const handleLock = async () => {
-    await updateIncident.mutateAsync({ id: incident.id, locked: true });
-    await createEditHistory.mutateAsync({ incident_id: incident.id, field_changed: 'record_locked' });
-    toast({ title: 'Record locked' });
-  };
-
   const handleDelete = async () => {
-    if (incident.locked && !devMode) {
-      setShowLockedDeleteDialog(true);
-      return;
-    }
     await deleteIncident.mutateAsync(incident.id);
     toast({ title: 'Incident deleted' });
     navigate('/timeline');
@@ -106,7 +91,7 @@ const IncidentDetailScreen = () => {
 
   const handleAddNote = async (note: { note_text: string; note_type: string }) => {
     await createNote.mutateAsync({ incident_id: incident.id, ...note });
-    toast({ title: 'Follow-up detail added' });
+    toast({ title: 'Update added' });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,15 +106,26 @@ const IncidentDetailScreen = () => {
     }
   };
 
-  const editHistoryMapped = editHistory.map(h => ({
-    history_id: h.id,
-    incident_id: h.incident_id,
-    user_id: h.user_id,
-    field_changed: h.field_changed,
-    old_value: h.old_value ?? undefined,
-    new_value: h.new_value ?? undefined,
-    changed_at: h.changed_at,
-  }));
+  // Map edit history entries as "Updates"
+  const updates = editHistory
+    .filter(h => h.field_changed !== 'incident_recorded')
+    .map(h => ({
+      id: h.id,
+      field_changed: h.field_changed,
+      old_value: h.old_value ?? undefined,
+      new_value: h.new_value ?? undefined,
+      changed_at: h.changed_at,
+    }))
+    .sort((a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime());
+
+  function formatUpdateAction(entry: typeof updates[0]): string {
+    if (entry.field_changed === 'evidence_attached') return `Attachment added: ${entry.new_value}`;
+    if (entry.field_changed === 'record_voided') return 'Record voided';
+    const fieldName = entry.field_changed.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    if (entry.old_value && entry.new_value) return `${fieldName}: ${entry.old_value} → ${entry.new_value}`;
+    if (entry.new_value) return `${fieldName} added`;
+    return `${fieldName} updated`;
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20 page-enter">
@@ -138,8 +134,6 @@ const IncidentDetailScreen = () => {
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-primary text-[13px] mb-3 font-medium">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-
-        {incident.locked && !isVoided && <div className="mb-3"><LockBanner /></div>}
 
         {isVoided && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/60 text-muted-foreground border border-border mb-3">
@@ -177,51 +171,41 @@ const IncidentDetailScreen = () => {
       </div>
 
       <div className="px-5 pt-5 space-y-4">
-        {/* Serious Incident Flag */}
-        {scoring?.seriousFlag && (
-          <div className="bg-destructive/8 border border-destructive/15 rounded-xl p-3.5 flex items-start gap-2.5">
-            <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-destructive font-medium leading-relaxed">{scoring.seriousFlagReason}</p>
-          </div>
-        )}
-
-        {/* Record Strength */}
-        {scoring && (
-          <div>
-            <p className="section-group-title">Record strength</p>
-            <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-muted-foreground" />
-                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${recordStrengthStyles[scoring.recordStrength]}`}>
-                  {scoring.recordStrength} record
-                </span>
-                <span className="text-[11px] text-muted-foreground ml-auto">{scoring.recordScore}/5</span>
+        {/* Record details (neutral completeness) */}
+        {recordDetails && (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-[12px] font-semibold text-foreground mb-2.5">Record details</p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-[18px] font-bold text-foreground">{recordDetails.attachments}</p>
+                <p className="text-[11px] text-muted-foreground">Attachments</p>
               </div>
-              {scoring.strengthPrompts.length > 0 && (
-                <div className="pt-2.5 border-t border-border space-y-1.5">
-                  {scoring.strengthPrompts.map((prompt, i) => {
-                    let action: (() => void) | undefined;
-                    if (prompt.includes('attachment')) action = () => document.querySelector<HTMLInputElement>('input[type="file"]')?.click();
-                    if (prompt.includes('follow-up')) action = () => followUpRef.current?.scrollIntoView({ behavior: 'smooth' });
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={action}
-                        className="block text-[12px] text-primary leading-relaxed hover:text-primary/80 transition-colors text-left"
-                      >
-                        → {prompt}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <div>
+                <p className="text-[18px] font-bold text-foreground">{recordDetails.followUps}</p>
+                <p className="text-[11px] text-muted-foreground">Updates</p>
+              </div>
+              <div>
+                <p className="text-[18px] font-bold text-foreground">{recordDetails.peopleInvolved}</p>
+                <p className="text-[11px] text-muted-foreground">People involved</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Original Record */}
-        <IntegrityPanel narrative={incident.raw_narrative} savedAt={incident.created_at} />
+        {/* Original record (structural, not status) */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-[13px] font-semibold text-foreground">Original record</p>
+            <p className="text-[11px] text-muted-foreground/60">
+              Saved {format(parseISO(incident.created_at), 'dd MMM yyyy')} at {format(parseISO(incident.created_at), 'HH:mm')}
+            </p>
+          </div>
+          <div className="p-4">
+            <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
+              {incident.raw_narrative}
+            </p>
+          </div>
+        </div>
 
         {/* Exact Wording */}
         {incident.exact_words && (
@@ -264,7 +248,7 @@ const IncidentDetailScreen = () => {
             )}
             {incident.witnesses.length > 0 && (
               <div>
-                <p className="text-[12px] font-semibold text-foreground mb-1.5">Witnesses</p>
+                <p className="text-[12px] font-semibold text-foreground mb-1.5">Individuals present</p>
                 <div className="flex flex-wrap gap-1.5">
                   {incident.witnesses.map(w => (
                     <span key={w} className="bg-muted text-muted-foreground px-2.5 py-1 rounded text-[12px] font-medium">{w}</span>
@@ -296,47 +280,46 @@ const IncidentDetailScreen = () => {
                 ))}
               </div>
             )}
-            {!incident.locked && (
-              <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary/20 text-primary text-[13px] font-medium rounded-lg cursor-pointer hover:bg-primary/4 transition-colors">
-                <Plus className="h-3.5 w-3.5" /> Add Attachment
-                <input type="file" className="hidden" onChange={handleFileUpload} />
-              </label>
-            )}
+            <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary/20 text-primary text-[13px] font-medium rounded-lg cursor-pointer hover:bg-primary/4 transition-colors">
+              <Plus className="h-3.5 w-3.5" /> Add Attachment
+              <input type="file" className="hidden" onChange={handleFileUpload} />
+            </label>
           </div>
         </div>
 
-        {/* Follow-up Details */}
+        {/* Follow-up Details (always available — append-only) */}
         <div ref={followUpRef}>
           <FollowUpDetails
             notes={notes}
             originalCreatedAt={incident.created_at}
-            locked={incident.locked}
             onAddNote={handleAddNote}
             onUploadAttachment={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
           />
         </div>
 
-        <EditHistoryPanel entries={editHistoryMapped} />
-
-        {/* Actions for unlocked incidents */}
-        {!incident.locked && !isVoided && (
-          <div className="space-y-2.5 pt-3 pb-6">
-            <div className="flex gap-2.5">
-              <Button variant="outline" className="flex-1 text-primary border-primary/20 h-11 rounded-xl text-[13px]" onClick={handleLock}>
-                <Lock className="h-4 w-4 mr-2" /> Lock Record
-              </Button>
-              <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
-                <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
-              </Button>
+        {/* Updates (replaces "Edit History") */}
+        {updates.length > 0 && (
+          <div>
+            <p className="section-group-title">Updates ({updates.length})</p>
+            <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+              {updates.map(entry => {
+                const date = parseISO(entry.changed_at);
+                return (
+                  <div key={entry.id} className="text-xs text-body">
+                    <span className="text-muted-foreground">
+                      Update added — {format(date, 'dd MMM yyyy')} at {format(date, 'HH:mm')}
+                    </span>
+                    {' — '}
+                    {formatUpdateAction(entry)}
+                  </div>
+                );
+              })}
             </div>
-            <button onClick={handleDelete} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
-              <Trash2 className="h-4 w-4 inline mr-1.5" />Delete incident
-            </button>
           </div>
         )}
 
-        {/* Actions for locked (but not voided) incidents */}
-        {incident.locked && !isVoided && (
+        {/* Actions */}
+        {!isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
@@ -374,24 +357,6 @@ const IncidentDetailScreen = () => {
               <AlertDialogCancel className="text-[13px]">Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={handleVoid} className="text-[13px] bg-muted-foreground hover:bg-muted-foreground/90">
                 <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Record
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Locked delete prevention dialog */}
-        <AlertDialog open={showLockedDeleteDialog} onOpenChange={setShowLockedDeleteDialog}>
-          <AlertDialogContent className="rounded-2xl mx-4">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-[16px]">Cannot delete locked record</AlertDialogTitle>
-              <AlertDialogDescription className="text-[13px] leading-relaxed">
-                Locked records cannot be deleted. You can mark this record as void or add a correction note instead.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="text-[13px]">Close</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { setShowLockedDeleteDialog(false); setShowVoidDialog(true); }} className="text-[13px]">
-                <Archive className="h-3.5 w-3.5 mr-1.5" /> Void Instead
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

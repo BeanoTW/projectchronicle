@@ -311,7 +311,6 @@ const TimelineScreen = () => {
                               {inc.title || 'Untitled incident'}
                             </span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {inc.locked && <span className="text-primary text-[10px]">🔒</span>}
                               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
                                 {format(parseISO(inc.incident_date), 'dd MMM')}
                               </span>

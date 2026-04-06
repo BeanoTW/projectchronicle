@@ -17,7 +17,6 @@ interface IncidentCardProps {
   expandable?: boolean;
 }
 
-// Format pattern labels per spec
 function formatPatternLabel(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const occMatch = raw.match(/^(\d+)(?:st|nd|rd|th) occurrence$/);
@@ -84,7 +83,6 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
                 <Paperclip className="h-2.5 w-2.5" /> {attachmentCount}
               </span>
             )}
-            {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
           </div>
         </button>
         <AnimatePresence>
@@ -133,10 +131,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
           {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
           {incident.title || 'Untitled incident'}
         </h3>
-        <div className="flex items-center gap-1.5">
-          {incident.locked && <span className="text-primary text-[11px]">🔒</span>}
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
-        </div>
+        <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0" />
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-2.5">

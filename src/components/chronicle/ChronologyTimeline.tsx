@@ -171,7 +171,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                               <StickyNote className="h-2.5 w-2.5" /> {nCount}
                             </span>
                           )}
-                          {inc.locked && <span className="text-primary text-[9px]">🔒</span>}
+                          
                         </div>
                       </button>
                     </div>

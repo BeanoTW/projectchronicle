@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import type { FollowUpNote } from '@/hooks/useFollowUpNotes';
 
 const NOTE_TYPES = [
-  { value: 'Witness', label: 'Witness', icon: User, placeholder: 'Name of the witness...' },
+  { value: 'Witness', label: 'Person involved', icon: User, placeholder: 'Name of the individual...' },
   { value: 'Exact wording', label: 'Exact wording', icon: Quote, placeholder: 'What was said, as closely as you remember...' },
   { value: 'Impact', label: 'Impact', icon: AlertTriangle, placeholder: 'How this affected you or your situation...' },
   { value: 'Update', label: 'Additional detail', icon: Plus, placeholder: 'Any other relevant information...' },
@@ -16,12 +16,11 @@ const NOTE_TYPES = [
 interface FollowUpDetailsProps {
   notes: FollowUpNote[];
   originalCreatedAt: string;
-  locked: boolean;
   onAddNote: (note: { note_text: string; note_type: string }) => Promise<void>;
   onUploadAttachment?: () => void;
 }
 
-const FollowUpDetails = ({ notes, originalCreatedAt, locked, onAddNote, onUploadAttachment }: FollowUpDetailsProps) => {
+const FollowUpDetails = ({ notes, originalCreatedAt, onAddNote, onUploadAttachment }: FollowUpDetailsProps) => {
   const [showForm, setShowForm] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [content, setContent] = useState('');
@@ -151,7 +150,7 @@ const FollowUpDetails = ({ notes, originalCreatedAt, locked, onAddNote, onUpload
                     <Input
                       value={content}
                       onChange={e => setContent(e.target.value)}
-                      placeholder="Name of the witness"
+                      placeholder="Name of the individual"
                       className="text-[13px] bg-background"
                     />
                     <Input
@@ -182,16 +181,14 @@ const FollowUpDetails = ({ notes, originalCreatedAt, locked, onAddNote, onUpload
             )}
           </div>
         ) : (
-          !locked && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-[13px] border-primary/20 text-primary rounded-lg"
-              onClick={() => setShowForm(true)}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add follow-up details
-            </Button>
-          )
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-[13px] border-primary/20 text-primary rounded-lg"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" /> Add follow-up details
+          </Button>
         )}
       </div>
     </div>
