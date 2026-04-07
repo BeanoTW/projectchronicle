@@ -902,3 +902,124 @@ export function generateSummary(request: SummaryRequest): SummaryResult {
     renderedText,
   };
 }
+
+// ─── TRIBUNAL Export Payload Builder ──────────────────────────
+// Bridges V3 TRIBUNAL pipeline output → renderer input contract
+
+import type {
+  TribunalExportPayload,
+  TribunalIssue,
+  TribunalIncidentRef,
+  TribunalFollowUp,
+} from '@/lib/tribunalRenderer';
+
+export function buildTribunalExportPayload(request: SummaryRequest): TribunalExportPayload | null {
+  const { sorted, metadata, options } = buildSummaryPayload({
+    ...request,
+    mode: 'workplace-grievance',
+  });
+
+  if (sorted.length === 0) return null;
+
+  const allPeople = collectAllPeople(sorted);
+  const issueGroups = deriveIssueGroups(sorted);
+
+  // Build overview from pipeline header
+  const overviewText = `This summary groups ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''} by issue for review.`;
+
+  // Map issue groups to renderer contract
+  const issues: TribunalIssue[] = issueGroups.map((group, idx) => {
+    const mapIncident = (inc: NormalisedIncident): TribunalIncidentRef => {
+      const person = inc.people_involved.length > 0
+        ? buildPeopleList(inc.people_involved, options.includeNames, allPeople)
+        : '';
+      const category = inc.category || 'Other';
+      let summary = `${category}`;
+      if (person) summary += ` — ${person}`;
+      if (!options.includeNames) summary = redactText(summary, allPeople);
+
+      const followUps: TribunalFollowUp[] = inc.follow_up_notes.map(n => ({
+        follow_up_id: n.id,
+        created_at: n.created_at,
+        note_text: options.includeNames ? n.note_text : redactText(n.note_text, allPeople),
+      }));
+
+      return {
+        incident_id: inc.id,
+        incident_date: inc.incident_date,
+        incident_time: inc.incident_time || undefined,
+        short_structured_summary: summary,
+        follow_ups: followUps,
+      };
+    };
+
+    // Sequence text
+    let sequence = '';
+    if (group.coreIncidents.length >= 2) {
+      const first = formatDate(group.coreIncidents[0].incident_date);
+      const last = formatDate(group.coreIncidents[group.coreIncidents.length - 1].incident_date);
+      sequence = `Initial event ${first}, followed by subsequent events through ${last}.`;
+    }
+
+    // Observed features
+    const features: string[] = [];
+    const peopleInGroup = group.coreIncidents.flatMap(i => i.people_involved);
+    const peopleCounts: Record<string, number> = {};
+    peopleInGroup.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; });
+    const repeatedInGroup = Object.entries(peopleCounts)
+      .filter(([, c]) => c >= 2)
+      .map(([name]) => personRef(name, options.includeNames, allPeople));
+    if (repeatedInGroup.length > 0) {
+      features.push(`Repeated involvement: ${repeatedInGroup.join(', ')}`);
+    }
+    const totalInGroup = group.coreIncidents.length + group.supportingIncidents.length;
+    if (totalInGroup >= 3) {
+      features.push(`${totalInGroup} events recorded under this issue`);
+    }
+
+    return {
+      issue_title: group.issue,
+      core_incidents: group.coreIncidents.map(mapIncident),
+      supporting_incidents: group.supportingIncidents.map(mapIncident),
+      sequence,
+      observed_features: features,
+      comparator_contrast: [],
+      display_order: idx,
+    };
+  });
+
+  // Cross-issue observations
+  const crossObservations: string[] = [];
+  if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
+    const crossPeople = metadata.repeatedIndividuals.filter(r => {
+      const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
+      const personCats = new Set(personIncs.map(i => i.category || 'Other'));
+      return personCats.size > 1;
+    });
+    crossPeople.forEach(r => {
+      const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
+      const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
+      const cats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+      crossObservations.push(`${n} appears across: ${cats.join(', ')}`);
+    });
+  }
+  if (metadata.frequencyClusters.length > 0) {
+    metadata.frequencyClusters.forEach(c => {
+      crossObservations.push(`${c.count} events clustered between ${formatDate(c.startDate)} and ${formatDate(c.endDate)}`);
+    });
+  }
+
+  return {
+    overview_text: overviewText,
+    issues,
+    cross_issue_observations: crossObservations,
+    structural_statement: `This document presents ${sorted.length} recorded incident${sorted.length !== 1 ? 's' : ''} grouped by issue category. All content is derived from original records without interpretation.`,
+    integrity_statement: 'This record reflects incidents as recorded by the user. Each entry includes an incident date and a recorded timestamp. Updates are appended and do not overwrite original records.',
+    export_scope_metadata: {
+      total_incidents: metadata.totalIncidentCount,
+      selected_incidents: sorted.length,
+      date_range_start: metadata.dateRangeStart,
+      date_range_end: metadata.dateRangeEnd,
+    },
+  };
+}
