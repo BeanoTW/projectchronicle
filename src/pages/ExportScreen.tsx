@@ -16,16 +16,66 @@ import {
   getTribunalFilename,
 } from '@/lib/tribunalRenderer';
 
-function downloadHtml(html: string, filename: string) {
+async function deliverHtmlFile(html: string, filename: string): Promise<string> {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const file = new File([blob], filename, { type: 'text/html' });
+
+  console.log('[Export] File created:', filename);
+  console.log('[Export] HTML length:', html.length, 'bytes');
+  console.log('[Export] Blob size:', blob.size, 'bytes');
+
+  // 1. Try native share with file attachment
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      console.log('[Export] Native share completed');
+      return 'shared';
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err.name === 'AbortError') {
+        console.log('[Export] Share cancelled by user');
+        return 'cancelled';
+      }
+      console.warn('[Export] Share failed:', err.message);
+    }
+  } else {
+    console.log('[Export] Native share unavailable or cannot share files');
+  }
+
+  // 2. Try anchor download
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // Small delay before revoking so the browser can start the download
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    console.log('[Export] Anchor download triggered');
+    return 'downloaded';
+  } catch (e) {
+    console.warn('[Export] Anchor download failed:', e);
+  }
+
+  // 3. Fallback: open in new tab
+  try {
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      console.log('[Export] Opened in new browser tab');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return 'opened';
+    }
+    URL.revokeObjectURL(url);
+    console.warn('[Export] window.open returned null');
+  } catch (e) {
+    console.warn('[Export] Fallback open failed:', e);
+  }
+
+  return 'failed';
 }
 
 const ExportScreen = () => {
