@@ -118,7 +118,7 @@ const ExportScreen = () => {
     }
   };
 
-  const handleTribunalExport = () => {
+  const handleTribunalExport = async () => {
     if (activeIncidents.length === 0) {
       toast({ title: 'No incidents', description: 'Record at least one incident to generate an export.', variant: 'destructive' });
       return;
@@ -144,9 +144,27 @@ const ExportScreen = () => {
 
       const html = renderTribunalHtml(payload);
       const filename = getTribunalFilename();
-      downloadHtml(html, filename);
-      toast({ title: 'Export downloaded', description: filename });
+      const result = await deliverHtmlFile(html, filename);
+
+      switch (result) {
+        case 'shared':
+          toast({ title: 'Export ready to share', description: filename });
+          break;
+        case 'downloaded':
+          toast({ title: 'Export saved', description: filename });
+          break;
+        case 'opened':
+          toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' });
+          break;
+        case 'cancelled':
+          // User cancelled share — no toast needed
+          break;
+        case 'failed':
+          toast({ title: 'Export could not be saved or shared', description: 'Try again or use a different browser.', variant: 'destructive' });
+          break;
+      }
     } catch (e) {
+      console.error('[Export] Unexpected error:', e);
       toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setTribunalLoading(false);
