@@ -1,37 +1,57 @@
 import { useState, useMemo } from 'react';
-import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2 } from 'lucide-react';
+import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import AILabel from '@/components/chronicle/AILabel';
 import {
   generateSummary,
+  buildTribunalExportPayload,
   type SummaryResult,
   type SummaryMode,
 } from '@/lib/summaryPipeline';
+import {
+  renderTribunalHtml,
+  getTribunalFilename,
+} from '@/lib/tribunalRenderer';
+
+function downloadHtml(html: string, filename: string) {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const ExportScreen = () => {
   const { data: incidents = [] } = useIncidents();
   const { data: evidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
-  const [exporting, setExporting] = useState<string | null>(null);
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
+  const [tribunalLoading, setTribunalLoading] = useState(false);
+
+  const activeIncidents = useMemo(
+    () => incidents.filter(i => !i.voided_at),
+    [incidents],
+  );
 
   const handleCaseNarrative = () => {
-    if (incidents.length < 2) {
+    if (activeIncidents.length < 2) {
       toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
       return;
     }
     setNarrativeLoading(true);
     try {
-      const allIds = incidents.filter(i => !i.voided_at).map(i => i.id);
+      const allIds = activeIncidents.map(i => i.id);
       const result = generateSummary({
-        incidents,
+        incidents: activeIncidents,
         selectedIds: allIds,
         allIncidentCount: allIds.length,
         mode: 'general' as SummaryMode,
@@ -48,29 +68,51 @@ const ExportScreen = () => {
     }
   };
 
-  const handleExport = async (exportType: string) => {
-    setExporting(exportType);
+  const handleTribunalExport = () => {
+    if (activeIncidents.length === 0) {
+      toast({ title: 'No incidents', description: 'Record at least one incident to generate an export.', variant: 'destructive' });
+      return;
+    }
+    setTribunalLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-export', { body: { exportType } });
-      if (error) throw error;
-      const blob = new Blob([data], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${exportType.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast({ title: 'Export downloaded' });
+      const allIds = activeIncidents.map(i => i.id);
+      const payload = buildTribunalExportPayload({
+        incidents: activeIncidents,
+        selectedIds: allIds,
+        allIncidentCount: allIds.length,
+        mode: 'workplace-grievance',
+        customPurpose: '',
+        options: { includePatterns: true, includeNames: true },
+        followUpNotes,
+        evidenceFiles: evidence,
+      });
+
+      if (!payload) {
+        toast({ title: 'Export failed', description: 'No valid incidents to export.', variant: 'destructive' });
+        return;
+      }
+
+      const html = renderTribunalHtml(payload);
+      const filename = getTribunalFilename();
+      downloadHtml(html, filename);
+      toast({ title: 'Export downloaded', description: filename });
     } catch (e) {
       toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
-      setExporting(null);
+      setTribunalLoading(false);
     }
   };
 
   const exportTypes = [
+    {
+      key: 'workplace-grievance',
+      title: 'Workplace Grievance',
+      description: 'Issue-based structured record grouped by category for formal review.',
+      icon: Briefcase,
+      comingSoon: false,
+      onExport: handleTribunalExport,
+      loading: tribunalLoading,
+    },
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true },
     { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
     { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true },
@@ -110,7 +152,7 @@ const ExportScreen = () => {
                 size="sm"
                 className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
                 onClick={handleCaseNarrative}
-                disabled={narrativeLoading || incidents.length < 2}
+                disabled={narrativeLoading || activeIncidents.length < 2}
               >
                 {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate Summary</>}
               </Button>
@@ -122,7 +164,7 @@ const ExportScreen = () => {
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon }, i) => (
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading }, i) => (
             <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -141,10 +183,10 @@ const ExportScreen = () => {
                       variant="outline"
                       size="sm"
                       className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
-                      disabled={exporting === key}
-                      onClick={() => handleExport(key)}
+                      disabled={!!loading}
+                      onClick={onExport}
                     >
-                      {exporting === key ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
+                      {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
                     </Button>
                   )}
                 </div>
