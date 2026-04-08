@@ -160,7 +160,7 @@ const ExportBuilderModal = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <div className="flex-1 overflow-y-auto px-5 py-4 pb-40 space-y-5">
         {/* Suggestions */}
         {suggestions.length > 0 && (
           <div>
