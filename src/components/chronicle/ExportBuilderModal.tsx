@@ -413,7 +413,7 @@ const ExportBuilderModal = ({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-border bg-card">
+      <div className="absolute bottom-24 left-0 right-0 px-5 py-4 border-t border-border bg-card z-[110]">
         <Button
           className="w-full h-12 text-[14px] font-semibold"
           onClick={handleExport}
