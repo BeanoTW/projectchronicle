@@ -144,7 +144,7 @@ const ExportBuilderModal = ({
     .sort((a, b) => a.incident_date.localeCompare(b.incident_date));
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background/95 flex flex-col pb-24">
+    <div className="fixed inset-0 z-[100] bg-background/95 flex flex-col pb-24 relative">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
         <div>
