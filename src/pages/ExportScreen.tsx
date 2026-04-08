@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -14,7 +14,11 @@ import {
 import {
   renderTribunalHtml,
   getTribunalFilename,
+  type SequenceGroup,
 } from '@/lib/tribunalRenderer';
+import type { IncidentCardHtmlData } from '@/components/chronicle/IncidentRecordCard';
+import ExportBuilderModal from '@/components/chronicle/ExportBuilderModal';
+import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
 
 async function deliverHtmlFile(html: string, filename: string): Promise<string> {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -24,7 +28,6 @@ async function deliverHtmlFile(html: string, filename: string): Promise<string> 
   console.log('[Export] HTML length:', html.length, 'bytes');
   console.log('[Export] Blob size:', blob.size, 'bytes');
 
-  // 1. Try native share with file attachment
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
@@ -42,7 +45,6 @@ async function deliverHtmlFile(html: string, filename: string): Promise<string> 
     console.log('[Export] Native share unavailable or cannot share files');
   }
 
-  // 2. Try anchor download
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -52,7 +54,6 @@ async function deliverHtmlFile(html: string, filename: string): Promise<string> 
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    // Small delay before revoking so the browser can start the download
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     console.log('[Export] Anchor download triggered');
     return 'downloaded';
@@ -60,7 +61,6 @@ async function deliverHtmlFile(html: string, filename: string): Promise<string> 
     console.warn('[Export] Anchor download failed:', e);
   }
 
-  // 3. Fallback: open in new tab
   try {
     const url = URL.createObjectURL(blob);
     const win = window.open(url, '_blank');
@@ -86,6 +86,7 @@ const ExportScreen = () => {
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
@@ -118,11 +119,15 @@ const ExportScreen = () => {
     }
   };
 
-  const handleTribunalExport = async () => {
+  const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
       toast({ title: 'No incidents', description: 'Record at least one incident to generate an export.', variant: 'destructive' });
       return;
     }
+    setBuilderOpen(true);
+  };
+
+  const handleBuilderExport = useCallback(async (items: ExportItem[], config: SequenceConfig) => {
     setTribunalLoading(true);
     try {
       const allIds = activeIncidents.map(i => i.id);
@@ -142,9 +147,49 @@ const ExportScreen = () => {
         return;
       }
 
+      // Attach sequence groups and standalone cards from export items
+      const sequenceGroups: SequenceGroup[] = [];
+      const standaloneCards: IncidentCardHtmlData[] = [];
+
+      for (const item of items) {
+        if (item.type === 'sequence' && item.sequence) {
+          const cards: IncidentCardHtmlData[] = item.incidents.map(inc => ({
+            incident: inc,
+            followUps: followUpNotes
+              .filter(n => n.incident_id === inc.id)
+              .map(n => ({ id: n.id, created_at: n.created_at, note_text: n.note_text })),
+            evidence: evidence
+              .filter(e => e.incident_id === inc.id)
+              .map(e => ({ id: e.id, file_name: e.file_name, evidence_ref_number: e.evidence_ref_number })),
+          }));
+          sequenceGroups.push({
+            title: item.sequence.title,
+            source: item.sequence.source,
+            incident_cards: cards,
+          });
+        } else {
+          item.incidents.forEach(inc => {
+            standaloneCards.push({
+              incident: inc,
+              followUps: followUpNotes
+                .filter(n => n.incident_id === inc.id)
+                .map(n => ({ id: n.id, created_at: n.created_at, note_text: n.note_text })),
+              evidence: evidence
+                .filter(e => e.incident_id === inc.id)
+                .map(e => ({ id: e.id, file_name: e.file_name, evidence_ref_number: e.evidence_ref_number })),
+            });
+          });
+        }
+      }
+
+      payload.sequence_groups = sequenceGroups.length > 0 ? sequenceGroups : undefined;
+      payload.standalone_cards = standaloneCards.length > 0 ? standaloneCards : undefined;
+
       const html = renderTribunalHtml(payload);
       const filename = getTribunalFilename();
       const result = await deliverHtmlFile(html, filename);
+
+      setBuilderOpen(false);
 
       switch (result) {
         case 'shared':
@@ -157,7 +202,6 @@ const ExportScreen = () => {
           toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' });
           break;
         case 'cancelled':
-          // User cancelled share — no toast needed
           break;
         case 'failed':
           toast({ title: 'Export could not be saved or shared', description: 'Try again or use a different browser.', variant: 'destructive' });
@@ -169,7 +213,7 @@ const ExportScreen = () => {
     } finally {
       setTribunalLoading(false);
     }
-  };
+  }, [activeIncidents, followUpNotes, evidence, toast]);
 
   const exportTypes = [
     {
@@ -178,7 +222,7 @@ const ExportScreen = () => {
       description: 'Issue-based structured record grouped by category for formal review.',
       icon: Briefcase,
       comingSoon: false,
-      onExport: handleTribunalExport,
+      onExport: handleOpenBuilder,
       loading: tribunalLoading,
     },
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true },
@@ -194,7 +238,7 @@ const ExportScreen = () => {
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
 
-      {/* Case Summary — uses shared pipeline */}
+      {/* Case Summary */}
       <div className="mx-5 mb-5 bg-card border border-border rounded-xl p-5">
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -272,6 +316,17 @@ const ExportScreen = () => {
           This tool supports record-keeping and organisation. It does not provide legal advice.
         </p>
       </div>
+
+      {/* Export Builder Modal */}
+      <ExportBuilderModal
+        open={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        incidents={activeIncidents}
+        followUpNotes={followUpNotes}
+        evidence={evidence}
+        onExport={handleBuilderExport}
+        loading={tribunalLoading}
+      />
     </div>
   );
 };
