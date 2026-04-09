@@ -204,7 +204,7 @@ export function deriveRepeatedCategories(incidents: NormalisedIncident[]): Repea
 function deriveCategoryCounts(incidents: NormalisedIncident[]): Record<string, number> {
   const counts: Record<string, number> = {};
   incidents.forEach(i => {
-    const cat = i.category || 'Other';
+    const cat = i.category || 'Unclassified';
     counts[cat] = (counts[cat] || 0) + 1;
   });
   return counts;
@@ -354,7 +354,7 @@ function formatIncidentLine(
   allPeople: string[],
 ): string {
   const dateStr = formatDate(inc.incident_date);
-  const category = inc.category || 'Other';
+  const category = inc.category || 'Unclassified';
   const person = inc.people_involved.length > 0
     ? buildPeopleList(inc.people_involved, includeNames, allPeople)
     : '';
@@ -507,7 +507,7 @@ function formatPatterns(
     const overlapLines: string[] = [];
     for (const person of metadata.repeatedIndividuals) {
       const personIncs = sorted.filter(i => i.people_involved.includes(person.name));
-      const personCats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+      const personCats = [...new Set(personIncs.map(i => i.category || 'Unclassified'))];
       if (personCats.length > 1) {
         const pName = options.includeNames ? person.name : redactName(person.name, allPeople.indexOf(person.name));
         overlapLines.push(`• ${pName} appears across: ${personCats.join(', ')}`);
@@ -536,15 +536,15 @@ function formatPatterns(
 
   // Escalation structure — sequence of event types only (no interpretation)
   if (sorted.length >= 3 && options.includePatterns) {
-    const typeSequence = sorted.map(i => i.category || 'Other');
+    const typeSequence = sorted.map(i => i.category || 'Unclassified');
     // Only show if types change over time
     const uniqueTypes = [...new Set(typeSequence)];
     if (uniqueTypes.length > 1) {
       // Split into thirds for early/mid/late
       const third = Math.ceil(sorted.length / 3);
-      const early = sorted.slice(0, third).map(i => i.category || 'Other');
-      const mid = sorted.slice(third, third * 2).map(i => i.category || 'Other');
-      const late = sorted.slice(third * 2).map(i => i.category || 'Other');
+      const early = sorted.slice(0, third).map(i => i.category || 'Unclassified');
+      const mid = sorted.slice(third, third * 2).map(i => i.category || 'Unclassified');
+      const late = sorted.slice(third * 2).map(i => i.category || 'Unclassified');
 
       const earlyCats = [...new Set(early)].join(', ');
       const midCats = [...new Set(mid)].join(', ');
@@ -612,7 +612,7 @@ function formatBriefing(
     const lateIncs = sorted.slice(third * 2);
 
     const describePhase = (incs: NormalisedIncident[], label: string): string => {
-      const cats = [...new Set(incs.map(i => i.category || 'Other'))].join(', ');
+      const cats = [...new Set(incs.map(i => i.category || 'Unclassified'))].join(', ');
       const dateRange = incs.length > 1
         ? `${formatDate(incs[0].incident_date)} – ${formatDate(incs[incs.length - 1].incident_date)}`
         : formatDate(incs[0].incident_date);
@@ -702,7 +702,7 @@ function deriveIssueGroups(sorted: NormalisedIncident[]): IssueGroup[] {
   // Group by category
   const catMap: Record<string, NormalisedIncident[]> = {};
   sorted.forEach(inc => {
-    const cat = inc.category || 'Other';
+    const cat = inc.category || 'Unclassified';
     if (!catMap[cat]) catMap[cat] = [];
     catMap[cat].push(inc);
   });
@@ -804,14 +804,14 @@ function formatTribunal(
   if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
     const crossPeople = metadata.repeatedIndividuals.filter(r => {
       const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
-      const personCats = new Set(personIncs.map(i => i.category || 'Other'));
+      const personCats = new Set(personIncs.map(i => i.category || 'Unclassified'));
       return personCats.size > 1;
     });
     if (crossPeople.length > 0) {
       crossPeople.forEach(r => {
         const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
         const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
-        const cats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+        const cats = [...new Set(personIncs.map(i => i.category || 'Unclassified'))];
         crossLines.push(`• ${n} appears across: ${cats.join(', ')}`);
       });
     }
@@ -933,7 +933,7 @@ export function buildTribunalExportPayload(request: SummaryRequest): TribunalExp
       const person = inc.people_involved.length > 0
         ? buildPeopleList(inc.people_involved, options.includeNames, allPeople)
         : '';
-      const category = inc.category || 'Other';
+      const category = inc.category || 'Unclassified';
       let summary = `${category}`;
       if (person) summary += ` — ${person}`;
       if (!options.includeNames) summary = redactText(summary, allPeople);
@@ -993,13 +993,13 @@ export function buildTribunalExportPayload(request: SummaryRequest): TribunalExp
   if (metadata.repeatedIndividuals.length > 0 && options.includePatterns) {
     const crossPeople = metadata.repeatedIndividuals.filter(r => {
       const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
-      const personCats = new Set(personIncs.map(i => i.category || 'Other'));
+      const personCats = new Set(personIncs.map(i => i.category || 'Unclassified'));
       return personCats.size > 1;
     });
     crossPeople.forEach(r => {
       const n = options.includeNames ? r.name : redactName(r.name, allPeople.indexOf(r.name));
       const personIncs = sorted.filter(i => i.people_involved.includes(r.name));
-      const cats = [...new Set(personIncs.map(i => i.category || 'Other'))];
+      const cats = [...new Set(personIncs.map(i => i.category || 'Unclassified'))];
       crossObservations.push(`${n} appears across: ${cats.join(', ')}`);
     });
   }
