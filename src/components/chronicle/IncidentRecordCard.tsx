@@ -85,6 +85,11 @@ const IncidentRecordCard = ({
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
+        {incident.category && (
+          <div className="mb-1">
+            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
+          </div>
+        )}
         <h3 className={`text-[15px] font-semibold leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
           {incident.title || 'Untitled incident'}
@@ -170,7 +175,7 @@ const IncidentRecordCard = ({
         {/* Integrity line */}
         <div className="pt-2 border-t border-border/50">
           <p className="text-[10px] text-muted-foreground/50">
-            Recorded {formatTimestamp(incident.created_at)}
+            Recorded on {formatTimestamp(incident.created_at).replace(', ', ' at ')}
           </p>
         </div>
       </div>
