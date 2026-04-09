@@ -116,13 +116,7 @@ const IncidentRecordCard = ({
           </div>
         )}
 
-        {/* Classification */}
-        {incident.category && (
-          <div>
-            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Classification</p>
-            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
-          </div>
-        )}
+        {/* Classification shown in header — no duplicate here */}
 
         {/* Narrative */}
         <div>
