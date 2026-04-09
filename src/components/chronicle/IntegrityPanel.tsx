@@ -26,7 +26,7 @@ const IntegrityPanel = ({ narrative, savedAt }: IntegrityPanelProps) => {
               Original record preserved
             </p>
             <p className="text-[11px] text-integrity-foreground/70">
-              Saved {format(date, 'dd MMM yyyy')} at {format(date, 'HH:mm')}
+              Recorded on {format(date, 'dd MMMM yyyy')} at {format(date, 'HH:mm')}
             </p>
           </div>
         </div>

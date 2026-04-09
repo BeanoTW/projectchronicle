@@ -197,7 +197,7 @@ const IncidentDetailScreen = () => {
           <div className="px-4 py-3 border-b border-border">
             <p className="text-[13px] font-semibold text-foreground">Original record</p>
             <p className="text-[11px] text-muted-foreground/60">
-              Saved {format(parseISO(incident.created_at), 'dd MMM yyyy')} at {format(parseISO(incident.created_at), 'HH:mm')}
+              Recorded on {format(parseISO(incident.created_at), 'dd MMMM yyyy')} at {format(parseISO(incident.created_at), 'HH:mm')}
             </p>
           </div>
           <div className="p-4">
