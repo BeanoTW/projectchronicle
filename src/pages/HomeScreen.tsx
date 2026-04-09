@@ -132,7 +132,7 @@ const HomeScreen = () => {
               clarity matters.
             </h2>
             <p className="text-[14px] text-white/75 leading-relaxed max-w-xs">
-              Project Chronicle helps you capture events as they happen — so you're never relying on memory alone.
+              Project Chronicle helps you capture events as they happen — or record them later to build a clear timeline.
             </p>
           </div>
         </div>
