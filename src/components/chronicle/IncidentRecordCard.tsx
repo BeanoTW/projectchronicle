@@ -215,8 +215,13 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   const { incident, followUps, evidence } = data;
   let html = `<div class="incident-card" data-incident-id="${esc(incident.id)}">`;
 
-  // Header
-  html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  // Header — category above title
+  if (incident.category) {
+    const displayCat = incident.category === 'Other' ? 'Unclassified' : incident.category;
+    html += `<div class="card-header"><span class="category-tag" style="margin-bottom:4px;display:inline-block">${esc(displayCat)}${incident.subtype && incident.subtype !== 'Other' && incident.subtype !== 'Unclassified' && incident.subtype !== incident.category ? ` — ${esc(incident.subtype)}` : ''}</span><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  } else {
+    html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  }
 
   // Meta
   html += `<div class="card-meta">`;
@@ -232,12 +237,7 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
     html += `</div>`;
   }
 
-  // Classification
-  if (incident.category) {
-    html += `<div class="card-section"><p class="section-label">Classification</p>`;
-    html += `<span class="category-tag">${esc(incident.category)}${incident.subtype ? ` — ${esc(incident.subtype)}` : ''}</span>`;
-    html += `</div>`;
-  }
+  // Classification — shown in header, no duplicate
 
   // Narrative
   html += `<div class="card-section"><p class="section-label">Narrative</p>`;
@@ -271,8 +271,8 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
     html += `</div>`;
   }
 
-  // Integrity
-  html += `<div class="card-citation"><p>Recorded ${formatTimestampHtml(incident.created_at)}</p></div>`;
+  // Integrity — exact timestamp
+  html += `<div class="card-citation"><p>Recorded on ${formatTimestampHtml(incident.created_at).replace(', ', ' at ')}</p></div>`;
 
   html += `</div>`;
   return html;
