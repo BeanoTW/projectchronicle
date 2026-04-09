@@ -6,12 +6,16 @@ interface CategoryBadgeProps {
 }
 
 const CategoryBadge = ({ category, subtype }: CategoryBadgeProps) => {
-  const tint = CATEGORY_BADGE_TINTS[category as keyof typeof CATEGORY_BADGE_TINTS] || 'bg-accent/80 text-accent-foreground border-accent-foreground/10';
+  const displayCategory = category === 'Other' ? 'Unclassified' : category;
+  const tint = CATEGORY_BADGE_TINTS[category as keyof typeof CATEGORY_BADGE_TINTS]
+    || CATEGORY_BADGE_TINTS['Unclassified' as keyof typeof CATEGORY_BADGE_TINTS]
+    || 'bg-accent/80 text-accent-foreground border-accent-foreground/10';
+  const showSubtype = subtype && subtype !== 'Other' && subtype !== 'Unclassified' && subtype !== category;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${tint}`}>
-      {category}
-      {subtype && subtype !== 'Other' && subtype !== 'Unclassified' && (
-        <span className="opacity-60">· {subtype}</span>
+      {displayCategory}
+      {showSubtype && (
+        <span className="opacity-60">— {subtype}</span>
       )}
     </span>
   );
