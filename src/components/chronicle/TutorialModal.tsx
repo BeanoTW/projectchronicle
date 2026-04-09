@@ -25,6 +25,15 @@ const steps = [
   },
 ];
 
+const recordingSection = {
+  title: 'Recording events',
+  items: [
+    { label: 'As things happen', desc: 'Record events at the time they occur.' },
+    { label: 'Looking back', desc: 'Record events after they have happened. Organise details into a clear timeline. Identify patterns across multiple entries.' },
+  ],
+  footer: 'Chronicle preserves both when something happened and when it was recorded.',
+};
+
 const TutorialModal = ({ open, onClose }: TutorialModalProps) => (
   <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
     <DialogContent className="max-w-sm rounded-2xl p-6 gap-0">
@@ -37,7 +46,7 @@ const TutorialModal = ({ open, onClose }: TutorialModalProps) => (
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4 mb-5">
         {steps.map((s, i) => (
           <div key={i} className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -49,6 +58,20 @@ const TutorialModal = ({ open, onClose }: TutorialModalProps) => (
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-6 bg-muted/30 rounded-xl p-4 border border-border">
+        <p className="text-[13px] font-semibold text-foreground mb-2">{recordingSection.title}</p>
+        <p className="text-[12px] text-muted-foreground leading-relaxed mb-2">Chronicle can be used in two ways:</p>
+        <div className="space-y-2">
+          {recordingSection.items.map((item, i) => (
+            <div key={i}>
+              <p className="text-[12px] font-medium text-foreground">{item.label}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground/60 mt-3 leading-relaxed">{recordingSection.footer}</p>
       </div>
 
       <Button

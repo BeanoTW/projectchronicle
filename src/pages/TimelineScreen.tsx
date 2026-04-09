@@ -159,9 +159,9 @@ const TimelineScreen = () => {
         <PageHeader title="Timeline" subtitle="Your record over time" />
         <div className="px-5 pt-2 pb-4 text-center">
           <CalendarDays className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="text-[15px] font-semibold text-foreground mb-1">No records yet</h3>
+          <h3 className="text-[15px] font-semibold text-foreground mb-1">Start building your record</h3>
           <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            Your timeline will show events in order as you record them. Each entry is preserved exactly as you wrote it.
+            You can record events as they happen, or add them later to organise what has already occurred.
           </p>
         </div>
         <div className="px-5 mt-2">

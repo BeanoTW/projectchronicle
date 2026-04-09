@@ -514,7 +514,7 @@ const RecordScreen = () => {
             {!hasText && (
               <div className="px-5 mt-2 mb-4">
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-                  You don't need to get this perfect
+                  You can start with what you have.
                 </p>
               </div>
             )}
@@ -543,7 +543,7 @@ const RecordScreen = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-                  You don't need to get this perfect
+                  You can start with what you have.
                 </p>
               </div>
             )}
@@ -719,10 +719,11 @@ const RecordScreen = () => {
                   {/* Date & Time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="date" className="text-[13px] font-medium">Date *</Label>
-                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                      <Label htmlFor="date" className="text-[13px] font-medium">When did this happen? *</Label>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">You can enter this even if you're recording it later.</p>
                       <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
                       {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
+                      <p className="text-[10px] text-muted-foreground/40 mt-1">If the exact date is not known, an approximate date can be entered.</p>
                     </div>
                     <div>
                       <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
