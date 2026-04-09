@@ -141,7 +141,7 @@ const IncidentDetailScreen = () => {
             <div>
               <span className="text-sm font-medium">Voided record</span>
               {incident.void_reason && <p className="text-[12px] text-muted-foreground/70 mt-0.5">{incident.void_reason}</p>}
-              <p className="text-[11px] text-muted-foreground/50">Voided {format(parseISO(incident.voided_at!), 'dd MMM yyyy')}</p>
+              <p className="text-[11px] text-muted-foreground/50">Voided on {format(parseISO(incident.voided_at!), 'dd MMMM yyyy')} at {format(parseISO(incident.voided_at!), 'HH:mm')}</p>
             </div>
           </div>
         )}
