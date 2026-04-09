@@ -85,6 +85,11 @@ const IncidentRecordCard = ({
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
+        {incident.category && (
+          <div className="mb-1">
+            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
+          </div>
+        )}
         <h3 className={`text-[15px] font-semibold leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
           {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
           {incident.title || 'Untitled incident'}
@@ -111,13 +116,7 @@ const IncidentRecordCard = ({
           </div>
         )}
 
-        {/* Classification */}
-        {incident.category && (
-          <div>
-            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Classification</p>
-            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
-          </div>
-        )}
+        {/* Classification shown in header — no duplicate here */}
 
         {/* Narrative */}
         <div>
@@ -170,7 +169,7 @@ const IncidentRecordCard = ({
         {/* Integrity line */}
         <div className="pt-2 border-t border-border/50">
           <p className="text-[10px] text-muted-foreground/50">
-            Recorded {formatTimestamp(incident.created_at)}
+            Recorded on {formatTimestamp(incident.created_at).replace(', ', ' at ')}
           </p>
         </div>
       </div>
@@ -216,8 +215,13 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   const { incident, followUps, evidence } = data;
   let html = `<div class="incident-card" data-incident-id="${esc(incident.id)}">`;
 
-  // Header
-  html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  // Header — category above title
+  if (incident.category) {
+    const displayCat = incident.category === 'Other' ? 'Unclassified' : incident.category;
+    html += `<div class="card-header"><span class="category-tag" style="margin-bottom:4px;display:inline-block">${esc(displayCat)}${incident.subtype && incident.subtype !== 'Other' && incident.subtype !== 'Unclassified' && incident.subtype !== incident.category ? ` — ${esc(incident.subtype)}` : ''}</span><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  } else {
+    html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+  }
 
   // Meta
   html += `<div class="card-meta">`;
@@ -233,12 +237,7 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
     html += `</div>`;
   }
 
-  // Classification
-  if (incident.category) {
-    html += `<div class="card-section"><p class="section-label">Classification</p>`;
-    html += `<span class="category-tag">${esc(incident.category)}${incident.subtype ? ` — ${esc(incident.subtype)}` : ''}</span>`;
-    html += `</div>`;
-  }
+  // Classification — shown in header, no duplicate
 
   // Narrative
   html += `<div class="card-section"><p class="section-label">Narrative</p>`;
@@ -272,8 +271,8 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
     html += `</div>`;
   }
 
-  // Integrity
-  html += `<div class="card-citation"><p>Recorded ${formatTimestampHtml(incident.created_at)}</p></div>`;
+  // Integrity — exact timestamp
+  html += `<div class="card-citation"><p>Recorded on ${formatTimestampHtml(incident.created_at).replace(', ', ' at ')}</p></div>`;
 
   html += `</div>`;
   return html;

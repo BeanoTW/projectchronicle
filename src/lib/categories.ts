@@ -15,7 +15,7 @@ export const PRIMARY_CATEGORIES = [
   'Process / Procedure',
   'Management Handling',
   'Safety / Operational',
-  'Other',
+  'Unclassified',
 ] as const;
 
 export type PrimaryCategory = (typeof PRIMARY_CATEGORIES)[number];
@@ -30,7 +30,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
   'Process / Procedure': ['Disciplinary Process', 'Grievance Process', 'Policy Application', 'Decision Outcome', 'Other'],
   'Management Handling': ['No Action Taken', 'Dismissive Response', 'Escalation Action', 'Delayed Response', 'Other'],
   'Safety / Operational': ['Unsafe Condition', 'Equipment Issue', 'Staffing Issue', 'Environmental Risk', 'Other'],
-  'Other': ['Unclassified'],
+  'Unclassified': ['Unclassified'],
 } as const;
 
 export type Subtype = (typeof SUBTYPES)[PrimaryCategory][number];
@@ -73,7 +73,7 @@ export const CATEGORY_DEFINITIONS: Record<PrimaryCategory, { definition: string;
     includes: 'risks, environment, equipment, staffing',
     excludes: 'interpersonal behaviour',
   },
-  'Other': {
+  'Unclassified': {
     definition: 'Used only when no category reasonably applies.',
     includes: 'uncategorisable events',
     excludes: 'anything classifiable under other categories',
@@ -90,7 +90,7 @@ export const CATEGORY_PRIORITY: PrimaryCategory[] = [
   'Management Handling',
   'Safety / Operational',
   'Non-Verbal Behaviour',
-  'Other',
+  'Unclassified',
 ];
 
 // ─── Trigger keywords for AI classification ─────────────────
@@ -103,7 +103,7 @@ export const CATEGORY_TRIGGERS: Record<PrimaryCategory, string[]> = {
   'Process / Procedure': ['meeting', 'grievance', 'disciplinary', 'hearing', 'investigation', 'review', 'process', 'procedure', 'policy', 'formal'],
   'Management Handling': ['no action', 'ignored', 'dismissed', 'nothing done', 'delayed', 'escalated', 'refused', 'failed to', 'did not respond', 'inaction'],
   'Safety / Operational': ['unsafe', 'risk', 'equipment', 'staffing', 'temperature', 'hazard', 'injury', 'broken', 'PPE', 'health and safety', 'conditions'],
-  'Other': [],
+  'Unclassified': [],
 };
 
 // ─── UI Styling ─────────────────────────────────────────────
@@ -117,7 +117,7 @@ export const CATEGORY_BADGE_TINTS: Record<PrimaryCategory, string> = {
   'Process / Procedure': 'bg-muted text-muted-foreground border-border',
   'Management Handling': 'bg-destructive/8 text-destructive border-destructive/15',
   'Safety / Operational': 'bg-severity-serious/8 text-severity-serious border-severity-serious/15',
-  'Other': 'bg-accent/80 text-accent-foreground border-accent-foreground/10',
+  'Unclassified': 'bg-accent/80 text-accent-foreground border-accent-foreground/10',
 };
 
 /** IncidentCard left-border tints */
@@ -129,7 +129,7 @@ export const CATEGORY_CARD_TINTS: Record<PrimaryCategory, string> = {
   'Process / Procedure': 'border-l-muted-foreground/25 bg-muted/30',
   'Management Handling': 'border-l-destructive/30 bg-destructive/[0.02]',
   'Safety / Operational': 'border-l-severity-serious/30 bg-severity-serious/[0.02]',
-  'Other': 'border-l-muted-foreground/20 bg-muted/20',
+  'Unclassified': 'border-l-muted-foreground/20 bg-muted/20',
 };
 
 /** NarrativeDayView left-border colours */
@@ -141,7 +141,7 @@ export const CATEGORY_BORDER_COLORS: Record<string, string> = {
   'Management Handling': 'border-l-destructive',
   'Safety / Operational': 'border-l-severity-serious',
   'Non-Verbal Behaviour': 'border-l-info',
-  'Other': 'border-l-muted-foreground/40',
+  'Unclassified': 'border-l-muted-foreground/40',
 };
 
 /** Summary display names (lowercase) */
@@ -153,7 +153,7 @@ export const CATEGORY_LABELS: Record<PrimaryCategory, string> = {
   'Process / Procedure': 'process / procedure',
   'Management Handling': 'management handling',
   'Safety / Operational': 'safety / operational',
-  'Other': 'other',
+  'Unclassified': 'unclassified',
 };
 
 // ─── Old → New category migration map ───────────────────────
@@ -170,12 +170,13 @@ export const LEGACY_CATEGORY_MAP: Record<string, PrimaryCategory> = {
 
 /** Resolve any category string (legacy or current) to a valid PrimaryCategory */
 export function resolveCategory(raw: string | null | undefined): PrimaryCategory {
-  if (!raw) return 'Other';
+  if (!raw) return 'Unclassified';
   if (PRIMARY_CATEGORIES.includes(raw as PrimaryCategory)) return raw as PrimaryCategory;
-  return LEGACY_CATEGORY_MAP[raw] || 'Other';
+  if (raw === 'Other') return 'Unclassified';
+  return LEGACY_CATEGORY_MAP[raw] || 'Unclassified';
 }
 
 /** Get valid subtypes for a category */
 export function getSubtypes(category: PrimaryCategory): readonly string[] {
-  return SUBTYPES[category] || ['Other'];
+  return SUBTYPES[category] || ['Unclassified'];
 }
