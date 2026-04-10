@@ -53,7 +53,9 @@ const RecordScreen = () => {
   const [incidentTime, setIncidentTime] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [categorySource, setCategorySource] = useState<'ai' | 'user' | null>(null);
   const [subtype, setSubtype] = useState<string>('');
+  const [contextDomain, setContextDomain] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
   const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
@@ -199,7 +201,7 @@ const RecordScreen = () => {
       if (data.incident_date && !incidentDate) setIncidentDate(data.incident_date);
       if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
       if (data.location && !location) setLocation(data.location);
-      if (data.category && !category) setCategory(data.category);
+      if (data.category && !category) { setCategory(data.category); setCategorySource('ai'); }
       if (data.subtype && !subtype) setSubtype(data.subtype);
       if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
       if (data.exact_words && !exactWords) setExactWords(data.exact_words);
@@ -255,7 +257,9 @@ const RecordScreen = () => {
         ai_summary: aiSummary || null,
         title: title || null,
         record_method: mode,
-      });
+        context_domain: contextDomain || null,
+        category_source: categorySource || 'ai',
+      } as any);
       await createEditHistory.mutateAsync({
         incident_id: result.id,
         field_changed: 'incident_recorded',
@@ -344,7 +348,7 @@ const RecordScreen = () => {
       </div>
       <div>
         <Label className="text-[13px] font-medium">Category</Label>
-        <Select value={category} onValueChange={(v) => { setCategory(v); setSubtype(''); }}>
+        <Select value={category} onValueChange={(v) => { setCategory(v); setSubtype(''); setCategorySource('user'); }}>
           <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
           <SelectContent>
             {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -354,7 +358,7 @@ const RecordScreen = () => {
       {category && SUBTYPES[category as PrimaryCategory] && (
         <div>
           <Label className="text-[13px] font-medium">Subtype</Label>
-          <Select value={subtype} onValueChange={setSubtype}>
+          <Select value={subtype} onValueChange={(v) => { setSubtype(v); if (!categorySource) setCategorySource('user'); }}>
             <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select subtype" /></SelectTrigger>
             <SelectContent>
               {SUBTYPES[category as PrimaryCategory].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -362,6 +366,18 @@ const RecordScreen = () => {
           </Select>
         </div>
       )}
+      <div>
+        <Label className="text-[13px] font-medium">Context <span className="font-normal text-muted-foreground">(optional)</span></Label>
+        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Where did this take place?</p>
+        <Select value={contextDomain} onValueChange={setContextDomain}>
+          <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select context" /></SelectTrigger>
+          <SelectContent>
+            {['Workplace', 'Education', 'Home / Domestic', 'Public / Social', 'Online / Digital', 'Other', 'Unknown'].map(d => (
+              <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div>
         <Label htmlFor="people" className="text-[13px] font-medium">People involved</Label>
         <Input id="people" value={peopleInvolved} onChange={(e) => setPeopleInvolved(e.target.value)} placeholder="Comma-separated names" className="mt-1.5 rounded-lg" />
