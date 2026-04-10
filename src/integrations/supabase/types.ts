@@ -147,6 +147,8 @@ export type Database = {
         Row: {
           ai_summary: string | null
           category: string | null
+          category_source: string | null
+          context_domain: string | null
           created_at: string
           exact_words: string | null
           excluded_from_rep: boolean
@@ -173,6 +175,8 @@ export type Database = {
         Insert: {
           ai_summary?: string | null
           category?: string | null
+          category_source?: string | null
+          context_domain?: string | null
           created_at?: string
           exact_words?: string | null
           excluded_from_rep?: boolean
@@ -199,6 +203,8 @@ export type Database = {
         Update: {
           ai_summary?: string | null
           category?: string | null
+          category_source?: string | null
+          context_domain?: string | null
           created_at?: string
           exact_words?: string | null
           excluded_from_rep?: boolean
