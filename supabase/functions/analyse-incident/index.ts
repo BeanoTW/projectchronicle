@@ -55,40 +55,40 @@ PRIMARY CATEGORY CLASSIFICATION:
 Assign exactly one primary category based on the dominant observable behaviour described. Categories describe what happened — not interpretation, intent, or legality.
 
 Categories and definitions:
-- Verbal Comment → Spoken words directed at or around the user. Includes: remarks, instructions, conversations. Excludes: written messages, physical actions.
-- Non-Verbal Behaviour → Observable actions without spoken or written words. Includes: gestures, physical behaviour, exclusion. Excludes: anything spoken or written.
-- Written Communication → Any recorded or digital communication where the communication itself is the primary behaviour. Includes: messages, emails, documents, logs. Excludes: situations where writing is only the delivery method for another behaviour.
-- Work Allocation → Assignment, removal, or distribution of work tasks or responsibilities. Includes: duties, workload, role expectations. Excludes: general communication about work.
-- Process / Procedure → Application or execution of a formal or informal process. Includes: disciplinary, grievance, policy use, procedural decisions. Excludes: general managerial responses outside a process.
-- Management Handling → How a person in authority responds to a situation, concern, or incident outside the process itself. Includes: action, inaction, dismissal, escalation, delay. Excludes: formal procedural steps or policy execution.
-- Safety / Operational → Conditions affecting safety or operational functioning. Includes: risks, environment, equipment, staffing. Excludes: interpersonal behaviour.
+- Communication → Spoken or written words directed at or around the user. Includes: remarks, instructions, conversations, messages, emails. Excludes: physical actions, process outcomes.
+- Action / Change → Assignment, removal, or distribution of work tasks, responsibilities, or conditions. Includes: shifts, duties, role changes, access changes. Excludes: general communication about work.
+- Process Event → Application or execution of a formal or informal process. Includes: meetings, hearings, investigations, outcomes, appeals. Excludes: general managerial responses outside a process.
+- Pay / Benefits → Changes or issues relating to pay, benefits, or financial entitlements. Includes: pay, bonuses, holiday, sick pay, expenses. Excludes: general working conditions.
+- Working Conditions → Conditions affecting safety, environment, or operational functioning. Includes: risks, equipment, staffing, workload, breaks, environment. Excludes: interpersonal behaviour.
+- Observed Behaviour → Observable behaviour or conduct directed at or around the user. Includes: tone, exclusion, ignoring, gestures, unequal treatment. Excludes: anything spoken or written as the primary behaviour.
+- Record Issued → A formal record, notice, or document issued to the user. Includes: warnings, written records, policy documents, contracts. Excludes: informal communication.
 - Other → Used only when no category reasonably applies.
 
 SUBTYPE CLASSIFICATION:
 After assigning the primary category, assign exactly one subtype from the valid set for that category:
-- Verbal Comment: Statement, Instruction, Confrontation, Joke / Informal Remark, Other
-- Non-Verbal Behaviour: Gesture / Expression, Physical Action, Exclusion Behaviour, Presence / Absence Behaviour, Other
-- Written Communication: Message, Formal Communication, Recorded System Entry, Other
-- Work Allocation: Task Assignment, Task Removal, Unequal Distribution, Role Change, Other
-- Process / Procedure: Disciplinary Process, Grievance Process, Policy Application, Decision Outcome, Other
-- Management Handling: No Action Taken, Dismissive Response, Escalation Action, Delayed Response, Other
-- Safety / Operational: Unsafe Condition, Equipment Issue, Staffing Issue, Environmental Risk, Other
+- Communication: Verbal statement, Written message, Email, Public statement, Internal communication, Instruction given, Unclassified
+- Action / Change: Shift removed, Shift added, Role changed, Duties reassigned, Access revoked, Access granted, Location changed, Schedule altered, Unclassified
+- Process Event: Meeting held, Meeting scheduled, Investigation started, Investigation ongoing, Outcome issued, Appeal submitted, Appeal outcome issued, Formal notice given, Unclassified
+- Pay / Benefits: Pay change, Pay withheld, Bonus / commission change, Holiday / leave issue, Sick pay issue, Expenses issue, Unclassified
+- Working Conditions: Unsafe condition, Equipment issue, Staffing level issue, Workload level change, Break / rest issue, Temperature / environment issue, Unclassified
+- Observed Behaviour: Tone / manner, Ignored / no response, Exclusion from activity, Unequal treatment (observed difference), Repeated behaviour, Physical gesture / conduct, Unclassified
+- Record Issued: Warning issued, Written record created, Policy document provided, Contract / terms issued, Notes recorded, Unclassified
 - Other: Unclassified
 
 CLASSIFICATION RULES:
 - Classify based on the primary behaviour described, not every behaviour mentioned.
 - Where multiple categories seem relevant, assign the most behaviourally specific one.
-- Communication format alone must not determine category — if writing is only the delivery channel, classify the underlying behaviour.
+- If a valid subtype cannot be determined, assign "Unclassified" within the selected category.
 - Use "Other" only when no trigger fits. If any trigger exists, assign the best match.
 
 PRIORITY ORDER (tie-breaker when multiple categories equally match):
-1. Written Communication
-2. Verbal Comment
-3. Work Allocation
-4. Process / Procedure
-5. Management Handling
-6. Safety / Operational
-7. Non-Verbal Behaviour
+1. Record Issued
+2. Process Event
+3. Action / Change
+4. Pay / Benefits
+5. Working Conditions
+6. Communication
+7. Observed Behaviour
 8. Other`
           },
           {
@@ -111,7 +111,7 @@ PRIORITY ORDER (tie-breaker when multiple categories equally match):
                   people_involved: { type: "array", items: { type: "string" }, description: "Names of people involved" },
                   category: {
                     type: "string",
-                    enum: ["Verbal Comment", "Non-Verbal Behaviour", "Written Communication", "Work Allocation", "Process / Procedure", "Management Handling", "Safety / Operational", "Other"],
+                    enum: ["Communication", "Action / Change", "Process Event", "Pay / Benefits", "Working Conditions", "Observed Behaviour", "Record Issued", "Other"],
                     description: "Primary category based on dominant observable behaviour."
                   },
                   subtype: {

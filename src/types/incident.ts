@@ -1,11 +1,11 @@
 export type IncidentCategory =
-  | 'Verbal Comment'
-  | 'Non-Verbal Behaviour'
-  | 'Written Communication'
-  | 'Work Allocation'
-  | 'Process / Procedure'
-  | 'Management Handling'
-  | 'Safety / Operational'
+  | 'Communication'
+  | 'Action / Change'
+  | 'Process Event'
+  | 'Pay / Benefits'
+  | 'Working Conditions'
+  | 'Observed Behaviour'
+  | 'Record Issued'
   | 'Other';
 
 export type IncidentSubtype = string;
@@ -17,6 +17,8 @@ export type IncidentStatus = 'Open' | 'Followed Up' | 'Escalated' | 'Closed';
 export type EvidenceType = 'Photo' | 'Screenshot' | 'Document' | 'Audio' | 'Email' | 'Other';
 
 export type NoteType = 'Update' | 'Meeting' | 'Outcome' | 'Other';
+
+export type ContextDomain = 'Workplace' | 'Education' | 'Home / Domestic' | 'Public / Social' | 'Online / Digital' | 'Other' | 'Unknown';
 
 export interface Incident {
   incident_id: string;
@@ -40,6 +42,8 @@ export interface Incident {
   record_method?: 'voice' | 'text';
   created_at: string;
   updated_at: string;
+  context_domain?: ContextDomain;
+  category_source?: 'ai' | 'user';
   // Computed
   title?: string;
 }
