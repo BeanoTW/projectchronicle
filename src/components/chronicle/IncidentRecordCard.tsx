@@ -217,8 +217,8 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
 
   // Header — category above title
   if (incident.category) {
-    const displayCat = incident.category === 'Other' ? 'Unclassified' : incident.category;
-    html += `<div class="card-header"><span class="category-tag" style="margin-bottom:4px;display:inline-block">${esc(displayCat)}${incident.subtype && incident.subtype !== 'Other' && incident.subtype !== 'Unclassified' && incident.subtype !== incident.category ? ` — ${esc(incident.subtype)}` : ''}</span><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
+    const displayCat = incident.category;
+    html += `<div class="card-header"><span class="category-tag" style="margin-bottom:4px;display:inline-block">${esc(displayCat)}${incident.subtype && incident.subtype !== 'Unclassified' && incident.subtype !== 'Other' && incident.subtype !== incident.category ? ` — ${esc(incident.subtype)}` : ''}</span><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
   } else {
     html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
   }
