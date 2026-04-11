@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, Loader2, X, Plus, Info } from 'lucide-react';
+import { Check, Loader2, X, Plus, Info, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
-import PageHeader from '@/components/chronicle/PageHeader';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -51,18 +50,12 @@ const ReviewScreen = () => {
   const createEditHistory = useCreateEditHistory();
   const { data: existingIncidents = [] } = useIncidents();
 
-  const draft = location.state?.draft as ReviewDraft | undefined;
+  const draft = (location.state?.draft as ReviewDraft | undefined) || null;
 
-  // If no draft, redirect back
-  if (!draft) {
-    navigate('/record', { replace: true });
-    return null;
-  }
-
-  const [category, setCategory] = useState(draft.category || '');
-  const [subtype, setSubtype] = useState(draft.subtype || '');
-  const [categorySource, setCategorySource] = useState<'ai' | 'user' | null>(draft.categorySource);
-  const [people, setPeople] = useState<string[]>(draft.peopleInvolved || []);
+  const [category, setCategory] = useState(draft?.category || '');
+  const [subtype, setSubtype] = useState(draft?.subtype || '');
+  const [categorySource, setCategorySource] = useState<'ai' | 'user' | null>(draft?.categorySource ?? null);
+  const [people, setPeople] = useState<string[]>(draft?.peopleInvolved || []);
   const [newPerson, setNewPerson] = useState('');
   const [showAddPerson, setShowAddPerson] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,10 +65,15 @@ const ReviewScreen = () => {
   const previousNames = useMemo(() => {
     const names = new Set<string>();
     existingIncidents.forEach(i => i.people_involved?.forEach((p: string) => names.add(p)));
-    // Remove names already in list
     people.forEach(p => names.delete(p));
     return Array.from(names).sort();
   }, [existingIncidents, people]);
+
+  // Redirect if no draft (after all hooks)
+  if (!draft) {
+    navigate('/record', { replace: true });
+    return null;
+  }
 
   // Confidence signals
   const catConfidence = draft.categoryConfidence || (category ? 'high' : 'low');
@@ -84,7 +82,6 @@ const ReviewScreen = () => {
   const handleCategoryChange = (newCat: string) => {
     setCategory(newCat);
     setCategorySource('user');
-    // Check if current subtype is still valid
     const validSubs = SUBTYPES[newCat as PrimaryCategory] || [];
     if (!validSubs.includes(subtype)) {
       setSubtype('Unclassified');
@@ -98,7 +95,6 @@ const ReviewScreen = () => {
   const handleAddPerson = (name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    // Normalise casing
     const normalised = trimmed.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
     if (!people.includes(normalised)) {
       setPeople(prev => [...prev, normalised]);
@@ -147,11 +143,22 @@ const ReviewScreen = () => {
 
   return (
     <div className="min-h-screen pb-24 page-enter">
-      <PageHeader
-        title="Review"
-        subtitle="Review your record before saving"
-        onBack={() => navigate('/record', { state: { returnDraft: draft } })}
-      />
+      {/* Header with back button */}
+      <div className="px-5 pt-8 pb-4">
+        <div className="flex items-center gap-3 mb-1">
+          <button
+            onClick={() => navigate('/record', { state: { returnDraft: draft } })}
+            className="p-1.5 -ml-1.5 text-muted-foreground/60 hover:text-foreground transition-colors rounded-lg hover:bg-muted/40"
+            aria-label="Back to capture"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          </button>
+          <h1>Review</h1>
+        </div>
+        <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
+          Review your record before saving
+        </p>
+      </div>
 
       <div className="px-5 space-y-5">
         {/* Section 1 — Raw Narrative (read-only) */}
@@ -168,8 +175,6 @@ const ReviewScreen = () => {
 
         {/* Section 2 — Structured Fields */}
         <div className="space-y-4">
-          <p className="text-[11px] text-muted-foreground/60 text-center">Review your record before saving</p>
-
           {/* Category */}
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)] space-y-3">
             <div className="flex items-center justify-between">
@@ -190,9 +195,7 @@ const ReviewScreen = () => {
                 <SelectContent>
                   {PRIMARY_CATEGORIES.map(c => (
                     <SelectItem key={c} value={c}>
-                      <div className="flex flex-col">
-                        <span>{c === 'Other' ? 'Unclassified' : c}</span>
-                      </div>
+                      {c === 'Other' ? 'Unclassified' : c}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -245,7 +248,6 @@ const ReviewScreen = () => {
               )}
             </div>
 
-            {/* Chips */}
             <div className="flex flex-wrap gap-1.5">
               {people.map(person => (
                 <button
@@ -268,7 +270,6 @@ const ReviewScreen = () => {
               )}
             </div>
 
-            {/* Add person input */}
             <AnimatePresence>
               {showAddPerson && (
                 <motion.div
@@ -277,7 +278,6 @@ const ReviewScreen = () => {
                   exit={{ opacity: 0, height: 0 }}
                   className="space-y-2 overflow-hidden"
                 >
-                  {/* Suggestions from previous records */}
                   {previousNames.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {previousNames.slice(0, 8).map(name => (
@@ -323,7 +323,7 @@ const ReviewScreen = () => {
             </AnimatePresence>
           </div>
 
-          {/* Date/Time/Location summary (read-only context) */}
+          {/* Date/Time/Location summary */}
           <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
             <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Details</Label>
             <div className="grid grid-cols-2 gap-y-2 text-[13px]">
