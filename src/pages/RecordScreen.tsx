@@ -33,6 +33,7 @@ const categories = [...PRIMARY_CATEGORIES];
 
 const RecordScreen = () => {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
   const { user } = useAuth();
   const { devMode, toggleDevMode } = useDevMode();
   const { data: existingIncidents = [] } = useIncidents();
