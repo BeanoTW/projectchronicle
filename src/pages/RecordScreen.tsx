@@ -238,41 +238,30 @@ const RecordScreen = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
-    setSaving(true);
-    try {
-      const result = await createIncident.mutateAsync({
-        raw_narrative: narrative,
-        incident_date: incidentDate,
-        incident_time: incidentTime || null,
-        location: location || null,
-        category: category || null,
-        subtype: subtype || null,
-        severity: null,
-        people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
-        witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
-        exact_words: exactWords || null,
-        impact_note: impactNote || null,
-        ai_summary: aiSummary || null,
-        title: title || null,
-        record_method: mode,
-        context_domain: contextDomain || null,
-        category_source: categorySource || 'ai',
-      } as any);
-      await createEditHistory.mutateAsync({
-        incident_id: result.id,
-        field_changed: 'incident_recorded',
-      });
-      localStorage.removeItem('chronicle-draft');
-      setSaved(true);
-      toast({ title: 'Record saved', description: 'You can add attachments to this later.' });
-      setTimeout(() => navigate('/timeline'), 1200);
-    } catch (e) {
-      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
+    // Navigate to review screen instead of saving directly
+    navigate('/review', {
+      state: {
+        draft: {
+          narrative,
+          title,
+          incidentDate,
+          incidentTime,
+          location,
+          category,
+          subtype,
+          categorySource,
+          contextDomain,
+          peopleInvolved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
+          witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+          exactWords,
+          impactNote,
+          aiSummary,
+          recordMethod: mode,
+        },
+      },
+    });
   };
 
   const handleSaveSplit = async (drafts: IncidentDraft[]) => {

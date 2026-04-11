@@ -20,6 +20,7 @@ import SupportScreen from "./pages/SupportScreen";
 import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
+import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
