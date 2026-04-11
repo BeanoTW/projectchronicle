@@ -20,6 +20,7 @@ import SupportScreen from "./pages/SupportScreen";
 import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
+import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2, Paperclip } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ const categories = [...PRIMARY_CATEGORIES];
 
 const RecordScreen = () => {
   const navigate = useNavigate();
+  const routeLocation = useLocation();
   const { user } = useAuth();
   const { devMode, toggleDevMode } = useDevMode();
   const { data: existingIncidents = [] } = useIncidents();
@@ -107,8 +108,31 @@ const RecordScreen = () => {
     }
   }, [narrative, incidentDate, incidentTime, location, category, subtype, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
-  // Load draft on mount — ONLY user-entered fields, never analysis/AI output
+  // Restore state when returning from review screen
   useEffect(() => {
+    const returnDraft = routeLocation.state?.returnDraft;
+    if (returnDraft) {
+      setNarrative(returnDraft.narrative || '');
+      setTitle(returnDraft.title || '');
+      setIncidentDate(returnDraft.incidentDate || '');
+      setIncidentTime(returnDraft.incidentTime || '');
+      setLocation(returnDraft.location || '');
+      setCategory(returnDraft.category || '');
+      setSubtype(returnDraft.subtype || '');
+      setCategorySource(returnDraft.categorySource || null);
+      setContextDomain(returnDraft.contextDomain || '');
+      setPeopleInvolved(Array.isArray(returnDraft.peopleInvolved) ? returnDraft.peopleInvolved.join(', ') : returnDraft.peopleInvolved || '');
+      setWitnesses(Array.isArray(returnDraft.witnesses) ? returnDraft.witnesses.join(', ') : returnDraft.witnesses || '');
+      setExactWords(returnDraft.exactWords || '');
+      setImpactNote(returnDraft.impactNote || '');
+      setAiSummary(returnDraft.aiSummary || '');
+      if (returnDraft.category) setAiSuggested(true);
+      // Clear route state to prevent re-restoration
+      window.history.replaceState({}, '');
+      return;
+    }
+
+    // Load draft on mount — ONLY user-entered fields, never analysis/AI output
     const stored = localStorage.getItem('chronicle-draft');
     if (stored) {
       try {
@@ -238,41 +262,30 @@ const RecordScreen = () => {
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
-    setSaving(true);
-    try {
-      const result = await createIncident.mutateAsync({
-        raw_narrative: narrative,
-        incident_date: incidentDate,
-        incident_time: incidentTime || null,
-        location: location || null,
-        category: category || null,
-        subtype: subtype || null,
-        severity: null,
-        people_involved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
-        witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
-        exact_words: exactWords || null,
-        impact_note: impactNote || null,
-        ai_summary: aiSummary || null,
-        title: title || null,
-        record_method: mode,
-        context_domain: contextDomain || null,
-        category_source: categorySource || 'ai',
-      } as any);
-      await createEditHistory.mutateAsync({
-        incident_id: result.id,
-        field_changed: 'incident_recorded',
-      });
-      localStorage.removeItem('chronicle-draft');
-      setSaved(true);
-      toast({ title: 'Record saved', description: 'You can add attachments to this later.' });
-      setTimeout(() => navigate('/timeline'), 1200);
-    } catch (e) {
-      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
-    } finally {
-      setSaving(false);
-    }
+    // Navigate to review screen instead of saving directly
+    navigate('/review', {
+      state: {
+        draft: {
+          narrative,
+          title,
+          incidentDate,
+          incidentTime,
+          location,
+          category,
+          subtype,
+          categorySource,
+          contextDomain,
+          peopleInvolved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
+          witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+          exactWords,
+          impactNote,
+          aiSummary,
+          recordMethod: mode,
+        },
+      },
+    });
   };
 
   const handleSaveSplit = async (drafts: IncidentDraft[]) => {
