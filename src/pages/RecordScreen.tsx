@@ -108,8 +108,31 @@ const RecordScreen = () => {
     }
   }, [narrative, incidentDate, incidentTime, location, category, subtype, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
-  // Load draft on mount — ONLY user-entered fields, never analysis/AI output
+  // Restore state when returning from review screen
   useEffect(() => {
+    const returnDraft = routeLocation.state?.returnDraft;
+    if (returnDraft) {
+      setNarrative(returnDraft.narrative || '');
+      setTitle(returnDraft.title || '');
+      setIncidentDate(returnDraft.incidentDate || '');
+      setIncidentTime(returnDraft.incidentTime || '');
+      setLocation(returnDraft.location || '');
+      setCategory(returnDraft.category || '');
+      setSubtype(returnDraft.subtype || '');
+      setCategorySource(returnDraft.categorySource || null);
+      setContextDomain(returnDraft.contextDomain || '');
+      setPeopleInvolved(Array.isArray(returnDraft.peopleInvolved) ? returnDraft.peopleInvolved.join(', ') : returnDraft.peopleInvolved || '');
+      setWitnesses(Array.isArray(returnDraft.witnesses) ? returnDraft.witnesses.join(', ') : returnDraft.witnesses || '');
+      setExactWords(returnDraft.exactWords || '');
+      setImpactNote(returnDraft.impactNote || '');
+      setAiSummary(returnDraft.aiSummary || '');
+      if (returnDraft.category) setAiSuggested(true);
+      // Clear route state to prevent re-restoration
+      window.history.replaceState({}, '');
+      return;
+    }
+
+    // Load draft on mount — ONLY user-entered fields, never analysis/AI output
     const stored = localStorage.getItem('chronicle-draft');
     if (stored) {
       try {
