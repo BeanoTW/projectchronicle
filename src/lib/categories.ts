@@ -25,12 +25,13 @@ export type PrimaryCategory = (typeof PRIMARY_CATEGORIES)[number];
 export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
   'Communication': [
     'Verbal statement',
+    'Instruction given',
+    'Performance feedback',
     'Written message',
     'Email',
-    'Public statement',
     'Internal communication',
-    'Instruction given',
-    'Unclassified',
+    'Public statement',
+    'Not sure yet',
   ],
   'Action / Change': [
     'Shift removed',
