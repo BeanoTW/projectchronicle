@@ -25,12 +25,13 @@ export type PrimaryCategory = (typeof PRIMARY_CATEGORIES)[number];
 export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
   'Communication': [
     'Verbal statement',
+    'Instruction given',
+    'Performance feedback',
     'Written message',
     'Email',
-    'Public statement',
     'Internal communication',
-    'Instruction given',
-    'Unclassified',
+    'Public statement',
+    'Not sure yet',
   ],
   'Action / Change': [
     'Shift removed',
@@ -41,7 +42,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Access granted',
     'Location changed',
     'Schedule altered',
-    'Unclassified',
+    'Not sure yet',
   ],
   'Process Event': [
     'Meeting held',
@@ -52,7 +53,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Appeal submitted',
     'Appeal outcome issued',
     'Formal notice given',
-    'Unclassified',
+    'Not sure yet',
   ],
   'Pay / Benefits': [
     'Pay change',
@@ -61,7 +62,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Holiday / leave issue',
     'Sick pay issue',
     'Expenses issue',
-    'Unclassified',
+    'Not sure yet',
   ],
   'Working Conditions': [
     'Unsafe condition',
@@ -70,7 +71,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Workload level change',
     'Break / rest issue',
     'Temperature / environment issue',
-    'Unclassified',
+    'Not sure yet',
   ],
   'Observed Behaviour': [
     'Tone / manner',
@@ -79,7 +80,7 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Unequal treatment (observed difference)',
     'Repeated behaviour',
     'Physical gesture / conduct',
-    'Unclassified',
+    'Not sure yet',
   ],
   'Record Issued': [
     'Warning issued',
@@ -87,9 +88,9 @@ export const SUBTYPES: Record<PrimaryCategory, readonly string[]> = {
     'Policy document provided',
     'Contract / terms issued',
     'Notes recorded',
-    'Unclassified',
+    'Not sure yet',
   ],
-  'Other': ['Unclassified'],
+  'Other': ['Not sure yet'],
 } as const;
 
 export type Subtype = (typeof SUBTYPES)[PrimaryCategory][number];
@@ -233,7 +234,7 @@ export const LEGACY_CATEGORY_MAP: Record<string, PrimaryCategory> = {
 export function resolveCategory(raw: string | null | undefined): PrimaryCategory {
   if (!raw) return 'Other';
   if (PRIMARY_CATEGORIES.includes(raw as PrimaryCategory)) return raw as PrimaryCategory;
-  if (raw === 'Unclassified') return 'Other';
+  if (raw === 'Unclassified' || raw === 'Not sure yet') return 'Other';
   return LEGACY_CATEGORY_MAP[raw] || 'Other';
 }
 

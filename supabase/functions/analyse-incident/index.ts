@@ -66,19 +66,19 @@ Categories and definitions:
 
 SUBTYPE CLASSIFICATION:
 After assigning the primary category, assign exactly one subtype from the valid set for that category:
-- Communication: Verbal statement, Written message, Email, Public statement, Internal communication, Instruction given, Unclassified
-- Action / Change: Shift removed, Shift added, Role changed, Duties reassigned, Access revoked, Access granted, Location changed, Schedule altered, Unclassified
-- Process Event: Meeting held, Meeting scheduled, Investigation started, Investigation ongoing, Outcome issued, Appeal submitted, Appeal outcome issued, Formal notice given, Unclassified
-- Pay / Benefits: Pay change, Pay withheld, Bonus / commission change, Holiday / leave issue, Sick pay issue, Expenses issue, Unclassified
-- Working Conditions: Unsafe condition, Equipment issue, Staffing level issue, Workload level change, Break / rest issue, Temperature / environment issue, Unclassified
-- Observed Behaviour: Tone / manner, Ignored / no response, Exclusion from activity, Unequal treatment (observed difference), Repeated behaviour, Physical gesture / conduct, Unclassified
-- Record Issued: Warning issued, Written record created, Policy document provided, Contract / terms issued, Notes recorded, Unclassified
-- Other: Unclassified
+- Communication: Verbal statement, Instruction given, Performance feedback, Written message, Email, Internal communication, Public statement, Not sure yet
+- Action / Change: Shift removed, Shift added, Role changed, Duties reassigned, Access revoked, Access granted, Location changed, Schedule altered, Not sure yet
+- Process Event: Meeting held, Meeting scheduled, Investigation started, Investigation ongoing, Outcome issued, Appeal submitted, Appeal outcome issued, Formal notice given, Not sure yet
+- Pay / Benefits: Pay change, Pay withheld, Bonus / commission change, Holiday / leave issue, Sick pay issue, Expenses issue, Not sure yet
+- Working Conditions: Unsafe condition, Equipment issue, Staffing level issue, Workload level change, Break / rest issue, Temperature / environment issue, Not sure yet
+- Observed Behaviour: Tone / manner, Ignored / no response, Exclusion from activity, Unequal treatment (observed difference), Repeated behaviour, Physical gesture / conduct, Not sure yet
+- Record Issued: Warning issued, Written record created, Policy document provided, Contract / terms issued, Notes recorded, Not sure yet
+- Other: Not sure yet
 
 CLASSIFICATION RULES:
 - Classify based on the primary behaviour described, not every behaviour mentioned.
 - Where multiple categories seem relevant, assign the most behaviourally specific one.
-- If a valid subtype cannot be determined, assign "Unclassified" within the selected category.
+- If a valid subtype cannot be determined, assign "Not sure yet" within the selected category.
 - Use "Other" only when no trigger fits. If any trigger exists, assign the best match.
 
 PRIORITY ORDER (tie-breaker when multiple categories equally match):
