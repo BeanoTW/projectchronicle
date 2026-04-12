@@ -288,30 +288,28 @@ const RecordScreen = () => {
     });
   };
 
-  const handleSaveSplit = async (drafts: IncidentDraft[]) => {
+  const handleSaveSplit = (splitDraftItems: IncidentDraft[]) => {
     setSplitModalOpen(false);
-    setSaving(true);
-    try {
-      for (const draft of drafts) {
-        const result = await createIncident.mutateAsync({
-          raw_narrative: draft.narrative,
-          incident_date: draft.incident_date || incidentDate,
-          incident_time: draft.incident_time || null,
-          title: draft.title || null,
-          record_method: 'text',
-        });
-        await createEditHistory.mutateAsync({
-          incident_id: result.id,
-          field_changed: 'incident_recorded',
-        });
-      }
-      localStorage.removeItem('chronicle-draft');
-      toast({ title: `${drafts.length} incidents saved`, description: 'Your entry has been split and added to your timeline.' });
-      navigate('/timeline');
-    } catch (e) {
-      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
-    } finally {
-      setSaving(false);
+    // Route split drafts through the review screen as multi-incident
+    const multiDrafts = splitDraftItems.filter(d => d.narrative.trim()).map(d => ({
+      narrative: d.narrative,
+      title: d.title || '',
+      incidentDate: d.incident_date || incidentDate,
+      incidentTime: d.incident_time || incidentTime,
+      location,
+      category: '',
+      subtype: 'Not sure yet',
+      categorySource: null as 'ai' | 'user' | null,
+      contextDomain,
+      peopleInvolved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
+      witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+      exactWords: '',
+      impactNote: '',
+      aiSummary: '',
+      recordMethod: mode,
+    }));
+    if (multiDrafts.length > 0) {
+      navigate('/review', { state: { multiDrafts } });
     }
   };
 
