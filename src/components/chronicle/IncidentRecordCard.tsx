@@ -275,7 +275,7 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   // 4. CLASSIFICATION
   if (incident.category) {
     const displayCat = esc(incident.category);
-    const sub = incident.subtype && incident.subtype !== 'Unclassified' && incident.subtype !== 'Other' && incident.subtype !== incident.category
+    const sub = incident.subtype && incident.subtype !== 'Unclassified' && incident.subtype !== 'Not sure yet' && incident.subtype !== 'Other' && incident.subtype !== incident.category
       ? ` → ${esc(incident.subtype)}` : '';
     html += `<div class="section classification"><p class="section-label">Classification</p>`;
     html += `<p>${displayCat}${sub}</p></div>`;

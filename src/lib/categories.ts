@@ -234,7 +234,7 @@ export const LEGACY_CATEGORY_MAP: Record<string, PrimaryCategory> = {
 export function resolveCategory(raw: string | null | undefined): PrimaryCategory {
   if (!raw) return 'Other';
   if (PRIMARY_CATEGORIES.includes(raw as PrimaryCategory)) return raw as PrimaryCategory;
-  if (raw === 'Unclassified') return 'Other';
+  if (raw === 'Unclassified' || raw === 'Not sure yet') return 'Other';
   return LEGACY_CATEGORY_MAP[raw] || 'Other';
 }
 

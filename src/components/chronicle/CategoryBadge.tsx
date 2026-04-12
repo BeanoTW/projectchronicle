@@ -9,7 +9,7 @@ const CategoryBadge = ({ category, subtype }: CategoryBadgeProps) => {
   const resolved = resolveCategory(category);
   const tint = CATEGORY_BADGE_TINTS[resolved]
     || 'bg-accent/80 text-accent-foreground border-accent-foreground/10';
-  const showSubtype = subtype && subtype !== 'Unclassified' && subtype !== 'Other' && subtype !== category;
+  const showSubtype = subtype && subtype !== 'Unclassified' && subtype !== 'Not sure yet' && subtype !== 'Other' && subtype !== category;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${tint}`}>
       {resolved}
