@@ -1,11 +1,20 @@
 /**
  * IncidentRecordCard — Unified rendering for all surfaces
  *
- * Structurally identical across: timeline view, sequence view, export HTML.
- * Sequences MUST NOT change how incidents are rendered.
+ * Section order (spec-locked):
+ *   1. Header (ID + date/time)
+ *   2. Meta (recorded_at, retrospective label)
+ *   3. People involved
+ *   4. Classification
+ *   5. Raw narrative (primary)
+ *   6. Exact words
+ *   7. Follow-ups
+ *   8. Evidence
+ *   9. Integrity block
+ *  10. Citation block
  */
 
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import CategoryBadge from './CategoryBadge';
 import type { Incident } from '@/hooks/useIncidents';
 import type { FollowUpNote } from '@/hooks/useFollowUpNotes';
@@ -15,12 +24,11 @@ interface IncidentRecordCardProps {
   incident: Incident;
   followUps?: FollowUpNote[];
   evidence?: EvidenceFile[];
-  /** If true, renders as a compact summary line (export/sequence view) */
   compact?: boolean;
   onClick?: () => void;
 }
 
-function formatTimestamp(dateStr: string): string {
+function fmtFull(dateStr: string): string {
   try {
     return format(parseISO(dateStr), 'dd MMMM yyyy, HH:mm');
   } catch {
@@ -28,11 +36,21 @@ function formatTimestamp(dateStr: string): string {
   }
 }
 
-function formatDateOnly(dateStr: string): string {
+function fmtDate(dateStr: string): string {
   try {
     return format(parseISO(dateStr), 'dd MMMM yyyy');
   } catch {
     return dateStr;
+  }
+}
+
+function retroLabel(incidentDate: string, createdAt: string): string | null {
+  try {
+    const gap = differenceInCalendarDays(parseISO(createdAt), parseISO(incidentDate));
+    if (gap > 0) return `Recorded ${gap} day${gap === 1 ? '' : 's'} after event`;
+    return null;
+  } catch {
+    return null;
   }
 }
 
@@ -44,6 +62,7 @@ const IncidentRecordCard = ({
   onClick,
 }: IncidentRecordCardProps) => {
   const isVoided = !!incident.voided_at;
+  const retro = retroLabel(incident.incident_date, incident.created_at);
 
   if (compact) {
     return (
@@ -54,7 +73,7 @@ const IncidentRecordCard = ({
       >
         <div className="flex items-baseline gap-2">
           <span className="text-[13px] font-semibold text-foreground whitespace-nowrap">
-            {formatDateOnly(incident.incident_date)}
+            {fmtDate(incident.incident_date)}
           </span>
           {incident.incident_time && (
             <span className="text-[12px] text-muted-foreground">{incident.incident_time}</span>
@@ -68,7 +87,7 @@ const IncidentRecordCard = ({
           <div className="ml-4 mt-1 space-y-0.5">
             {followUps.map(fu => (
               <p key={fu.id} className="text-[11px] text-muted-foreground/70">
-                Follow-up ({formatTimestamp(fu.created_at)}): {fu.note_text}
+                Follow-up ({fmtFull(fu.created_at)}): {fu.note_text}
               </p>
             ))}
           </div>
@@ -83,79 +102,85 @@ const IncidentRecordCard = ({
       onClick={onClick}
       data-incident-id={incident.id}
     >
-      {/* Header */}
+      {/* 1. HEADER */}
       <div className="px-4 py-3 border-b border-border">
-        {incident.category && (
-          <div className="mb-1">
-            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[12px] text-muted-foreground font-medium">
+            {incident.id.slice(0, 8).toUpperCase()}
+          </p>
+          <div className="text-right">
+            <p className="text-[13px] font-semibold text-foreground">{fmtDate(incident.incident_date)}</p>
+            {incident.incident_time && (
+              <p className="text-[12px] text-muted-foreground">{incident.incident_time}</p>
+            )}
           </div>
+        </div>
+        {isVoided && (
+          <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mt-1 inline-block">Voided</span>
         )}
-        <h3 className={`text-[15px] font-semibold leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-          {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
-          {incident.title || 'Untitled incident'}
-        </h3>
       </div>
 
-      {/* Meta */}
-      <div className="px-4 py-2.5 border-b border-border/50 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-        <span>{formatDateOnly(incident.incident_date)}</span>
-        {incident.incident_time && <><span className="opacity-30">·</span><span>{incident.incident_time}</span></>}
-        {incident.location && <><span className="opacity-30">·</span><span>{incident.location}</span></>}
+      {/* 2. META — recorded_at + retrospective */}
+      <div className="px-4 py-2.5 border-b border-border/50 text-[12px] text-muted-foreground space-y-0.5">
+        <p>Recorded: {fmtFull(incident.created_at)}</p>
+        {retro && <p className="text-muted-foreground/70">{retro}</p>}
+        {incident.location && <p>{incident.location}</p>}
       </div>
 
       <div className="px-4 py-3 space-y-3">
-        {/* People */}
+        {/* 3. PEOPLE INVOLVED */}
         {incident.people_involved.length > 0 && (
           <div>
             <p className="text-[11px] font-semibold text-muted-foreground mb-1">People involved</p>
-            <div className="flex flex-wrap gap-1">
-              {incident.people_involved.map(p => (
-                <span key={p} className="bg-primary/6 text-primary px-2 py-0.5 rounded text-[11px] font-medium border border-primary/12">{p}</span>
-              ))}
-            </div>
+            <p className="text-[13px] text-foreground">{incident.people_involved.join(', ')}</p>
           </div>
         )}
 
-        {/* Classification shown in header — no duplicate here */}
+        {/* 4. CLASSIFICATION */}
+        {incident.category && (
+          <div>
+            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Classification</p>
+            <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
+          </div>
+        )}
 
-        {/* Narrative */}
+        {/* 5. RAW NARRATIVE (primary) */}
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground mb-1">Narrative</p>
-          <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
+          <p className="text-[11px] font-semibold text-muted-foreground mb-1">User-provided account</p>
+          <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
             {incident.raw_narrative}
           </p>
         </div>
 
-        {/* Exact words */}
+        {/* 6. EXACT WORDS */}
         {incident.exact_words && (
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words recorded</p>
+            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words</p>
             <div className="border-l-[3px] border-muted-foreground/20 pl-3">
               <p className="text-[13px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
             </div>
           </div>
         )}
 
-        {/* Follow-ups */}
+        {/* 7. FOLLOW-UPS */}
         {followUps.length > 0 && (
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Follow-ups ({followUps.length})</p>
+            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Follow-ups</p>
             <div className="space-y-1.5">
               {followUps.map(fu => (
                 <div key={fu.id} className="text-[12px] text-muted-foreground" data-followup-id={fu.id}>
-                  <span className="text-muted-foreground/60">{formatTimestamp(fu.created_at)}</span>
-                  <span className="mx-1">—</span>
-                  <span>{fu.note_text}</span>
+                  <span className="text-muted-foreground/60">Follow-up — {fmtFull(fu.created_at)}</span>
+                  <p className="mt-0.5">{fu.note_text}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Evidence */}
+        {/* 8. EVIDENCE */}
         {evidence.length > 0 && (
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Attachments ({evidence.length})</p>
+            <p className="text-[11px] font-semibold text-muted-foreground mb-1">Evidence</p>
             <div className="space-y-1">
               {evidence.map(ev => (
                 <div key={ev.id} className="text-[12px] text-muted-foreground">
@@ -166,11 +191,24 @@ const IncidentRecordCard = ({
           </div>
         )}
 
-        {/* Integrity line */}
-        <div className="pt-2 border-t border-border/50">
-          <p className="text-[10px] text-muted-foreground/50">
-            Recorded on {formatTimestamp(incident.created_at).replace(', ', ' at ')}
+        {/* 9. INTEGRITY BLOCK */}
+        <div className="pt-2 border-t border-border/50 space-y-0.5">
+          <p className="text-[10px] text-muted-foreground/60">
+            This record was created on {fmtFull(incident.created_at)}
           </p>
+          <p className="text-[10px] text-muted-foreground/60">
+            Original content preserved · Updates appended without overwriting
+          </p>
+          {incident.category_source === 'user' && (
+            <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
+          )}
+        </div>
+
+        {/* 10. CITATION BLOCK */}
+        <div className="pt-2 border-t border-border/50 font-mono text-[10px] text-muted-foreground/50 space-y-0.5">
+          <p>Incident ID: {incident.id}</p>
+          <p>Incident date: {fmtDate(incident.incident_date)}</p>
+          <p>Recorded: {fmtFull(incident.created_at)}</p>
         </div>
       </div>
     </div>
@@ -195,84 +233,97 @@ function esc(str: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function formatDateHtml(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), 'dd MMMM yyyy');
-  } catch {
-    return dateStr;
-  }
+function fmtFullHtml(dateStr: string): string {
+  try { return format(parseISO(dateStr), 'dd MMMM yyyy, HH:mm'); } catch { return dateStr; }
 }
 
-function formatTimestampHtml(dateStr: string): string {
+function fmtDateHtml(dateStr: string): string {
+  try { return format(parseISO(dateStr), 'dd MMMM yyyy'); } catch { return dateStr; }
+}
+
+function retroLabelHtml(incidentDate: string, createdAt: string): string | null {
   try {
-    return format(parseISO(dateStr), 'dd MMMM yyyy, HH:mm');
-  } catch {
-    return dateStr;
-  }
+    const gap = differenceInCalendarDays(parseISO(createdAt), parseISO(incidentDate));
+    if (gap > 0) return `Recorded ${gap} day${gap === 1 ? '' : 's'} after event`;
+    return null;
+  } catch { return null; }
 }
 
 export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   const { incident, followUps, evidence } = data;
-  let html = `<div class="incident-card" data-incident-id="${esc(incident.id)}">`;
+  const retro = retroLabelHtml(incident.incident_date, incident.created_at);
+  let html = `<div class="incident-card" style="page-break-inside:avoid" data-incident-id="${esc(incident.id)}">`;
 
-  // Header — category above title
-  if (incident.category) {
-    const displayCat = incident.category;
-    html += `<div class="card-header"><span class="category-tag" style="margin-bottom:4px;display:inline-block">${esc(displayCat)}${incident.subtype && incident.subtype !== 'Unclassified' && incident.subtype !== 'Other' && incident.subtype !== incident.category ? ` — ${esc(incident.subtype)}` : ''}</span><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
-  } else {
-    html += `<div class="card-header"><h3>${esc(incident.title || 'Untitled incident')}</h3></div>`;
-  }
+  // 1. HEADER
+  html += `<div class="header"><span class="incident-id">${esc(incident.id.slice(0, 8).toUpperCase())}</span>`;
+  html += `<span class="incident-date">${fmtDateHtml(incident.incident_date)}`;
+  if (incident.incident_time) html += ` · ${esc(incident.incident_time)}`;
+  html += `</span></div>`;
 
-  // Meta
-  html += `<div class="card-meta">`;
-  html += `<span>${formatDateHtml(incident.incident_date)}</span>`;
-  if (incident.incident_time) html += ` · <span>${esc(incident.incident_time)}</span>`;
-  if (incident.location) html += ` · <span>${esc(incident.location)}</span>`;
+  // 2. META
+  html += `<div class="meta"><p>Recorded: ${fmtFullHtml(incident.created_at)}</p>`;
+  if (retro) html += `<p>${esc(retro)}</p>`;
+  if (incident.location) html += `<p>${esc(incident.location)}</p>`;
   html += `</div>`;
 
-  // People
+  // 3. PEOPLE
   if (incident.people_involved.length > 0) {
-    html += `<div class="card-section"><p class="section-label">People involved</p>`;
-    html += incident.people_involved.map(p => `<span class="person-tag">${esc(p)}</span>`).join(' ');
-    html += `</div>`;
+    html += `<div class="section people"><p class="section-label">People involved</p>`;
+    html += `<p>${incident.people_involved.map(p => esc(p)).join(', ')}</p></div>`;
   }
 
-  // Classification — shown in header, no duplicate
+  // 4. CLASSIFICATION
+  if (incident.category) {
+    const displayCat = esc(incident.category);
+    const sub = incident.subtype && incident.subtype !== 'Unclassified' && incident.subtype !== 'Other' && incident.subtype !== incident.category
+      ? ` → ${esc(incident.subtype)}` : '';
+    html += `<div class="section classification"><p class="section-label">Classification</p>`;
+    html += `<p>${displayCat}${sub}</p></div>`;
+  }
 
-  // Narrative
-  html += `<div class="card-section"><p class="section-label">Narrative</p>`;
-  html += `<p class="narrative">${esc(incident.raw_narrative)}</p>`;
-  html += `</div>`;
+  // 5. NARRATIVE
+  html += `<div class="section narrative"><p class="section-label">User-provided account</p>`;
+  html += `<p class="narrative-text">${esc(incident.raw_narrative)}</p></div>`;
 
-  // Exact words
+  // 6. EXACT WORDS
   if (incident.exact_words) {
-    html += `<div class="card-section"><p class="section-label">Exact words recorded</p>`;
-    html += `<blockquote class="exact-words">"${esc(incident.exact_words)}"</blockquote>`;
-    html += `</div>`;
+    html += `<div class="section exact-words"><p class="section-label">Exact words</p>`;
+    html += `<blockquote>"${esc(incident.exact_words)}"</blockquote></div>`;
   }
 
-  // Follow-ups
+  // 7. FOLLOW-UPS
   if (followUps.length > 0) {
-    html += `<div class="card-section"><p class="section-label">Follow-ups (${followUps.length})</p>`;
+    html += `<div class="section followups"><p class="section-label">Follow-ups</p>`;
     followUps.forEach(fu => {
       html += `<div class="followup-entry" data-followup-id="${esc(fu.id)}">`;
-      html += `<span class="followup-date">${formatTimestampHtml(fu.created_at)}</span> — ${esc(fu.note_text)}`;
-      html += `</div>`;
+      html += `<span class="followup-date">Follow-up — ${fmtFullHtml(fu.created_at)}</span>`;
+      html += `<p>${esc(fu.note_text)}</p></div>`;
     });
     html += `</div>`;
   }
 
-  // Evidence
+  // 8. EVIDENCE
   if (evidence.length > 0) {
-    html += `<div class="card-section"><p class="section-label">Attachments (${evidence.length})</p>`;
+    html += `<div class="section evidence"><p class="section-label">Evidence</p>`;
     evidence.forEach(ev => {
       html += `<div class="evidence-entry">E${String(ev.evidence_ref_number || '?').padStart(2, '0')} — ${esc(ev.file_name)}</div>`;
     });
     html += `</div>`;
   }
 
-  // Integrity — exact timestamp
-  html += `<div class="card-citation"><p>Recorded on ${formatTimestampHtml(incident.created_at).replace(', ', ' at ')}</p></div>`;
+  // 9. INTEGRITY
+  html += `<div class="section integrity">`;
+  html += `<p>This record was created on ${fmtFullHtml(incident.created_at)}</p>`;
+  html += `<p>Original content preserved · Updates appended without overwriting</p>`;
+  if (incident.category_source === 'user') html += `<p>Classification reviewed before save</p>`;
+  html += `</div>`;
+
+  // 10. CITATION
+  html += `<div class="section citation">`;
+  html += `<p>Incident ID: ${esc(incident.id)}</p>`;
+  html += `<p>Incident date: ${fmtDateHtml(incident.incident_date)}</p>`;
+  html += `<p>Recorded: ${fmtFullHtml(incident.created_at)}</p>`;
+  html += `</div>`;
 
   html += `</div>`;
   return html;

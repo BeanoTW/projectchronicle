@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { ArrowLeft, EyeOff, Trash2, Plus, Archive } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
@@ -8,8 +8,6 @@ import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
-import RecordAgeChip from '@/components/chronicle/RecordAgeChip';
-import AILabel from '@/components/chronicle/AILabel';
 import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +16,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+
+function fmtFull(dateStr: string): string {
+  try { return format(parseISO(dateStr), 'dd MMMM yyyy, HH:mm'); } catch { return dateStr; }
+}
+function fmtDate(dateStr: string): string {
+  try { return format(parseISO(dateStr), 'dd MMMM yyyy'); } catch { return dateStr; }
+}
 
 const IncidentDetailScreen = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,17 +46,6 @@ const IncidentDetailScreen = () => {
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
 
-  // Record details (neutral completeness counts)
-  const recordDetails = useMemo(() => {
-    if (!incident) return null;
-    const linkedEvidence = allEvidence.filter(e => e.incident_id === incident.id);
-    return {
-      attachments: linkedEvidence.length,
-      followUps: notes.length,
-      peopleInvolved: incident.people_involved.length,
-    };
-  }, [incident, allEvidence, notes]);
-
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
   }
@@ -61,6 +55,12 @@ const IncidentDetailScreen = () => {
   }
 
   const isVoided = !!incident.voided_at;
+  const retroGap = (() => {
+    try {
+      const gap = differenceInCalendarDays(parseISO(incident.created_at), parseISO(incident.incident_date));
+      return gap > 0 ? `Recorded ${gap} day${gap === 1 ? '' : 's'} after event` : null;
+    } catch { return null; }
+  })();
 
   const handleDelete = async () => {
     await deleteIncident.mutateAsync(incident.id);
@@ -106,16 +106,9 @@ const IncidentDetailScreen = () => {
     }
   };
 
-  // Map edit history entries as "Updates"
   const updates = editHistory
     .filter(h => h.field_changed !== 'incident_recorded')
-    .map(h => ({
-      id: h.id,
-      field_changed: h.field_changed,
-      old_value: h.old_value ?? undefined,
-      new_value: h.new_value ?? undefined,
-      changed_at: h.changed_at,
-    }))
+    .map(h => ({ id: h.id, field_changed: h.field_changed, old_value: h.old_value ?? undefined, new_value: h.new_value ?? undefined, changed_at: h.changed_at }))
     .sort((a, b) => new Date(a.changed_at).getTime() - new Date(b.changed_at).getTime());
 
   function formatUpdateAction(entry: typeof updates[0]): string {
@@ -129,116 +122,52 @@ const IncidentDetailScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 page-enter">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-5 pt-4 pb-5">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-primary text-[13px] mb-3 font-medium">
+      {/* Nav */}
+      <div className="bg-card border-b border-border px-5 pt-4 pb-3">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-primary text-[13px] font-medium">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
+      </div>
 
+      <div className="px-5 pt-5 space-y-4">
+        {/* Voided banner */}
         {isVoided && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-muted/60 text-muted-foreground border border-border mb-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/60 text-muted-foreground border border-border">
             <Archive className="h-4 w-4" />
             <div>
               <span className="text-sm font-medium">Voided record</span>
               {incident.void_reason && <p className="text-[12px] text-muted-foreground/70 mt-0.5">{incident.void_reason}</p>}
-              <p className="text-[11px] text-muted-foreground/50">Voided on {format(parseISO(incident.voided_at!), 'dd MMMM yyyy')} at {format(parseISO(incident.voided_at!), 'HH:mm')}</p>
+              <p className="text-[11px] text-muted-foreground/50">Voided on {fmtFull(incident.voided_at!)}</p>
             </div>
           </div>
         )}
 
-        <h1 className={`text-[20px] font-bold leading-tight ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-          {incident.title || 'Untitled incident'}
-        </h1>
+        {/* === INCIDENT CARD (spec section order) === */}
+        <div className={`bg-card border border-border rounded-xl overflow-hidden ${isVoided ? 'opacity-50' : ''}`}>
 
-        <div className="flex flex-wrap gap-1.5 mt-2.5">
-          {incident.category && <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />}
-          <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
-        </div>
-
-        <div className="flex items-center gap-2 mt-2.5 text-[12px] text-muted-foreground/70">
-          <span>{format(parseISO(incident.incident_date), 'dd MMMM yyyy')}</span>
-          {incident.incident_time && <><span>·</span><span>{incident.incident_time}</span></>}
-          {incident.location && <><span>·</span><span>{incident.location}</span></>}
-          <span>·</span>
-          <span className="capitalize">{incident.status}</span>
-        </div>
-
-        {incident.excluded_from_rep && (
-          <div className="mt-2.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-[12px] font-medium">
-            Excluded from rep view.
-          </div>
-        )}
-      </div>
-
-      <div className="px-5 pt-5 space-y-4">
-        {/* Record details (neutral completeness) */}
-        {recordDetails && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-[12px] font-semibold text-foreground mb-2.5">Record details</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div>
-                <p className="text-[18px] font-bold text-foreground">{recordDetails.attachments}</p>
-                <p className="text-[11px] text-muted-foreground">Attachments</p>
-              </div>
-              <div>
-                <p className="text-[18px] font-bold text-foreground">{recordDetails.followUps}</p>
-                <p className="text-[11px] text-muted-foreground">Updates</p>
-              </div>
-              <div>
-                <p className="text-[18px] font-bold text-foreground">{recordDetails.peopleInvolved}</p>
-                <p className="text-[11px] text-muted-foreground">People involved</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Original record (structural, not status) */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* 1. HEADER */}
           <div className="px-4 py-3 border-b border-border">
-            <p className="text-[13px] font-semibold text-foreground">Original record</p>
-            <p className="text-[11px] text-muted-foreground/60">
-              Recorded on {format(parseISO(incident.created_at), 'dd MMMM yyyy')} at {format(parseISO(incident.created_at), 'HH:mm')}
-            </p>
-          </div>
-          <div className="p-4">
-            <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
-              {incident.raw_narrative}
-            </p>
-          </div>
-        </div>
-
-        {/* Exact Wording */}
-        {incident.exact_words && (
-          <div className="bg-ai-label/40 border border-ai-label-foreground/20 rounded-xl p-4">
-            <p className="text-[12px] font-semibold text-ai-label-foreground mb-2">Exact wording recorded</p>
-            <div className="border-l-[3px] border-ai-label-foreground/30 pl-3.5">
-              <p className="text-[15px] text-foreground italic leading-relaxed font-medium">"{incident.exact_words}"</p>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-[12px] text-muted-foreground font-medium">{incident.id.slice(0, 8).toUpperCase()}</p>
+              <div className="text-right">
+                <p className="text-[13px] font-semibold text-foreground">{fmtDate(incident.incident_date)}</p>
+                {incident.incident_time && <p className="text-[12px] text-muted-foreground">{incident.incident_time}</p>}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Impact */}
-        {incident.impact_note && (
-          <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-[12px] font-semibold text-foreground mb-1.5">Impact (what changed)</p>
-            <p className="text-[14px] text-body leading-relaxed">{incident.impact_note}</p>
+          {/* 2. META */}
+          <div className="px-4 py-2.5 border-b border-border/50 text-[12px] text-muted-foreground space-y-0.5">
+            <p>Recorded: {fmtFull(incident.created_at)}</p>
+            {retroGap && <p className="text-muted-foreground/70">{retroGap}</p>}
+            {incident.location && <p>{incident.location}</p>}
           </div>
-        )}
 
-        {/* Summary */}
-        {incident.ai_summary && (
-          <div className="bg-muted/20 border border-border/50 rounded-xl p-4">
-            <div className="mb-1"><AILabel /></div>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">{incident.ai_summary}</p>
-          </div>
-        )}
-
-        {/* People & Witnesses */}
-        {(incident.people_involved.length > 0 || incident.witnesses.length > 0) && (
-          <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+          <div className="px-4 py-3 space-y-4">
+            {/* 3. PEOPLE INVOLVED */}
             {incident.people_involved.length > 0 && (
               <div>
-                <p className="text-[12px] font-semibold text-foreground mb-1.5">People involved</p>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">People involved</p>
                 <div className="flex flex-wrap gap-1.5">
                   {incident.people_involved.map(p => (
                     <span key={p} className="bg-primary/6 text-primary px-2.5 py-1 rounded text-[12px] font-medium border border-primary/12">{p}</span>
@@ -246,9 +175,10 @@ const IncidentDetailScreen = () => {
                 </div>
               </div>
             )}
+
             {incident.witnesses.length > 0 && (
               <div>
-                <p className="text-[12px] font-semibold text-foreground mb-1.5">Individuals present</p>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Individuals present</p>
                 <div className="flex flex-wrap gap-1.5">
                   {incident.witnesses.map(w => (
                     <span key={w} className="bg-muted text-muted-foreground px-2.5 py-1 rounded text-[12px] font-medium">{w}</span>
@@ -256,48 +186,96 @@ const IncidentDetailScreen = () => {
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Attachments */}
-        <div>
-          <p className="section-group-title">Attachments ({evidence.length})</p>
-          <div className="bg-card border border-border rounded-xl p-4">
-            {evidence.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No attachments added yet — you can upload screenshots, photos, or documents.</p>
-            ) : (
-              <div className="space-y-2">
-                {evidence.map(ev => (
-                  <div key={ev.id} className="flex items-center gap-3 p-2.5 bg-muted/30 rounded-lg">
-                    <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12">
-                      E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
-                      <p className="text-[11px] text-muted-foreground/60">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
-                    </div>
-                  </div>
-                ))}
+            {/* 4. CLASSIFICATION */}
+            {incident.category && (
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Classification</p>
+                <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
               </div>
             )}
-            <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary/20 text-primary text-[13px] font-medium rounded-lg cursor-pointer hover:bg-primary/4 transition-colors">
-              <Plus className="h-3.5 w-3.5" /> Add Attachment
-              <input type="file" className="hidden" onChange={handleFileUpload} />
-            </label>
+
+            {/* 5. RAW NARRATIVE (primary) */}
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground mb-1">User-provided account</p>
+              <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
+                {incident.raw_narrative}
+              </p>
+            </div>
+
+            {/* 6. EXACT WORDS */}
+            {incident.exact_words && (
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words</p>
+                <div className="border-l-[3px] border-muted-foreground/20 pl-3.5">
+                  <p className="text-[14px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
+                </div>
+              </div>
+            )}
+
+            {/* Impact (preserved, not in spec but existing data) */}
+            {incident.impact_note && (
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Impact</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{incident.impact_note}</p>
+              </div>
+            )}
+
+            {/* 7. FOLLOW-UPS */}
+            <div ref={followUpRef}>
+              <FollowUpDetails
+                notes={notes}
+                originalCreatedAt={incident.created_at}
+                onAddNote={handleAddNote}
+                onUploadAttachment={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+              />
+            </div>
+
+            {/* 8. EVIDENCE */}
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground mb-1">Evidence ({evidence.length})</p>
+              {evidence.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground/60">No attachments added yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {evidence.map(ev => (
+                    <div key={ev.id} className="flex items-center gap-3 p-2.5 bg-muted/30 rounded-lg">
+                      <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12">
+                        E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                        <p className="text-[11px] text-muted-foreground/60">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="inline-flex items-center gap-1.5 mt-3 px-3.5 py-2 border border-primary/20 text-primary text-[13px] font-medium rounded-lg cursor-pointer hover:bg-primary/4 transition-colors">
+                <Plus className="h-3.5 w-3.5" /> Add Attachment
+                <input type="file" className="hidden" onChange={handleFileUpload} />
+              </label>
+            </div>
+
+            {/* 9. INTEGRITY BLOCK */}
+            <div className="pt-3 border-t border-border/50 space-y-0.5">
+              <p className="text-[10px] text-muted-foreground/60">This record was created on {fmtFull(incident.created_at)}</p>
+              <p className="text-[10px] text-muted-foreground/60">Original content preserved · Updates appended without overwriting</p>
+              {incident.category_source === 'user' && (
+                <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
+              )}
+            </div>
+
+            {/* 10. CITATION BLOCK */}
+            <div className="pt-2 border-t border-border/50 font-mono text-[10px] text-muted-foreground/50 space-y-0.5">
+              <p>Incident ID: {incident.id}</p>
+              <p>Incident date: {fmtDate(incident.incident_date)}</p>
+              <p>Recorded: {fmtFull(incident.created_at)}</p>
+            </div>
           </div>
         </div>
 
-        {/* Follow-up Details (always available — append-only) */}
-        <div ref={followUpRef}>
-          <FollowUpDetails
-            notes={notes}
-            originalCreatedAt={incident.created_at}
-            onAddNote={handleAddNote}
-            onUploadAttachment={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
-          />
-        </div>
-
-        {/* Updates (replaces "Edit History") */}
+        {/* Updates (append-only audit trail) */}
         {updates.length > 0 && (
           <div>
             <p className="section-group-title">Updates ({updates.length})</p>
@@ -305,7 +283,7 @@ const IncidentDetailScreen = () => {
               {updates.map(entry => {
                 const date = parseISO(entry.changed_at);
                 return (
-                  <div key={entry.id} className="text-xs text-body">
+                  <div key={entry.id} className="text-xs text-foreground">
                     <span className="text-muted-foreground">
                       Update added — {format(date, 'dd MMM yyyy')} at {format(date, 'HH:mm')}
                     </span>
@@ -315,6 +293,13 @@ const IncidentDetailScreen = () => {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Excluded banner */}
+        {incident.excluded_from_rep && (
+          <div className="px-3 py-2 rounded-lg bg-muted text-muted-foreground text-[12px] font-medium">
+            Excluded from rep view.
           </div>
         )}
 
