@@ -14,7 +14,7 @@ const CategoryBadge = ({ category, subtype }: CategoryBadgeProps) => {
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${tint}`}>
       {resolved}
       {showSubtype && (
-        <span className="opacity-60">— {subtype}</span>
+        <span className="opacity-60">→ {subtype}</span>
       )}
     </span>
   );
