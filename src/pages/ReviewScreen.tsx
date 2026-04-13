@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, Loader2, X, Plus, Info, ArrowLeft, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Check, Loader2, X, Plus, Info, ArrowLeft, ChevronLeft, ChevronRight, Trash2, Scissors } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useIncidents, useCreateIncident } from '@/hooks/useIncidents';
+import { useIncidents, useCreateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useToast } from '@/hooks/use-toast';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 import {
   PRIMARY_CATEGORIES,
   SUBTYPES,
@@ -42,12 +43,11 @@ export interface ReviewDraft {
   peopleConfidence?: 'high' | 'medium' | 'low' | 'none';
 }
 
-// Normalise "Unclassified" from AI to "Not sure yet" for display
 function normSubtype(s: string): string {
   return s === 'Unclassified' ? 'Not sure yet' : s;
 }
 
-// === Single-incident review card (reused for multi-incident) ===
+// === Single-incident review card ===
 interface IncidentDraftCardProps {
   draft: ReviewDraft;
   category: string;
@@ -247,7 +247,7 @@ const IncidentDraftCard = ({
   );
 };
 
-// === Multi-incident state per draft ===
+// === Per-draft editable state ===
 interface DraftState {
   category: string;
   subtype: string;
@@ -260,14 +260,27 @@ const ReviewScreen = () => {
   const location = useLocation();
   const { toast } = useToast();
   const createIncident = useCreateIncident();
+  const deleteIncident = useDeleteIncident();
   const createEditHistory = useCreateEditHistory();
   const { data: existingIncidents = [] } = useIncidents();
 
   const draft = (location.state?.draft as ReviewDraft | undefined) || null;
   const multiDrafts = (location.state?.multiDrafts as ReviewDraft[] | undefined) || null;
+  // For post-save split: the original incident ID to replace
+  const splitFromIncidentId = (location.state?.splitFromIncidentId as string | undefined) || null;
 
-  const isMulti = !!multiDrafts && multiDrafts.length > 1;
-  const drafts: ReviewDraft[] = isMulti ? multiDrafts! : draft ? [draft] : [];
+  const initialDrafts: ReviewDraft[] = multiDrafts && multiDrafts.length > 1 ? multiDrafts : draft ? [draft] : [];
+
+  // Split mode state
+  const [isSplitMode, setIsSplitMode] = useState(!!multiDrafts && multiDrafts.length > 1);
+  const [splitDrafts, setSplitDrafts] = useState<ReviewDraft[] | null>(
+    multiDrafts && multiDrafts.length > 1 ? multiDrafts : null
+  );
+  const [preSplitDraft, setPreSplitDraft] = useState<ReviewDraft | null>(draft || null);
+  const [splitting, setSplitting] = useState(false);
+
+  const drafts: ReviewDraft[] = isSplitMode && splitDrafts ? splitDrafts : initialDrafts.length > 0 ? initialDrafts : [];
+  const isMulti = isSplitMode && drafts.length > 1;
 
   // Per-draft editable state
   const [draftStates, setDraftStates] = useState<DraftState[]>(() =>
@@ -286,7 +299,6 @@ const ReviewScreen = () => {
   const previousNames = useMemo(() => {
     const names = new Set<string>();
     existingIncidents.forEach(i => i.people_involved?.forEach((p: string) => names.add(p)));
-    // Remove all people already in any draft
     draftStates.forEach(ds => ds.people.forEach(p => names.delete(p)));
     return Array.from(names).sort();
   }, [existingIncidents, draftStates]);
@@ -297,7 +309,6 @@ const ReviewScreen = () => {
   }
 
   const activeDraftsIndices = drafts.map((_, i) => i).filter(i => !removedIndices.has(i));
-  // Ensure activeDraft is within bounds
   const safeActive = activeDraftsIndices.includes(activeDraft)
     ? activeDraft
     : activeDraftsIndices[0] ?? 0;
@@ -348,6 +359,80 @@ const ReviewScreen = () => {
     if (safeActive === index) setActiveDraft(remaining[0] ?? 0);
   };
 
+  // User-led split: trigger AI detection
+  const handleSplitRequest = async () => {
+    const narrativeToSplit = currentDraft.narrative;
+    if (!narrativeToSplit || narrativeToSplit.length < 80) {
+      toast({ title: 'Not enough content', description: 'The account needs more detail to identify separate events.' });
+      return;
+    }
+    setSplitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('detect-multi-incident', {
+        body: { narrative: narrativeToSplit },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      if (!data?.is_multi || !data?.drafts?.length || data.drafts.length < 2) {
+        toast({ title: 'Single event detected', description: 'No clear separation points were found in your account.' });
+        return;
+      }
+
+      // Save the current single draft for "back to single record"
+      setPreSplitDraft(currentDraft);
+
+      // Build split drafts
+      const newDrafts: ReviewDraft[] = data.drafts.map((d: any) => ({
+        narrative: d.narrative,
+        title: d.title || '',
+        incidentDate: d.incident_date || currentDraft.incidentDate,
+        incidentTime: d.incident_time || currentDraft.incidentTime,
+        location: currentDraft.location,
+        category: '',
+        subtype: 'Not sure yet',
+        categorySource: null,
+        contextDomain: currentDraft.contextDomain,
+        peopleInvolved: currentDraft.peopleInvolved || [],
+        witnesses: currentDraft.witnesses || [],
+        exactWords: '',
+        impactNote: '',
+        aiSummary: '',
+        recordMethod: currentDraft.recordMethod,
+      }));
+
+      setSplitDrafts(newDrafts);
+      setDraftStates(newDrafts.map(d => ({
+        category: '',
+        subtype: 'Not sure yet',
+        categorySource: null,
+        people: d.peopleInvolved || [],
+      })));
+      setRemovedIndices(new Set());
+      setActiveDraft(0);
+      setIsSplitMode(true);
+    } catch (e) {
+      toast({ title: 'Split unavailable', description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
+    } finally {
+      setSplitting(false);
+    }
+  };
+
+  // Revert split → single record
+  const handleBackToSingle = () => {
+    if (!preSplitDraft) return;
+    setSplitDrafts(null);
+    setIsSplitMode(false);
+    setDraftStates([{
+      category: preSplitDraft.category || '',
+      subtype: normSubtype(preSplitDraft.subtype || 'Not sure yet'),
+      categorySource: preSplitDraft.categorySource ?? null,
+      people: preSplitDraft.peopleInvolved || [],
+    }]);
+    setRemovedIndices(new Set());
+    setActiveDraft(0);
+  };
+
   const catConfidence = currentDraft.categoryConfidence || (currentState.category ? 'high' : 'low');
   const peopleConf = currentDraft.peopleConfidence || (currentState.people.length > 0 ? 'high' : 'none');
 
@@ -380,6 +465,12 @@ const ReviewScreen = () => {
           field_changed: 'incident_recorded',
         });
       }
+
+      // If this was a post-save split, delete the original incident
+      if (splitFromIncidentId) {
+        await deleteIncident.mutateAsync(splitFromIncidentId);
+      }
+
       localStorage.removeItem('chronicle-draft');
       setSaved(true);
       const count = activeDraftsIndices.length;
@@ -398,9 +489,15 @@ const ReviewScreen = () => {
       <div className="px-5 pt-8 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button
-            onClick={() => navigate('/record', { state: { returnDraft: isMulti ? drafts[0] : draft } })}
+            onClick={() => {
+              if (splitFromIncidentId) {
+                navigate(`/incident/${splitFromIncidentId}`);
+              } else {
+                navigate('/record', { state: { returnDraft: isMulti ? drafts[0] : currentDraft } });
+              }
+            }}
             className="p-1.5 -ml-1.5 text-muted-foreground/60 hover:text-foreground transition-colors rounded-lg hover:bg-muted/40"
-            aria-label="Back to capture"
+            aria-label="Back"
           >
             <ArrowLeft className="h-[18px] w-[18px]" strokeWidth={1.5} />
           </button>
@@ -408,7 +505,7 @@ const ReviewScreen = () => {
         </div>
         <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
           {isMulti
-            ? 'Your input has been organised into separate sections for review'
+            ? "We've identified possible separate moments — review and adjust as needed"
             : 'Review your record before saving'}
         </p>
         {isMulti && (
@@ -498,8 +595,8 @@ const ReviewScreen = () => {
           </div>
         )}
 
-        {/* Save */}
-        <div className="pt-6 pb-8">
+        {/* Save + secondary actions */}
+        <div className="pt-6 pb-8 space-y-3">
           <Button
             onClick={handleSave}
             disabled={saving || saved}
@@ -515,6 +612,32 @@ const ReviewScreen = () => {
               'Save record'
             )}
           </Button>
+
+          {/* Split action — only in single mode */}
+          {!isMulti && !saved && (
+            <button
+              onClick={handleSplitRequest}
+              disabled={splitting}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors disabled:opacity-40"
+            >
+              {splitting ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking…</>
+              ) : (
+                <><Scissors className="h-3.5 w-3.5" /> Split into separate records</>
+              )}
+            </button>
+          )}
+
+          {/* Back to single — only in split mode */}
+          {isMulti && preSplitDraft && !saved && (
+            <button
+              onClick={handleBackToSingle}
+              className="w-full text-center py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors"
+            >
+              Back to single record
+            </button>
+          )}
+
           <AnimatePresence>
             {saved && (
               <motion.div

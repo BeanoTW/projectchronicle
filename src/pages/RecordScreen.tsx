@@ -1,20 +1,16 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, AlertTriangle, Check, Heart, Trash2, Paperclip } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, Check, Heart, Trash2, Paperclip } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDevMode } from '@/contexts/DevModeContext';
-import { useIncidents, useCreateIncident, useDeleteIncident } from '@/hooks/useIncidents';
-import { useCreateEditHistory } from '@/hooks/useEditHistory';
+import { useIncidents } from '@/hooks/useIncidents';
 import { useToast } from '@/hooks/use-toast';
-import AILabel from '@/components/chronicle/AILabel';
-import SplitIncidentModal, { type IncidentDraft } from '@/components/chronicle/SplitIncidentModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,19 +23,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-import { PRIMARY_CATEGORIES, SUBTYPES, type PrimaryCategory } from '@/lib/categories';
-
-const categories = [...PRIMARY_CATEGORIES];
-
 const RecordScreen = () => {
   const navigate = useNavigate();
   const routeLocation = useLocation();
   const { user } = useAuth();
   const { devMode, toggleDevMode } = useDevMode();
   const { data: existingIncidents = [] } = useIncidents();
-  const createIncident = useCreateIncident();
-  const deleteIncident = useDeleteIncident();
-  const createEditHistory = useCreateEditHistory();
   const { toast } = useToast();
   const uploadEvidence = useUploadEvidence();
   const { data: allEvidence = [] } = useEvidence();
@@ -53,27 +42,13 @@ const RecordScreen = () => {
   const [incidentDate, setIncidentDate] = useState('');
   const [incidentTime, setIncidentTime] = useState('');
   const [location, setLocation] = useState('');
-  const [category, setCategory] = useState<string>('');
-  const [categorySource, setCategorySource] = useState<'ai' | 'user' | null>(null);
-  const [subtype, setSubtype] = useState<string>('');
-  const [contextDomain, setContextDomain] = useState<string>('');
   const [peopleInvolved, setPeopleInvolved] = useState('');
   const [witnesses, setWitnesses] = useState('');
   const [exactWords, setExactWords] = useState('');
   const [impactNote, setImpactNote] = useState('');
   const [title, setTitle] = useState('');
-  const [aiSummary, setAiSummary] = useState('');
-  const [aiRelevance, setAiRelevance] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [analysing, setAnalysing] = useState(false);
-  const [aiSuggested, setAiSuggested] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [splitModalOpen, setSplitModalOpen] = useState(false);
-  const [splitHighlights, setSplitHighlights] = useState<string[]>([]);
-  const [splitDrafts, setSplitDrafts] = useState<IncidentDraft[]>([]);
-  const [splitCount, setSplitCount] = useState(1);
-  const [splitChecked, setSplitChecked] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
 
   // Dev mode: reset dialog
@@ -99,14 +74,13 @@ const RecordScreen = () => {
   const saveDraft = useCallback(() => {
     if (narrative.trim()) {
       localStorage.setItem('chronicle-draft', JSON.stringify({
-        narrative, incidentDate, incidentTime, location, category, subtype,
+        narrative, incidentDate, incidentTime, location,
         peopleInvolved, witnesses, exactWords, impactNote, title,
-        // NEVER store: aiSummary, aiRelevance, aiSuggested — these are analysis/preview only
       }));
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2000);
     }
-  }, [narrative, incidentDate, incidentTime, location, category, subtype, peopleInvolved, witnesses, exactWords, impactNote, title]);
+  }, [narrative, incidentDate, incidentTime, location, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
   // Restore state when returning from review screen
   useEffect(() => {
@@ -117,22 +91,15 @@ const RecordScreen = () => {
       setIncidentDate(returnDraft.incidentDate || '');
       setIncidentTime(returnDraft.incidentTime || '');
       setLocation(returnDraft.location || '');
-      setCategory(returnDraft.category || '');
-      setSubtype(returnDraft.subtype || '');
-      setCategorySource(returnDraft.categorySource || null);
-      setContextDomain(returnDraft.contextDomain || '');
       setPeopleInvolved(Array.isArray(returnDraft.peopleInvolved) ? returnDraft.peopleInvolved.join(', ') : returnDraft.peopleInvolved || '');
       setWitnesses(Array.isArray(returnDraft.witnesses) ? returnDraft.witnesses.join(', ') : returnDraft.witnesses || '');
       setExactWords(returnDraft.exactWords || '');
       setImpactNote(returnDraft.impactNote || '');
-      setAiSummary(returnDraft.aiSummary || '');
-      if (returnDraft.category) setAiSuggested(true);
-      // Clear route state to prevent re-restoration
       window.history.replaceState({}, '');
       return;
     }
 
-    // Load draft on mount — ONLY user-entered fields, never analysis/AI output
+    // Load draft on mount
     const stored = localStorage.getItem('chronicle-draft');
     if (stored) {
       try {
@@ -141,29 +108,13 @@ const RecordScreen = () => {
         if (draft.incidentDate) setIncidentDate(draft.incidentDate);
         if (draft.incidentTime) setIncidentTime(draft.incidentTime);
         if (draft.location) setLocation(draft.location);
-        if (draft.category) setCategory(draft.category);
-        if (draft.subtype) setSubtype(draft.subtype);
         if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
         if (draft.witnesses) setWitnesses(draft.witnesses);
         if (draft.exactWords) setExactWords(draft.exactWords);
         if (draft.impactNote) setImpactNote(draft.impactNote);
         if (draft.title) setTitle(draft.title);
-        // NEVER restore AI-derived fields: aiSummary, aiRelevance, aiSuggested
       } catch { /* ignore */ }
     }
-  }, []);
-
-  // DRAFT LEAKAGE PREVENTION: Clear all temporary state on unmount
-  useEffect(() => {
-    return () => {
-      // Clear analysis/preview state — these must never persist
-      setAiSummary('');
-      setAiRelevance([]);
-      setAiSuggested(false);
-      setSplitDrafts([]);
-      setSplitHighlights([]);
-      setSplitChecked(false);
-    };
   }, []);
 
   // Auto-save every 5s when narrative has content
@@ -188,20 +139,6 @@ const RecordScreen = () => {
     return result;
   }, [existingIncidents]);
 
-  const similarPatternAlert = useMemo(() => {
-    if (existingIncidents.length < 2) return null;
-    if (category) {
-      const sameCategory = existingIncidents.filter(i => i.category === category).length;
-      if (sameCategory >= 2) return `${sameCategory} previous incidents recorded under "${category}".`;
-    }
-    const people = peopleInvolved.split(',').map(s => s.trim()).filter(Boolean);
-    for (const person of people) {
-      const count = existingIncidents.filter(i => i.people_involved.some(p => p.toLowerCase() === person.toLowerCase())).length;
-      if (count >= 2) return `${person} appears in ${count} previous incidents.`;
-    }
-    return null;
-  }, [category, peopleInvolved, existingIncidents]);
-
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!narrative.trim()) newErrors.raw_narrative = 'Please enter your account of the incident.';
@@ -210,9 +147,15 @@ const RecordScreen = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAnalyse = async () => {
+  const handleAnalyseAndReview = async () => {
     if (!narrative.trim()) {
       setErrors({ raw_narrative: 'Please enter your account first.' });
+      return;
+    }
+    if (!incidentDate) {
+      setErrors({ incident_date: 'Please add a date before saving.' });
+      setShowManualForm(true);
+      setMoreDetailsOpen(true);
       return;
     }
     setAnalysing(true);
@@ -221,21 +164,32 @@ const RecordScreen = () => {
         body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
       });
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
-      if (data.incident_date && !incidentDate) setIncidentDate(data.incident_date);
-      if (data.incident_time && !incidentTime) setIncidentTime(data.incident_time);
-      if (data.location && !location) setLocation(data.location);
-      if (data.category && !category) { setCategory(data.category); setCategorySource('ai'); }
-      if (data.subtype && !subtype) setSubtype(data.subtype);
-      if (data.people_involved?.length && !peopleInvolved) setPeopleInvolved(data.people_involved.join(', '));
-      if (data.exact_words && !exactWords) setExactWords(data.exact_words);
-      if (data.summary) setAiSummary(data.summary);
-      if (data.title && !title) setTitle(data.title);
-      if (data.potential_relevance?.length) setAiRelevance(data.potential_relevance);
-      setAiSuggested(true);
-      setShowManualForm(false);
-      setMoreDetailsOpen(false);
-      toast({ title: 'Summary created', description: 'Review and adjust anything before saving.' });
+      if (data?.error) throw new Error(data.error);
+
+      // Build draft from AI extraction + user fields, then navigate to review
+      navigate('/review', {
+        state: {
+          draft: {
+            narrative,
+            title: title || data?.title || '',
+            incidentDate: incidentDate || data?.incident_date || '',
+            incidentTime: incidentTime || data?.incident_time || '',
+            location: location || data?.location || '',
+            category: data?.category || '',
+            subtype: data?.subtype || 'Not sure yet',
+            categorySource: data?.category ? 'ai' as const : null,
+            contextDomain: '',
+            peopleInvolved: peopleInvolved
+              ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean)
+              : data?.people_involved || [],
+            witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+            exactWords: exactWords || data?.exact_words || '',
+            impactNote,
+            aiSummary: data?.summary || '',
+            recordMethod: mode,
+          },
+        },
+      });
     } catch (e) {
       toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
     } finally {
@@ -243,28 +197,8 @@ const RecordScreen = () => {
     }
   };
 
-  const handleDetectMulti = async () => {
-    if (!narrative.trim() || narrative.length < 80 || splitChecked) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('detect-multi-incident', {
-        body: { narrative },
-      });
-      if (error || data?.error) return;
-      setSplitChecked(true);
-      if (data.is_multi && data.confidence !== 'low') {
-        setSplitHighlights(data.highlight_phrases || []);
-        setSplitDrafts(data.drafts || []);
-        setSplitCount(data.suggested_count || 2);
-        setSplitModalOpen(true);
-      }
-    } catch {
-      // Silent fail — splitting is optional
-    }
-  };
-
-  const handleSave = () => {
+  const handleSaveDirectly = () => {
     if (!validate()) return;
-    // Navigate to review screen instead of saving directly
     navigate('/review', {
       state: {
         draft: {
@@ -273,64 +207,33 @@ const RecordScreen = () => {
           incidentDate,
           incidentTime,
           location,
-          category,
-          subtype,
-          categorySource,
-          contextDomain,
+          category: '',
+          subtype: 'Not sure yet',
+          categorySource: null,
+          contextDomain: '',
           peopleInvolved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
           witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
           exactWords,
           impactNote,
-          aiSummary,
+          aiSummary: '',
           recordMethod: mode,
         },
       },
     });
   };
 
-  const handleSaveSplit = (splitDraftItems: IncidentDraft[]) => {
-    setSplitModalOpen(false);
-    // Route split drafts through the review screen as multi-incident
-    const multiDrafts = splitDraftItems.filter(d => d.narrative.trim()).map(d => ({
-      narrative: d.narrative,
-      title: d.title || '',
-      incidentDate: d.incident_date || incidentDate,
-      incidentTime: d.incident_time || incidentTime,
-      location,
-      category: '',
-      subtype: 'Not sure yet',
-      categorySource: null as 'ai' | 'user' | null,
-      contextDomain,
-      peopleInvolved: peopleInvolved ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean) : [],
-      witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
-      exactWords: '',
-      impactNote: '',
-      aiSummary: '',
-      recordMethod: mode,
-    }));
-    if (multiDrafts.length > 0) {
-      navigate('/review', { state: { multiDrafts } });
-    }
-  };
-
   const handleResetAll = async () => {
     if (resetConfirmText !== 'RESET') return;
     setResetting(true);
     try {
-      // Delete all evidence files from storage
       const { data: evidenceFiles } = await supabase.from('evidence_files').select('file_path');
       if (evidenceFiles?.length) {
         await supabase.storage.from('evidence').remove(evidenceFiles.map(f => f.file_path));
       }
-      // Delete all evidence records
       await supabase.from('evidence_files').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      // Delete all follow-up notes
       await supabase.from('follow_up_notes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      // Delete all edit history
       await supabase.from('edit_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      // Delete all incidents
       await supabase.from('incidents').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      
       localStorage.removeItem('chronicle-draft');
       setShowResetDialog(false);
       setResetConfirmText('');
@@ -345,7 +248,6 @@ const RecordScreen = () => {
 
   const hasText = narrative.trim().length > 0;
   const isCoherent = useMemo(() => detectCoherence(narrative), [narrative]);
-  const canSave = hasText && !!incidentDate;
 
   const detailFields = (
     <div className="space-y-5 bg-card rounded-xl p-4 border border-border shadow-[var(--shadow-card)] mt-2">
@@ -356,38 +258,6 @@ const RecordScreen = () => {
       <div>
         <Label htmlFor="location" className="text-[13px] font-medium">Location</Label>
         <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Where did it happen?" className="mt-1.5 rounded-lg" />
-      </div>
-      <div>
-        <Label className="text-[13px] font-medium">Category</Label>
-        <Select value={category} onValueChange={(v) => { setCategory(v); setSubtype(''); setCategorySource('user'); }}>
-          <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select category" /></SelectTrigger>
-          <SelectContent>
-            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
-      {category && SUBTYPES[category as PrimaryCategory] && (
-        <div>
-          <Label className="text-[13px] font-medium">Subtype</Label>
-          <Select value={subtype} onValueChange={(v) => { setSubtype(v); if (!categorySource) setCategorySource('user'); }}>
-            <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select subtype" /></SelectTrigger>
-            <SelectContent>
-              {SUBTYPES[category as PrimaryCategory].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      <div>
-        <Label className="text-[13px] font-medium">Context <span className="font-normal text-muted-foreground">(optional)</span></Label>
-        <p className="text-[11px] text-muted-foreground mt-0.5 mb-1">Where did this take place?</p>
-        <Select value={contextDomain} onValueChange={setContextDomain}>
-          <SelectTrigger className="mt-1.5 rounded-lg"><SelectValue placeholder="Select context" /></SelectTrigger>
-          <SelectContent>
-            {['Workplace', 'Education', 'Home / Domestic', 'Public / Social', 'Online / Digital', 'Other', 'Unknown'].map(d => (
-              <SelectItem key={d} value={d}>{d}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
       <div>
         <Label htmlFor="people" className="text-[13px] font-medium">People involved</Label>
@@ -537,7 +407,6 @@ const RecordScreen = () => {
               </div>
             )}
 
-            {/* Helper chips for voice context */}
             {!hasText && (
               <div className="px-5 mt-2 mb-4">
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
@@ -572,21 +441,6 @@ const RecordScreen = () => {
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
                   You can start with what you have.
                 </p>
-              </div>
-            )}
-
-            {/* Pattern Alert */}
-            {similarPatternAlert && (
-              <div className="mx-5 mb-4 px-4 py-3.5 rounded-xl bg-warm-accent/[0.08] border border-warm-accent/25 flex items-start gap-2.5 shadow-sm animate-fade-in">
-                <div className="w-6 h-6 rounded-full bg-warm-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-warm-accent" />
-                </div>
-                <div>
-                  <p className="text-[13px] text-warm-accent-foreground font-semibold leading-snug">
-                    {similarPatternAlert.replace('incidents', 'records')}
-                  </p>
-                  <p className="text-[11px] text-warm-accent-foreground/60 mt-0.5">Pattern detected from your existing records</p>
-                </div>
               </div>
             )}
 
@@ -625,14 +479,14 @@ const RecordScreen = () => {
                 <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
               )}
 
-              {/* Attachment row — primary entry point */}
+              {/* Attachment row */}
               <AttachmentRow
-                count={allEvidence.filter(e => !e.incident_id).length + allEvidence.filter(e => !!e.incident_id).length}
+                count={allEvidence.length}
                 onViewAttachments={() => setShowLibrary(true)}
               />
 
               {/* Reassurance text */}
-              {hasText && !aiSuggested && (
+              {hasText && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -642,129 +496,34 @@ const RecordScreen = () => {
                 </motion.p>
               )}
 
-              {/* Smart CTA — coherence-aware */}
-              {hasText && !aiSuggested && (
+              {/* Date & Time — always visible when there's text */}
+              {hasText && (
                 <motion.div
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="space-y-2"
+                  className="space-y-4"
                 >
-                  {isCoherent ? (
-                    <>
-                      <Button
-                        className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
-                        onClick={async () => {
-                          handleDetectMulti();
-                          await handleAnalyse();
-                          // After analysis extracts date, save will be available in post-analysis section
-                        }}
-                        disabled={analysing || saving}
-                      >
-                        {analysing ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
-                        ) : (
-                          'Save record'
-                        )}
-                      </Button>
-                      <button
-                        onClick={() => { handleAnalyse(); handleDetectMulti(); }}
-                        disabled={analysing}
-                        className="w-full text-center py-2 text-[13px] text-primary/70 font-medium hover:text-primary transition-colors disabled:opacity-40"
-                      >
-                        {analysing ? 'Structuring…' : 'Improve structure first'}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
-                        onClick={() => { handleAnalyse(); handleDetectMulti(); }}
-                        disabled={analysing}
-                      >
-                        {analysing ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
-                        ) : (
-                          'Structure this for you'
-                        )}
-                      </Button>
-                      <button
-                        onClick={() => {
-                          if (!incidentDate) {
-                            setErrors({ incident_date: 'Please add a date before saving.' });
-                            setShowManualForm(true);
-                            setMoreDetailsOpen(true);
-                            return;
-                          }
-                          handleSave();
-                        }}
-                        disabled={saving}
-                        className="w-full text-center py-2 text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors disabled:opacity-40"
-                      >
-                        Save as is
-                      </button>
-                    </>
-                  )}
-                </motion.div>
-              )}
-
-              {/* === POST-ANALYSIS SECTION === */}
-              {aiSuggested && (
-                <motion.div
-                  className="space-y-5"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                >
-                  {aiSummary && (
-                    <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                      <div className="mb-1"><AILabel /></div>
-                       <p className="text-[12px] text-muted-foreground mb-2">Review before saving</p>
-                      <p className="text-[14px] text-body leading-[1.7]">{aiSummary}</p>
-                      <button
-                        onClick={() => { setAiSummary(''); setAiSuggested(false); setAiRelevance([]); }}
-                        className="text-[12px] text-destructive/60 mt-3 font-medium hover:text-destructive transition-colors"
-                      >
-                        Remove summary
-                      </button>
-                    </div>
-                  )}
-
-                  {aiRelevance.length > 0 && (
-                    <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
-                      <h3 className="text-[12px] font-semibold text-foreground mb-2">Related context</h3>
-                      <div className="mb-1"><AILabel /></div>
-                      <div className="space-y-2">
-                        {aiRelevance.map((r, i) => (
-                          <p key={i} className="text-[13px] text-body leading-relaxed">{r}</p>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground/40 mt-2.5">Not legal advice. Neutral observations only.</p>
-                    </div>
-                  )}
-
-                  {/* Date & Time */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="date" className="text-[13px] font-medium">When did this happen? *</Label>
-                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">You can enter this even if you're recording it later.</p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
                       <Input id="date" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
                       {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
-                      <p className="text-[10px] text-muted-foreground/40 mt-1">If the exact date is not known, an approximate date can be entered.</p>
                     </div>
                     <div>
                       <Label htmlFor="time" className="text-[13px] font-medium">Time</Label>
-                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Optional</p>
                       <Input id="time" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
                     </div>
                   </div>
 
+                  {/* Optional details collapsible */}
                   <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
-                    <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-primary font-medium py-1 transition-all">
+                    <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
                       {showManualForm || moreDetailsOpen ? (
                         <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
                       ) : (
-                        <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually</>
+                        <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Add more details</>
                       )}
                     </CollapsibleTrigger>
                     <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
@@ -772,108 +531,55 @@ const RecordScreen = () => {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  {/* Save */}
-                  <div className="pt-4 pb-8">
-                    <Button
-                      onClick={handleSave}
-                      disabled={saving || saved || !canSave}
-                      className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
-                    >
-                      {saved ? (
-                        <><Check className="h-4 w-4 mr-2" /> Saved</>
-                      ) : saving ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                      ) : (
-                        'Save record'
-                      )}
-                    </Button>
-                    {!canSave && hasText && !incidentDate && (
-                      <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
-                    )}
-                    <AnimatePresence>
-                      {saved && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.35 }}
-                          className="mt-4 text-center space-y-1"
+                  {/* Primary action: Save (routes through AI structuring → review) */}
+                  <div className="space-y-2 pt-2 pb-8">
+                    {isCoherent ? (
+                      <>
+                        <Button
+                          className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                          onClick={handleAnalyseAndReview}
+                          disabled={analysing || !incidentDate}
                         >
-                          <p className="text-[14px] text-primary font-semibold">Record saved</p>
-                          <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Fallback manual path */}
-              {!aiSuggested && hasText && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <Collapsible open={showManualForm || moreDetailsOpen} onOpenChange={(open) => { setMoreDetailsOpen(open); if (open) setShowManualForm(true); }}>
-                    <CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] text-muted-foreground font-medium py-1 transition-all">
-                      {showManualForm || moreDetailsOpen ? (
-                        <><ChevronDown className="h-4 w-4 transition-transform duration-200" /> Hide details</>
-                      ) : (
-                        <><ChevronRight className="h-4 w-4 transition-transform duration-200" /> Fill in manually instead</>
-                      )}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                      <div className="space-y-5 mt-2">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="date-manual" className="text-[13px] font-medium">Date *</Label>
-                            <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                            <Input id="date-manual" type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} className="rounded-lg" />
-                            {errors.incident_date && <p className="text-[12px] text-destructive mt-1">{errors.incident_date}</p>}
-                          </div>
-                          <div>
-                            <Label htmlFor="time-manual" className="text-[13px] font-medium">Time</Label>
-                            <p className="text-[11px] text-muted-foreground/60 mt-0.5 mb-1">Approximate is fine</p>
-                            <Input id="time-manual" type="time" value={incidentTime} onChange={(e) => setIncidentTime(e.target.value)} className="rounded-lg" />
-                          </div>
-                        </div>
-                        {detailFields}
-                        <div className="pt-4 pb-8">
-                          <Button
-                            onClick={handleSave}
-                            disabled={saving || saved || !canSave}
-                            className="w-full bg-primary text-primary-foreground h-12 rounded-xl text-[14px] font-semibold shadow-[var(--shadow-elevated)] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:shadow-none"
-                          >
-                            {saved ? (
-                              <><Check className="h-4 w-4 mr-2" /> Saved</>
-                            ) : saving ? (
-                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-                            ) : (
-                              'Save record'
-                            )}
-                          </Button>
-                          {!canSave && hasText && !incidentDate && (
-                            <p className="text-[11px] text-muted-foreground/60 text-center mt-2">Add a date to save this record</p>
+                          {analysing ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
+                          ) : (
+                            'Save record'
                           )}
-                          <AnimatePresence>
-                            {saved && (
-                              <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.35 }}
-                                className="mt-4 text-center space-y-1"
-                              >
-                                <p className="text-[14px] text-primary font-semibold">Record saved</p>
-                                <p className="text-[12px] text-muted-foreground/70">Added to your timeline · You can add evidence at any time</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                        </Button>
+                        <button
+                          onClick={handleSaveDirectly}
+                          disabled={!incidentDate}
+                          className="w-full text-center py-2 text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors disabled:opacity-40"
+                        >
+                          Save without structuring
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                          onClick={handleAnalyseAndReview}
+                          disabled={analysing || !incidentDate}
+                        >
+                          {analysing ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Structuring your record…</>
+                          ) : (
+                            'Structure & save'
+                          )}
+                        </Button>
+                        <button
+                          onClick={handleSaveDirectly}
+                          disabled={!incidentDate}
+                          className="w-full text-center py-2 text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors disabled:opacity-40"
+                        >
+                          Save as is
+                        </button>
+                      </>
+                    )}
+                    {!incidentDate && hasText && (
+                      <p className="text-[11px] text-muted-foreground/60 text-center">Add a date to save this record</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </div>
@@ -884,11 +590,9 @@ const RecordScreen = () => {
       {/* Reassurance footer with long-press dev mode trigger */}
       <div className="mt-3 mb-28 mx-5 py-3 px-4 rounded-xl bg-muted/30 backdrop-blur-sm text-center space-y-0.5">
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-          {saved
-            ? 'Saved · You can come back anytime'
-            : hasText
-              ? 'You can edit this later'
-              : 'Take your time — you can start with anything'}
+          {hasText
+            ? 'You can edit this later'
+            : 'Take your time — you can start with anything'}
         </p>
         <div
           className="flex items-center justify-center gap-1 select-none cursor-default"
@@ -919,17 +623,6 @@ const RecordScreen = () => {
           </Button>
         </motion.div>
       )}
-
-      <SplitIncidentModal
-        open={splitModalOpen}
-        onClose={() => setSplitModalOpen(false)}
-        narrative={narrative}
-        highlights={splitHighlights}
-        suggestedCount={splitCount}
-        drafts={splitDrafts}
-        onKeepSingle={() => setSplitModalOpen(false)}
-        onSaveSplit={handleSaveSplit}
-      />
 
       {/* Reset confirmation dialog */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
