@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
-import { ArrowLeft, EyeOff, Trash2, Plus, Archive } from 'lucide-react';
+import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
@@ -12,6 +12,18 @@ import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  PRIMARY_CATEGORIES,
+  SUBTYPES,
+  CATEGORY_DEFINITIONS,
+  type PrimaryCategory,
+} from '@/lib/categories';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -106,6 +118,55 @@ const IncidentDetailScreen = () => {
     }
   };
 
+  const handleCategoryUpdate = async (newCategory: string) => {
+    const cat = newCategory === '__none__' ? null : newCategory;
+    // Reset subtype if category changed and subtype is incompatible
+    const validSubs = cat ? (SUBTYPES[cat as PrimaryCategory] || []) : [];
+    const currentSub = incident.subtype;
+    const newSubtype = validSubs.includes(currentSub || '') ? currentSub : null;
+
+    await updateIncident.mutateAsync({
+      id: incident.id,
+      category: cat,
+      subtype: newSubtype,
+      category_source: 'user',
+    } as any);
+    toast({ title: 'Category updated' });
+  };
+
+  const handleSubtypeUpdate = async (newSubtype: string) => {
+    await updateIncident.mutateAsync({
+      id: incident.id,
+      subtype: newSubtype === 'Not sure yet' ? null : newSubtype,
+    } as any);
+    toast({ title: 'Subtype updated' });
+  };
+
+  const handlePostSaveSplit = () => {
+    navigate('/review', {
+      state: {
+        draft: {
+          narrative: incident.raw_narrative,
+          title: incident.title || '',
+          incidentDate: incident.incident_date,
+          incidentTime: incident.incident_time || '',
+          location: incident.location || '',
+          category: incident.category || '',
+          subtype: incident.subtype || 'Not sure yet',
+          categorySource: incident.category_source as 'ai' | 'user' | null,
+          contextDomain: incident.context_domain || '',
+          peopleInvolved: incident.people_involved || [],
+          witnesses: incident.witnesses || [],
+          exactWords: incident.exact_words || '',
+          impactNote: incident.impact_note || '',
+          aiSummary: incident.ai_summary || '',
+          recordMethod: incident.record_method || 'text',
+        },
+        splitFromIncidentId: incident.id,
+      },
+    });
+  };
+
   const updates = editHistory
     .filter(h => h.field_changed !== 'incident_recorded')
     .map(h => ({ id: h.id, field_changed: h.field_changed, old_value: h.old_value ?? undefined, new_value: h.new_value ?? undefined, changed_at: h.changed_at }))
@@ -119,6 +180,8 @@ const IncidentDetailScreen = () => {
     if (entry.new_value) return `${fieldName} added`;
     return `${fieldName} updated`;
   }
+
+  const catDef = incident.category ? CATEGORY_DEFINITIONS[incident.category as PrimaryCategory] : null;
 
   return (
     <div className="min-h-screen bg-background pb-20 page-enter">
@@ -142,7 +205,7 @@ const IncidentDetailScreen = () => {
           </div>
         )}
 
-        {/* === INCIDENT CARD (spec section order) === */}
+        {/* === INCIDENT CARD === */}
         <div className={`bg-card border border-border rounded-xl overflow-hidden ${isVoided ? 'opacity-50' : ''}`}>
 
           {/* 1. HEADER */}
@@ -187,13 +250,62 @@ const IncidentDetailScreen = () => {
               </div>
             )}
 
-            {/* 4. CLASSIFICATION */}
-            {incident.category && (
-              <div>
-                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Classification</p>
-                <CategoryBadge category={incident.category} subtype={incident.subtype ?? undefined} />
+            {/* 4. CLASSIFICATION — editable */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-[11px] font-semibold text-muted-foreground">Classification</p>
               </div>
-            )}
+              <div className="flex items-center gap-2 mb-1">
+                <Select
+                  value={incident.category || '__none__'}
+                  onValueChange={handleCategoryUpdate}
+                >
+                  <SelectTrigger className="rounded-lg flex-1 h-9 text-[13px]">
+                    <SelectValue placeholder="Not sure yet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not sure yet</SelectItem>
+                    {PRIMARY_CATEGORIES.filter(c => c !== 'Other').map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {catDef && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="p-1 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors" aria-label="Category info">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 text-[12px] leading-relaxed" side="top">
+                      <p className="font-medium text-foreground mb-1">{incident.category}</p>
+                      <p className="text-muted-foreground">{catDef.definition}</p>
+                      <p className="text-muted-foreground/70 mt-1">Includes: {catDef.includes}</p>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+
+              {/* Subtype */}
+              {incident.category && incident.category !== 'Other' && SUBTYPES[incident.category as PrimaryCategory] && (
+                <Select
+                  value={incident.subtype || 'Not sure yet'}
+                  onValueChange={handleSubtypeUpdate}
+                >
+                  <SelectTrigger className="rounded-lg h-9 text-[13px] mt-1">
+                    <SelectValue placeholder="Not sure yet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBTYPES[incident.category as PrimaryCategory].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <p className="text-[10px] text-muted-foreground/50 mt-1">Can be updated at any time</p>
+            </div>
 
             {/* 5. RAW NARRATIVE (primary) */}
             <div>
@@ -213,7 +325,7 @@ const IncidentDetailScreen = () => {
               </div>
             )}
 
-            {/* Impact (preserved, not in spec but existing data) */}
+            {/* Impact */}
             {incident.impact_note && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Impact</p>
@@ -306,6 +418,14 @@ const IncidentDetailScreen = () => {
         {/* Actions */}
         {!isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
+            {/* Post-save split */}
+            <button
+              onClick={handlePostSaveSplit}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors border border-border rounded-xl"
+            >
+              <Scissors className="h-3.5 w-3.5" /> Split into separate records
+            </button>
+
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
                 <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
