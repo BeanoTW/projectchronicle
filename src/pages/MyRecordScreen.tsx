@@ -7,12 +7,8 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import {
   generateSummary,
-  renderSummaryText,
-  normaliseIncident,
-  sortIncidentsForSummary,
-  buildSummaryMetadata,
 } from '@/lib/summaryPipeline';
-import CategoryBadge from '@/components/chronicle/CategoryBadge';
+import { CategoryLabel } from '@/components/chronicle/CategoryBadge';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 
@@ -56,34 +52,6 @@ function buildOverview(
   return `Records have been made over ${timeSpan}, covering multiple incidents across this period.`;
 }
 
-// ─── Key fact line (deterministic) ────────────────────────────
-
-function buildKeyFactLine(
-  incidents: { incident_date: string; people_involved: string[] }[],
-): string {
-  const dates = incidents
-    .map(i => parseISO(i.incident_date))
-    .filter(isValid)
-    .sort((a, b) => a.getTime() - b.getTime());
-
-  const spanDays = dates.length >= 2 ? differenceInDays(dates[dates.length - 1], dates[0]) : 0;
-
-  const parts: string[] = [];
-  parts.push(`${incidents.length} record${incidents.length !== 1 ? 's' : ''}`);
-  if (spanDays > 0) parts.push(`Recorded across ${spanDays} days`);
-
-  const peopleCounts: Record<string, number> = {};
-  incidents.forEach(i => i.people_involved.forEach(p => {
-    peopleCounts[p] = (peopleCounts[p] || 0) + 1;
-  }));
-  const topPerson = Object.entries(peopleCounts)
-    .filter(([, c]) => c >= 3)
-    .sort((a, b) => b[1] - a[1])[0];
-  if (topPerson) parts.push(`${topPerson[0]} appears most often`);
-
-  return parts.join(' · ');
-}
-
 // ─── People involved ─────────────────────────────────────────
 
 interface PersonDisplay {
@@ -124,10 +92,32 @@ const MyRecordScreen = () => {
   // Overview
   const overview = useMemo(() => buildOverview(activeIncidents), [activeIncidents]);
 
-  // Key fact line
-  const keyFactLine = useMemo(() => buildKeyFactLine(activeIncidents), [activeIncidents]);
+  // Record coverage
+  const recordCoverage = useMemo(() => {
+    if (activeIncidents.length === 0) return null;
+    const dates = activeIncidents
+      .map(i => parseISO(i.incident_date))
+      .filter(isValid)
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (dates.length === 0) return null;
+    if (dates.length === 1) {
+      return {
+        count: 1,
+        days: 0,
+        earliest: format(dates[0], 'd MMMM yyyy'),
+        latest: format(dates[0], 'd MMMM yyyy'),
+      };
+    }
+    const spanDays = differenceInDays(dates[dates.length - 1], dates[0]);
+    return {
+      count: activeIncidents.length,
+      days: spanDays,
+      earliest: format(dates[0], 'd MMMM yyyy'),
+      latest: format(dates[dates.length - 1], 'd MMMM yyyy'),
+    };
+  }, [activeIncidents]);
 
-  // Summary (uses RECORD mode via shared pipeline for export parity)
+  // Summary (uses shared pipeline for export parity)
   const summaryResult = useMemo(() => {
     if (activeIncidents.length === 0) return null;
     const allIds = activeIncidents.map(i => i.id);
@@ -135,7 +125,7 @@ const MyRecordScreen = () => {
       incidents: activeIncidents,
       selectedIds: allIds,
       allIncidentCount: activeIncidents.length,
-      mode: 'general',
+      mode: 'structured-record',
       customPurpose: '',
       options: { includePatterns: true, includeNames: true },
       followUpNotes,
@@ -179,19 +169,34 @@ const MyRecordScreen = () => {
       <PageHeader title="Your record" />
 
       <div className="px-5 space-y-5">
-        {/* 1. OVERVIEW */}
+        {/* RECORD COVERAGE */}
+        {recordCoverage && (
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-[12px] font-semibold text-foreground uppercase tracking-wider mb-2">Record coverage</p>
+            {recordCoverage.count === 1 ? (
+              <p className="text-[13px] text-muted-foreground">
+                1 record{'\n'}On {recordCoverage.earliest}
+              </p>
+            ) : (
+              <div className="text-[13px] text-muted-foreground space-y-0.5">
+                <p>{recordCoverage.count} records</p>
+                <p>Across {recordCoverage.days} days</p>
+                <p>Covering {recordCoverage.earliest} to {recordCoverage.latest}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* OVERVIEW */}
         <div className="bg-card border border-border rounded-xl p-4">
           <p className="text-[14px] text-foreground leading-relaxed">{overview}</p>
         </div>
 
-        {/* 2. KEY FACT LINE */}
-        <p className="text-[13px] text-muted-foreground font-medium px-1">{keyFactLine}</p>
-
-        {/* 3. SUMMARY */}
+        {/* STRUCTURED RECORD */}
         {summaryResult && (
           <div className="space-y-1">
             <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
-              Summary
+              Data overview
             </h2>
             <div className="bg-card border border-border rounded-xl p-4 space-y-4">
               {summaryResult.sections
@@ -203,9 +208,11 @@ const MyRecordScreen = () => {
                         {section.title}
                       </p>
                     )}
-                    <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">
-                      {section.content}
-                    </p>
+                    {section.content && (
+                      <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {section.content}
+                      </p>
+                    )}
                   </div>
                 ))}
             </div>
@@ -215,7 +222,7 @@ const MyRecordScreen = () => {
           </div>
         )}
 
-        {/* 4. PEOPLE INVOLVED */}
+        {/* PEOPLE INVOLVED */}
         {people.length > 0 && (
           <div className="space-y-1">
             <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
@@ -242,7 +249,7 @@ const MyRecordScreen = () => {
           </div>
         )}
 
-        {/* 5. INCLUDED INCIDENTS */}
+        {/* RECENT RECORDS */}
         <div className="space-y-1">
           <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
             Recent records
@@ -253,6 +260,7 @@ const MyRecordScreen = () => {
               const dateStr = isValid(d) ? format(d, 'd MMM yyyy') : inc.incident_date;
               const hasAttachments = allEvidence.some(e => e.incident_id === inc.id);
               const hasFollowUps = followUpNotes.some(n => n.incident_id === inc.id);
+              const categoryDisplay = inc.category || 'Unclassified';
 
               return (
                 <button
@@ -261,15 +269,11 @@ const MyRecordScreen = () => {
                   className="flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[12px] text-muted-foreground font-medium">{dateStr}</span>
-                      {inc.category && (
-                        <CategoryBadge category={inc.category} subtype={inc.subtype ?? undefined} />
-                      )}
-                    </div>
-                    <p className="text-[13px] text-foreground font-medium truncate">
+                    <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
+                    <p className="text-[13px] text-foreground font-medium truncate mt-0.5">
                       {inc.title || inc.ai_summary || inc.raw_narrative?.slice(0, 60)}
                     </p>
+                    <span className="text-[11px] text-muted-foreground/60">{dateStr}</span>
                     {(hasAttachments || hasFollowUps) && (
                       <div className="flex gap-2 mt-0.5">
                         {hasAttachments && (
@@ -290,10 +294,10 @@ const MyRecordScreen = () => {
 
         {/* INTEGRITY STATEMENT */}
         <p className="text-[11px] text-muted-foreground/50 leading-relaxed px-1">
-          This record reflects incidents as recorded by the user. Each entry includes an incident date and a recorded timestamp. Updates are appended and do not overwrite original records.
+          This record reflects events as recorded by the user. Each entry includes a date and a recorded timestamp. Updates are appended and do not overwrite original records.
         </p>
 
-        {/* 6. EXPORT BLOCK */}
+        {/* EXPORT BLOCK */}
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
           <p className="text-[13px] text-muted-foreground leading-relaxed">
             This record can be turned into a structured document for sharing or review.
@@ -309,7 +313,7 @@ const MyRecordScreen = () => {
               onClick={() => setShowSummaryBuilder(true)}
               className="flex-1 border border-border text-foreground text-[13px] font-medium py-2.5 rounded-lg hover:bg-muted/30 transition-colors"
             >
-              Build a summary
+              Generate structured record
             </button>
           </div>
         </div>

@@ -316,7 +316,7 @@ const RecordScreen = () => {
 
       <PageHeader
         title="Record"
-        subtitle="Take your time — write this in your own words."
+        subtitle="Record it in your own words"
       >
         <button
           onClick={() => setShowLibrary(true)}
@@ -410,7 +410,7 @@ const RecordScreen = () => {
             {!hasText && (
               <div className="px-5 mt-2 mb-4">
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-                  You can start with what you have.
+                  Your input is preserved and organised into a structured record
                 </p>
               </div>
             )}
@@ -439,7 +439,7 @@ const RecordScreen = () => {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-                  You can start with what you have.
+                  Your input is preserved and organised into a structured record
                 </p>
               </div>
             )}

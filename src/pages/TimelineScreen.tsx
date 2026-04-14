@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarDays, Paperclip, FileText } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import CategoryBadge from '@/components/chronicle/CategoryBadge';
+import CategoryBadge, { CategoryLabel } from '@/components/chronicle/CategoryBadge';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
@@ -298,6 +298,7 @@ const TimelineScreen = () => {
                       const tintClass = inc.category
                         ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
                         : 'border-l-muted-foreground/40';
+                      const categoryDisplay = inc.category || 'Unclassified';
                       return (
                         <div
                           key={inc.id}
@@ -307,12 +308,8 @@ const TimelineScreen = () => {
                             onClick={() => navigate(`/incident/${inc.id}`)}
                             className={`w-full text-left rounded-lg border border-border border-l-4 ${tintClass} px-3 py-2.5 bg-card hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''}`}
                           >
-                            {inc.category && (
-                              <div className="mb-0.5">
-                                <CategoryBadge category={inc.category} subtype={inc.subtype ?? undefined} />
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between gap-2">
+                            <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
+                            <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
                                 {inc.title || 'Untitled incident'}

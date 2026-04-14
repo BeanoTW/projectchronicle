@@ -224,11 +224,12 @@ const ExportScreen = () => {
       comingSoon: false,
       onExport: handleOpenBuilder,
       loading: tribunalLoading,
+      includes: 'Includes: records in chronological order, category labels, people involved, recorded timestamps, append-only updates',
     },
-    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true },
-    { key: 'chronology', title: 'What happened over time', description: 'All incidents in date order, clearly grouped.', icon: Clock, comingSoon: true },
-    { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true },
-    { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, summary, evidence index, and all records.', icon: Package, comingSoon: true },
+    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true, includes: 'Includes: narrative, people involved, attachments, timestamps' },
+    { key: 'chronology', title: 'What happened over time', description: 'All records in date order, clearly grouped.', icon: Clock, comingSoon: true, includes: 'Includes: records in chronological order, category labels, dates' },
+    { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true, includes: 'Includes: attachment names, reference numbers, linked records' },
+    { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, structured record, attachment index, and all records.', icon: Package, comingSoon: true, includes: 'Includes: cover page, chronology, structured record, attachment index, all records' },
   ];
 
   return (
@@ -276,13 +277,16 @@ const ExportScreen = () => {
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading }, i) => (
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes }, i) => (
             <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
                   <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+                  {includes && (
+                    <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">{includes}</p>
+                  )}
                   {comingSoon ? (
                     <div className="mt-3">
                       <span className="inline-flex items-center text-[12px] text-muted-foreground font-medium bg-muted px-3 py-1.5 rounded-lg">
