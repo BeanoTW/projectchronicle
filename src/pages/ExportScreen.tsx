@@ -243,8 +243,8 @@ const ExportScreen = () => {
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="text-[15px] font-semibold text-foreground">Your situation so far</h3>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured narrative combining all your incidents.</p>
+            <h3 className="text-[15px] font-semibold text-foreground">Structured record</h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured overview of all your records.</p>
             
             {summaryResult ? (
               <div className="mt-3 space-y-3">
@@ -266,7 +266,7 @@ const ExportScreen = () => {
                 onClick={handleCaseNarrative}
                 disabled={narrativeLoading || activeIncidents.length < 2}
               >
-                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate Summary</>}
+                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
               </Button>
             )}
           </div>
