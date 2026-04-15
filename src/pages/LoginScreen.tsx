@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ const LoginScreen = () => {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -29,7 +30,7 @@ const LoginScreen = () => {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+      toast({ title: 'Unable to sign in', description: 'Invalid login details.', variant: 'destructive' });
     } else {
       navigate('/home');
     }
@@ -68,13 +69,31 @@ const LoginScreen = () => {
           <Label htmlFor="password" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
             Password
           </Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30 pr-11"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => navigate('/forgot-password')}
+            className="text-[12px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors"
+          >
+            Forgot password?
+          </button>
         </div>
 
         <Button

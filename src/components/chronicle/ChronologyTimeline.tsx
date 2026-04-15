@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, User, Paperclip, StickyNote, ChevronRight } from 'lucide-react';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
-
+import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 interface Props {
   incidents: Incident[];
   isPartOfPattern: (inc: Incident) => boolean;
@@ -109,11 +109,17 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                       <p className="text-[10px] text-muted-foreground/40 italic mb-1.5 ml-2">{gapLabel}</p>
                     )}
                     <div className="relative">
-                      {/* Node dot */}
-                      <div
-                        className="absolute -left-5 top-[14px] w-[7px] h-[7px] rounded-full bg-primary border-2 border-background z-10"
-                        style={{ boxShadow: '0 0 0 1.5px hsl(var(--primary) / 0.2)' }}
-                      />
+                      {/* Node dot — category coloured */}
+                      {(() => {
+                        const resolved = resolveCategory(inc.category);
+                        const borderToken = CATEGORY_BORDER_COLORS[resolved] || 'border-l-muted-foreground/40';
+                        const dotBg = borderToken.replace('border-l-', 'bg-');
+                        return (
+                          <div
+                            className={`absolute -left-5 top-[14px] w-[7px] h-[7px] rounded-full ${dotBg} border-2 border-background z-10`}
+                          />
+                        );
+                      })()}
 
                       <button
                         onClick={() => navigate(`/incident/${inc.id}`)}
