@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, User, Paperclip, StickyNote, ChevronRight } from 'lucide-react';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
-
+import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 interface Props {
   incidents: Incident[];
   isPartOfPattern: (inc: Incident) => boolean;

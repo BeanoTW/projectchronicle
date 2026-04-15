@@ -17,24 +17,17 @@ import {
 import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import PageHeader from '@/components/chronicle/PageHeader';
-import { CATEGORY_BORDER_COLORS } from '@/lib/categories';
+import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 import type { Incident } from '@/hooks/useIncidents';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/* Dot colour from category */
+/* Dot colour from category — uses resolved category + existing border tokens */
 const categoryDotColour = (category: string | null): string => {
-  if (!category) return 'bg-muted-foreground/30';
-  const map: Record<string, string> = {
-    'Verbal Comment': 'bg-warm-accent',
-    'Written Communication': 'bg-info',
-    'Work Allocation': 'bg-primary',
-    'Process / Procedure': 'bg-accent-foreground/60',
-    'Management Handling': 'bg-muted-foreground/50',
-    'Non-Verbal Behaviour': 'bg-muted-foreground/40',
-    'Safety / Operational': 'bg-destructive/60',
-  };
-  return map[category] || 'bg-muted-foreground/30';
+  const resolved = resolveCategory(category);
+  const borderClass = CATEGORY_BORDER_COLORS[resolved] || 'border-l-muted-foreground/40';
+  // Convert border-l-X to bg-X for dots
+  return borderClass.replace('border-l-', 'bg-');
 };
 
 const CalendarScreen = () => {

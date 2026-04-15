@@ -9,6 +9,8 @@ import BottomNav from "@/components/chronicle/BottomNav";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import LoginScreen from "./pages/LoginScreen";
 import SignupScreen from "./pages/SignupScreen";
+import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
+import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
@@ -58,6 +60,8 @@ const App = () => (
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><SignupScreen /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordScreen /></PublicRoute>} />
+            <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
