@@ -53,7 +53,7 @@ const SupportScreen = () => {
           Using your record
         </p>
         <p className="text-[13px] text-muted-foreground/70 leading-relaxed mb-4">
-          This system helps you build a structured record over time. Each part of the app plays a different role.
+          This system helps you build a structured record over time. Each part of the app supports how that record is created and organised.
         </p>
         <div className="space-y-2">
           {APP_SECTIONS.map(s => (
@@ -74,7 +74,7 @@ const SupportScreen = () => {
         <ul className="space-y-2 pl-1">
           {INTEGRITY_POINTS.map((point, i) => (
             <li key={i} className="text-[13px] text-foreground/80 leading-relaxed flex items-start gap-2">
-              <span className="text-muted-foreground/40 mt-1.5 block w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+              <span className="block w-1 h-1 rounded-full bg-muted-foreground/40 flex-shrink-0 mt-1.5" />
               {point}
             </li>
           ))}
