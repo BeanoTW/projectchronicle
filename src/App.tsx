@@ -6,11 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import BottomNav from "@/components/chronicle/BottomNav";
+import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import LoginScreen from "./pages/LoginScreen";
 import SignupScreen from "./pages/SignupScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
+import AuthCallbackScreen from "./pages/AuthCallbackScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
 import TimelineScreen from "./pages/TimelineScreen";
@@ -31,6 +33,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="max-w-lg mx-auto">
     {children}
     <BottomNav />
+    <AuthDebugPanel />
   </div>
 );
 
@@ -62,6 +65,7 @@ const App = () => (
             <Route path="/signup" element={<PublicRoute><SignupScreen /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordScreen /></PublicRoute>} />
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
+            <Route path="/auth/callback" element={<AuthCallbackScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />

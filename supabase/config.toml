@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.generate-export]
 verify_jwt = false
+
+[functions.detect-multi-incident]
+verify_jwt = false
+
+[functions.transcribe-audio]
+verify_jwt = false
