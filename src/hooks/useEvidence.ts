@@ -26,11 +26,13 @@ export const useUploadEvidence = () => {
 
   return useMutation({
     mutationFn: async ({ file, incidentId, description }: { file: File; incidentId?: string; description?: string }) => {
-      const filePath = `${user!.id}/${Date.now()}_${file.name}`;
+      const uniqueId = crypto.randomUUID();
+      const ext = file.name.split('.').pop() || 'bin';
+      const filePath = `${user!.id}/${uniqueId}.${ext}`;
       
       const { error: uploadError } = await supabase.storage
         .from('evidence')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: false });
       if (uploadError) throw uploadError;
 
       const { error: dbError } = await supabase
