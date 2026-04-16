@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertTriangle, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ const fade = (delay: number) => ({
   transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
 });
 
+type ResetState = 'verifying' | 'ready' | 'invalid' | 'timeout';
+
 const ResetPasswordScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,21 +25,41 @@ const ResetPasswordScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [ready, setReady] = useState(false);
+  const [resetState, setResetState] = useState<ResetState>('verifying');
 
   useEffect(() => {
-    // Check for recovery event
+    const timeout = setTimeout(() => {
+      setResetState(prev => prev === 'verifying' ? 'timeout' : prev);
+    }, 10000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        setReady(true);
+        setResetState('ready');
       }
     });
-    // Also check hash for type=recovery
+
+    // Check if already in recovery state via hash or existing session
     const hash = window.location.hash;
     if (hash.includes('type=recovery')) {
-      setReady(true);
+      // Session should be established by Supabase automatically
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setResetState('ready');
+        }
+      });
+    } else {
+      // Check if we already have a session (navigated from AuthCallback)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setResetState('ready');
+        }
+      });
     }
-    return () => subscription.unsubscribe();
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleUpdate = async () => {
@@ -55,15 +77,47 @@ const ResetPasswordScreen = () => {
     if (error) {
       toast({ title: 'Unable to reset password', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Password updated' });
-      navigate('/home');
+      // Confirm the update actually worked by checking session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        toast({ title: 'Password updated' });
+        navigate('/home', { replace: true });
+      } else {
+        toast({ title: 'Password updated', description: 'Please sign in with your new password.' });
+        navigate('/login', { replace: true });
+      }
     }
   };
 
-  if (!ready) {
+  if (resetState === 'verifying') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6">
+        <ChronicleLogo size={48} />
+        <Loader2 className="h-5 w-5 text-primary animate-spin mt-6 mb-2" />
         <p className="text-muted-foreground text-[14px]">Verifying reset link…</p>
+      </div>
+    );
+  }
+
+  if (resetState === 'invalid' || resetState === 'timeout') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6 text-center">
+        <ChronicleLogo size={48} />
+        <AlertTriangle className="h-8 w-8 text-destructive/70 mt-6 mb-3" />
+        <p className="text-[14px] text-foreground font-medium mb-1">
+          {resetState === 'timeout' ? 'Reset link could not be verified' : 'Invalid or expired reset link'}
+        </p>
+        <p className="text-[12px] text-muted-foreground mb-4 max-w-[280px]">
+          This link may have expired or already been used. Request a new one.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/forgot-password')}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Request new link
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
+            Back to sign in
+          </Button>
+        </div>
       </div>
     );
   }
