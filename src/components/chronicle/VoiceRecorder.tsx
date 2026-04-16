@@ -129,7 +129,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) 
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
             <p className="text-[12px] text-muted-foreground">
-              Just speak naturally — we’ll turn it into a clear record
+              Record it in your own words
             </p>
           </motion.div>
         )}
