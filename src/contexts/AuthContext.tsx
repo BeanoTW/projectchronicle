@@ -19,19 +19,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Local-first: never block UI on network. Session is restored from
+    // localStorage by the supabase client; cap our loading flag so the UI
+    // always renders quickly even if the auth network call hangs.
+    const settle = (s: Session | null) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      setLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      settle(session);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => settle(session));
 
-    return () => subscription.unsubscribe();
+    // Hard cap: if getSession hasn't responded in 800ms (e.g. offline / slow),
+    // proceed with whatever cached session the client already has.
+    const timer = setTimeout(() => setLoading(false), 800);
+
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {

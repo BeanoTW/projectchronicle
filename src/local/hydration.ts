@@ -16,11 +16,21 @@ export const hydrateFromCloudOnce = async (userId: string): Promise<{ hydrated: 
 
   const nowIso = new Date().toISOString();
 
-  const { data: incidents, error: iErr } = await supabase.from('incidents').select('*');
-  if (iErr) return { hydrated: false, incidents: 0, notes: 0 };
+  // Race each network call against a timeout so a slow/offline backend
+  // never wedges hydration. Local-first UI never waits on this anyway.
+  const withTimeout = <T,>(p: PromiseLike<T>, ms = 5000): Promise<T | null> =>
+    Promise.race<T | null>([
+      Promise.resolve(p),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), ms)),
+    ]);
 
-  const { data: notes, error: nErr } = await supabase.from('follow_up_notes').select('*');
-  if (nErr) return { hydrated: false, incidents: 0, notes: 0 };
+  const incRes = await withTimeout(supabase.from('incidents').select('*'));
+  if (!incRes || incRes.error) return { hydrated: false, incidents: 0, notes: 0 };
+  const incidents = incRes.data;
+
+  const notesRes = await withTimeout(supabase.from('follow_up_notes').select('*'));
+  if (!notesRes || notesRes.error) return { hydrated: false, incidents: 0, notes: 0 };
+  const notes = notesRes.data;
 
   const localIncidents: LocalIncident[] = (incidents ?? []).map(r => ({
     ...r,
