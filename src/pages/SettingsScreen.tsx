@@ -94,6 +94,86 @@ const SettingsScreen = () => {
 
           <div className="border-t border-border" />
 
+          {/* Cloud backup */}
+          <div className="p-4 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Cloud className="h-4 w-4 text-primary" />
+              <span className="text-[14px] font-semibold text-foreground">Cloud backup</span>
+            </div>
+            <p className="text-[12px] text-muted-foreground leading-relaxed">
+              Your records are stored on this device. Cloud backup is optional and uploads them to your account so they can be restored on another device.
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-[14px] text-foreground">Enable cloud backup</span>
+              </div>
+              <Switch
+                checked={backupEnabled}
+                disabled={busy}
+                onCheckedChange={async (v) => {
+                  setBusy(true);
+                  try { await setBackupEnabled(v); } finally { setBusy(false); }
+                }}
+              />
+            </div>
+            <div className="text-[12px] text-muted-foreground space-y-1 pt-1">
+              <div className="flex justify-between"><span>Status</span><span className="text-foreground">{backupEnabled ? (online ? 'On — uploading when online' : 'On — offline, will retry') : 'Off — local only'}</span></div>
+              <div className="flex justify-between"><span>Pending upload</span><span className="text-foreground tabular-nums">{pendingCount}</span></div>
+              {lastSyncAttemptAt && (
+                <div className="flex justify-between"><span>Last attempt</span><span className="text-foreground">{format(new Date(lastSyncAttemptAt), 'd MMM HH:mm')}</span></div>
+              )}
+              {lastSyncResult?.lastError && (
+                <div className="flex justify-between"><span>Last error</span><span className="text-foreground truncate max-w-[180px]">{lastSyncResult.lastError}</span></div>
+              )}
+            </div>
+            {backupEnabled && pendingCount > 0 && (
+              <button
+                onClick={async () => { setBusy(true); try { await retrySyncNow(); } finally { setBusy(false); } }}
+                disabled={busy || !online}
+                className="w-full text-[13px] text-primary py-2 hover:bg-muted/30 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+                Retry backup now
+              </button>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="w-full text-[13px] text-destructive py-2 hover:bg-destructive/5 rounded-lg transition-colors">
+                  Delete cloud copy
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete cloud copy of your records?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently removes records previously uploaded to your cloud account. Records on this device are not affected and will remain available locally. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={deleting}
+                    onClick={async () => {
+                      setDeleting(true);
+                      try {
+                        const res = await deleteCloudData();
+                        toast({ title: 'Cloud copy deleted', description: `${res.incidents} records and ${res.notes} notes removed from your cloud account. Local copies are unchanged.` });
+                      } catch (e) {
+                        toast({ title: 'Delete failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                      } finally {
+                        setDeleting(false);
+                      }
+                    }}
+                  >
+                    Delete cloud copy
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <div className="border-t border-border" />
+
           {/* Export */}
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
