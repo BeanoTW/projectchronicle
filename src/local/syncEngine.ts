@@ -1,0 +1,180 @@
+// Backup/sync engine.
+//
+// Trigger rule (deterministic, stated honestly to users in the diagnostics panel):
+//   - Backup is attempted shortly after a local save when backup is ON and the
+//     browser reports online.
+//   - Failed backups retry only on: app load, manual "Retry now", regaining
+//     connectivity, or the next local save. No hidden background polling.
+import { supabase } from '@/integrations/supabase/client';
+import { localDB, isBackupEnabled, type LocalIncident, type LocalFollowUpNote } from './db';
+
+export type SyncResult = {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  lastError: string | null;
+};
+
+let inFlight: Promise<SyncResult> | null = null;
+let lastResult: SyncResult | null = null;
+let lastAttemptAt: string | null = null;
+
+export const getLastSyncResult = () => lastResult;
+export const getLastSyncAttemptAt = () => lastAttemptAt;
+
+// Strip local-only fields before sending to Supabase.
+const stripLocalIncident = (r: LocalIncident) => {
+  const { owner_user_id, sync_state, last_sync_attempt_at, last_sync_error, local_updated_at, ...rest } = r;
+  return rest;
+};
+const stripLocalNote = (r: LocalFollowUpNote) => {
+  const { owner_user_id, sync_state, last_sync_attempt_at, last_sync_error, local_updated_at, ...rest } = r;
+  return rest;
+};
+
+export const syncNow = async (userId: string): Promise<SyncResult> => {
+  if (inFlight) return inFlight;
+
+  inFlight = (async (): Promise<SyncResult> => {
+    const result: SyncResult = { attempted: 0, succeeded: 0, failed: 0, lastError: null };
+    lastAttemptAt = new Date().toISOString();
+
+    if (!(await isBackupEnabled())) return result;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      result.lastError = 'offline';
+      return result;
+    }
+
+    // --- Incidents ---
+    const pendingIncidents = await localDB.incidents
+      .where('owner_user_id').equals(userId)
+      .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
+      .toArray();
+
+    for (const row of pendingIncidents) {
+      result.attempted += 1;
+      try {
+        const payload = stripLocalIncident(row);
+        // upsert by primary key; identity is preserved (PART 6).
+        const { error } = await supabase.from('incidents').upsert(payload, { onConflict: 'id' });
+        if (error) throw error;
+        await localDB.incidents.update(row.id, {
+          sync_state: 'backed_up',
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: null,
+        });
+        result.succeeded += 1;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await localDB.incidents.update(row.id, {
+          sync_state: 'backup_failed',
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: msg,
+        });
+        result.failed += 1;
+        result.lastError = msg;
+      }
+    }
+
+    // --- Follow-up notes ---
+    const pendingNotes = await localDB.follow_up_notes
+      .where('owner_user_id').equals(userId)
+      .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
+      .toArray();
+
+    for (const row of pendingNotes) {
+      result.attempted += 1;
+      try {
+        const payload = stripLocalNote(row);
+        const { error } = await supabase.from('follow_up_notes').upsert(payload, { onConflict: 'id' });
+        if (error) throw error;
+        await localDB.follow_up_notes.update(row.id, {
+          sync_state: 'backed_up',
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: null,
+        });
+        result.succeeded += 1;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await localDB.follow_up_notes.update(row.id, {
+          sync_state: 'backup_failed',
+          last_sync_attempt_at: new Date().toISOString(),
+          last_sync_error: msg,
+        });
+        result.failed += 1;
+        result.lastError = msg;
+      }
+    }
+
+    lastResult = result;
+    return result;
+  })();
+
+  try {
+    return await inFlight;
+  } finally {
+    inFlight = null;
+  }
+};
+
+// Promote any local_only records to queued. Used when user turns backup ON
+// (auto-queue all existing local records, per spec choice).
+export const promoteAllLocalToQueued = async (userId: string): Promise<number> => {
+  const incidents = await localDB.incidents
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'local_only')
+    .toArray();
+  for (const r of incidents) {
+    await localDB.incidents.update(r.id, { sync_state: 'queued' });
+  }
+  const notes = await localDB.follow_up_notes
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'local_only')
+    .toArray();
+  for (const n of notes) {
+    await localDB.follow_up_notes.update(n.id, { sync_state: 'queued' });
+  }
+  return incidents.length + notes.length;
+};
+
+// Demote queued (not-yet-uploaded) records back to local_only when backup is OFF.
+// Backed-up records stay marked backed_up to reflect the truthful remote state.
+export const demoteQueuedToLocalOnly = async (userId: string): Promise<number> => {
+  const incidents = await localDB.incidents
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
+    .toArray();
+  for (const r of incidents) {
+    await localDB.incidents.update(r.id, { sync_state: 'local_only' });
+  }
+  const notes = await localDB.follow_up_notes
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
+    .toArray();
+  for (const n of notes) {
+    await localDB.follow_up_notes.update(n.id, { sync_state: 'local_only' });
+  }
+  return incidents.length + notes.length;
+};
+
+// User-initiated remote wipe (PART 9 / "Delete cloud copy"). Local data is untouched.
+// Returns count of cloud rows deleted (best-effort, scoped by RLS to current user).
+export const deleteCloudCopy = async (userId: string): Promise<{ incidents: number; notes: number }> => {
+  const { error: nErr, count: nCount } = await supabase
+    .from('follow_up_notes').delete({ count: 'exact' }).eq('user_id', userId);
+  if (nErr) throw nErr;
+  const { error: iErr, count: iCount } = await supabase
+    .from('incidents').delete({ count: 'exact' }).eq('user_id', userId);
+  if (iErr) throw iErr;
+
+  // Mark all local rows as local_only since their cloud copy is gone.
+  const incidents = await localDB.incidents.where('owner_user_id').equals(userId).toArray();
+  for (const r of incidents) {
+    await localDB.incidents.update(r.id, { sync_state: 'local_only', last_sync_error: null });
+  }
+  const notes = await localDB.follow_up_notes.where('owner_user_id').equals(userId).toArray();
+  for (const n of notes) {
+    await localDB.follow_up_notes.update(n.id, { sync_state: 'local_only', last_sync_error: null });
+  }
+  return { incidents: iCount ?? 0, notes: nCount ?? 0 };
+};

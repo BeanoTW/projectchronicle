@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
+import { BackupProvider } from "@/contexts/BackupContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import WelcomeScreen from "./pages/WelcomeScreen";
@@ -54,6 +55,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <BackupProvider>
       <DevModeProvider>
       <TooltipProvider>
         <Toaster />
@@ -88,6 +90,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </DevModeProvider>
+      </BackupProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
