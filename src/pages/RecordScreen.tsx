@@ -494,15 +494,27 @@ const RecordScreen = () => {
               <div className="px-5 mb-4 space-y-3">
                 <div className="overflow-x-auto scrollbar-hide">
                   <div className="flex gap-1.5 min-w-max text-[11px] text-muted-foreground/70">
-                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
-                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
-                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
-                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
-                    <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+                    {recordType === 'daily_record' ? (
+                      <>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Interactions</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Work</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Context</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">When</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Where</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">Who</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What happened</span>
+                        <span className="bg-muted/40 px-2.5 py-1 rounded whitespace-nowrap">What was said</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
-                  Your input is preserved and organised into a structured record
+                  {recordType === 'daily_record'
+                    ? 'Your input is preserved exactly as written'
+                    : 'Your input is preserved and organised into a structured record'}
                 </p>
               </div>
             )}
@@ -511,13 +523,17 @@ const RecordScreen = () => {
               {/* Narrative Input */}
               <div className="writing-focus rounded-xl border border-border bg-card transition-all duration-200">
                 <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-4 pt-3 block">
-                  Your account
+                  {recordType === 'daily_record' ? 'Your day' : 'Your account'}
                 </Label>
                 <Textarea
                   id="narrative"
                   value={narrative}
                   onChange={(e) => setNarrative(e.target.value)}
-                  placeholder="Write what happened — include anything said, done, or noticed."
+                  placeholder={
+                    recordType === 'daily_record'
+                      ? 'Record what your day involved — interactions, work, or context'
+                      : 'Write what happened — include anything said, done, or noticed.'
+                  }
                   className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
                 />
                 <div className="flex items-center justify-between px-4 pb-2">
