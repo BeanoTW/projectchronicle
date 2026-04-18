@@ -373,7 +373,29 @@ const RecordScreen = () => {
         </button>
       </PageHeader>
 
-      {/* Mode Toggle */}
+      {/* Record-type toggle (Daily Record extension) */}
+      <div className="px-5 mb-3">
+        <div className="flex bg-muted/40 rounded-lg p-0.5 gap-0.5">
+          <button
+            onClick={() => setRecordType('incident')}
+            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-colors ${
+              recordType === 'incident' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Incident
+          </button>
+          <button
+            onClick={() => setRecordType('daily_record')}
+            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-colors ${
+              recordType === 'daily_record' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Daily record
+          </button>
+        </div>
+      </div>
+
+      {/* Mode Toggle (Voice / Text) */}
       <div className="px-5 mb-5">
         <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
           <button
