@@ -163,6 +163,38 @@ const RecordScreen = () => {
       setMoreDetailsOpen(true);
       return;
     }
+
+    // Daily Record path: bypass AI structuring; daily records are not categorised
+    // and have no interpretation applied. Optional interactions[] are passed through.
+    if (recordType === 'daily_record') {
+      navigate('/review', {
+        state: {
+          draft: {
+            narrative,
+            title,
+            incidentDate,
+            incidentTime,
+            location,
+            category: '',
+            subtype: 'Not sure yet',
+            categorySource: null,
+            contextDomain: '',
+            peopleInvolved: peopleInvolved
+              ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean)
+              : [],
+            witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+            exactWords,
+            impactNote,
+            aiSummary: '',
+            recordMethod: mode,
+            recordType: 'daily_record',
+            interactions,
+          },
+        },
+      });
+      return;
+    }
+
     setAnalysing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyse-incident', {
@@ -192,6 +224,8 @@ const RecordScreen = () => {
             impactNote,
             aiSummary: data?.summary || '',
             recordMethod: mode,
+            recordType: 'incident',
+            interactions: [],
           },
         },
       });
