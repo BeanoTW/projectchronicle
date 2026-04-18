@@ -256,6 +256,8 @@ const RecordScreen = () => {
           impactNote,
           aiSummary: '',
           recordMethod: mode,
+          recordType,
+          interactions: recordType === 'daily_record' ? interactions : [],
         },
       },
     });
