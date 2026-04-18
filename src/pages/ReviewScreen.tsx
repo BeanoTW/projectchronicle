@@ -23,6 +23,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+import type { Interaction, RecordType } from '@/types/dailyRecord';
+import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
+
 export interface ReviewDraft {
   narrative: string;
   title: string;
@@ -41,6 +44,9 @@ export interface ReviewDraft {
   recordMethod: string;
   categoryConfidence?: 'high' | 'medium' | 'low';
   peopleConfidence?: 'high' | 'medium' | 'low' | 'none';
+  // Daily Record extension
+  recordType?: RecordType;
+  interactions?: Interaction[];
 }
 
 function normSubtype(s: string): string {
