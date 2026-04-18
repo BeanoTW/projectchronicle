@@ -18,6 +18,8 @@ import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
 import { useUploadEvidence, useEvidence } from '@/hooks/useEvidence';
 import AttachmentRow from '@/components/chronicle/AttachmentRow';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
+import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
+import type { Interaction, RecordType } from '@/types/dailyRecord';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -36,6 +38,9 @@ const RecordScreen = () => {
   const [showLibrary, setShowLibrary] = useState(false);
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
+  // Daily Record extension — second record type within the same system.
+  const [recordType, setRecordType] = useState<RecordType>('incident');
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [showManualForm, setShowManualForm] = useState(false);
   const [moreDetailsOpen, setMoreDetailsOpen] = useState(false);
   const [narrative, setNarrative] = useState('');
