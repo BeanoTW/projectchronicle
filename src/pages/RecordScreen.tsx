@@ -558,6 +558,24 @@ const RecordScreen = () => {
                 <p className="text-[12px] text-destructive -mt-3">{errors.raw_narrative}</p>
               )}
 
+              {/* Optional structured interactions — daily records only */}
+              {recordType === 'daily_record' && (
+                <div className="bg-card border border-border rounded-xl p-4 space-y-2.5">
+                  <div>
+                    <Label className="text-[13px] font-medium text-foreground">
+                      Notable interactions <span className="text-muted-foreground/60 font-normal">(optional)</span>
+                    </Label>
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                      Add structured entries if useful. Always optional.
+                    </p>
+                  </div>
+                  <InteractionsEditor
+                    interactions={interactions}
+                    onChange={setInteractions}
+                  />
+                </div>
+              )}
+
               {/* Attachment row */}
               <AttachmentRow
                 count={allEvidence.length}
