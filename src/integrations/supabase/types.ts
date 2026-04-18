@@ -156,11 +156,13 @@ export type Database = {
           impact_note: string | null
           incident_date: string
           incident_time: string | null
+          interactions: Json | null
           location: string | null
           locked: boolean
           people_involved: string[]
           raw_narrative: string
           record_method: string | null
+          record_type: string
           severity: string | null
           status: string
           subtype: string | null
@@ -184,11 +186,13 @@ export type Database = {
           impact_note?: string | null
           incident_date: string
           incident_time?: string | null
+          interactions?: Json | null
           location?: string | null
           locked?: boolean
           people_involved?: string[]
           raw_narrative: string
           record_method?: string | null
+          record_type?: string
           severity?: string | null
           status?: string
           subtype?: string | null
@@ -212,11 +216,13 @@ export type Database = {
           impact_note?: string | null
           incident_date?: string
           incident_time?: string | null
+          interactions?: Json | null
           location?: string | null
           locked?: boolean
           people_involved?: string[]
           raw_narrative?: string
           record_method?: string | null
+          record_type?: string
           severity?: string | null
           status?: string
           subtype?: string | null
