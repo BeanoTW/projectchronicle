@@ -36,7 +36,9 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         // App-shell precache only: built JS/CSS/HTML + manifest/icons/fonts.
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest,woff,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,svg,webmanifest,woff,woff2}"],
+        // Allow large bundled assets (e.g. logo PNG) to be precached.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA fallback: offline navigations resolve to index.html so React
         // Router can take over and Dexie can hydrate local data.
         navigateFallback: "/index.html",
