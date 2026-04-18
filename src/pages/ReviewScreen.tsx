@@ -23,6 +23,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+import type { Interaction, RecordType } from '@/types/dailyRecord';
+import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
+
 export interface ReviewDraft {
   narrative: string;
   title: string;
@@ -41,6 +44,9 @@ export interface ReviewDraft {
   recordMethod: string;
   categoryConfidence?: 'high' | 'medium' | 'low';
   peopleConfidence?: 'high' | 'medium' | 'low' | 'none';
+  // Daily Record extension
+  recordType?: RecordType;
+  interactions?: Interaction[];
 }
 
 function normSubtype(s: string): string {
@@ -442,23 +448,26 @@ const ReviewScreen = () => {
       for (const idx of activeDraftsIndices) {
         const d = drafts[idx];
         const s = draftStates[idx];
+        const isDaily = d.recordType === 'daily_record';
         const result = await createIncident.mutateAsync({
           raw_narrative: d.narrative,
           incident_date: d.incidentDate,
           incident_time: d.incidentTime || null,
           location: d.location || null,
-          category: s.category || null,
-          subtype: s.subtype || null,
+          category: isDaily ? null : (s.category || null),
+          subtype: isDaily ? null : (s.subtype || null),
           severity: null,
-          people_involved: s.people,
+          people_involved: isDaily ? (d.peopleInvolved || []) : s.people,
           witnesses: d.witnesses || [],
           exact_words: d.exactWords || null,
           impact_note: d.impactNote || null,
-          ai_summary: d.aiSummary || null,
+          ai_summary: isDaily ? null : (d.aiSummary || null),
           title: d.title || null,
           record_method: d.recordMethod,
           context_domain: d.contextDomain || null,
-          category_source: s.categorySource || 'ai',
+          category_source: isDaily ? null : (s.categorySource || 'ai'),
+          record_type: isDaily ? 'daily_record' : 'incident',
+          interactions: isDaily ? (d.interactions ?? []) : null,
         } as any);
         await createEditHistory.mutateAsync({
           incident_id: result.id,
