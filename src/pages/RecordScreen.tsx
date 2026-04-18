@@ -628,9 +628,17 @@ const RecordScreen = () => {
                     </CollapsibleContent>
                   </Collapsible>
 
-                  {/* Primary action: Save (routes through AI structuring → review) */}
+                  {/* Primary action: Save */}
                   <div className="space-y-2 pt-2 pb-8">
-                    {isCoherent ? (
+                    {recordType === 'daily_record' ? (
+                      <Button
+                        className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
+                        onClick={handleAnalyseAndReview}
+                        disabled={!incidentDate}
+                      >
+                        Save daily record
+                      </Button>
+                    ) : isCoherent ? (
                       <>
                         <Button
                           className="w-full rounded-xl h-12 text-[14px] font-semibold bg-primary text-primary-foreground shadow-[var(--shadow-elevated)] hover:bg-primary/90 transition-all"
