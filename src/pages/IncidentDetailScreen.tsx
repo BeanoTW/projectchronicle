@@ -67,6 +67,9 @@ const IncidentDetailScreen = () => {
   }
 
   const isVoided = !!incident.voided_at;
+  const isDaily = incident.record_type === 'daily_record';
+  const interactionsRaw = (incident as any).interactions;
+  const interactions = Array.isArray(interactionsRaw) ? interactionsRaw : [];
   const retroGap = (() => {
     try {
       const gap = differenceInCalendarDays(parseISO(incident.created_at), parseISO(incident.incident_date));
