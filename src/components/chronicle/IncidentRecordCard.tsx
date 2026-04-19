@@ -251,7 +251,86 @@ function retroLabelHtml(incidentDate: string, createdAt: string): string | null 
 
 export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   const { incident, followUps, evidence } = data;
+  const isDaily = (incident as any).record_type === 'daily_record';
+  const interactionsRaw = (incident as any).interactions;
+  const interactions: Array<{ time?: string; type: string; who?: string; context?: string }> =
+    Array.isArray(interactionsRaw) ? interactionsRaw : [];
   const retro = retroLabelHtml(incident.incident_date, incident.created_at);
+
+  // ── DAILY RECORD BLOCK ─────────────────────────────────────
+  if (isDaily) {
+    let html = `<div class="incident-card daily-record" style="page-break-inside:avoid" data-incident-id="${esc(incident.id)}" data-record-type="daily_record">`;
+
+    // Header: [Daily record — DATE]
+    html += `<div class="header">`;
+    html += `<span class="incident-id">${esc(incident.id.slice(0, 8).toUpperCase())}</span>`;
+    html += `<span class="incident-date">[Daily record — ${fmtDateHtml(incident.incident_date)}]`;
+    if (incident.incident_time) html += ` · ${esc(incident.incident_time)}`;
+    html += `</span></div>`;
+
+    // Meta
+    html += `<div class="meta"><p>Recorded: ${fmtFullHtml(incident.created_at)}</p>`;
+    if (retro) html += `<p>${esc(retro)}</p>`;
+    if (incident.location) html += `<p>${esc(incident.location)}</p>`;
+    html += `</div>`;
+
+    // Notable interactions (if any)
+    if (interactions.length > 0) {
+      html += `<div class="section interactions"><p class="section-label">Notable interactions</p>`;
+      interactions.forEach(it => {
+        const parts: string[] = [];
+        if (it.time) parts.push(esc(it.time));
+        parts.push(esc(it.type));
+        if (it.who) parts.push(esc(it.who));
+        if (it.context) parts.push(esc(it.context));
+        html += `<div class="interaction-entry">- ${parts.join(' — ')}</div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Additional context: raw_narrative (verbatim, no rewriting)
+    html += `<div class="section narrative"><p class="section-label">Additional context</p>`;
+    html += `<p class="narrative-text">${esc(incident.raw_narrative)}</p></div>`;
+
+    // Follow-ups (if any)
+    if (followUps.length > 0) {
+      html += `<div class="section followups"><p class="section-label">Follow-ups</p>`;
+      followUps.forEach(fu => {
+        html += `<div class="followup-entry" data-followup-id="${esc(fu.id)}">`;
+        html += `<span class="followup-date">Follow-up — ${fmtFullHtml(fu.created_at)}</span>`;
+        html += `<p>${esc(fu.note_text)}</p></div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Evidence (if any)
+    if (evidence.length > 0) {
+      html += `<div class="section evidence"><p class="section-label">Attachments</p>`;
+      evidence.forEach(ev => {
+        html += `<div class="evidence-entry">E${String(ev.evidence_ref_number || '?').padStart(2, '0')} — ${esc(ev.file_name)}</div>`;
+      });
+      html += `</div>`;
+    }
+
+    // Integrity
+    html += `<div class="section integrity">`;
+    html += `<p>This record was created on ${fmtFullHtml(incident.created_at)}</p>`;
+    html += `<p>Original content preserved · Updates appended without overwriting</p>`;
+    html += `</div>`;
+
+    // Citation
+    html += `<div class="section citation">`;
+    html += `<p>Record ID: ${esc(incident.id)}</p>`;
+    html += `<p>Record type: Daily record</p>`;
+    html += `<p>Date: ${fmtDateHtml(incident.incident_date)}</p>`;
+    html += `<p>Recorded: ${fmtFullHtml(incident.created_at)}</p>`;
+    html += `</div>`;
+
+    html += `</div>`;
+    return html;
+  }
+
+  // ── INCIDENT BLOCK (unchanged) ─────────────────────────────
   let html = `<div class="incident-card" style="page-break-inside:avoid" data-incident-id="${esc(incident.id)}">`;
 
   // 1. HEADER
