@@ -213,6 +213,27 @@ const TimelineScreen = () => {
         </button>
       </PageHeader>
 
+      {/* Record-type filter (All / Incidents / Daily records) */}
+      <div className="px-5 mb-2 flex gap-1.5">
+        {([
+          { v: 'all', label: 'All' },
+          { v: 'incident', label: 'Incidents' },
+          { v: 'daily_record', label: 'Daily records' },
+        ] as const).map(opt => (
+          <button
+            key={opt.v}
+            onClick={() => setRecordTypeFilter(opt.v)}
+            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+              recordTypeFilter === opt.v
+                ? 'bg-foreground text-background shadow-sm'
+                : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Scale selector */}
       <div className="px-5 mb-3 flex gap-1.5">
         {scaleLabels.map(s => (
