@@ -68,6 +68,42 @@ interface IncidentDraftCardProps {
   onAddPerson: (name: string) => void;
 }
 
+// === Daily-record review card (no incident-only fields) ===
+const DailyRecordDraftCard = ({ draft }: { draft: ReviewDraft }) => {
+  return (
+    <div className="space-y-4">
+      {/* Label + date */}
+      <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-muted text-muted-foreground uppercase tracking-wide">
+            Daily record
+          </span>
+          <div className="text-right text-[12px] text-muted-foreground">
+            <p className="font-medium text-foreground">{draft.incidentDate || '—'}</p>
+            {draft.incidentTime && <p>{draft.incidentTime}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Raw narrative */}
+      <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+        <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Your account</Label>
+        <p className="text-[14px] text-foreground leading-[1.7] mt-2 whitespace-pre-wrap">{draft.narrative}</p>
+      </div>
+
+      {/* Interactions (if any) */}
+      {draft.interactions && draft.interactions.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4 shadow-[var(--shadow-card)]">
+          <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">
+            Notable interactions
+          </Label>
+          <InteractionsEditor interactions={draft.interactions} onChange={() => {}} readOnly />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const IncidentDraftCard = ({
   draft, category, subtype, people, previousNames,
   catConfidence, peopleConf,
@@ -551,19 +587,23 @@ const ReviewScreen = () => {
       )}
 
       <div className="px-5">
-        <IncidentDraftCard
-          draft={currentDraft}
-          category={currentState.category}
-          subtype={currentState.subtype}
-          people={currentState.people}
-          previousNames={previousNames}
-          catConfidence={catConfidence}
-          peopleConf={peopleConf}
-          onCategoryChange={handleCategoryChange}
-          onSubtypeChange={handleSubtypeChange}
-          onRemovePerson={handleRemovePerson}
-          onAddPerson={handleAddPerson}
-        />
+        {currentDraft.recordType === 'daily_record' ? (
+          <DailyRecordDraftCard draft={currentDraft} />
+        ) : (
+          <IncidentDraftCard
+            draft={currentDraft}
+            category={currentState.category}
+            subtype={currentState.subtype}
+            people={currentState.people}
+            previousNames={previousNames}
+            catConfidence={catConfidence}
+            peopleConf={peopleConf}
+            onCategoryChange={handleCategoryChange}
+            onSubtypeChange={handleSubtypeChange}
+            onRemovePerson={handleRemovePerson}
+            onAddPerson={handleAddPerson}
+          />
+        )}
 
         {/* Multi-incident navigation + remove */}
         {isMulti && (

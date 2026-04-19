@@ -1,14 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, ChevronRight } from 'lucide-react';
+import { FileText, ChevronRight } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
-import {
-  generateSummary,
-} from '@/lib/summaryPipeline';
-import { CategoryLabel } from '@/components/chronicle/CategoryBadge';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 
@@ -89,6 +85,14 @@ const MyRecordScreen = () => {
     [incidents],
   );
 
+  // Counts split by record type
+  const counts = useMemo(() => {
+    const total = activeIncidents.length;
+    const dailyCount = activeIncidents.filter(i => (i as any).record_type === 'daily_record').length;
+    const incidentCount = total - dailyCount;
+    return { total, dailyCount, incidentCount };
+  }, [activeIncidents]);
+
   // Overview
   const overview = useMemo(() => buildOverview(activeIncidents), [activeIncidents]);
 
@@ -116,22 +120,6 @@ const MyRecordScreen = () => {
       latest: format(dates[dates.length - 1], 'd MMMM yyyy'),
     };
   }, [activeIncidents]);
-
-  // Summary (uses shared pipeline for export parity)
-  const summaryResult = useMemo(() => {
-    if (activeIncidents.length === 0) return null;
-    const allIds = activeIncidents.map(i => i.id);
-    return generateSummary({
-      incidents: activeIncidents,
-      selectedIds: allIds,
-      allIncidentCount: activeIncidents.length,
-      mode: 'structured-record',
-      customPurpose: '',
-      options: { includePatterns: true, includeNames: true },
-      followUpNotes,
-      evidenceFiles: allEvidence,
-    });
-  }, [activeIncidents, followUpNotes, allEvidence]);
 
   // People
   const people = useMemo(() => buildPeopleList(activeIncidents), [activeIncidents]);
@@ -168,129 +156,107 @@ const MyRecordScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Your record" />
 
-      <div className="px-5 space-y-5">
-        {/* RECORD COVERAGE */}
+      <div className="px-5 space-y-4">
+        {/* HEADER SUMMARY */}
         {recordCoverage && (
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="bg-card border border-border rounded-xl p-4 space-y-1">
             <p className="text-[12px] font-semibold text-foreground uppercase tracking-wider mb-2">Record coverage</p>
-            {recordCoverage.count === 1 ? (
-              <p className="text-[13px] text-muted-foreground">
-                1 record{'\n'}On {recordCoverage.earliest}
-              </p>
-            ) : (
-              <div className="text-[13px] text-muted-foreground space-y-0.5">
-                <p>{recordCoverage.count} records</p>
-                <p>Across {recordCoverage.days} days</p>
-                <p>Covering {recordCoverage.earliest} to {recordCoverage.latest}</p>
-              </div>
-            )}
+            <div className="text-[13px] text-muted-foreground space-y-0.5">
+              <p>Records: {counts.total}</p>
+              <p>Incident records: {counts.incidentCount}</p>
+              <p>Daily records: {counts.dailyCount}</p>
+              {recordCoverage.count === 1 ? (
+                <p>On {recordCoverage.earliest}</p>
+              ) : (
+                <p>Period: {recordCoverage.earliest} → {recordCoverage.latest}</p>
+              )}
+            </div>
           </div>
         )}
 
-        {/* OVERVIEW */}
+        {/* OVERVIEW (single short line) */}
         <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-[14px] text-foreground leading-relaxed">{overview}</p>
+          <p className="text-[13px] text-foreground leading-relaxed">{overview}</p>
         </div>
 
-        {/* STRUCTURED RECORD */}
-        {summaryResult && (
-          <div className="space-y-1">
-            <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
-              Data overview
-            </h2>
-            <div className="bg-card border border-border rounded-xl p-4 space-y-4">
-              {summaryResult.sections
-                .filter(s => s.key !== 'header')
-                .map(section => (
-                  <div key={section.key}>
-                    {section.title && (
-                      <p className="text-[13px] font-semibold text-foreground mb-1">
-                        {section.title}
-                      </p>
-                    )}
-                    {section.content && (
-                      <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">
-                        {section.content}
-                      </p>
-                    )}
-                  </div>
-                ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground/60 px-1 pt-1">
-              This record is based on entries made at the time of events and later additions where noted.
-            </p>
-          </div>
-        )}
-
-        {/* PEOPLE INVOLVED */}
+        {/* PEOPLE INVOLVED — collapsed */}
         {people.length > 0 && (
-          <div className="space-y-1">
-            <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
-              People involved
-            </h2>
-            <div className="bg-card border border-border rounded-xl divide-y divide-border">
-              {people.slice(0, 8).map((person, idx) => (
-                <div
-                  key={person.name}
-                  className={`flex items-center justify-between px-4 py-3 ${idx < 3 ? '' : 'opacity-70'}`}
-                >
-                  <div>
-                    <p className="text-[13px] font-medium text-foreground">{person.name}</p>
-                    <p className="text-[12px] text-muted-foreground">
-                      Appears in {person.count} record{person.count !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  {idx < 3 && (
-                    <Users className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
-                  )}
+          <details className="bg-card border border-border rounded-xl group">
+            <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
+              <span className="text-[12px] font-semibold text-foreground uppercase tracking-wider">
+                People involved · {people.length}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-open:rotate-90" />
+            </summary>
+            <div className="border-t border-border divide-y divide-border">
+              {people.slice(0, 3).map(person => (
+                <div key={person.name} className="flex items-center justify-between px-4 py-2.5">
+                  <p className="text-[13px] font-medium text-foreground">{person.name}</p>
+                  <p className="text-[12px] text-muted-foreground">{person.count} record{person.count !== 1 ? 's' : ''}</p>
                 </div>
               ))}
+              {people.length > 3 && (
+                <details className="group/inner">
+                  <summary className="px-4 py-2.5 text-[12px] text-primary font-medium cursor-pointer list-none">
+                    + {people.length - 3} more
+                  </summary>
+                  <div className="divide-y divide-border border-t border-border">
+                    {people.slice(3).map(person => (
+                      <div key={person.name} className="flex items-center justify-between px-4 py-2.5">
+                        <p className="text-[13px] font-medium text-foreground">{person.name}</p>
+                        <p className="text-[12px] text-muted-foreground">{person.count} record{person.count !== 1 ? 's' : ''}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
             </div>
-          </div>
+          </details>
         )}
 
-        {/* RECENT RECORDS */}
-        <div className="space-y-1">
-          <h2 className="text-[13px] font-semibold text-foreground uppercase tracking-wider px-1">
-            Recent records
-          </h2>
-          <div className="bg-card border border-border rounded-xl divide-y divide-border">
+        {/* RECENT RECORDS — collapsed */}
+        <details className="bg-card border border-border rounded-xl group">
+          <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
+            <span className="text-[12px] font-semibold text-foreground uppercase tracking-wider">
+              Recent records · {recentIncidents.length}
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-open:rotate-90" />
+          </summary>
+          <div className="border-t border-border divide-y divide-border">
             {recentIncidents.map(inc => {
               const d = parseISO(inc.incident_date);
               const dateStr = isValid(d) ? format(d, 'd MMM yyyy') : inc.incident_date;
-              const hasAttachments = allEvidence.some(e => e.incident_id === inc.id);
-              const hasFollowUps = followUpNotes.some(n => n.incident_id === inc.id);
-              const categoryDisplay = inc.category || 'Unclassified';
-
+              const isDaily = (inc as any).record_type === 'daily_record';
               return (
                 <button
                   key={inc.id}
                   onClick={() => navigate(`/incident/${inc.id}`)}
-                  className="flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-muted/30 transition-colors"
+                  className="flex items-center gap-3 px-4 py-2.5 w-full text-left hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
-                    <p className="text-[13px] text-foreground font-medium truncate mt-0.5">
-                      {inc.title || inc.ai_summary || inc.raw_narrative?.slice(0, 60)}
+                    <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
+                      {inc.title || inc.raw_narrative?.slice(0, 60) || 'Untitled'}
                     </p>
-                    <span className="text-[11px] text-muted-foreground/60">{dateStr}</span>
-                    {(hasAttachments || hasFollowUps) && (
-                      <div className="flex gap-2 mt-0.5">
-                        {hasAttachments && (
-                          <span className="text-[11px] text-muted-foreground/60">📎 Attachment</span>
-                        )}
-                        {hasFollowUps && (
-                          <span className="text-[11px] text-muted-foreground/60">＋ Follow-up</span>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] text-muted-foreground/70">{dateStr}</span>
+                      <span className="text-[11px] text-muted-foreground/60">·</span>
+                      <span className="text-[11px] text-muted-foreground/70">
+                        {isDaily ? 'Daily record' : (inc.category || 'Unclassified')}
+                      </span>
+                    </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />
                 </button>
               );
             })}
+            <button
+              onClick={() => navigate('/timeline')}
+              className="w-full text-center py-2.5 text-[12px] text-primary font-medium hover:bg-muted/30 transition-colors"
+            >
+              View all records
+            </button>
           </div>
-        </div>
+        </details>
 
         {/* INTEGRITY STATEMENT */}
         <p className="text-[11px] text-muted-foreground/50 leading-relaxed px-1">

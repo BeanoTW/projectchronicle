@@ -295,9 +295,12 @@ const TimelineScreen = () => {
                   <div className="space-y-1.5">
                     {items.map(inc => {
                       const isVoided = !!inc.voided_at;
-                      const tintClass = inc.category
-                        ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
-                        : 'border-l-muted-foreground/40';
+                      const isDaily = inc.record_type === 'daily_record';
+                      const tintClass = isDaily
+                        ? 'border-l-muted-foreground/30'
+                        : (inc.category
+                            ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
+                            : 'border-l-muted-foreground/40');
                       const categoryDisplay = inc.category || 'Unclassified';
                       return (
                         <div
@@ -306,13 +309,19 @@ const TimelineScreen = () => {
                         >
                           <button
                             onClick={() => navigate(`/incident/${inc.id}`)}
-                            className={`w-full text-left rounded-lg border border-border border-l-4 ${tintClass} px-3 py-2.5 bg-card hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''}`}
+                            className={`w-full text-left rounded-lg border border-border border-l-4 ${tintClass} px-3 py-2.5 bg-card hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-80' : ''}`}
                           >
-                            <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
+                            {isDaily ? (
+                              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground uppercase tracking-wide">
+                                Daily record
+                              </span>
+                            ) : (
+                              <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
+                            )}
                             <div className="flex items-center justify-between gap-2 mt-0.5">
-                              <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                              <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
-                                {inc.title || 'Untitled incident'}
+                                {inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident')}
                               </span>
                               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap flex-shrink-0">
                                 {format(parseISO(inc.incident_date), 'dd MMM')}

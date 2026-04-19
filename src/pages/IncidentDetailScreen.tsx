@@ -67,6 +67,9 @@ const IncidentDetailScreen = () => {
   }
 
   const isVoided = !!incident.voided_at;
+  const isDaily = incident.record_type === 'daily_record';
+  const interactionsRaw = (incident as any).interactions;
+  const interactions = Array.isArray(interactionsRaw) ? interactionsRaw : [];
   const retroGap = (() => {
     try {
       const gap = differenceInCalendarDays(parseISO(incident.created_at), parseISO(incident.incident_date));
@@ -206,12 +209,19 @@ const IncidentDetailScreen = () => {
         )}
 
         {/* === INCIDENT CARD === */}
-        <div className={`bg-card border border-border rounded-xl overflow-hidden ${isVoided ? 'opacity-50' : ''}`}>
+        <div className={`bg-card border border-border rounded-xl overflow-hidden ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-90' : ''}`}>
 
           {/* 1. HEADER */}
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-[12px] text-muted-foreground font-medium">{incident.id.slice(0, 8).toUpperCase()}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[12px] text-muted-foreground font-medium">{incident.id.slice(0, 8).toUpperCase()}</p>
+                {isDaily && (
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground uppercase tracking-wide">
+                    Daily record
+                  </span>
+                )}
+              </div>
               <div className="text-right">
                 <p className="text-[13px] font-semibold text-foreground">{fmtDate(incident.incident_date)}</p>
                 {incident.incident_time && <p className="text-[12px] text-muted-foreground">{incident.incident_time}</p>}
@@ -227,8 +237,8 @@ const IncidentDetailScreen = () => {
           </div>
 
           <div className="px-4 py-3 space-y-4">
-            {/* 3. PEOPLE INVOLVED */}
-            {incident.people_involved.length > 0 && (
+            {/* 3. PEOPLE INVOLVED — incidents only */}
+            {!isDaily && incident.people_involved.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">People involved</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -239,7 +249,7 @@ const IncidentDetailScreen = () => {
               </div>
             )}
 
-            {incident.witnesses.length > 0 && (
+            {!isDaily && incident.witnesses.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Individuals present</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -250,73 +260,94 @@ const IncidentDetailScreen = () => {
               </div>
             )}
 
-            {/* 4. CLASSIFICATION — editable */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-1">
-                <p className="text-[11px] font-semibold text-muted-foreground">Classification</p>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <Select
-                  value={incident.category || '__none__'}
-                  onValueChange={handleCategoryUpdate}
-                >
-                  <SelectTrigger className="rounded-lg flex-1 h-9 text-[13px]">
-                    <SelectValue placeholder="Not sure yet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Not sure yet</SelectItem>
-                    {PRIMARY_CATEGORIES.filter(c => c !== 'Other').map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {catDef && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className="p-1 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors" aria-label="Category info">
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 text-[12px] leading-relaxed" side="top">
-                      <p className="font-medium text-foreground mb-1">{incident.category}</p>
-                      <p className="text-muted-foreground">{catDef.definition}</p>
-                      <p className="text-muted-foreground/70 mt-1">Includes: {catDef.includes}</p>
-                    </PopoverContent>
-                  </Popover>
+            {/* 4. CLASSIFICATION — incidents only */}
+            {!isDaily && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <p className="text-[11px] font-semibold text-muted-foreground">Classification</p>
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Select
+                    value={incident.category || '__none__'}
+                    onValueChange={handleCategoryUpdate}
+                  >
+                    <SelectTrigger className="rounded-lg flex-1 h-9 text-[13px]">
+                      <SelectValue placeholder="Not sure yet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Not sure yet</SelectItem>
+                      {PRIMARY_CATEGORIES.filter(c => c !== 'Other').map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {catDef && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-1 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors" aria-label="Category info">
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 text-[12px] leading-relaxed" side="top">
+                        <p className="font-medium text-foreground mb-1">{incident.category}</p>
+                        <p className="text-muted-foreground">{catDef.definition}</p>
+                        <p className="text-muted-foreground/70 mt-1">Includes: {catDef.includes}</p>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+
+                {/* Subtype */}
+                {incident.category && incident.category !== 'Other' && SUBTYPES[incident.category as PrimaryCategory] && (
+                  <Select
+                    value={incident.subtype || 'Not sure yet'}
+                    onValueChange={handleSubtypeUpdate}
+                  >
+                    <SelectTrigger className="rounded-lg h-9 text-[13px] mt-1">
+                      <SelectValue placeholder="Not sure yet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBTYPES[incident.category as PrimaryCategory].map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
+
+                <p className="text-[10px] text-muted-foreground/50 mt-1">Can be updated at any time</p>
               </div>
-
-              {/* Subtype */}
-              {incident.category && incident.category !== 'Other' && SUBTYPES[incident.category as PrimaryCategory] && (
-                <Select
-                  value={incident.subtype || 'Not sure yet'}
-                  onValueChange={handleSubtypeUpdate}
-                >
-                  <SelectTrigger className="rounded-lg h-9 text-[13px] mt-1">
-                    <SelectValue placeholder="Not sure yet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUBTYPES[incident.category as PrimaryCategory].map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              <p className="text-[10px] text-muted-foreground/50 mt-1">Can be updated at any time</p>
-            </div>
+            )}
 
             {/* 5. RAW NARRATIVE (primary) */}
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground mb-1">User-provided account</p>
+              <p className="text-[11px] font-semibold text-muted-foreground mb-1">
+                {isDaily ? 'Account of the day' : 'User-provided account'}
+              </p>
               <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
                 {incident.raw_narrative}
               </p>
             </div>
 
-            {/* 6. EXACT WORDS */}
-            {incident.exact_words && (
+            {/* 5b. INTERACTIONS — daily only */}
+            {isDaily && interactions.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold text-muted-foreground mb-1">Notable interactions</p>
+                <div className="space-y-1">
+                  {interactions.map((it: any, i: number) => (
+                    <div key={i} className="text-[13px] text-foreground leading-relaxed">
+                      <span className="text-muted-foreground/70">{it.time ? `${it.time} — ` : ''}</span>
+                      <span className="font-medium">{it.type}</span>
+                      {it.who ? <span> — {it.who}</span> : null}
+                      {it.context ? <span className="text-muted-foreground"> — {it.context}</span> : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 6. EXACT WORDS — incidents only */}
+            {!isDaily && incident.exact_words && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words</p>
                 <div className="border-l-[3px] border-muted-foreground/20 pl-3.5">
@@ -325,8 +356,8 @@ const IncidentDetailScreen = () => {
               </div>
             )}
 
-            {/* Impact */}
-            {incident.impact_note && (
+            {/* Impact — incidents only */}
+            {!isDaily && incident.impact_note && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Impact</p>
                 <p className="text-[13px] text-foreground leading-relaxed">{incident.impact_note}</p>
@@ -418,13 +449,15 @@ const IncidentDetailScreen = () => {
         {/* Actions */}
         {!isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
-            {/* Post-save split */}
-            <button
-              onClick={handlePostSaveSplit}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors border border-border rounded-xl"
-            >
-              <Scissors className="h-3.5 w-3.5" /> Split into separate records
-            </button>
+            {/* Post-save split — incidents only */}
+            {!isDaily && (
+              <button
+                onClick={handlePostSaveSplit}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors border border-border rounded-xl"
+              >
+                <Scissors className="h-3.5 w-3.5" /> Split into separate records
+              </button>
+            )}
 
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
