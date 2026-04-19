@@ -89,6 +89,14 @@ const MyRecordScreen = () => {
     [incidents],
   );
 
+  // Counts split by record type
+  const counts = useMemo(() => {
+    const total = activeIncidents.length;
+    const dailyCount = activeIncidents.filter(i => (i as any).record_type === 'daily_record').length;
+    const incidentCount = total - dailyCount;
+    return { total, dailyCount, incidentCount };
+  }, [activeIncidents]);
+
   // Overview
   const overview = useMemo(() => buildOverview(activeIncidents), [activeIncidents]);
 
@@ -116,22 +124,6 @@ const MyRecordScreen = () => {
       latest: format(dates[dates.length - 1], 'd MMMM yyyy'),
     };
   }, [activeIncidents]);
-
-  // Summary (uses shared pipeline for export parity)
-  const summaryResult = useMemo(() => {
-    if (activeIncidents.length === 0) return null;
-    const allIds = activeIncidents.map(i => i.id);
-    return generateSummary({
-      incidents: activeIncidents,
-      selectedIds: allIds,
-      allIncidentCount: activeIncidents.length,
-      mode: 'structured-record',
-      customPurpose: '',
-      options: { includePatterns: true, includeNames: true },
-      followUpNotes,
-      evidenceFiles: allEvidence,
-    });
-  }, [activeIncidents, followUpNotes, allEvidence]);
 
   // People
   const people = useMemo(() => buildPeopleList(activeIncidents), [activeIncidents]);
