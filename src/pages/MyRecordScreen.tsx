@@ -1,14 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Users, ChevronRight } from 'lucide-react';
+import { FileText, ChevronRight } from 'lucide-react';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
-import {
-  generateSummary,
-} from '@/lib/summaryPipeline';
-import { CategoryLabel } from '@/components/chronicle/CategoryBadge';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 
