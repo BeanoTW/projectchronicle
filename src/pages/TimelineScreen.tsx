@@ -57,6 +57,7 @@ const TimelineScreen = () => {
   const { data: allEvidence = [] } = useEvidence();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [recordTypeFilter, setRecordTypeFilter] = useState<'all' | 'incident' | 'daily_record'>('all');
   const [gapFilter, setGapFilter] = useState<string | null>(null);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
@@ -86,13 +87,16 @@ const TimelineScreen = () => {
 
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
+    if (recordTypeFilter !== 'all') {
+      filtered = filtered.filter(i => (i.record_type || 'incident') === recordTypeFilter);
+    }
     if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
     if (gapFilter === 'no-evidence') filtered = filtered.filter(i => !allEvidence.some(e => e.incident_id === i.id));
     if (gapFilter === 'no-witnesses') filtered = filtered.filter(i => i.witnesses.length === 0);
     if (gapFilter === 'no-exact-words') filtered = filtered.filter(i => !i.exact_words);
     if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
     return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
-  }, [allIncidents, filterCategory, gapFilter, allEvidence]);
+  }, [allIncidents, filterCategory, recordTypeFilter, gapFilter, allEvidence]);
 
   const repeatedCategories = useMemo(() => {
     const catCounts: Record<string, number> = {};
@@ -208,6 +212,27 @@ const TimelineScreen = () => {
           )}
         </button>
       </PageHeader>
+
+      {/* Record-type filter (All / Incidents / Daily records) */}
+      <div className="px-5 mb-2 flex gap-1.5">
+        {([
+          { v: 'all', label: 'All' },
+          { v: 'incident', label: 'Incidents' },
+          { v: 'daily_record', label: 'Daily records' },
+        ] as const).map(opt => (
+          <button
+            key={opt.v}
+            onClick={() => setRecordTypeFilter(opt.v)}
+            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-150 ${
+              recordTypeFilter === opt.v
+                ? 'bg-foreground text-background shadow-sm'
+                : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       {/* Scale selector */}
       <div className="px-5 mb-3 flex gap-1.5">

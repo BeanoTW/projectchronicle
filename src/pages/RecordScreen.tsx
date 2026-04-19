@@ -196,44 +196,51 @@ const RecordScreen = () => {
     }
 
     setAnalysing(true);
+    // AI structuring is best-effort. If it fails (network/auth/quota), we still
+    // navigate to Review with empty AI fields so save is never blocked.
+    let data: any = null;
     try {
-      const { data, error } = await supabase.functions.invoke('analyse-incident', {
+      const res = await supabase.functions.invoke('analyse-incident', {
         body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      // Build draft from AI extraction + user fields, then navigate to review
-      navigate('/review', {
-        state: {
-          draft: {
-            narrative,
-            title: title || data?.title || '',
-            incidentDate: incidentDate || data?.incident_date || '',
-            incidentTime: incidentTime || data?.incident_time || '',
-            location: location || data?.location || '',
-            category: data?.category || '',
-            subtype: data?.subtype || 'Not sure yet',
-            categorySource: data?.category ? 'ai' as const : null,
-            contextDomain: '',
-            peopleInvolved: peopleInvolved
-              ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean)
-              : data?.people_involved || [],
-            witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
-            exactWords: exactWords || data?.exact_words || '',
-            impactNote,
-            aiSummary: data?.summary || '',
-            recordMethod: mode,
-            recordType: 'incident',
-            interactions: [],
-          },
-        },
-      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+      data = res.data;
     } catch (e) {
-      toast({ title: "Something didn't go through", description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
+      console.warn('analyse-incident failed, continuing without AI structuring:', e);
+      toast({
+        title: 'Continuing without AI assist',
+        description: 'You can review and save your record as normal.',
+      });
     } finally {
       setAnalysing(false);
     }
+
+    navigate('/review', {
+      state: {
+        draft: {
+          narrative,
+          title: title || data?.title || '',
+          incidentDate: incidentDate || data?.incident_date || '',
+          incidentTime: incidentTime || data?.incident_time || '',
+          location: location || data?.location || '',
+          category: data?.category || '',
+          subtype: data?.subtype || 'Not sure yet',
+          categorySource: data?.category ? 'ai' as const : null,
+          contextDomain: '',
+          peopleInvolved: peopleInvolved
+            ? peopleInvolved.split(',').map(s => s.trim()).filter(Boolean)
+            : data?.people_involved || [],
+          witnesses: witnesses ? witnesses.split(',').map(s => s.trim()).filter(Boolean) : [],
+          exactWords: exactWords || data?.exact_words || '',
+          impactNote,
+          aiSummary: data?.summary || '',
+          recordMethod: mode,
+          recordType: 'incident',
+          interactions: [],
+        },
+      },
+    });
   };
 
   const handleSaveDirectly = () => {

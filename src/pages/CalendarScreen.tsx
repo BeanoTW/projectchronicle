@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   format,
@@ -9,34 +9,162 @@ import {
   endOfWeek,
   addDays,
   addMonths,
-  subMonths,
   isSameMonth,
   isSameDay,
   isToday,
 } from 'date-fns';
-import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
+import { CalendarDays, ChevronRight, X } from 'lucide-react';
 import { useIncidents } from '@/hooks/useIncidents';
 import PageHeader from '@/components/chronicle/PageHeader';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 import type { Incident } from '@/hooks/useIncidents';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/* Dot colour from category — uses resolved category + existing border tokens */
-const categoryDotColour = (category: string | null): string => {
-  const resolved = resolveCategory(category);
+/* Dot colour from category for incidents; neutral for daily records */
+const dotClassFor = (inc: Incident): string => {
+  if (inc.record_type === 'daily_record') return 'bg-muted-foreground/50';
+  const resolved = resolveCategory(inc.category);
   const borderClass = CATEGORY_BORDER_COLORS[resolved] || 'border-l-muted-foreground/40';
-  // Convert border-l-X to bg-X for dots
   return borderClass.replace('border-l-', 'bg-');
+};
+
+/* Build the list of months to render (vertical scroll).
+   Range: from the earliest record month to the current month + 1, inclusive.
+   Falls back to 6 months around today if there are no records yet. */
+const buildMonthList = (incidents: Incident[]): Date[] => {
+  const today = new Date();
+  let start = startOfMonth(today);
+  let end = startOfMonth(addMonths(today, 1));
+  if (incidents.length > 0) {
+    const dates = incidents
+      .filter(i => !i.voided_at)
+      .map(i => parseISO(i.incident_date.slice(0, 10)));
+    if (dates.length > 0) {
+      const min = dates.reduce((a, b) => (a < b ? a : b));
+      start = startOfMonth(min);
+    }
+  }
+  const months: Date[] = [];
+  let cur = start;
+  while (cur <= end) {
+    months.push(cur);
+    cur = addMonths(cur, 1);
+  }
+  return months;
+};
+
+interface MonthBlockProps {
+  month: Date;
+  incidentsByDate: Map<string, Incident[]>;
+  selectedDate: Date | null;
+  onSelectDate: (d: Date) => void;
+  registerCurrentMonthRef: (el: HTMLDivElement | null) => void;
+  isCurrentMonth: boolean;
+}
+
+const MonthBlock = ({
+  month,
+  incidentsByDate,
+  selectedDate,
+  onSelectDate,
+  registerCurrentMonthRef,
+  isCurrentMonth,
+}: MonthBlockProps) => {
+  const days = useMemo(() => {
+    const monthStart = startOfMonth(month);
+    const monthEnd = endOfMonth(month);
+    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const out: Date[] = [];
+    let d = start;
+    while (d <= end) {
+      out.push(d);
+      d = addDays(d, 1);
+    }
+    return out;
+  }, [month]);
+
+  return (
+    <div ref={isCurrentMonth ? registerCurrentMonthRef : undefined} className="mb-6">
+      <h2 className="text-[14px] font-semibold text-foreground px-5 mb-2 sticky top-0 bg-background/95 backdrop-blur-sm py-1 z-10">
+        {format(month, 'MMMM yyyy')}
+      </h2>
+
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 px-5 mb-1">
+        {WEEKDAYS.map(d => (
+          <div
+            key={d}
+            className="text-center text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider py-1"
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7 px-5 gap-px">
+        {days.map((day, idx) => {
+          const key = format(day, 'yyyy-MM-dd');
+          const dayIncidents = incidentsByDate.get(key) || [];
+          const inMonth = isSameMonth(day, month);
+          const today = isToday(day);
+          const selected = selectedDate ? isSameDay(day, selectedDate) : false;
+          const hasRecords = dayIncidents.length > 0;
+
+          return (
+            <button
+              key={idx}
+              onClick={() => hasRecords && onSelectDate(day)}
+              disabled={!inMonth || !hasRecords}
+              className={`relative flex flex-col items-center py-2 min-h-[48px] rounded-lg transition-all duration-100 ${
+                !inMonth ? 'opacity-20 pointer-events-none' : ''
+              } ${selected ? 'bg-primary/10 ring-1 ring-primary/30' : ''} ${
+                today && !selected ? 'ring-1 ring-muted-foreground/20' : ''
+              } ${hasRecords && !selected ? 'hover:bg-muted/40' : ''}`}
+            >
+              <span
+                className={`text-[13px] ${
+                  selected
+                    ? 'text-primary font-semibold'
+                    : today
+                    ? 'text-foreground font-semibold'
+                    : hasRecords
+                    ? 'text-foreground font-medium'
+                    : 'text-foreground/60'
+                }`}
+              >
+                {format(day, 'd')}
+              </span>
+              {hasRecords && (
+                <div className="flex items-center gap-0.5 mt-0.5">
+                  {dayIncidents.slice(0, 3).map((inc, ci) => (
+                    <span key={ci} className={`w-1.5 h-1.5 rounded-full ${dotClassFor(inc)}`} />
+                  ))}
+                  {dayIncidents.length > 3 && (
+                    <span className="text-[8px] font-bold text-primary ml-0.5">
+                      +{dayIncidents.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 const CalendarScreen = () => {
   const navigate = useNavigate();
   const { data: incidents = [], isLoading } = useIncidents();
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const currentMonthRef = useRef<HTMLDivElement | null>(null);
 
-  /* Index incidents by date string */
+  /* Index incidents by date string (using incident_date, not created_at) */
   const incidentsByDate = useMemo(() => {
     const map = new Map<string, Incident[]>();
     incidents
@@ -49,22 +177,17 @@ const CalendarScreen = () => {
     return map;
   }, [incidents]);
 
-  /* Calendar grid */
-  const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const days: Date[] = [];
-    let d = start;
-    while (d <= end) {
-      days.push(d);
-      d = addDays(d, 1);
-    }
-    return days;
-  }, [currentMonth]);
+  const months = useMemo(() => buildMonthList(incidents), [incidents]);
+  const todayMonthKey = format(startOfMonth(new Date()), 'yyyy-MM');
 
-  /* Selected day incidents */
+  /* Scroll current month into view on first paint */
+  useEffect(() => {
+    if (currentMonthRef.current) {
+      currentMonthRef.current.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+  }, [months.length]);
+
+  /* Selected day incidents (chronological order by incident_time) */
   const selectedIncidents = useMemo(() => {
     if (!selectedDate) return [];
     const key = format(selectedDate, 'yyyy-MM-dd');
@@ -100,140 +223,90 @@ const CalendarScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Calendar" subtitle="Date-based navigation" />
 
-      {/* Month header */}
-      <div className="flex items-center justify-between px-5 mb-4">
-        <button
-          onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
-          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground transition-colors"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <h2 className="text-[16px] font-semibold text-foreground">
-          {format(currentMonth, 'MMMM yyyy')}
-        </h2>
-        <button
-          onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
-          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground transition-colors"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Weekday headers */}
-      <div className="grid grid-cols-7 px-5 mb-1">
-        {WEEKDAYS.map(d => (
-          <div key={d} className="text-center text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider py-1">
-            {d}
-          </div>
+      {/* Vertically scrollable month list */}
+      <div className="pt-2">
+        {months.map(m => (
+          <MonthBlock
+            key={format(m, 'yyyy-MM')}
+            month={m}
+            incidentsByDate={incidentsByDate}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            registerCurrentMonthRef={el => { currentMonthRef.current = el; }}
+            isCurrentMonth={format(m, 'yyyy-MM') === todayMonthKey}
+          />
         ))}
       </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 px-5 gap-px">
-        {calendarDays.map((day, idx) => {
-          const key = format(day, 'yyyy-MM-dd');
-          const dayIncidents = incidentsByDate.get(key) || [];
-          const inMonth = isSameMonth(day, currentMonth);
-          const today = isToday(day);
-          const selected = selectedDate ? isSameDay(day, selectedDate) : false;
-          const hasRecords = dayIncidents.length > 0;
+      {/* Bottom-sheet day card */}
+      <Sheet open={!!selectedDate} onOpenChange={(open) => !open && setSelectedDate(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl border-t border-border max-h-[80vh] overflow-y-auto">
+          {selectedDate && (
+            <>
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-[15px] font-semibold text-foreground">
+                  {format(selectedDate, 'EEEE, d MMMM yyyy')}
+                </SheetTitle>
+                <p className="text-[12px] text-muted-foreground">
+                  {selectedIncidents.length} record{selectedIncidents.length !== 1 ? 's' : ''} on this date
+                </p>
+              </SheetHeader>
 
-          return (
-            <button
-              key={idx}
-              onClick={() => hasRecords ? setSelectedDate(day) : setSelectedDate(null)}
-              className={`relative flex flex-col items-center py-2 min-h-[52px] rounded-lg transition-all duration-100 ${
-                !inMonth ? 'opacity-20 pointer-events-none' : ''
-              } ${selected ? 'bg-primary/10 ring-1 ring-primary/30' : ''} ${
-                today && !selected ? 'ring-1 ring-muted-foreground/20' : ''
-              } ${hasRecords && !selected ? 'hover:bg-muted/40' : ''}`}
-            >
-              <span className={`text-[13px] font-medium ${
-                selected ? 'text-primary font-semibold' : today ? 'text-foreground font-semibold' : 'text-foreground'
-              }`}>
-                {format(day, 'd')}
-              </span>
-              {/* Dots (max 3) + count badge */}
-              {hasRecords && (
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  {dayIncidents.slice(0, 3).map((inc, ci) => (
-                    <span key={ci} className={`w-1.5 h-1.5 rounded-full ${categoryDotColour(inc.category)}`} />
-                  ))}
-                  {dayIncidents.length > 3 && (
-                    <span className="text-[8px] font-bold text-primary ml-0.5">+{dayIncidents.length - 3}</span>
-                  )}
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
+              <div className="mt-4 divide-y divide-border">
+                {selectedIncidents.map(inc => {
+                  const isDaily = inc.record_type === 'daily_record';
+                  const borderClass = isDaily
+                    ? 'border-l-muted-foreground/40'
+                    : (inc.category && CATEGORY_BORDER_COLORS[inc.category]) || 'border-l-muted-foreground/40';
+                  return (
+                    <button
+                      key={inc.id}
+                      onClick={() => {
+                        setSelectedDate(null);
+                        navigate(`/incident/${inc.id}`);
+                      }}
+                      className={`flex items-center gap-3 px-3 py-3 w-full text-left hover:bg-muted/30 transition-colors border-l-4 ${borderClass} ${isDaily ? 'opacity-90' : ''}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide ${
+                            isDaily ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
+                          }`}>
+                            {isDaily ? 'Daily record' : 'Incident'}
+                          </span>
+                          {inc.incident_time && (
+                            <span className="text-[11px] text-muted-foreground/60 font-mono">{inc.incident_time}</span>
+                          )}
+                        </div>
+                        <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/85' : 'text-foreground'}`}>
+                          {inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident')}
+                        </p>
+                        {!isDaily && inc.category && (
+                          <span className="text-[11px] text-muted-foreground">{inc.category}</span>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
 
-      {/* Day detail panel (Mode B) */}
-      {selectedDate && (
-        <div className="mx-5 mt-4 bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div>
-              <p className="text-[14px] font-semibold text-foreground">
-                {format(selectedDate, 'd MMMM yyyy')}
-              </p>
-              <p className="text-[12px] text-muted-foreground">
-                {selectedIncidents.length} incident{selectedIncidents.length !== 1 ? 's' : ''} recorded on this date
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedDate(null)}
-              className="p-1.5 rounded-lg hover:bg-muted/40 text-muted-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Time span */}
-          {selectedIncidents.length >= 2 && selectedIncidents[0].incident_time && selectedIncidents[selectedIncidents.length - 1].incident_time && (
-            <p className="px-4 py-2 text-[12px] text-muted-foreground border-b border-border">
-              Records span {selectedIncidents[0].incident_time}–{selectedIncidents[selectedIncidents.length - 1].incident_time}
-            </p>
-          )}
-
-          {/* Incident list */}
-          <div className="divide-y divide-border">
-            {selectedIncidents.map(inc => {
-              const borderClass = (inc.category && CATEGORY_BORDER_COLORS[inc.category]) || 'border-l-muted-foreground/40';
-              return (
+              <div className="mt-4 pt-3 border-t border-border">
                 <button
-                  key={inc.id}
-                  onClick={() => navigate(`/incident/${inc.id}`)}
-                  className={`flex items-center gap-3 px-4 py-3 w-full text-left hover:bg-muted/30 transition-colors border-l-4 ${borderClass}`}
+                  onClick={() => {
+                    const d = format(selectedDate, 'yyyy-MM-dd');
+                    setSelectedDate(null);
+                    navigate(`/timeline?date=${d}`);
+                  }}
+                  className="text-[12px] text-primary font-medium hover:text-primary/80 transition-colors"
                 >
-                  <div className="flex-1 min-w-0">
-                    {inc.incident_time && (
-                      <span className="text-[11px] text-muted-foreground/50 font-mono">{inc.incident_time}</span>
-                    )}
-                    <p className="text-[13px] font-medium text-foreground truncate">
-                      {inc.title || 'Untitled incident'}
-                    </p>
-                    {inc.category && (
-                      <span className="text-[11px] text-muted-foreground">{inc.category}</span>
-                    )}
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />
+                  View in Timeline →
                 </button>
-              );
-            })}
-          </div>
-
-          {/* Jump to timeline */}
-          <div className="px-4 py-3 border-t border-border">
-            <button
-              onClick={() => navigate(`/timeline?date=${format(selectedDate, 'yyyy-MM-dd')}`)}
-              className="text-[12px] text-primary font-medium hover:text-primary/80 transition-colors"
-            >
-              View in Timeline →
-            </button>
-          </div>
-        </div>
-      )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
