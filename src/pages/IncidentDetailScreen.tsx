@@ -449,13 +449,15 @@ const IncidentDetailScreen = () => {
         {/* Actions */}
         {!isVoided && (
           <div className="space-y-2.5 pt-3 pb-6">
-            {/* Post-save split */}
-            <button
-              onClick={handlePostSaveSplit}
-              className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors border border-border rounded-xl"
-            >
-              <Scissors className="h-3.5 w-3.5" /> Split into separate records
-            </button>
+            {/* Post-save split — incidents only */}
+            {!isDaily && (
+              <button
+                onClick={handlePostSaveSplit}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-[13px] text-muted-foreground font-medium hover:text-foreground transition-colors border border-border rounded-xl"
+              >
+                <Scissors className="h-3.5 w-3.5" /> Split into separate records
+              </button>
+            )}
 
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
