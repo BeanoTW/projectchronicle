@@ -107,6 +107,9 @@ export const syncNow = async (userId: string): Promise<SyncResult> => {
     }
 
     lastResult = result;
+    if (result.succeeded > 0) {
+      await setMeta(META_KEYS.lastBackupAt(userId), new Date().toISOString());
+    }
     return result;
   })();
 
