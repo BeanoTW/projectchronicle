@@ -60,6 +60,8 @@ export const localDB = new ChronicleDB();
 export const META_KEYS = {
   backupEnabled: 'backup_enabled',
   hydratedFor: (userId: string) => `hydrated_for:${userId}`,
+  lastRestoreAt: (userId: string) => `last_restore_at:${userId}`,
+  lastBackupAt: (userId: string) => `last_backup_at:${userId}`,
 } as const;
 
 export const getMeta = async (key: string): Promise<string | null> => {
