@@ -340,6 +340,26 @@ const ExportScreen = () => {
         </div>
       </div>
 
+      {/* Print / Save as PDF — only available once a real export exists */}
+      {lastExportHtml && (
+        <div className="mx-5 mb-5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-10 text-[13px] border-primary/20 text-primary rounded-lg hover:bg-primary/4"
+            onClick={handlePrintExport}
+            disabled={printing}
+          >
+            {printing ? (
+              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Opening print dialog…</>
+            ) : (
+              <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
+            )}
+          </Button>
+          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your browser's print dialog. Choose a printer, or "Save as PDF".</p>
+        </div>
+      )}
+
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
