@@ -366,7 +366,7 @@ const ExportScreen = () => {
               <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
             )}
           </Button>
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your browser's print dialog. Choose a printer, or "Save as PDF".</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your export in a new tab and triggers the print dialog. Choose a printer, or "Save as PDF". Allow pop-ups if blocked.</p>
         </div>
       )}
 
