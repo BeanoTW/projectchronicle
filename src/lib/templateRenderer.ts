@@ -76,14 +76,30 @@ function categorySlug(cat?: string | null): string {
   return 'unclassified';
 }
 
+function cleanLine(s: string): string {
+  // Strip field-label prefixes ("Date:", "Location:", etc.), collapse whitespace,
+  // take the first line only.
+  return String(s)
+    .replace(/\r/g, '')
+    .split('\n')[0]
+    .replace(/^\s*(date|time|location|people|category|subtype)\s*:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildShortTitle(inc: Incident): string {
-  // Deterministic: prefer exact_words quote, else first sentence of narrative.
+  // Deterministic single-line index title.
+  // Priority: exact_words → title → first sentence of raw_narrative.
   if (inc.exact_words && inc.exact_words.trim().length > 0) {
-    const t = inc.exact_words.trim().replace(/^["“”]+|["“”]+$/g, '');
-    return `"${t.length > 90 ? t.slice(0, 87) + '…' : t}"`;
+    const t = cleanLine(inc.exact_words).replace(/^["“”]+|["“”]+$/g, '');
+    if (t) return `"${t.length > 90 ? t.slice(0, 87) + '…' : t}"`;
   }
-  const narrative = (inc.raw_narrative || '').trim();
-  if (!narrative) return inc.title || '(no summary)';
+  if (inc.title && inc.title.trim().length > 0) {
+    const t = cleanLine(inc.title);
+    if (t) return t.length > 110 ? t.slice(0, 107) + '…' : t;
+  }
+  const narrative = cleanLine(inc.raw_narrative || '');
+  if (!narrative) return '(no summary)';
   const firstSentence = narrative.split(/(?<=[.!?])\s+/)[0] || narrative;
   return firstSentence.length > 110 ? firstSentence.slice(0, 107) + '…' : firstSentence;
 }
@@ -92,23 +108,32 @@ function isDaily(inc: Incident): boolean {
   return (inc as any).record_type === 'daily_record';
 }
 
+/** Normalise category for display. "Other"/empty → "Not classified". */
+function displayCategory(cat?: string | null): string {
+  const v = (cat || '').trim();
+  if (!v || v.toLowerCase() === 'other' || v.toLowerCase() === 'unclassified') {
+    return 'Not classified';
+  }
+  return v;
+}
+
 function classificationLine(inc: Incident): string {
   const parts: string[] = [];
   if (isDaily(inc)) {
     parts.push('Daily record');
   } else {
-    if (inc.category) {
-      const sub = inc.subtype && !['Unclassified', 'Not sure yet', 'Other', inc.category].includes(inc.subtype)
-        ? ` → ${inc.subtype}`
-        : '';
-      parts.push(`${inc.category}${sub}`);
-    } else {
-      parts.push('Unclassified');
-    }
+    const cat = displayCategory(inc.category);
+    const subRaw = (inc.subtype || '').trim();
+    const subOk = subRaw && !['Unclassified', 'Not sure yet', 'Other', 'null', 'undefined', inc.category || ''].includes(subRaw);
+    parts.push(subOk ? `${cat} → ${subRaw}` : cat);
   }
-  if (inc.location) parts.push(inc.location);
+  const loc = (inc.location || '').trim();
+  if (loc && loc.toLowerCase() !== 'null' && loc.toLowerCase() !== 'undefined') {
+    parts.push(loc);
+  }
   return parts.join(' · ');
 }
+
 
 function exportIdFor(now: Date): string {
   return `CHR-${format(now, 'yyyy-MMdd-HHmm')}`;
@@ -183,8 +208,8 @@ body {
 .record-provenance { text-align: right; flex-shrink: 0; }
 .recorded-date { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); line-height: 1.4; }
 .recorded-gap { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); }
-.record-body { padding: 14px 16px 14px 20px; }
-.record-field { margin-bottom: 12px; }
+.record-body { padding: 18px 18px 18px 22px; }
+.record-field { margin-bottom: 16px; }
 .record-field:last-child { margin-bottom: 0; }
 .field-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
 .field-value { font-size: 13px; color: var(--ink-mid); }
@@ -247,7 +272,7 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
 
   const catCounts: Record<string, number> = {};
   records.forEach(r => {
-    const c = isDaily(r) ? 'Daily record' : (r.category || 'Unclassified');
+    const c = isDaily(r) ? 'Daily record' : displayCategory(r.category);
     catCounts[c] = (catCounts[c] || 0) + 1;
   });
   const categoriesPresent = Object.keys(catCounts).join(' · ') || '—';
@@ -294,7 +319,7 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
       lastIndexMonth = monthKey;
       html += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(fmtMonthYear(rec.incident_date))}</span></td></tr>`;
     }
-    const cat = isDaily(rec) ? 'Daily record' : (rec.category || 'Unclassified');
+    const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
     html += `<tr>`;
     html += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
     html += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
@@ -379,8 +404,11 @@ function renderRecordCard(inc: Incident, allFollowUps: FollowUpNote[], allEviden
     html += `<div class="record-field"><p class="field-label">People involved</p><p class="field-value">${esc(inc.people_involved.join(', '))}</p></div>`;
   }
 
-  const narrativeLabel = isDaily(inc) ? 'Additional context' : 'User-provided account';
-  html += `<div class="record-field"><p class="field-label">${esc(narrativeLabel)}</p><p class="narrative-text">${esc(inc.raw_narrative || '')}</p></div>`;
+  const narrativeLabel = isDaily(inc) ? 'Record entry' : 'User-provided account';
+  const narrative = (inc.raw_narrative || '').trim();
+  if (narrative) {
+    html += `<div class="record-field"><p class="field-label">${esc(narrativeLabel)}</p><p class="narrative-text">${esc(narrative)}</p></div>`;
+  }
 
   if (!isDaily(inc) && inc.exact_words && inc.exact_words.trim().length > 0) {
     const ew = inc.exact_words.trim().replace(/^["“”]+|["“”]+$/g, '');
