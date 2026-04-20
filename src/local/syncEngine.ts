@@ -6,7 +6,7 @@
 //   - Failed backups retry only on: app load, manual "Retry now", regaining
 //     connectivity, or the next local save. No hidden background polling.
 import { supabase } from '@/integrations/supabase/client';
-import { localDB, isBackupEnabled, type LocalIncident, type LocalFollowUpNote } from './db';
+import { localDB, isBackupEnabled, setMeta, getMeta, META_KEYS, type LocalIncident, type LocalFollowUpNote } from './db';
 
 export type SyncResult = {
   attempted: number;
