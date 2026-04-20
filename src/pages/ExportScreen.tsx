@@ -97,10 +97,11 @@ const ExportScreen = () => {
 
   const handleCaseNarrative = () => {
     if (activeIncidents.length < 2) {
-      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
+      toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
       return;
     }
     setNarrativeLoading(true);
+    toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
     try {
       const allIds = activeIncidents.map(i => i.id);
       const result = generateSummary({
@@ -120,6 +121,19 @@ const ExportScreen = () => {
       setNarrativeLoading(false);
     }
   };
+
+  // Once the structured record is mounted, scroll to it and briefly highlight.
+  useEffect(() => {
+    if (!summaryResult) return;
+    // Defer to next frame so the DOM has the rendered content.
+    const raf = requestAnimationFrame(() => {
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setSummaryHighlight(true);
+      const t = setTimeout(() => setSummaryHighlight(false), 1600);
+      return () => clearTimeout(t);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [summaryResult]);
 
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
@@ -242,13 +256,18 @@ const ExportScreen = () => {
       </div>
 
       {/* Case Summary */}
-      <div className="mx-5 mb-5 bg-card border border-border rounded-xl p-5">
+      <div
+        ref={summaryRef}
+        className={`mx-5 mb-5 bg-card border rounded-xl p-5 transition-shadow duration-500 ${
+          summaryHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
+        }`}
+      >
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-[15px] font-semibold text-foreground">Structured record</h3>
             <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured overview of all your records.</p>
-            
+
             {summaryResult ? (
               <div className="mt-3 space-y-3">
                 {summaryResult.sections.map((section) => (
@@ -269,7 +288,7 @@ const ExportScreen = () => {
                 onClick={handleCaseNarrative}
                 disabled={narrativeLoading || activeIncidents.length < 2}
               >
-                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
+                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Preparing…</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
               </Button>
             )}
           </div>
