@@ -861,9 +861,31 @@ const RecordScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Clear-draft confirm dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent className="rounded-2xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[16px]">Start fresh?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] leading-relaxed">
+              This clears the current draft (your account, details and any interactions you've added) and resets the date and time. Saved records are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[13px]">Keep draft</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={resetForm}
+              className="text-[13px]"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Clear and start fresh
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
   );
 };
+export default RecordScreen;
 
 export default RecordScreen;
