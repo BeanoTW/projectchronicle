@@ -22,7 +22,7 @@ const SettingsScreen = () => {
   const { data: incidents } = useIncidents();
   const {
     backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult,
-    localCount, cloudCount, lastBackupAt, lastRestoreAt, syncStatus,
+    localCount, cloudCount, cloudLastUpdatedAt, lastBackupAt, lastRestoreAt, syncStatus,
     setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
   } = useBackup();
   const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
