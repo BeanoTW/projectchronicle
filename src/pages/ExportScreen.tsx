@@ -233,6 +233,36 @@ const ExportScreen = () => {
    *   print scope is the export document and nothing else. The same locked
    *   renderer (`renderTemplateHtml`) is used — no second renderer.
    */
+  const openExportInNewTab = useCallback((autoPrint: boolean): 'opened' | 'blocked' => {
+    if (!lastExportHtml) return 'blocked';
+    const docHtml = autoPrint && lastExportHtml.includes('</body>')
+      ? lastExportHtml.replace(
+          '</body>',
+          `<script>
+            (function(){
+              function go(){ try { window.focus(); window.print(); } catch(e){} }
+              if (document.readyState === 'complete') {
+                requestAnimationFrame(function(){ setTimeout(go, 200); });
+              } else {
+                window.addEventListener('load', function(){
+                  requestAnimationFrame(function(){ setTimeout(go, 200); });
+                });
+              }
+            })();
+          </script></body>`
+        )
+      : lastExportHtml;
+    const blob = new Blob([docHtml], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      URL.revokeObjectURL(url);
+      return 'blocked';
+    }
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch { /* noop */ } }, 60000);
+    return 'opened';
+  }, [lastExportHtml]);
+
   const handlePrintExport = useCallback(() => {
     if (!lastExportHtml) return;
     setPrinting(true);
