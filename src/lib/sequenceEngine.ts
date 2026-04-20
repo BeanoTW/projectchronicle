@@ -215,6 +215,19 @@ export function revalidateSequences(
   };
 }
 
+// ─── Membership Lookup ────────────────────────────────────────
+
+/** Returns a map of incident_id → sequence_id (first match wins). */
+export function getSequenceMembership(config: SequenceConfig): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const seq of config.sequences) {
+    for (const id of seq.incident_ids) {
+      if (!map[id]) map[id] = seq.id;
+    }
+  }
+  return map;
+}
+
 // ─── Export Ordering ──────────────────────────────────────────
 
 export interface ExportItem {
