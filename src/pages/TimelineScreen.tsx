@@ -454,7 +454,7 @@ const TimelineScreen = () => {
                             onPointerUp={cancelLongPress}
                             onPointerLeave={cancelLongPress}
                             onPointerCancel={cancelLongPress}
-                            className={`flex-1 text-left rounded-lg border border-border border-l-[5px] ${tintCombo} px-3 py-2.5 hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-85' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}
+                            className={`flex-1 min-w-0 text-left rounded-lg border border-border border-l-[5px] ${tintCombo} px-3 py-2.5 hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-85' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}
                           >
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <RecordTypeLabel recordType={inc.record_type} />
