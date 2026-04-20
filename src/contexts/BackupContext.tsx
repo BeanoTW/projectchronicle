@@ -209,12 +209,27 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     return res;
   }, [user, refreshDiagnostics, refreshCloudCount]);
 
-  // Derived sync status (incident counts + last backup timestamp).
+  // Derived sync status. Uses incident counts and the most recent updated_at on
+  // each side as a coarse "newer than" signal. No automatic sync is implied —
+  // this is purely a label so users can decide whether to Backup or Restore.
   let syncStatus: SyncStatus = 'unknown';
   if (cloudCount === null) {
-    syncStatus = backupEnabled ? 'cloud_unavailable' : 'unknown';
+    // Online but failed → unavailable; offline → unknown.
+    syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
+  } else if (cloudCount === 0) {
+    syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
   } else if (localCount === cloudCount && pendingCount === 0) {
-    syncStatus = 'in_sync';
+    // If we have a cloud timestamp and a last backup timestamp, prefer the
+    // newer one; otherwise count parity is enough to call it "in sync".
+    if (cloudLastUpdatedAt && lastBackupAt) {
+      const cloudT = new Date(cloudLastUpdatedAt).getTime();
+      const localT = new Date(lastBackupAt).getTime();
+      if (Math.abs(cloudT - localT) < 60_000) syncStatus = 'in_sync';
+      else if (cloudT > localT) syncStatus = 'cloud_newer';
+      else syncStatus = 'local_newer';
+    } else {
+      syncStatus = 'in_sync';
+    }
   } else if (localCount > cloudCount || pendingCount > 0) {
     syncStatus = 'local_newer';
   } else {
@@ -230,6 +245,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       lastSyncResult,
       localCount,
       cloudCount,
+      cloudLastUpdatedAt,
       lastBackupAt,
       lastRestoreAt,
       syncStatus,
