@@ -887,5 +887,3 @@ const RecordScreen = () => {
   );
 };
 export default RecordScreen;
-
-export default RecordScreen;
