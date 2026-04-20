@@ -83,6 +83,7 @@ const ExportScreen = () => {
   const [tribunalLoading, setTribunalLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
