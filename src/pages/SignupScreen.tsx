@@ -118,7 +118,13 @@ const SignupScreen = () => {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordRulesList password={password} />
         </div>
+        {confirmPassword.length > 0 && password !== confirmPassword && (
+          <p className="text-[12px] text-destructive -mt-3" role="alert">
+            {PASSWORD_MESSAGES.mismatch}
+          </p>
+        )}
         <div>
           <Label htmlFor="confirm-password" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
             Confirm password
@@ -144,8 +150,8 @@ const SignupScreen = () => {
 
         <Button
           onClick={handleSignup}
-          disabled={loading}
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
+          disabled={!canSubmit}
+          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
           {loading ? 'Creating account…' : 'Sign Up'}
