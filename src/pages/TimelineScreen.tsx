@@ -28,7 +28,7 @@ import type { Incident } from '@/hooks/useIncidents';
 
 type DensityScale = 'detail' | 'compact' | 'overview';
 
-const categoryFilters = ['all', ...PRIMARY_CATEGORIES];
+
 
 const scaleLabels: { value: DensityScale; label: string }[] = [
   { value: 'detail', label: 'Detail' },
