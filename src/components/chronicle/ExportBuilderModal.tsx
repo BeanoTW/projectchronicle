@@ -458,17 +458,18 @@ const ExportBuilderModal = ({
         )}
       </div>
 
-      {/* Footer */}
-      <div className="absolute bottom-24 left-0 right-0 px-5 py-4 border-t border-border bg-card z-[110]">
-        <Button
-          className="w-full h-12 text-[14px] font-semibold"
-          onClick={handleExport}
-          disabled={loading || activeIncidents.length === 0}
-        >
-          {loading ? "Generating..." : `Generate Export (${activeIncidents.length} incidents)`}
-        </Button>
-      </div>
-    </div>
+        {/* Footer */}
+        <div className="absolute bottom-24 left-0 right-0 px-5 py-4 border-t border-border bg-card z-[110]">
+          <Button
+            className="w-full h-12 text-[14px] font-semibold"
+            onClick={handleExport}
+            disabled={loading || activeIncidents.length === 0}
+          >
+            {loading ? "Generating..." : `Generate Export (${activeIncidents.length} record${activeIncidents.length !== 1 ? 's' : ''})`}
+          </Button>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
