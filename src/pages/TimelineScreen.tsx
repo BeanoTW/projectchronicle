@@ -349,22 +349,31 @@ const TimelineScreen = () => {
               <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
             </div>
           )}
-          <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1.5 min-w-max">
-              {categoryFilters.map(c => (
-                <button
-                  key={c}
-                  onClick={() => { setFilterCategory(c); setGapFilter(null); }}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-all duration-150 ${
-                    filterCategory === c
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-                  }`}
-                >
-                  {c === 'all' ? 'All' : c}
-                </button>
-              ))}
-            </div>
+          <div className="px-5 pb-4">
+            <Select
+              value={filterCategory}
+              onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}
+            >
+              <SelectTrigger
+                className="h-9 w-full bg-muted/40 border-0 text-[12px] font-medium text-foreground rounded-lg px-3 hover:bg-muted/60 transition-colors focus:ring-1 focus:ring-ring focus:ring-offset-0"
+                aria-label="Filter by category"
+              >
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[60vh]">
+                <SelectItem value="all" className="text-[13px]">
+                  All categories{incidentsPreCategory.length > 0 ? ` (${incidentsPreCategory.length})` : ''}
+                </SelectItem>
+                {PRIMARY_CATEGORIES.filter(c => c !== 'Other').map(c => (
+                  <SelectItem key={c} value={c} className="text-[13px]">
+                    {c}{categoryCounts[c] ? ` (${categoryCounts[c]})` : ''}
+                  </SelectItem>
+                ))}
+                <SelectItem value="Not sure yet" className="text-[13px]">
+                  Not sure yet{categoryCounts['Not sure yet'] ? ` (${categoryCounts['Not sure yet']})` : ''}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </>
       )}
