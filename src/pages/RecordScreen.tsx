@@ -828,8 +828,40 @@ const RecordScreen = () => {
           >
             <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Reset all data
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={seeding || !user}
+            className="w-full text-[13px] border-primary/30 text-primary"
+            onClick={async () => {
+              if (!user) return;
+              setSeeding(true);
+              try {
+                const { wipeAndSeedTestData } = await import('@/local/devSeed');
+                const res = await wipeAndSeedTestData(user.id);
+                toast({
+                  title: 'Test dataset seeded',
+                  description: `${res.totalCreated} records (${res.incidents} incidents, ${res.dailyRecords} daily). Categories: ${Object.entries(res.perCategory).map(([k, v]) => `${k}:${v}`).join(', ')}`,
+                });
+                navigate('/timeline');
+              } catch (e) {
+                toast({ title: 'Seed failed', description: e instanceof Error ? e.message : 'Try again', variant: 'destructive' });
+              } finally {
+                setSeeding(false);
+              }
+            }}
+          >
+            {seeding ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+            Wipe + seed test dataset (60)
+          </Button>
+          <p className="text-[10px] text-muted-foreground/70 leading-snug">
+            Replaces every local + cloud record for this account with a controlled
+            50–70 entry dataset spanning Oct 2025 → today, distributed across all
+            categories for visual testing.
+          </p>
         </motion.div>
       )}
+
 
       {/* Reset confirmation dialog */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
