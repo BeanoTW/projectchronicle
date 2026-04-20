@@ -13,6 +13,7 @@ import {
   getLastSyncResult,
   getLastSyncAttemptAt,
   getCloudCounts,
+  getCloudLastUpdatedAt,
   restoreFromCloud as restoreFromCloudEngine,
   getLastBackupAt as readLastBackupAt,
   getLastRestoreAt as readLastRestoreAt,
@@ -21,7 +22,7 @@ import {
 import { hydrateFromCloudOnce } from '@/local/hydration';
 import { useToast } from '@/hooks/use-toast';
 
-export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'unknown';
+export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'local_only' | 'unknown';
 
 interface BackupContextType {
   backupEnabled: boolean;
