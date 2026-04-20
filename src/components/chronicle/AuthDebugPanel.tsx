@@ -74,11 +74,13 @@ const AuthDebugPanel = () => {
           >
             <span className="font-semibold text-primary">DEV</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-foreground">{authMode}</span>
+            <span className="text-foreground">L:{localCount}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-foreground">C:{cloudCount === null ? '—' : cloudCount}</span>
             <span className="text-muted-foreground">•</span>
             <span className="text-foreground">{storageMode}</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-foreground">{syncMode}</span>
+            <span className="text-foreground">{syncLabel}</span>
             <ChevronUp className="h-3 w-3 text-muted-foreground ml-0.5" />
           </button>
           <button
