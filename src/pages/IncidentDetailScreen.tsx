@@ -261,7 +261,7 @@ const IncidentDetailScreen = () => {
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Individuals present</p>
                 <div className="flex flex-wrap gap-1.5">
                   {incident.witnesses.map(w => (
-                    <span key={w} className="bg-muted text-muted-foreground px-2.5 py-1 rounded text-[12px] font-medium">{w}</span>
+                    <span key={w} className="bg-muted text-muted-foreground px-2.5 py-1 rounded text-[12px] font-medium">{maskName(w)}</span>
                   ))}
                 </div>
               </div>
@@ -332,7 +332,7 @@ const IncidentDetailScreen = () => {
                 {isDaily ? 'Account of the day' : 'User-provided account'}
               </p>
               <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
-                {incident.raw_narrative}
+                {maskText(incident.raw_narrative)}
               </p>
             </div>
 
@@ -345,8 +345,8 @@ const IncidentDetailScreen = () => {
                     <div key={i} className="text-[13px] text-foreground leading-relaxed">
                       <span className="text-muted-foreground/70">{it.time ? `${it.time} — ` : ''}</span>
                       <span className="font-medium">{it.type}</span>
-                      {it.who ? <span> — {it.who}</span> : null}
-                      {it.context ? <span className="text-muted-foreground"> — {it.context}</span> : null}
+                      {it.who ? <span> — {maskName(it.who)}</span> : null}
+                      {it.context ? <span className="text-muted-foreground"> — {maskText(it.context)}</span> : null}
                     </div>
                   ))}
                 </div>
@@ -358,7 +358,7 @@ const IncidentDetailScreen = () => {
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words</p>
                 <div className="border-l-[3px] border-muted-foreground/20 pl-3.5">
-                  <p className="text-[14px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
+                  <p className="text-[14px] text-foreground italic leading-relaxed">"{maskText(incident.exact_words)}"</p>
                 </div>
               </div>
             )}
@@ -367,7 +367,7 @@ const IncidentDetailScreen = () => {
             {!isDaily && incident.impact_note && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Impact</p>
-                <p className="text-[13px] text-foreground leading-relaxed">{incident.impact_note}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{maskText(incident.impact_note)}</p>
               </div>
             )}
 
@@ -394,7 +394,7 @@ const IncidentDetailScreen = () => {
                         E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                        <p className="text-[13px] font-medium text-foreground truncate">{maskFilename(ev.file_name)}</p>
                         <p className="text-[11px] text-muted-foreground/60">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
                       </div>
                     </div>
