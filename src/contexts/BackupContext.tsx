@@ -91,11 +91,21 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshCloudCount = useCallback(async () => {
     if (!user || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       setCloudCount(null);
+      setCloudLastUpdatedAt(null);
       return;
     }
-    const c = await getCloudCounts();
+    const [c, t] = await Promise.all([getCloudCounts(), getCloudLastUpdatedAt()]);
     setCloudCount(c.incidents);
+    setCloudLastUpdatedAt(t);
   }, [user]);
+
+  // Always-on cloud visibility: fetch cloud snapshot on user/online change,
+  // independent of the backup toggle. Read-only — never modifies local data.
+  useEffect(() => {
+    if (!user) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    refreshCloudCount();
+  }, [user, online, refreshCloudCount]);
 
   useEffect(() => {
     isBackupEnabled().then(setBackupEnabledState);
