@@ -79,13 +79,29 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
   }, []);
 
   const value = useMemo<PrivacyContextValue>(() => {
+    // Mask a single token (name-like): keep first letter, replace the rest with bullets.
+    const maskToken = (tok: string): string => {
+      const t = tok.trim();
+      if (!t) return tok;
+      const first = t.charAt(0);
+      return `${first}${'•'.repeat(Math.max(2, Math.min(6, t.length - 1)))}`;
+    };
+
+    /**
+     * maskText — used on OVERVIEW surfaces (titles, previews, location, short
+     * meta). Performs partial inline masking only:
+     *   - detected proper-noun tokens (Capitalised words, 2+ chars) are masked
+     *   - the rest of the sentence remains readable
+     * NEVER converts the whole string to dots. For full-narrative blocks on
+     * detail surfaces, use the visual <ObscuredBlock> component instead.
+     */
     const maskText: PrivacyContextValue['maskText'] = (value, opts) => {
       if (!enabled) return value ?? '';
       if (!value) return '';
-      // Show length-based redaction. For previews, keep something compact.
-      if (opts?.preview) return '••••••••';
-      // Replace word characters with bullets, preserve whitespace + basic punctuation rhythm.
-      return value.replace(/\S/g, '•');
+      if (opts?.preview) return value; // previews stay readable; entities are masked elsewhere
+      // Mask capitalised tokens (likely names / proper nouns), skipping sentence starts where possible.
+      // We accept some false positives — privacy bias is intentional on overview surfaces.
+      return value.replace(/\b([A-Z][a-zA-Z'’\-]{1,})\b/g, (_m, tok: string) => maskToken(tok));
     };
 
     const maskName: PrivacyContextValue['maskName'] = (name) => {
