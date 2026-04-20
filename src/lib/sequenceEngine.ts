@@ -148,16 +148,11 @@ export function createManualSequence(
   incidents: Incident[],
   customTitle?: string,
 ): SequenceConfig {
-  const sorted = sortByDateTime(incidents.filter(i => incidentIds.includes(i.id)));
-  const earliestDate = sorted.length > 0 ? sorted[0].incident_date : new Date().toISOString();
-  const existingOnDate = config.sequences.filter(s =>
-    incidents.some(i => incidentIds.includes(i.id) && i.incident_date === earliestDate)
-  ).length;
-
+  // Default name uses neutral count of existing sequences (no date interpretation).
   const seq: ConfirmedSequence = {
     id: generateSequenceId(),
     incident_ids: [...incidentIds],
-    title: customTitle || formatSequenceTitle(earliestDate, existingOnDate),
+    title: customTitle || `Sequence ${config.sequences.length + 1}`,
     source: 'user',
     created_at: new Date().toISOString(),
   };
