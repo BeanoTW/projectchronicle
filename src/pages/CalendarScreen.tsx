@@ -165,7 +165,7 @@ const CalendarScreen = () => {
   const { data: incidents = [], isLoading } = useIncidents();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const currentMonthRef = useRef<HTMLDivElement | null>(null);
-  const { maskText } = usePrivacy();
+  const { maskEntities } = usePrivacy();
 
   /* Index incidents by date string (using incident_date, not created_at) */
   const incidentsByDate = useMemo(() => {
@@ -282,7 +282,7 @@ const CalendarScreen = () => {
                           )}
                         </div>
                         <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/85' : 'text-foreground'}`}>
-                          {maskText(displayTitle(inc))}
+                          {maskEntities(displayTitle(inc), inc)}
                         </p>
                         {!isDaily && inc.category && (
                           <span className="text-[11px] text-muted-foreground">{inc.category}</span>

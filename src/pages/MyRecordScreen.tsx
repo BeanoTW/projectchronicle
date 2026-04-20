@@ -57,7 +57,7 @@ const MyRecordScreen = () => {
   const { data: allEvidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
-  const { maskName, maskText } = usePrivacy();
+  const { maskName, maskEntities } = usePrivacy();
 
   // Filter out voided
   const activeIncidents = useMemo(
@@ -214,8 +214,8 @@ const MyRecordScreen = () => {
                   className="flex items-center gap-3 px-4 py-2.5 w-full text-left hover:bg-muted/30 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
-                      {maskText(displayTitle(inc))}
+                    <p className={`text-[13px] truncate leading-relaxed ${isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
+                      <BoldedTitle text={maskEntities(displayTitle(inc), inc)} leadingWords={4} />
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-muted-foreground/70">{dateStr}</span>
