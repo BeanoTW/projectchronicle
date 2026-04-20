@@ -471,8 +471,8 @@ const TimelineScreen = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center justify-between gap-2 mt-1 leading-relaxed">
-                              <span className={`text-[13px] truncate flex-1 ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
+                            <div className="flex items-center justify-between gap-2 mt-1 leading-relaxed min-w-0">
+                              <span className={`text-[13px] truncate flex-1 min-w-0 ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
                                 <BoldedTitle text={titleText} leadingWords={4} />
                               </span>
