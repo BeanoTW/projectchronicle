@@ -266,61 +266,37 @@ const ExportScreen = () => {
   const handlePrintExport = useCallback(() => {
     if (!lastExportHtml) return;
     setPrinting(true);
-
-    // Build a self-contained print document that auto-triggers the print
-    // dialog on load. We inject a tiny script that calls window.print()
-    // after the next paint so fonts/styles settle first.
-    const printDoc = lastExportHtml.includes('</body>')
-      ? lastExportHtml.replace(
-          '</body>',
-          `<script>
-            (function(){
-              function go(){ try { window.focus(); window.print(); } catch(e){} }
-              if (document.readyState === 'complete') {
-                requestAnimationFrame(function(){ setTimeout(go, 200); });
-              } else {
-                window.addEventListener('load', function(){
-                  requestAnimationFrame(function(){ setTimeout(go, 200); });
-                });
-              }
-            })();
-          </script></body>`
-        )
-      : lastExportHtml;
-
-    const blob = new Blob([printDoc], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const printWindow = window.open(url, '_blank', 'noopener,noreferrer');
-
-    if (!printWindow) {
-      URL.revokeObjectURL(url);
+    const result = openExportInNewTab(true);
+    if (result === 'blocked') {
       setPrinting(false);
       toast({
-        title: 'Print blocked',
-        description: 'Your browser blocked the print window. Allow pop-ups for this site, then try again.',
-        variant: 'destructive',
+        title: 'Could not open print view',
+        description: "Please allow pop-ups or use 'Open document'.",
       });
       return;
     }
-
-    // Release the blob URL after the print window has had time to load it.
-    setTimeout(() => {
-      try { URL.revokeObjectURL(url); } catch { /* noop */ }
-    }, 60000);
-
-    // Reset local printing state — the OS print dialog now lives in the
-    // dedicated window, not in this app.
     setTimeout(() => setPrinting(false), 800);
-  }, [lastExportHtml, toast]);
+  }, [lastExportHtml, openExportInNewTab, toast]);
+
+  const handleOpenDocument = useCallback(() => {
+    if (!lastExportHtml) return;
+    const result = openExportInNewTab(false);
+    if (result === 'blocked') {
+      toast({
+        title: 'Could not open document',
+        description: 'Please allow pop-ups for this site.',
+      });
+    }
+  }, [lastExportHtml, openExportInNewTab, toast]);
 
   const handleDownloadHtml = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
     switch (result) {
-      case 'shared': toast({ title: 'Export ready to share', description: filename }); break;
+      case 'shared': toast({ title: 'Export saved', description: filename }); break;
       case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
-      case 'opened': toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' }); break;
+      case 'opened': break;
       case 'cancelled': break;
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
     }
