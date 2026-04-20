@@ -167,6 +167,9 @@ const ResetPasswordScreen = () => {
           </div>
           <PasswordRulesList password={password} />
         </div>
+        <div>
+          <Label htmlFor="confirm" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
+            Confirm password
           </Label>
           <div className="relative">
             <Input
