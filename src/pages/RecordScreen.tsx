@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, Check, Heart, Trash2, Paperclip } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, Check, Heart, Trash2, Paperclip, RotateCcw } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +55,11 @@ const RecordScreen = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [analysing, setAnalysing] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  // Bumped on "Start fresh" so child inputs (Textarea, Input, InteractionsEditor)
+  // remount and lose any internal/uncontrolled state.
+  const [formKey, setFormKey] = useState<number>(() => Date.now());
+  // Confirm dialog before clearing a draft in progress.
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   // Dev mode: reset dialog
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -99,6 +104,37 @@ const RecordScreen = () => {
     setIncidentDate(`${yyyy}-${mm}-${dd}`);
     setIncidentTime(`${hh}:${mi}`);
   };
+
+  // Full draft reset — used by "Start fresh".
+  // Clears every piece of state, persisted draft, derived UI, and remounts
+  // child inputs by bumping formKey. Defaults are then re-seeded fresh.
+  const resetForm = useCallback(() => {
+    // 1) wipe persisted draft
+    try { localStorage.removeItem('chronicle-draft'); } catch { /* ignore */ }
+    // 2) reset all controlled fields
+    setNarrative('');
+    setTitle('');
+    setLocation('');
+    setPeopleInvolved('');
+    setWitnesses('');
+    setExactWords('');
+    setImpactNote('');
+    setInteractions([]);
+    setRecordType('incident');
+    setMode('text');
+    // 3) reset derived UI / validation / transient flags
+    setErrors({});
+    setShowManualForm(false);
+    setMoreDetailsOpen(false);
+    setDraftSaved(false);
+    setAnalysing(false);
+    // 4) re-seed today's date/time
+    seedDefaults();
+    // 5) bump formKey so any child component with internal state remounts
+    setFormKey(Date.now());
+    // 6) close any open dialogs
+    setShowClearDialog(false);
+  }, []);
 
   // Restore state when returning from review screen
   useEffect(() => {
@@ -474,7 +510,7 @@ const RecordScreen = () => {
         {/* ========== VOICE MODE ========== */}
         {mode === 'voice' && (
           <motion.div
-            key="voice-mode"
+            key={`voice-mode-${formKey}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -536,7 +572,7 @@ const RecordScreen = () => {
         {/* ========== TEXT MODE ========== */}
         {mode === 'text' && (
           <motion.div
-            key="text-mode"
+            key={`text-mode-${formKey}`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
@@ -589,22 +625,34 @@ const RecordScreen = () => {
                   }
                   className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
                 />
-                <div className="flex items-center justify-between px-4 pb-2">
+                <div className="flex items-center justify-between px-4 pb-2 gap-2">
                   {narrative.length > 0 && (
                     <p className="text-[11px] text-muted-foreground/40">{narrative.length} characters</p>
                   )}
-                  <AnimatePresence>
-                    {draftSaved && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[11px] text-primary/60 font-medium ml-auto"
+                  <div className="flex items-center gap-3 ml-auto">
+                    <AnimatePresence>
+                      {draftSaved && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="text-[11px] text-primary/60 font-medium"
+                        >
+                          Draft saved
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                    {hasText && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClearDialog(true)}
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 font-medium hover:text-destructive transition-colors"
+                        aria-label="Start fresh — clear this draft"
                       >
-                        Draft saved
-                      </motion.p>
+                        <RotateCcw className="h-3 w-3" /> Start fresh
+                      </button>
                     )}
-                  </AnimatePresence>
+                  </div>
                 </div>
               </div>
               {errors.raw_narrative && (
@@ -813,9 +861,29 @@ const RecordScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Clear-draft confirm dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent className="rounded-2xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[16px]">Start fresh?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] leading-relaxed">
+              This clears the current draft (your account, details and any interactions you've added) and resets the date and time. Saved records are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[13px]">Keep draft</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={resetForm}
+              className="text-[13px]"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Clear and start fresh
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
     </div>
   );
 };
-
 export default RecordScreen;

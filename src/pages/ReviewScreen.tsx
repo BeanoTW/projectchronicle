@@ -489,6 +489,10 @@ const ReviewScreen = () => {
           raw_narrative: d.narrative,
           incident_date: d.incidentDate,
           incident_time: d.incidentTime || null,
+          // Daily records also persist their event date in the canonical
+          // record_date column. incident_date stays populated so existing
+          // chronology / calendar / export logic keeps working unchanged.
+          record_date: isDaily ? d.incidentDate : null,
           location: d.location || null,
           category: isDaily ? null : (s.category || null),
           subtype: isDaily ? null : (s.subtype || null),
