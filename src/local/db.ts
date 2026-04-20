@@ -45,6 +45,12 @@ class ChronicleDB extends Dexie {
       follow_up_notes: 'id, owner_user_id, incident_id, sync_state, created_at',
       meta: 'key',
     });
+    // v2 — adds record_date for daily records (separate canonical event date).
+    // The schema string only needs to change if we want to index it. We don't
+    // strictly need to, but bumping the version triggers any future reindex.
+    this.version(2).stores({
+      incidents: 'id, owner_user_id, sync_state, incident_date, record_date, updated_at',
+    });
   }
 }
 
