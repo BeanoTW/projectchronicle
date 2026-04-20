@@ -8,6 +8,7 @@ import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
+import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
 import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
