@@ -195,26 +195,11 @@ const ExportScreen = () => {
         // Non-fatal: download still proceeds.
       }
 
-      // 3. Close the builder and trigger delivery.
+      // 3. Close the builder. Do NOT auto-deliver — surface both output
+      //    actions (Download HTML + Print / Save as PDF) in the result block
+      //    so the user sees them as parallel options.
       setBuilderOpen(false);
-      const deliveryResult = await deliverHtmlFile(html, filename);
-
-      switch (deliveryResult) {
-        case 'shared':
-          toast({ title: 'Export ready to share', description: filename });
-          break;
-        case 'downloaded':
-          toast({ title: 'Export saved', description: filename });
-          break;
-        case 'opened':
-          toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' });
-          break;
-        case 'cancelled':
-          break;
-        case 'failed':
-          toast({ title: 'Export could not be saved or shared', description: 'Try again or use a different browser.', variant: 'destructive' });
-          break;
-      }
+      toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
     } catch (e) {
       console.error('[Export] Unexpected error:', e);
       toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
@@ -286,6 +271,19 @@ const ExportScreen = () => {
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, toast]);
 
+  const handleDownloadHtml = useCallback(async () => {
+    if (!lastExportHtml) return;
+    const filename = getTemplateFilename();
+    const result = await deliverHtmlFile(lastExportHtml, filename);
+    switch (result) {
+      case 'shared': toast({ title: 'Export ready to share', description: filename }); break;
+      case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
+      case 'opened': toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' }); break;
+      case 'cancelled': break;
+      case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
+    }
+  }, [lastExportHtml, toast]);
+
   const exportTypes = [
     {
       key: 'issue-based-record',
@@ -350,23 +348,41 @@ const ExportScreen = () => {
         </div>
       </div>
 
-      {/* Print / Save as PDF — only available once a real export exists */}
+      {/* Export ready — both delivery actions surfaced together */}
       {lastExportHtml && (
-        <div className="mx-5 mb-5">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full h-10 text-[13px] border-primary/20 text-primary rounded-lg hover:bg-primary/4"
-            onClick={handlePrintExport}
-            disabled={printing}
-          >
-            {printing ? (
-              <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Opening print dialog…</>
-            ) : (
-              <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
-            )}
-          </Button>
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your export in a new tab and triggers the print dialog. Choose a printer, or "Save as PDF". Allow pop-ups if blocked.</p>
+        <div className="mx-5 mb-5 bg-card border border-primary/30 rounded-xl p-4 ring-1 ring-primary/10">
+          <p className="text-[13px] font-semibold text-foreground">Your export is ready</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to deliver it. Both options use the same export document.</p>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full h-10 text-[13px] rounded-lg"
+                onClick={handleDownloadHtml}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" /> Download HTML
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Editable / shareable source file.</p>
+            </div>
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-10 text-[13px] border-primary/30 text-primary rounded-lg hover:bg-primary/4"
+                onClick={handlePrintExport}
+                disabled={printing}
+              >
+                {printing ? (
+                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Opening…</>
+                ) : (
+                  <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
+                )}
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Formal static copy. Allow pop-ups if blocked.</p>
+            </div>
+          </div>
         </div>
       )}
 
