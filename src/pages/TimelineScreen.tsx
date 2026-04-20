@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { CalendarDays, Paperclip, FileText, Link2, X } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import CategoryBadge, { CategoryLabel } from '@/components/chronicle/CategoryBadge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
 import BoldedTitle from '@/components/chronicle/BoldedTitle';
 import { useIncidents } from '@/hooks/useIncidents';
