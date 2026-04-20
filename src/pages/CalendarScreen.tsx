@@ -18,6 +18,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import type { Incident } from '@/hooks/useIncidents';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -163,6 +164,7 @@ const CalendarScreen = () => {
   const { data: incidents = [], isLoading } = useIncidents();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const currentMonthRef = useRef<HTMLDivElement | null>(null);
+  const { maskText } = usePrivacy();
 
   /* Index incidents by date string (using incident_date, not created_at) */
   const incidentsByDate = useMemo(() => {
@@ -279,7 +281,7 @@ const CalendarScreen = () => {
                           )}
                         </div>
                         <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/85' : 'text-foreground'}`}>
-                          {inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident')}
+                          {maskText(inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident'))}
                         </p>
                         {!isDaily && inc.category && (
                           <span className="text-[11px] text-muted-foreground">{inc.category}</span>
