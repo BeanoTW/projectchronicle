@@ -271,6 +271,19 @@ const ExportScreen = () => {
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, toast]);
 
+  const handleDownloadHtml = useCallback(async () => {
+    if (!lastExportHtml) return;
+    const filename = getTemplateFilename();
+    const result = await deliverHtmlFile(lastExportHtml, filename);
+    switch (result) {
+      case 'shared': toast({ title: 'Export ready to share', description: filename }); break;
+      case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
+      case 'opened': toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' }); break;
+      case 'cancelled': break;
+      case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
+    }
+  }, [lastExportHtml, toast]);
+
   const exportTypes = [
     {
       key: 'issue-based-record',
