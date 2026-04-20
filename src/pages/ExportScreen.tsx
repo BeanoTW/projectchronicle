@@ -147,9 +147,11 @@ const ExportScreen = () => {
 
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
-      toast({ title: 'No incidents', description: 'Record at least one incident to generate an export.', variant: 'destructive' });
+      toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
       return;
     }
+    // FIRST Generate: navigation + focus only. Does NOT generate or download.
+    toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
     setBuilderOpen(true);
   };
 
@@ -220,14 +222,14 @@ const ExportScreen = () => {
 
   const exportTypes = [
     {
-      key: 'workplace-grievance',
-      title: 'Workplace Grievance',
-      description: 'Issue-based structured record grouped by category for formal review.',
+      key: 'issue-based-record',
+      title: 'Issue-based record',
+      description: 'Structured chronological record prepared for formal review or sharing.',
       icon: Briefcase,
       comingSoon: false,
       onExport: handleOpenBuilder,
-      loading: tribunalLoading,
-      includes: 'Includes: records in chronological order, category labels, people involved, recorded timestamps, append-only updates',
+      loading: false,
+      includes: 'Includes: records in chronological order, category labels, people referenced, recorded timestamps, append-only updates',
     },
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true, includes: 'Includes: narrative, people involved, attachments, timestamps' },
     { key: 'chronology', title: 'What happened over time', description: 'All records in date order, clearly grouped.', icon: Clock, comingSoon: true, includes: 'Includes: records in chronological order, category labels, dates' },

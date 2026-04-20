@@ -136,6 +136,15 @@ const ExportBuilderModal = ({
     onExport(exportItems, config);
   }, [exportItems, config, onExport]);
 
+  // Brief focus highlight when the builder opens, so the user sees they've been moved here.
+  const [openHighlight, setOpenHighlight] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setOpenHighlight(true);
+    const t = setTimeout(() => setOpenHighlight(false), 1600);
+    return () => clearTimeout(t);
+  }, [open]);
+
   if (!open) return null;
 
   const sequencedIds = new Set(config.sequences.flatMap((s) => s.incident_ids));
@@ -146,7 +155,11 @@ const ExportBuilderModal = ({
   return (
     <div className="fixed inset-0 z-[9999] bg-background/95 flex flex-col pb-24 relative">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-card">
+      <div
+        className={`flex items-center justify-between px-5 py-4 border-b bg-card transition-shadow duration-500 ${
+          openHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
+        }`}
+      >
         <div>
           <h2 className="text-[17px] font-bold text-foreground">Export Builder</h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">
