@@ -78,17 +78,30 @@ const SettingsScreen = () => {
               <ShieldCheck className="h-4 w-4 text-primary" />
               <span className="text-[14px] font-semibold text-foreground">Privacy & control</span>
             </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5 flex-1">
+                {privacyEnabled ? (
+                  <EyeOff className="h-4 w-4 text-primary mt-0.5" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground mt-0.5" />
+                )}
+                <div className="flex-1">
+                  <p className="text-[14px] text-foreground">Privacy Shield</p>
+                  <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
+                    Visually mask names, locations, quotes, narratives, and attachment file names across the app. Stored data and exports are unaffected.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={privacyEnabled}
+                onCheckedChange={setPrivacyEnabled}
+                aria-label="Toggle Privacy Shield"
+              />
+            </div>
             <div className="flex items-center justify-between opacity-40">
               <div className="flex items-center gap-2.5">
                 <Fingerprint className="h-4 w-4 text-muted-foreground" />
                 <span className="text-[14px] text-foreground">Require PIN or biometric</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
-            </div>
-            <div className="flex items-center justify-between opacity-40">
-              <div className="flex items-center gap-2.5">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[14px] text-foreground">Hide sensitive previews</span>
               </div>
               <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
             </div>
