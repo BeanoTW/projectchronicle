@@ -25,12 +25,25 @@ const ForgotPasswordScreen = () => {
   const handleReset = async () => {
     if (!email.trim()) return;
     setLoading(true);
-    await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
+    if (error) {
+      // Do NOT claim the email was sent if the request failed.
+      toast({
+        title: 'Could not send reset link',
+        description: error.message || 'Please check your connection and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setSent(true);
-    toast({ title: 'Check your email', description: 'If an account exists, a reset link will be sent.' });
+    // Neutral wording — does not confirm or deny the account exists.
+    toast({
+      title: 'Request received',
+      description: 'If an account exists for this email, a reset link will arrive shortly.',
+    });
   };
 
   return (
