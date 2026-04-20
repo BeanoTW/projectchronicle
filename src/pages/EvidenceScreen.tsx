@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
+import { displayTitle } from '@/lib/displayTitle';
 
 const filterTabs = [
   { label: 'All', value: 'all' },

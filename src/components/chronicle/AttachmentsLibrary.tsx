@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EvidencePreview from './EvidencePreview';
+import { displayTitle } from '@/lib/displayTitle';
 
 const typeIcons: Record<string, typeof FileText> = {
   Photo: Image, Screenshot: Image, Document: FileText, Audio: Music, Email: Mail, Other: FileText,

@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import type { Incident } from "@/hooks/useIncidents";
 import type { FollowUpNote } from "@/hooks/useFollowUpNotes";
+import { displayTitle } from "@/lib/displayTitle";
 import type { EvidenceFile } from "@/hooks/useEvidence";
 import {
   generateSummary,
