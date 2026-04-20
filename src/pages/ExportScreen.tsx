@@ -11,12 +11,7 @@ import {
   type SummaryResult,
   type SummaryMode,
 } from '@/lib/summaryPipeline';
-import {
-  renderTribunalHtml,
-  getTribunalFilename,
-  type SequenceGroup,
-} from '@/lib/tribunalRenderer';
-import type { IncidentCardHtmlData } from '@/components/chronicle/IncidentRecordCard';
+import { renderTemplateHtml, getTemplateFilename } from '@/lib/templateRenderer';
 import ExportBuilderModal from '@/components/chronicle/ExportBuilderModal';
 import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
 
