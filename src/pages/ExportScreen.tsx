@@ -195,26 +195,11 @@ const ExportScreen = () => {
         // Non-fatal: download still proceeds.
       }
 
-      // 3. Close the builder and trigger delivery.
+      // 3. Close the builder. Do NOT auto-deliver — surface both output
+      //    actions (Download HTML + Print / Save as PDF) in the result block
+      //    so the user sees them as parallel options.
       setBuilderOpen(false);
-      const deliveryResult = await deliverHtmlFile(html, filename);
-
-      switch (deliveryResult) {
-        case 'shared':
-          toast({ title: 'Export ready to share', description: filename });
-          break;
-        case 'downloaded':
-          toast({ title: 'Export saved', description: filename });
-          break;
-        case 'opened':
-          toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' });
-          break;
-        case 'cancelled':
-          break;
-        case 'failed':
-          toast({ title: 'Export could not be saved or shared', description: 'Try again or use a different browser.', variant: 'destructive' });
-          break;
-      }
+      toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
     } catch (e) {
       console.error('[Export] Unexpected error:', e);
       toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
