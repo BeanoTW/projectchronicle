@@ -135,6 +135,14 @@
     @apply border-border;
   }
 
+  /* Final-line defence against accidental horizontal overflow on mobile.
+     Components should still own their own layout, but this prevents any
+     stray full-width child from creating a left/right scroll on the page. */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body {
     @apply bg-background text-body font-sans;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
