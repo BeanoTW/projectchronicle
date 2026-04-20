@@ -127,18 +127,38 @@ const TimelineScreen = () => {
 
   const sequenceMembership = useMemo(() => getSequenceMembership(sequenceConfig), [sequenceConfig]);
 
-  const incidents = useMemo(() => {
+  const incidentsPreCategory = useMemo(() => {
     let filtered = [...allIncidents];
     if (recordTypeFilter !== 'all') {
       filtered = filtered.filter(i => (i.record_type || 'incident') === recordTypeFilter);
     }
-    if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
     if (gapFilter === 'no-evidence') filtered = filtered.filter(i => !allEvidence.some(e => e.incident_id === i.id));
     if (gapFilter === 'no-witnesses') filtered = filtered.filter(i => i.witnesses.length === 0);
     if (gapFilter === 'no-exact-words') filtered = filtered.filter(i => !i.exact_words);
     if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
-    return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
-  }, [allIncidents, filterCategory, recordTypeFilter, gapFilter, allEvidence]);
+    return filtered;
+  }, [allIncidents, recordTypeFilter, gapFilter, allEvidence]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    incidentsPreCategory.forEach(i => {
+      const key = i.category || 'Not sure yet';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [incidentsPreCategory]);
+
+  const incidents = useMemo(() => {
+    let filtered = incidentsPreCategory;
+    if (filterCategory !== 'all') {
+      if (filterCategory === 'Not sure yet') {
+        filtered = filtered.filter(i => !i.category || i.category === 'Not sure yet');
+      } else {
+        filtered = filtered.filter(i => i.category === filterCategory);
+      }
+    }
+    return [...filtered].sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
+  }, [incidentsPreCategory, filterCategory]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
