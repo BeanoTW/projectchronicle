@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import PasswordRulesList from '@/components/auth/PasswordRulesList';
+import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 8 },
@@ -26,25 +28,44 @@ const SignupScreen = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const passwordCheck = evaluatePassword(password);
+  const canSubmit =
+    !!email.trim() && passwordCheck.valid && password === confirmPassword && !loading;
+
   const handleSignup = async () => {
     if (!email.trim() || !password) return;
-    if (password.length < 8) {
-      toast({ title: 'Password too short', description: 'Use at least 8 characters.', variant: 'destructive' });
+    if (!passwordCheck.valid) {
+      toast({
+        title: 'Password does not meet requirements',
+        description: messageForFailedRule(passwordCheck.failedRule?.id),
+        variant: 'destructive',
+      });
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      toast({ title: PASSWORD_MESSAGES.mismatch, variant: 'destructive' });
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { error, alreadyExists } = await signUp(email.trim(), password);
     setLoading(false);
     if (error) {
       toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Check your email', description: 'We sent a confirmation link. Verify your email, then sign in.' });
-      navigate('/login');
+      return;
     }
+    if (alreadyExists) {
+      toast({
+        title: 'Account already exists',
+        description: 'Try signing in, or reset your password if you’ve forgotten it.',
+      });
+      navigate('/login');
+      return;
+    }
+    toast({
+      title: 'Check your email',
+      description: 'We sent a confirmation link. Verify your email, then sign in.',
+    });
+    navigate('/login');
   };
 
   return (
