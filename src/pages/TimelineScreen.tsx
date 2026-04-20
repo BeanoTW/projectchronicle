@@ -316,7 +316,7 @@ const TimelineScreen = () => {
                             <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
-                                {inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident')}
+                                {maskText(inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident'))}
                               </span>
                               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap flex-shrink-0">
                                 {format(parseISO(inc.incident_date), 'dd MMM')}
@@ -351,8 +351,6 @@ const TimelineScreen = () => {
                         >
                           <IncidentCard
                             incident={inc}
-                            showPatternLabel={isPartOfPattern(inc)}
-                            occurrenceLabel={getOccurrenceLabel(inc)}
                             attachmentCount={attachmentCount}
                             compact
                             expandable
