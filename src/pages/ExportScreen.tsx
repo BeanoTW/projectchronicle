@@ -147,9 +147,11 @@ const ExportScreen = () => {
 
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
-      toast({ title: 'No incidents', description: 'Record at least one incident to generate an export.', variant: 'destructive' });
+      toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
       return;
     }
+    // FIRST Generate: navigation + focus only. Does NOT generate or download.
+    toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
     setBuilderOpen(true);
   };
 
