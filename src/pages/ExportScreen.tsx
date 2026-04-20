@@ -332,37 +332,56 @@ const ExportScreen = () => {
           ref={resultRef}
           className="mx-5 mb-5 bg-primary/5 border-2 border-primary/40 rounded-xl p-4 shadow-md"
         >
-          <p className="text-[14px] font-semibold text-foreground">✓ Your export is ready</p>
-          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how to deliver it. Both options use the same export document.</p>
+          <p className="text-[15px] font-semibold text-foreground">✓ Your export is ready</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to use it. Both options use the same document.</p>
 
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full h-11 text-[13px] rounded-lg"
-                onClick={handleDownloadHtml}
-              >
-                <Download className="h-4 w-4 mr-1.5" /> Download HTML
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Editable / shareable source file.</p>
-            </div>
-            <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-11 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
-                onClick={handlePrintExport}
-                disabled={printing}
-              >
-                {printing ? (
-                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Opening…</>
-                ) : (
-                  <><Printer className="h-4 w-4 mr-1.5" /> Print / Save as PDF</>
-                )}
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Formal static copy. Allow pop-ups if blocked.</p>
-            </div>
+          {/* PRIMARY: Print / Save as PDF */}
+          <div className="mt-4">
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full h-12 text-[14px] font-semibold rounded-lg"
+              onClick={handlePrintExport}
+              disabled={printing}
+            >
+              {printing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opening…</>
+              ) : (
+                <><Printer className="h-4 w-4 mr-2" /> Print / Save as PDF</>
+              )}
+            </Button>
+            <p className="text-[11px] text-muted-foreground/80 mt-1.5 px-1 leading-relaxed">
+              Opens your document in a clean view for printing or saving as PDF.
+            </p>
+          </div>
+
+          {/* SECONDARY: Download HTML */}
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
+              onClick={handleDownloadHtml}
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Download HTML
+            </Button>
+            <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">
+              Editable or shareable source file.
+            </p>
+          </div>
+
+          {/* TERTIARY: Open document */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleOpenDocument}
+              className="inline-flex items-center text-[12px] text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open document
+            </button>
+            <p className="text-[11px] text-muted-foreground/60 mt-0.5 px-1 leading-relaxed">
+              View the document directly in your browser.
+            </p>
           </div>
         </div>
       )}
