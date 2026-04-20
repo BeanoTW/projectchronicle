@@ -192,8 +192,8 @@ const ResetPasswordScreen = () => {
 
         <Button
           onClick={handleUpdate}
-          disabled={loading}
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
+          disabled={!canSubmit}
+          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
           {loading ? 'Updating…' : 'Update password'}
