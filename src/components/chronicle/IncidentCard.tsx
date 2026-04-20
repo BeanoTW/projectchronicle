@@ -9,6 +9,7 @@ import RecordTypeLabel from './RecordTypeLabel';
 import RecordAgeChip from './RecordAgeChip';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { displayTitle } from '@/lib/displayTitle';
 
 interface IncidentCardProps {
   incident: Incident;
@@ -37,7 +38,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
     }
   };
 
-  const titleText = maskText(incident.title || 'Untitled incident');
+  const titleText = maskText(displayTitle(incident));
   const previewSource = incident.ai_summary || incident.raw_narrative;
   const previewText = previewSource ? maskText(previewSource) : '';
 
@@ -53,7 +54,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           <div className="flex items-center gap-1.5 flex-wrap">
             <RecordTypeLabel recordType={incident.record_type} />
             {incident.record_type !== 'daily_record' && (
-              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+              <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -132,7 +133,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
             <RecordTypeLabel recordType={incident.record_type} />
             {incident.record_type !== 'daily_record' && (
-              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+              <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
           </div>
           <h3 className={`text-[15px] font-semibold line-clamp-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>

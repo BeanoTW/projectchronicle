@@ -5,10 +5,10 @@ interface CategoryBadgeProps {
   subtype?: string;
 }
 
-/** Display "Unclassified" for empty/Other/unknown categories */
+/** Display "Not sure yet" for empty/Other/unknown categories */
 function displayCategory(category: string): string {
   const resolved = resolveCategory(category);
-  if (resolved === 'Other' || !resolved) return 'Unclassified';
+  if (resolved === 'Other' || !resolved) return 'Not sure yet';
   return resolved;
 }
 

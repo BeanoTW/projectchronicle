@@ -12,6 +12,7 @@ import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { displayTitle } from '@/lib/displayTitle';
 import type { Incident } from '@/hooks/useIncidents';
 
 type DensityScale = 'detail' | 'compact' | 'overview';
@@ -297,7 +298,7 @@ const TimelineScreen = () => {
                         : (inc.category
                             ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
                             : 'border-l-muted-foreground/40');
-                      const categoryDisplay = inc.category || 'Unclassified';
+                      const categoryDisplay = inc.category || 'Not sure yet';
                       return (
                         <div
                           key={inc.id}
@@ -316,7 +317,7 @@ const TimelineScreen = () => {
                             <div className="flex items-center justify-between gap-2 mt-0.5">
                               <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
-                                {maskText(inc.title || (isDaily ? (inc.raw_narrative?.slice(0, 60) || 'Daily record') : 'Untitled incident'))}
+                                {maskText(displayTitle(inc))}
                               </span>
                               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap flex-shrink-0">
                                 {format(parseISO(inc.incident_date), 'dd MMM')}

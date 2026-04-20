@@ -277,7 +277,7 @@ const ExportBuilderModal = ({
                             className="w-full text-[13px] h-9"
                             onClick={() => handleConfirmSuggestion(s)}
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Confirm grouping
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Add to sequence
                           </Button>
                         </div>
                       </motion.div>
@@ -327,8 +327,8 @@ const ExportBuilderModal = ({
                         <>
                           <p className="text-[13px] font-semibold text-foreground">{seq.title}</p>
                           <p className="text-[11px] text-muted-foreground">
-                            {seq.incident_ids.length} incidents ·{" "}
-                            {seq.source === "user" ? "Grouped by user" : "System suggested"}
+                            {seq.incident_ids.length} related records ·{" "}
+                            {seq.source === "user" ? "User-defined" : "User-defined"}
                           </p>
                         </>
                       )}
@@ -373,7 +373,7 @@ const ExportBuilderModal = ({
                               className="text-[12px] h-8 text-destructive border-destructive/20"
                               onClick={() => handleRemoveSequence(seq.id)}
                             >
-                              <Unlink className="h-3 w-3 mr-1" /> Ungroup
+                              <Unlink className="h-3 w-3 mr-1" /> Remove sequence
                             </Button>
                           </div>
                         </div>
@@ -390,11 +390,11 @@ const ExportBuilderModal = ({
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-[12px] font-semibold text-muted-foreground uppercase tracking-wide">
-              {manualSelectMode ? "Select incidents to group" : "Ungrouped incidents"}
+              {manualSelectMode ? "Select records for this sequence" : "Records"}
             </p>
             {!manualSelectMode && standaloneIncidents.length >= 2 && (
               <Button variant="outline" size="sm" className="text-[11px] h-7" onClick={() => setManualSelectMode(true)}>
-                <Plus className="h-3 w-3 mr-1" /> Group manually
+                <Plus className="h-3 w-3 mr-1" /> Create sequence
               </Button>
             )}
           </div>
@@ -407,7 +407,7 @@ const ExportBuilderModal = ({
                 disabled={selectedForManual.size < 2}
                 onClick={handleCreateManualSequence}
               >
-                Group {selectedForManual.size} selected
+                Create sequence ({selectedForManual.size})
               </Button>
               <Button
                 variant="outline"
@@ -443,7 +443,7 @@ const ExportBuilderModal = ({
               </div>
             ))}
             {standaloneIncidents.length === 0 && (
-              <p className="text-[12px] text-muted-foreground/60 py-3">All incidents are grouped into sequences.</p>
+              <p className="text-[12px] text-muted-foreground/60 py-3">All records belong to a sequence.</p>
             )}
           </div>
         </div>

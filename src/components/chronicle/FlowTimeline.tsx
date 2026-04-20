@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react';
 import { format, parseISO, differenceInDays, isValid, subMonths, subWeeks } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { displayTitle } from '@/lib/displayTitle';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -282,7 +283,7 @@ const FlowTimeline = ({ incidents }: Props) => {
                       {format(parseISO(inc.incident_date), 'd MMM yyyy')}
                     </span>
                     <p className="text-[13px] font-medium text-foreground leading-snug truncate">
-                      {inc.title || inc.category || 'Untitled'}
+                      {displayTitle(inc)}
                     </p>
                   </div>
                   {isSelected && (

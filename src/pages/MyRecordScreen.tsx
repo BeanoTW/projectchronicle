@@ -8,6 +8,7 @@ import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { displayTitle } from '@/lib/displayTitle';
 
 // ─── Overview generator (deterministic, factual only) ──────
 // No interpretive wording (no "most entries relate to", no "repeated involvement").
@@ -214,13 +215,13 @@ const MyRecordScreen = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
-                      {maskText(inc.title || inc.raw_narrative?.slice(0, 60) || 'Untitled')}
+                      {maskText(displayTitle(inc))}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-muted-foreground/70">{dateStr}</span>
                       <span className="text-[11px] text-muted-foreground/60">·</span>
                       <span className="text-[11px] text-muted-foreground/70">
-                        {isDaily ? 'Daily record' : (inc.category || 'Unclassified')}
+                        {isDaily ? 'Daily record' : (inc.category || 'Not sure yet')}
                       </span>
                     </div>
                   </div>
