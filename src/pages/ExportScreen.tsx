@@ -174,6 +174,7 @@ const ExportScreen = () => {
         evidence,
       });
       const filename = getTemplateFilename();
+      setLastExportHtml(html);
 
       // 2. Also generate the on-screen structured record so the user sees
       //    a mounted output to scroll to (UX requirement).
@@ -221,6 +222,59 @@ const ExportScreen = () => {
       setTribunalLoading(false);
     }
   }, [activeIncidents, followUpNotes, evidence, toast]);
+
+  /**
+   * Print / Save as PDF.
+   * Renders the export HTML inside a hidden iframe and triggers
+   * `iframe.contentWindow.print()` so the OS print dialog targets ONLY
+   * the export document — never the surrounding app UI/navigation/buttons.
+   */
+  const handlePrintExport = useCallback(() => {
+    if (!lastExportHtml) return;
+    setPrinting(true);
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      setPrinting(false);
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch { /* noop */ }
+      }, 500);
+    };
+
+    iframe.onload = () => {
+      try {
+        const win = iframe.contentWindow;
+        if (!win) { cleanup(); return; }
+        // Wait one frame so fonts/styles settle.
+        setTimeout(() => {
+          try {
+            win.focus();
+            win.print();
+          } catch (e) {
+            console.warn('[Export] print() failed:', e);
+            toast({ title: 'Print unavailable', description: 'Your browser blocked the print dialog.', variant: 'destructive' });
+          } finally {
+            cleanup();
+          }
+        }, 250);
+      } catch (e) {
+        console.warn('[Export] iframe print setup failed:', e);
+        cleanup();
+      }
+    };
+
+    // srcdoc isolates the print scope to just this document.
+    iframe.srcdoc = lastExportHtml;
+  }, [lastExportHtml, toast]);
 
   const exportTypes = [
     {
