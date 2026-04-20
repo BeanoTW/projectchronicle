@@ -148,6 +148,17 @@ const ExportScreen = () => {
     };
   }, [summaryResult]);
 
+  // Scroll the export-ready result block into view as soon as it mounts.
+  useEffect(() => {
+    if (!lastExportHtml) return;
+    const r = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    return () => cancelAnimationFrame(r);
+  }, [lastExportHtml]);
+
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
       toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
