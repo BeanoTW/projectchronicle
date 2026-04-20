@@ -1,18 +1,28 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarDays, Paperclip, FileText } from 'lucide-react';
+import { CalendarDays, Paperclip, FileText, Link2, X } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import CategoryBadge, { CategoryLabel } from '@/components/chronicle/CategoryBadge';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
+import BoldedTitle from '@/components/chronicle/BoldedTitle';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
-import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS } from '@/lib/categories';
+import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS, CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
+import {
+  loadSequenceConfig,
+  saveSequenceConfig,
+  createManualSequence,
+  getSequenceMembership,
+  type SequenceConfig,
+} from '@/lib/sequenceEngine';
+import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Incident } from '@/hooks/useIncidents';
 
 type DensityScale = 'detail' | 'compact' | 'overview';
@@ -30,6 +40,8 @@ const exampleCards = [
   { title: 'Comment from colleague', date: '22 Jan 2025', category: 'Verbal Comment' },
   { title: 'Shift changed without notice', date: '3 Feb 2025', category: 'Work Allocation' },
 ];
+
+const TIMELINE_HINT_KEY = 'chronicle-timeline-sequence-hint';
 
 /* ── Overview marker component ── */
 const OverviewMarker = ({
@@ -56,6 +68,7 @@ const OverviewMarker = ({
 
 const TimelineScreen = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { data: allIncidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -65,7 +78,14 @@ const TimelineScreen = () => {
   const [showLibrary, setShowLibrary] = useState(false);
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [scale, setScale] = useState<DensityScale>('compact');
-  const { maskText } = usePrivacy();
+  const { maskEntities } = usePrivacy();
+
+  // Sequence selection state
+  const [sequenceConfig, setSequenceConfig] = useState<SequenceConfig>(() => loadSequenceConfig());
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showHint, setShowHint] = useState(false);
 
   // Refs for scroll-to on overview tap
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -89,6 +109,23 @@ const TimelineScreen = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // First-visit hint
+  useEffect(() => {
+    if (allIncidents.length >= 2) {
+      try {
+        const seen = localStorage.getItem(TIMELINE_HINT_KEY);
+        if (!seen) setShowHint(true);
+      } catch { /* ignore */ }
+    }
+  }, [allIncidents.length]);
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem(TIMELINE_HINT_KEY, '1'); } catch { /* ignore */ }
+  }, []);
+
+  const sequenceMembership = useMemo(() => getSequenceMembership(sequenceConfig), [sequenceConfig]);
+
   const incidents = useMemo(() => {
     let filtered = [...allIncidents];
     if (recordTypeFilter !== 'all') {
@@ -101,8 +138,6 @@ const TimelineScreen = () => {
     if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
     return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
   }, [allIncidents, filterCategory, recordTypeFilter, gapFilter, allEvidence]);
-
-  // No interpretive pattern detection in UI. Counts come from My Record (deterministic).
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
@@ -121,6 +156,48 @@ const TimelineScreen = () => {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 50);
   }, []);
+
+  const beginLongPress = useCallback((id: string) => {
+    if (selectMode) return;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      setSelectMode(true);
+      setSelectedIds(new Set([id]));
+    }, 500);
+  }, [selectMode]);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleCreateSequence = useCallback(() => {
+    if (selectedIds.size < 2) return;
+    const updated = createManualSequence(sequenceConfig, [...selectedIds], allIncidents);
+    setSequenceConfig(updated);
+    saveSequenceConfig(updated);
+    toast({
+      title: 'Sequence created',
+      description: `${selectedIds.size} records linked. Records remain in chronological order.`,
+    });
+    exitSelectMode();
+  }, [selectedIds, sequenceConfig, allIncidents, toast, exitSelectMode]);
 
   if (isLoading) {
     return (
@@ -184,6 +261,25 @@ const TimelineScreen = () => {
           )}
         </button>
       </PageHeader>
+
+      {/* First-visit sequence hint */}
+      {showHint && !selectMode && (
+        <div className="mx-5 mb-3 px-3.5 py-2.5 rounded-lg bg-primary/[0.06] border border-primary/15 flex items-start gap-2.5">
+          <Link2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-[12px] text-foreground leading-relaxed">
+              You can link related records across time by selecting them and creating a sequence.
+            </p>
+          </div>
+          <button
+            onClick={dismissHint}
+            aria-label="Dismiss"
+            className="p-0.5 -mr-1 -mt-0.5 text-muted-foreground/60 hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Record-type filter (All / Incidents / Daily records) */}
       <div className="px-5 mb-2 flex gap-1.5">
@@ -293,31 +389,62 @@ const TimelineScreen = () => {
                     {items.map(inc => {
                       const isVoided = !!inc.voided_at;
                       const isDaily = inc.record_type === 'daily_record';
-                      const tintClass = isDaily
-                        ? 'border-l-muted-foreground/30'
-                        : (inc.category
-                            ? (CATEGORY_BORDER_COLORS[inc.category] || 'border-l-muted-foreground/40')
-                            : 'border-l-muted-foreground/40');
+                      // Per-category tint (border + subtle bg). Increased border thickness
+                      // (border-l-[5px]) for stronger visual hierarchy.
+                      const tintCombo = isDaily
+                        ? 'border-l-muted-foreground/30 bg-card'
+                        : (inc.category && CATEGORY_CARD_TINTS[inc.category as keyof typeof CATEGORY_CARD_TINTS])
+                          || 'border-l-muted-foreground/40 bg-card';
                       const categoryDisplay = inc.category || 'Not sure yet';
+                      const inSequence = !!sequenceMembership[inc.id];
+                      const isSelected = selectedIds.has(inc.id);
+                      const titleText = maskEntities(displayTitle(inc), inc);
+
                       return (
                         <div
                           key={inc.id}
                           ref={el => { itemRefs.current[inc.id] = el; itemRefs.current[inc.incident_date.slice(0, 10)] = el; }}
+                          className="flex items-stretch gap-2"
                         >
+                          {selectMode && (
+                            <div className="flex items-center pl-1">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSelect(inc.id)}
+                                aria-label="Select for sequence"
+                              />
+                            </div>
+                          )}
                           <button
-                            onClick={() => navigate(`/incident/${inc.id}`)}
-                            className={`w-full text-left rounded-lg border border-border border-l-4 ${tintClass} px-3 py-2.5 bg-card hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-80' : ''}`}
+                            onClick={() => {
+                              if (selectMode) toggleSelect(inc.id);
+                              else navigate(`/incident/${inc.id}`);
+                            }}
+                            onPointerDown={() => beginLongPress(inc.id)}
+                            onPointerUp={cancelLongPress}
+                            onPointerLeave={cancelLongPress}
+                            onPointerCancel={cancelLongPress}
+                            className={`flex-1 text-left rounded-lg border border-border border-l-[5px] ${tintCombo} px-3 py-2.5 hover:bg-muted/20 transition-all duration-150 active:scale-[0.98] ${isVoided ? 'opacity-50' : ''} ${isDaily ? 'opacity-85' : ''} ${isSelected ? 'ring-2 ring-primary/40' : ''}`}
                           >
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <RecordTypeLabel recordType={inc.record_type} />
                               {!isDaily && (
                                 <CategoryLabel category={categoryDisplay} subtype={inc.subtype ?? undefined} />
                               )}
+                              {inSequence && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 text-[10px] text-primary/70"
+                                  title="Part of a sequence"
+                                  aria-label="Part of a sequence"
+                                >
+                                  <Link2 className="h-3 w-3" strokeWidth={2} />
+                                </span>
+                              )}
                             </div>
-                            <div className="flex items-center justify-between gap-2 mt-0.5">
-                              <span className={`text-[13px] font-semibold truncate flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
+                            <div className="flex items-center justify-between gap-2 mt-1 leading-relaxed">
+                              <span className={`text-[13px] truncate flex-1 ${isVoided ? 'text-muted-foreground line-through' : isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
                                 {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
-                                {maskText(displayTitle(inc))}
+                                <BoldedTitle text={titleText} leadingWords={4} />
                               </span>
                               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap flex-shrink-0">
                                 {format(parseISO(inc.incident_date), 'dd MMM')}
@@ -364,6 +491,32 @@ const TimelineScreen = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sequence selection footer */}
+      {selectMode && (
+        <div className="fixed bottom-20 left-0 right-0 z-40 px-4 pb-3">
+          <div className="mx-auto max-w-md bg-card border border-border rounded-xl shadow-lg px-3 py-2.5 flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-primary flex-shrink-0" />
+            <p className="text-[12px] text-foreground flex-1">
+              {selectedIds.size} selected
+              {selectedIds.size < 2 && <span className="text-muted-foreground"> · pick at least 2</span>}
+            </p>
+            <button
+              onClick={exitSelectMode}
+              className="px-2.5 py-1.5 text-[12px] text-muted-foreground hover:text-foreground rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateSequence}
+              disabled={selectedIds.size < 2}
+              className="px-3 py-1.5 text-[12px] font-semibold rounded-md bg-primary text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create sequence
+            </button>
+          </div>
         </div>
       )}
 
