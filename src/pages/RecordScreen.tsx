@@ -510,7 +510,7 @@ const RecordScreen = () => {
         {/* ========== VOICE MODE ========== */}
         {mode === 'voice' && (
           <motion.div
-            key="voice-mode"
+            key={`voice-mode-${formKey}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
@@ -572,7 +572,7 @@ const RecordScreen = () => {
         {/* ========== TEXT MODE ========== */}
         {mode === 'text' && (
           <motion.div
-            key="text-mode"
+            key={`text-mode-${formKey}`}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
