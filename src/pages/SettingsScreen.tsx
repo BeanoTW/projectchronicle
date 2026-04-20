@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, Fingerprint, Cloud, Loader2 } from 'lucide-react';
+import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2 } from 'lucide-react';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useBackup } from '@/contexts/BackupContext';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import { format } from 'date-fns';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -20,6 +21,7 @@ const SettingsScreen = () => {
   const { toast } = useToast();
   const { data: incidents } = useIncidents();
   const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, setBackupEnabled, retrySyncNow, deleteCloudData } = useBackup();
+  const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
