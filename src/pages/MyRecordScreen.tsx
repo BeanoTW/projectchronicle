@@ -56,6 +56,7 @@ const MyRecordScreen = () => {
   const { data: allEvidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
+  const { maskName, maskText } = usePrivacy();
 
   // Filter out voided
   const activeIncidents = useMemo(
