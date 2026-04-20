@@ -19,6 +19,7 @@ import CategoryBadge from './CategoryBadge';
 import type { Incident } from '@/hooks/useIncidents';
 import type { FollowUpNote } from '@/hooks/useFollowUpNotes';
 import type { EvidenceFile } from '@/hooks/useEvidence';
+import { displayTitle } from '@/lib/displayTitle';
 
 interface IncidentRecordCardProps {
   incident: Incident;
