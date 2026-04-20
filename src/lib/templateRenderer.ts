@@ -108,11 +108,11 @@ function isDaily(inc: Incident): boolean {
   return (inc as any).record_type === 'daily_record';
 }
 
-/** Normalise category for display. "Other"/empty → "Not classified". */
+/** Normalise category for display. "Other"/empty → "Not sure yet". */
 function displayCategory(cat?: string | null): string {
   const v = (cat || '').trim();
-  if (!v || v.toLowerCase() === 'other' || v.toLowerCase() === 'unclassified') {
-    return 'Not classified';
+  if (!v || v.toLowerCase() === 'other' || v.toLowerCase() === 'unclassified' || v.toLowerCase() === 'not classified') {
+    return 'Not sure yet';
   }
   return v;
 }
