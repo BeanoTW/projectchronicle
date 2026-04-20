@@ -90,129 +90,26 @@ function generateSequenceId(): string {
   return `seq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function formatSequenceTitle(date: string, index: number): string {
-  try {
-    const d = parseISO(date);
-    if (!isValid(d)) return `${date} — Grouped records`;
-    return index > 0
-      ? `${format(d, 'd MMMM yyyy')} — Sequence ${index + 1}`
-      : `${format(d, 'd MMMM yyyy')} — Grouped records`;
-  } catch {
-    return `${date} — Grouped records`;
-  }
+function formatSequenceTitle(_date: string, index: number): string {
+  // Neutral default — no interpretive naming, no inferred date framing.
+  return `Sequence ${index + 1}`;
 }
 
+// Suppress unused-import warning for formatters that may no longer be referenced
+// after the auto-grouping removal. Kept imported for future use.
+void format; void parseISO; void isValid;
+
 // ─── Sequence Suggestion ──────────────────────────────────────
-
-export function suggestSequences(incidents: Incident[]): SequenceSuggestion[] {
-  const active = incidents.filter(i => !i.voided_at);
-  if (active.length < 2) return [];
-
-  const sorted = sortByDateTime(active);
-  const suggestions: SequenceSuggestion[] = [];
-  const assigned = new Set<string>();
-
-  // Group by date first
-  const dateGroups: Record<string, Incident[]> = {};
-  sorted.forEach(inc => {
-    const key = inc.incident_date;
-    if (!dateGroups[key]) dateGroups[key] = [];
-    dateGroups[key].push(inc);
-  });
-
-  // For each date with multiple incidents, check time proximity
-  for (const [date, dateIncs] of Object.entries(dateGroups)) {
-    if (dateIncs.length < 2) continue;
-
-    // Check if all have times — if so, sub-group by proximity
-    const timed = dateIncs.filter(i => parseTime(i.incident_time) !== null);
-    const untimed = dateIncs.filter(i => parseTime(i.incident_time) === null);
-
-    if (timed.length >= 2) {
-      // Sub-group timed incidents by proximity
-      const clusters: Incident[][] = [];
-      let currentCluster: Incident[] = [timed[0]];
-
-      for (let i = 1; i < timed.length; i++) {
-        const prevTime = parseTime(timed[i - 1].incident_time);
-        const currTime = parseTime(timed[i].incident_time);
-        if (prevTime !== null && currTime !== null) {
-          const diffMinutes = Math.abs(currTime - prevTime);
-          if (diffMinutes <= TIME_PROXIMITY_HOURS * 60) {
-            currentCluster.push(timed[i]);
-          } else {
-            if (currentCluster.length >= 2) clusters.push(currentCluster);
-            currentCluster = [timed[i]];
-          }
-        }
-      }
-      if (currentCluster.length >= 2) clusters.push(currentCluster);
-
-      // Handle untimed incidents on this date
-      clusters.forEach((cluster, clusterIdx) => {
-        const ids = cluster.map(i => i.id);
-
-        // If untimed incidents exist and there's exactly one cluster, they can join
-        if (untimed.length > 0 && clusters.length === 1) {
-          untimed.forEach(u => {
-            if (!assigned.has(u.id)) {
-              ids.push(u.id);
-            }
-          });
-        }
-
-        const supporting: string[] = [];
-        const sharedPeople = findSharedPeople(cluster);
-        if (sharedPeople.length > 0) supporting.push(`shared individuals: ${sharedPeople.join(', ')}`);
-
-        const needsReview = ids.length > LARGE_SEQUENCE_THRESHOLD;
-
-        suggestions.push({
-          id: generateSequenceId(),
-          incident_ids: ids,
-          title: formatSequenceTitle(date, clusterIdx),
-          reason: {
-            same_date: true,
-            time_proximity: true,
-            supporting_signals: supporting,
-          },
-          needs_review: needsReview,
-        });
-
-        ids.forEach(id => assigned.add(id));
-      });
-
-      // If no timed clusters formed but we have 2+ same-date, suggest date-only grouping
-      if (clusters.length === 0 && dateIncs.length >= 2) {
-        const ids = dateIncs.filter(i => !assigned.has(i.id)).map(i => i.id);
-        if (ids.length >= 2) {
-          suggestions.push({
-            id: generateSequenceId(),
-            incident_ids: ids,
-            title: formatSequenceTitle(date, 0),
-            reason: { same_date: true, time_proximity: false, supporting_signals: [] },
-            needs_review: ids.length > LARGE_SEQUENCE_THRESHOLD,
-          });
-          ids.forEach(id => assigned.add(id));
-        }
-      }
-    } else {
-      // All untimed or only 1 timed — group by date only
-      const ids = dateIncs.filter(i => !assigned.has(i.id)).map(i => i.id);
-      if (ids.length >= 2) {
-        suggestions.push({
-          id: generateSequenceId(),
-          incident_ids: ids,
-          title: formatSequenceTitle(date, 0),
-          reason: { same_date: true, time_proximity: false, supporting_signals: [] },
-          needs_review: ids.length > LARGE_SEQUENCE_THRESHOLD,
-        });
-        ids.forEach(id => assigned.add(id));
-      }
-    }
-  }
-
-  return suggestions;
+//
+// Automatic same-day / time-proximity grouping has been REMOVED.
+// Chronology already places same-day records together, so auto-suggesting
+// them as "groupings" added no value. Sequences are now strictly
+// user-defined via createManualSequence().
+//
+// This function is retained as a no-op stub to preserve the existing
+// callsite contract; it always returns an empty list.
+export function suggestSequences(_incidents: Incident[]): SequenceSuggestion[] {
+  return [];
 }
 
 function findSharedPeople(incidents: Incident[]): string[] {
