@@ -22,11 +22,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 const STORAGE_KEY = 'chronicle-privacy-shield';
 
+interface EntityContext {
+  people_involved?: string[] | null;
+  witnesses?: string[] | null;
+}
+
 interface PrivacyContextValue {
   enabled: boolean;
   setEnabled: (v: boolean) => void;
   /** Mask a free-text value (narrative, quote, location, name). */
   maskText: (value: string | null | undefined, opts?: { preview?: boolean }) => string;
+  /**
+   * Lightweight inline masking — replaces ONLY known names from the supplied
+   * context within the text. Preserves sentence structure. Never replaces the
+   * full string. Use for titles and short previews where readability matters.
+   */
+  maskEntities: (value: string | null | undefined, context?: EntityContext | null) => string;
   /** Mask a person's name. */
   maskName: (name: string | null | undefined) => string;
   /** Mask an array of names → returns masked names joined for display. */
@@ -101,7 +112,34 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
       return `••••••${ext}`;
     };
 
-    return { enabled, setEnabled, maskText, maskName, maskNames, maskFilename };
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const maskEntities: PrivacyContextValue['maskEntities'] = (value, context) => {
+      if (!enabled) return value ?? '';
+      if (!value) return '';
+      const names = [
+        ...(context?.people_involved ?? []),
+        ...(context?.witnesses ?? []),
+      ]
+        .map((n) => (n || '').trim())
+        .filter((n) => n.length >= 2)
+        // Longest first so "Alex Smith" matches before "Alex".
+        .sort((a, b) => b.length - a.length);
+      if (names.length === 0) return value;
+      let out = value;
+      for (const name of names) {
+        const replacement = maskName(name);
+        try {
+          const re = new RegExp(`\\b${escapeRegex(name)}\\b`, 'gi');
+          out = out.replace(re, replacement);
+        } catch {
+          /* ignore bad regex */
+        }
+      }
+      return out;
+    };
+
+    return { enabled, setEnabled, maskText, maskEntities, maskName, maskNames, maskFilename };
   }, [enabled, setEnabled]);
 
   return <PrivacyContext.Provider value={value}>{children}</PrivacyContext.Provider>;
@@ -116,6 +154,7 @@ export function usePrivacy(): PrivacyContextValue {
       enabled: false,
       setEnabled: () => {},
       maskText: (v) => v ?? '',
+      maskEntities: (v) => v ?? '',
       maskName: (v) => v ?? '',
       maskNames: (v) => v ?? [],
       maskFilename: (v) => v ?? '',

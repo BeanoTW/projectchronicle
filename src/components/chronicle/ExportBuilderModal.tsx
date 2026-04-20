@@ -145,6 +145,20 @@ const ExportBuilderModal = ({
     return () => clearTimeout(t);
   }, [open]);
 
+  // First-visit sequence hint
+  const [showHint, setShowHint] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const seen = localStorage.getItem('chronicle-export-sequence-hint');
+      if (!seen) setShowHint(true);
+    } catch { /* ignore */ }
+  }, [open]);
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem('chronicle-export-sequence-hint', '1'); } catch { /* ignore */ }
+  }, []);
+
   if (!open) return null;
 
   const sequencedIds = new Set(config.sequences.flatMap((s) => s.incident_ids));
@@ -207,6 +221,21 @@ const ExportBuilderModal = ({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-40 space-y-5">
+        {showHint && (
+          <div className="px-3.5 py-2.5 rounded-lg bg-primary/[0.06] border border-primary/15 flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-[12px] text-foreground leading-relaxed flex-1">
+              Sequences help group related events for clarity. Records remain unchanged and in order.
+            </p>
+            <button
+              onClick={dismissHint}
+              aria-label="Dismiss"
+              className="p-0.5 -mr-1 -mt-0.5 text-muted-foreground/60 hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         {/* Suggestions */}
         {suggestions.length > 0 && (
           <div>

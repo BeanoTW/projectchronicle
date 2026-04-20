@@ -27,7 +27,7 @@ interface IncidentCardProps {
 const IncidentCard = ({ incident, attachmentCount, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
-  const { maskText, maskNames } = usePrivacy();
+  const { maskText, maskEntities, maskNames } = usePrivacy();
   const tint = incident.category ? CATEGORY_CARD_TINTS[incident.category as keyof typeof CATEGORY_CARD_TINTS] || '' : '';
 
   const handleClick = () => {
@@ -38,9 +38,11 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
     }
   };
 
-  const titleText = maskText(displayTitle(incident));
+  // Title is masked by entity (names only) — never the full title.
+  const titleText = maskEntities(displayTitle(incident), incident);
   const previewSource = incident.ai_summary || incident.raw_narrative;
-  const previewText = previewSource ? maskText(previewSource) : '';
+  // Previews mask only entities to preserve sentence structure / readability.
+  const previewText = previewSource ? maskEntities(previewSource, incident) : '';
 
   if (compact) {
     const isVoided = !!incident.voided_at;
