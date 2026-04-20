@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -87,6 +87,8 @@ const ExportScreen = () => {
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryHighlight, setSummaryHighlight] = useState(false);
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),

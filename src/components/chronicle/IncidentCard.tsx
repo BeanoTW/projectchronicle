@@ -7,9 +7,14 @@ import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge, { CategoryLabel } from './CategoryBadge';
 import RecordAgeChip from './RecordAgeChip';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 interface IncidentCardProps {
   incident: Incident;
+  /**
+   * @deprecated Pattern/occurrence chips removed — interpretive output is no longer
+   * shown on cards. Props retained for backwards compatibility but ignored.
+   */
   showPatternLabel?: boolean;
   occurrenceLabel?: string | null;
   attachmentCount?: number;
@@ -17,18 +22,10 @@ interface IncidentCardProps {
   expandable?: boolean;
 }
 
-function formatPatternLabel(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const occMatch = raw.match(/^(\d+)(?:st|nd|rd|th) occurrence$/);
-  if (occMatch) return `Repeated ${occMatch[1]} times`;
-  const invMatch = raw.match(/^(\d+) incidents involving (.+)$/);
-  if (invMatch) return `${invMatch[2]} appears in ${invMatch[1]} records`;
-  return raw;
-}
-
-const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentCount, compact, expandable }: IncidentCardProps) => {
+const IncidentCard = ({ incident, attachmentCount, compact, expandable }: IncidentCardProps) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const { maskText, maskNames } = usePrivacy();
   const tint = incident.category ? CATEGORY_CARD_TINTS[incident.category as keyof typeof CATEGORY_CARD_TINTS] || '' : '';
 
   const handleClick = () => {
@@ -39,10 +36,11 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
     }
   };
 
-  const patternText = formatPatternLabel(occurrenceLabel) || (showPatternLabel ? 'Repeated' : null);
+  const titleText = maskText(incident.title || 'Untitled incident');
+  const previewSource = incident.ai_summary || incident.raw_narrative;
+  const previewText = previewSource ? maskText(previewSource) : '';
 
   if (compact) {
-    const previewText = incident.ai_summary || incident.raw_narrative;
     const isVoided = !!incident.voided_at;
     return (
       <div className={isVoided ? 'opacity-50' : ''}>
@@ -55,7 +53,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
           <div className="flex items-center justify-between gap-2">
             <h3 className={`text-[14px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
               {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
-              {incident.title || 'Untitled incident'}
+              {titleText}
             </h3>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <span className="text-[11px] text-muted-foreground/50 whitespace-nowrap">
@@ -73,18 +71,13 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
               {previewText}
             </p>
           )}
-          <div className="flex items-center gap-1.5 mt-2">
-            {patternText && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
-                {patternText}
-              </span>
-            )}
-            {(attachmentCount ?? 0) > 0 && (
+          {(attachmentCount ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 mt-2">
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium text-muted-foreground/70">
                 <Paperclip className="h-2.5 w-2.5" /> {attachmentCount}
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </button>
         <AnimatePresence>
           {expandable && expanded && (
@@ -96,16 +89,16 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
               className="overflow-hidden"
             >
               <div className="mx-1 mt-1 px-3.5 py-3 rounded-lg border border-border/60 bg-card/50 space-y-2">
-                {(incident.ai_summary || incident.raw_narrative) && (
+                {previewText && (
                   <p className="text-[13px] text-muted-foreground leading-relaxed">
-                    {incident.ai_summary || incident.raw_narrative}
+                    {previewText}
                   </p>
                 )}
                 {incident.location && (
-                  <p className="text-[11px] text-muted-foreground/60">📍 {incident.location}</p>
+                  <p className="text-[11px] text-muted-foreground/60">📍 {maskText(incident.location)}</p>
                 )}
                 {incident.people_involved.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground/60">People: {incident.people_involved.join(', ')}</p>
+                  <p className="text-[11px] text-muted-foreground/60">People: {maskNames(incident.people_involved).join(', ')}</p>
                 )}
                 <button
                   onClick={(e) => { e.stopPropagation(); navigate(`/incident/${incident.id}`); }}
@@ -133,7 +126,7 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
           <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
           <h3 className={`text-[15px] font-semibold line-clamp-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
             {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
-            {incident.title || 'Untitled incident'}
+            {titleText}
           </h3>
         </div>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 flex-shrink-0 mt-1" />
@@ -141,23 +134,20 @@ const IncidentCard = ({ incident, showPatternLabel, occurrenceLabel, attachmentC
 
       <div className="flex flex-wrap gap-1.5 mb-2.5">
         <RecordAgeChip incidentDate={incident.incident_date} createdAt={incident.created_at} />
-        {patternText && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold text-primary border border-primary/20 bg-primary/[0.06]">
-            {patternText}
-          </span>
-        )}
       </div>
 
-      <p className="text-[13px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-2.5">
-        {incident.ai_summary || incident.raw_narrative}
-      </p>
+      {previewText && (
+        <p className="text-[13px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-2.5">
+          {previewText}
+        </p>
+      )}
 
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
         <span>{format(parseISO(incident.incident_date), 'dd MMM yyyy')}</span>
         {incident.location && (
           <>
             <span className="opacity-30">·</span>
-            <span>{incident.location}</span>
+            <span>{maskText(incident.location)}</span>
           </>
         )}
       </div>

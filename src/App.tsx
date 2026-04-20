@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
+import { PrivacyProvider } from "@/contexts/PrivacyContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
@@ -57,6 +58,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BackupProvider>
+      <PrivacyProvider>
       <DevModeProvider>
       <TooltipProvider>
         <Toaster />
@@ -92,6 +94,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
       </DevModeProvider>
+      </PrivacyProvider>
       </BackupProvider>
     </AuthProvider>
   </QueryClientProvider>
