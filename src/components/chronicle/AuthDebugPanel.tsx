@@ -127,17 +127,31 @@ const AuthDebugPanel = () => {
         <p>Backup toggle: <span className="text-foreground">{backupEnabled ? 'ON' : 'OFF'}</span></p>
         <p>Network: <span className="text-foreground">{online ? 'online' : 'offline'}</span></p>
         <p>Local storage available: <span className="text-foreground">{localAvailable}</span></p>
+        <p>Local records: <span className="text-foreground tabular-nums">{localCount}</span></p>
+        <p>Cloud records: <span className="text-foreground tabular-nums">{cloudCount === null ? 'unavailable' : cloudCount}</span></p>
+        <p>Sync status: <span className="text-foreground">{syncLabel}</span></p>
+        <p>Last backup: <span className="text-foreground">{lastBackupAt ?? 'never'}</span></p>
+        <p>Last restore: <span className="text-foreground">{lastRestoreAt ?? 'never'}</span></p>
         <p>Pending backup: <span className="text-foreground">{pendingCount}</span></p>
         <p>Last sync attempt: <span className="text-foreground">{lastSyncAttemptAt ?? 'never'}</span></p>
         <p>Last sync result: <span className="text-foreground">{lastSyncResult ? `${lastSyncResult.succeeded}/${lastSyncResult.attempted} ok, ${lastSyncResult.failed} failed` : 'n/a'}</span></p>
         <p>Last sync error: <span className="text-foreground">{lastSyncResult?.lastError ?? 'none'}</span></p>
-        <button
-          onClick={() => retrySyncNow()}
-          className="mt-1.5 text-[10px] text-primary underline disabled:opacity-50"
-          disabled={!backupEnabled || !online}
-        >
-          Force sync now
-        </button>
+        <div className="flex gap-2 mt-1.5">
+          <button
+            onClick={() => retrySyncNow()}
+            className="text-[10px] text-primary underline disabled:opacity-50"
+            disabled={!backupEnabled || !online}
+          >
+            Force sync now
+          </button>
+          <button
+            onClick={() => refreshCloudCount()}
+            className="text-[10px] text-primary underline disabled:opacity-50"
+            disabled={!online}
+          >
+            Refresh cloud count
+          </button>
+        </div>
       </div>
     </div>
   );
