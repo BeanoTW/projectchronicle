@@ -505,10 +505,17 @@ const ReviewScreen = () => {
           record_type: isDaily ? 'daily_record' : 'incident',
           interactions: isDaily ? (d.interactions ?? []) : null,
         } as any);
-        await createEditHistory.mutateAsync({
-          incident_id: result.id,
-          field_changed: 'incident_recorded',
-        });
+        // Best-effort: edit history is a non-critical audit trail.
+        // The incident is local-first and may not yet be synced to the server,
+        // so the FK insert can 409. Never let this fail the save.
+        try {
+          await createEditHistory.mutateAsync({
+            incident_id: result.id,
+            field_changed: 'incident_recorded',
+          });
+        } catch (historyErr) {
+          console.warn('[ReviewScreen] edit_history insert skipped (non-critical):', historyErr);
+        }
       }
 
       // If this was a post-save split, delete the original incident
