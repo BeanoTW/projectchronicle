@@ -8,6 +8,7 @@ import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
 import BottomNav from "@/components/chronicle/BottomNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
+import UpdateBanner from "@/components/chronicle/UpdateBanner";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import LoginScreen from "./pages/LoginScreen";
 import SignupScreen from "./pages/SignupScreen";
@@ -60,6 +61,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <UpdateBanner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />

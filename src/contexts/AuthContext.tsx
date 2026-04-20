@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -45,12 +45,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    return { error: error as Error | null };
+    // Supabase quirk: when an account already exists, the API returns success
+    // but `identities` is an empty array. Detect this so the UI can guide the
+    // user to sign-in or password reset instead of looping.
+    const alreadyExists =
+      !error &&
+      !!data?.user &&
+      Array.isArray(data.user.identities) &&
+      data.user.identities.length === 0;
+    return { error: error as Error | null, alreadyExists };
   };
 
   const signIn = async (email: string, password: string) => {

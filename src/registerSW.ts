@@ -45,7 +45,7 @@ export async function registerServiceWorker() {
 
   try {
     const { registerSW } = await import("virtual:pwa-register");
-    registerSW({
+    const reload = registerSW({
       immediate: true,
       onRegisteredSW(_swUrl, registration) {
         // Optional: poll for updates every hour
@@ -54,8 +54,13 @@ export async function registerServiceWorker() {
         }
       },
       onNeedRefresh() {
-        // Non-disruptive: log only. A future UI prompt can hook here.
         console.info("[Chronicle] New version available — reload to update.");
+        // Non-blocking: dispatch an event so UpdateBanner can offer Refresh.
+        window.dispatchEvent(
+          new CustomEvent("chronicle:update-available", {
+            detail: { reload: () => reload(true) },
+          }),
+        );
       },
       onOfflineReady() {
         console.info("[Chronicle] App shell cached. Ready for offline boot.");

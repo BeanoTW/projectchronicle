@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import PasswordRulesList from '@/components/auth/PasswordRulesList';
+import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 8 },
@@ -62,31 +64,35 @@ const ResetPasswordScreen = () => {
     };
   }, []);
 
+  const passwordCheck = evaluatePassword(password);
+  const canSubmit = passwordCheck.valid && password === confirmPassword && !loading;
+
   const handleUpdate = async () => {
-    if (password.length < 8) {
-      toast({ title: 'Password too short', description: 'Use at least 8 characters.', variant: 'destructive' });
+    if (!passwordCheck.valid) {
+      toast({
+        title: 'Password does not meet requirements',
+        description: messageForFailedRule(passwordCheck.failedRule?.id),
+        variant: 'destructive',
+      });
       return;
     }
     if (password !== confirmPassword) {
-      toast({ title: 'Passwords do not match', variant: 'destructive' });
+      toast({ title: PASSWORD_MESSAGES.mismatch, variant: 'destructive' });
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({ title: 'Unable to reset password', description: error.message, variant: 'destructive' });
-    } else {
-      // Confirm the update actually worked by checking session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        toast({ title: 'Password updated' });
-        navigate('/home', { replace: true });
-      } else {
-        toast({ title: 'Password updated', description: 'Please sign in with your new password.' });
-        navigate('/login', { replace: true });
-      }
+      return;
     }
+    // Critical: clear the recovery session so the user is not left in a
+    // partially-authenticated state. Force fresh sign-in with new password.
+    try { await supabase.auth.signOut(); } catch { /* ignore */ }
+    setLoading(false);
+    toast({ title: 'Password updated', description: 'Sign in with your new password.' });
+    navigate('/login', { replace: true });
   };
 
   if (resetState === 'verifying') {
@@ -159,6 +165,7 @@ const ResetPasswordScreen = () => {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          <PasswordRulesList password={password} />
         </div>
         <div>
           <Label htmlFor="confirm" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
@@ -185,8 +192,8 @@ const ResetPasswordScreen = () => {
 
         <Button
           onClick={handleUpdate}
-          disabled={loading}
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
+          disabled={!canSubmit}
+          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform disabled:opacity-50"
         >
           {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
           {loading ? 'Updating…' : 'Update password'}
