@@ -54,7 +54,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           <div className="flex items-center gap-1.5 flex-wrap">
             <RecordTypeLabel recordType={incident.record_type} />
             {incident.record_type !== 'daily_record' && (
-              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+              <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -133,7 +133,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
             <RecordTypeLabel recordType={incident.record_type} />
             {incident.record_type !== 'daily_record' && (
-              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+              <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
           </div>
           <h3 className={`text-[15px] font-semibold line-clamp-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
