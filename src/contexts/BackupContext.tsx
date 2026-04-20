@@ -33,6 +33,7 @@ interface BackupContextType {
   // New: dataset state
   localCount: number;
   cloudCount: number | null;
+  cloudLastUpdatedAt: string | null;
   lastBackupAt: string | null;
   lastRestoreAt: string | null;
   syncStatus: SyncStatus;
