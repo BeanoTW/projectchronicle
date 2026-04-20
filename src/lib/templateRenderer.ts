@@ -76,14 +76,30 @@ function categorySlug(cat?: string | null): string {
   return 'unclassified';
 }
 
+function cleanLine(s: string): string {
+  // Strip field-label prefixes ("Date:", "Location:", etc.), collapse whitespace,
+  // take the first line only.
+  return String(s)
+    .replace(/\r/g, '')
+    .split('\n')[0]
+    .replace(/^\s*(date|time|location|people|category|subtype)\s*:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function buildShortTitle(inc: Incident): string {
-  // Deterministic: prefer exact_words quote, else first sentence of narrative.
+  // Deterministic single-line index title.
+  // Priority: exact_words → title → first sentence of raw_narrative.
   if (inc.exact_words && inc.exact_words.trim().length > 0) {
-    const t = inc.exact_words.trim().replace(/^["“”]+|["“”]+$/g, '');
-    return `"${t.length > 90 ? t.slice(0, 87) + '…' : t}"`;
+    const t = cleanLine(inc.exact_words).replace(/^["“”]+|["“”]+$/g, '');
+    if (t) return `"${t.length > 90 ? t.slice(0, 87) + '…' : t}"`;
   }
-  const narrative = (inc.raw_narrative || '').trim();
-  if (!narrative) return inc.title || '(no summary)';
+  if (inc.title && inc.title.trim().length > 0) {
+    const t = cleanLine(inc.title);
+    if (t) return t.length > 110 ? t.slice(0, 107) + '…' : t;
+  }
+  const narrative = cleanLine(inc.raw_narrative || '');
+  if (!narrative) return '(no summary)';
   const firstSentence = narrative.split(/(?<=[.!?])\s+/)[0] || narrative;
   return firstSentence.length > 110 ? firstSentence.slice(0, 107) + '…' : firstSentence;
 }
@@ -92,23 +108,32 @@ function isDaily(inc: Incident): boolean {
   return (inc as any).record_type === 'daily_record';
 }
 
+/** Normalise category for display. "Other"/empty → "Not classified". */
+function displayCategory(cat?: string | null): string {
+  const v = (cat || '').trim();
+  if (!v || v.toLowerCase() === 'other' || v.toLowerCase() === 'unclassified') {
+    return 'Not classified';
+  }
+  return v;
+}
+
 function classificationLine(inc: Incident): string {
   const parts: string[] = [];
   if (isDaily(inc)) {
     parts.push('Daily record');
   } else {
-    if (inc.category) {
-      const sub = inc.subtype && !['Unclassified', 'Not sure yet', 'Other', inc.category].includes(inc.subtype)
-        ? ` → ${inc.subtype}`
-        : '';
-      parts.push(`${inc.category}${sub}`);
-    } else {
-      parts.push('Unclassified');
-    }
+    const cat = displayCategory(inc.category);
+    const subRaw = (inc.subtype || '').trim();
+    const subOk = subRaw && !['Unclassified', 'Not sure yet', 'Other', 'null', 'undefined', inc.category || ''].includes(subRaw);
+    parts.push(subOk ? `${cat} → ${subRaw}` : cat);
   }
-  if (inc.location) parts.push(inc.location);
+  const loc = (inc.location || '').trim();
+  if (loc && loc.toLowerCase() !== 'null' && loc.toLowerCase() !== 'undefined') {
+    parts.push(loc);
+  }
   return parts.join(' · ');
 }
+
 
 function exportIdFor(now: Date): string {
   return `CHR-${format(now, 'yyyy-MMdd-HHmm')}`;
