@@ -118,16 +118,31 @@ const ExportScreen = () => {
   };
 
   // Once the structured record is mounted, scroll to it and briefly highlight.
+  // Use a layout-effect-style delay (double rAF + small timeout) so the DOM
+  // has fully painted the new content before we scroll. This prevents the
+  // "scrolled before content existed" failure mode.
   useEffect(() => {
     if (!summaryResult) return;
-    // Defer to next frame so the DOM has the rendered content.
-    const raf = requestAnimationFrame(() => {
-      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    let cancelled = false;
+    const tryScroll = () => {
+      if (cancelled) return;
+      const el = summaryRef.current;
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setSummaryHighlight(true);
-      const t = setTimeout(() => setSummaryHighlight(false), 1600);
-      return () => clearTimeout(t);
+      setTimeout(() => {
+        if (!cancelled) setSummaryHighlight(false);
+      }, 1800);
+    };
+    const r1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setTimeout(tryScroll, 60);
+      });
     });
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(r1);
+    };
   }, [summaryResult]);
 
   const handleOpenBuilder = () => {
@@ -138,71 +153,48 @@ const ExportScreen = () => {
     setBuilderOpen(true);
   };
 
-  const handleBuilderExport = useCallback(async (items: ExportItem[], config: SequenceConfig) => {
+  const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
     setTribunalLoading(true);
+    // Immediate feedback the moment the user taps export.
+    toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
     try {
-      const allIds = activeIncidents.map(i => i.id);
-      const payload = buildTribunalExportPayload({
-        incidents: activeIncidents,
-        selectedIds: allIds,
-        allIncidentCount: allIds.length,
-        mode: 'workplace-grievance',
-        customPurpose: '',
-        options: { includePatterns: true, includeNames: true },
-        followUpNotes,
-        evidenceFiles: evidence,
-      });
-
-      if (!payload) {
-        toast({ title: 'Export failed', description: 'No valid incidents to export.', variant: 'destructive' });
+      if (activeIncidents.length === 0) {
+        toast({ title: 'No records', description: 'Record at least one entry to generate an export.', variant: 'destructive' });
         return;
       }
 
-      // Attach sequence groups and standalone cards from export items
-      const sequenceGroups: SequenceGroup[] = [];
-      const standaloneCards: IncidentCardHtmlData[] = [];
+      // 1. Render the locked-template HTML for download.
+      const html = renderTemplateHtml({
+        incidents: activeIncidents,
+        followUps: followUpNotes,
+        evidence,
+      });
+      const filename = getTemplateFilename();
 
-      for (const item of items) {
-        if (item.type === 'sequence' && item.sequence) {
-          const cards: IncidentCardHtmlData[] = item.incidents.map(inc => ({
-            incident: inc,
-            followUps: followUpNotes
-              .filter(n => n.incident_id === inc.id)
-              .map(n => ({ id: n.id, created_at: n.created_at, note_text: n.note_text })),
-            evidence: evidence
-              .filter(e => e.incident_id === inc.id)
-              .map(e => ({ id: e.id, file_name: e.file_name, evidence_ref_number: e.evidence_ref_number })),
-          }));
-          sequenceGroups.push({
-            title: item.sequence.title,
-            source: item.sequence.source,
-            incident_cards: cards,
-          });
-        } else {
-          item.incidents.forEach(inc => {
-            standaloneCards.push({
-              incident: inc,
-              followUps: followUpNotes
-                .filter(n => n.incident_id === inc.id)
-                .map(n => ({ id: n.id, created_at: n.created_at, note_text: n.note_text })),
-              evidence: evidence
-                .filter(e => e.incident_id === inc.id)
-                .map(e => ({ id: e.id, file_name: e.file_name, evidence_ref_number: e.evidence_ref_number })),
-            });
-          });
-        }
+      // 2. Also generate the on-screen structured record so the user sees
+      //    a mounted output to scroll to (UX requirement).
+      try {
+        const allIds = activeIncidents.map(i => i.id);
+        const result = generateSummary({
+          incidents: activeIncidents,
+          selectedIds: allIds,
+          allIncidentCount: allIds.length,
+          mode: 'general' as SummaryMode,
+          customPurpose: '',
+          options: { includePatterns: false, includeNames: true },
+          followUpNotes,
+          evidenceFiles: evidence,
+        });
+        setSummaryResult(result);
+      } catch {
+        // Non-fatal: download still proceeds.
       }
 
-      payload.sequence_groups = sequenceGroups.length > 0 ? sequenceGroups : undefined;
-      payload.standalone_cards = standaloneCards.length > 0 ? standaloneCards : undefined;
-
-      const html = renderTribunalHtml(payload);
-      const filename = getTribunalFilename();
-      const result = await deliverHtmlFile(html, filename);
-
+      // 3. Close the builder and trigger delivery.
       setBuilderOpen(false);
+      const deliveryResult = await deliverHtmlFile(html, filename);
 
-      switch (result) {
+      switch (deliveryResult) {
         case 'shared':
           toast({ title: 'Export ready to share', description: filename });
           break;
