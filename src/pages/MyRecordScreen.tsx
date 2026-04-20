@@ -7,45 +7,23 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import PageHeader from '@/components/chronicle/PageHeader';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
-// ─── Overview generator (deterministic, template-locked) ──────
+// ─── Overview generator (deterministic, factual only) ──────
+// No interpretive wording (no "most entries relate to", no "repeated involvement").
 
 function buildOverview(
   incidents: { incident_date: string; category?: string | null; people_involved: string[] }[],
 ): string {
   if (incidents.length === 0) return '';
-
   const dates = incidents
     .map(i => parseISO(i.incident_date))
     .filter(isValid)
     .sort((a, b) => a.getTime() - b.getTime());
-
-  if (dates.length < 2) return 'Records have been made covering a single incident.';
-
+  if (dates.length === 0) return '';
+  if (dates.length === 1) return `1 record on ${format(dates[0], 'd MMM yyyy')}.`;
   const spanDays = differenceInDays(dates[dates.length - 1], dates[0]);
-  const timeSpan = spanDays <= 30 ? `${spanDays} days` : `${Math.floor(spanDays / 30)} months`;
-
-  // Repeated individuals (>1 appearance)
-  const peopleCounts: Record<string, number> = {};
-  incidents.forEach(i => i.people_involved.forEach(p => {
-    peopleCounts[p] = (peopleCounts[p] || 0) + 1;
-  }));
-  const topPerson = Object.entries(peopleCounts)
-    .filter(([, c]) => c > 1)
-    .sort((a, b) => b[1] - a[1])[0];
-
-  // Dominant category (≥40%)
-  const catCounts: Record<string, number> = {};
-  incidents.forEach(i => {
-    if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1;
-  });
-  const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
-  const hasDominant = topCat && topCat[1] >= incidents.length * 0.4;
-
-  if (topPerson && hasDominant) {
-    return `Records have been made over ${timeSpan}, with repeated involvement from ${topPerson[0]}. Most entries relate to ${topCat[0]}.`;
-  }
-  return `Records have been made over ${timeSpan}, covering multiple incidents across this period.`;
+  return `${incidents.length} records between ${format(dates[0], 'd MMM yyyy')} and ${format(dates[dates.length - 1], 'd MMM yyyy')} (${spanDays} day${spanDays === 1 ? '' : 's'}).`;
 }
 
 // ─── People involved ─────────────────────────────────────────
