@@ -123,10 +123,56 @@ const SettingsScreen = () => {
             <p className="text-[12px] text-muted-foreground leading-relaxed">
               Your records are stored on this device. Cloud backup is optional and uploads them to your account so they can be restored on another device.
             </p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[14px] text-foreground">Enable cloud backup</span>
+
+            {/* Data state — what you're viewing */}
+            <div className="bg-muted/30 rounded-lg p-3 space-y-1.5 text-[12px]">
+              <div className="flex items-center gap-1.5 text-foreground font-medium mb-1">
+                <Database className="h-3.5 w-3.5 text-primary" />
+                <span>Data on this device</span>
               </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Records on this device</span>
+                <span className="text-foreground tabular-nums font-medium">{localCount}</span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Records in cloud backup</span>
+                <span className="text-foreground tabular-nums font-medium">
+                  {cloudCount === null ? (online ? '—' : 'offline') : cloudCount}
+                </span>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <span>Sync status</span>
+                <span className="text-foreground font-medium">
+                  {syncStatus === 'in_sync' && 'In sync'}
+                  {syncStatus === 'local_newer' && 'Local is newer'}
+                  {syncStatus === 'cloud_newer' && 'Cloud is newer'}
+                  {syncStatus === 'cloud_unavailable' && 'Cloud unavailable'}
+                  {syncStatus === 'unknown' && (backupEnabled ? 'Checking…' : 'Local only')}
+                </span>
+              </div>
+              {lastBackupAt && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Last backup</span>
+                  <span className="text-foreground">{format(new Date(lastBackupAt), 'd MMM HH:mm')}</span>
+                </div>
+              )}
+              {lastRestoreAt && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Last restore</span>
+                  <span className="text-foreground">{format(new Date(lastRestoreAt), 'd MMM HH:mm')}</span>
+                </div>
+              )}
+              <button
+                onClick={() => refreshCloudCount()}
+                className="text-[11px] text-primary hover:underline pt-0.5"
+                disabled={!online}
+              >
+                Refresh cloud status
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-[14px] text-foreground">Enable cloud backup</span>
               <Switch
                 checked={backupEnabled}
                 disabled={busy}
@@ -136,6 +182,7 @@ const SettingsScreen = () => {
                 }}
               />
             </div>
+
             <div className="text-[12px] text-muted-foreground space-y-1 pt-1">
               <div className="flex justify-between"><span>Status</span><span className="text-foreground">{backupEnabled ? (online ? 'On — uploading when online' : 'On — offline, will retry') : 'Off — local only'}</span></div>
               <div className="flex justify-between"><span>Pending upload</span><span className="text-foreground tabular-nums">{pendingCount}</span></div>
@@ -146,6 +193,58 @@ const SettingsScreen = () => {
                 <div className="flex justify-between"><span>Last error</span><span className="text-foreground truncate max-w-[180px]">{lastSyncResult.lastError}</span></div>
               )}
             </div>
+
+            {/* Explicit user-controlled actions */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={async () => { setBusy(true); try { await backupNow(); } finally { setBusy(false); } }}
+                disabled={busy || !online || !backupEnabled}
+                className="flex items-center justify-center gap-1.5 text-[13px] text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
+                Backup now
+              </button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    disabled={!online || cloudCount === null || cloudCount === 0}
+                    className="flex items-center justify-center gap-1.5 text-[13px] text-foreground border border-border hover:bg-muted/50 py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CloudDownload className="h-3.5 w-3.5" />
+                    Restore from cloud
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Replace local records with cloud backup?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will replace your current local records ({localCount}) with your cloud backup ({cloudCount ?? '—'} records). Any records on this device that have not been backed up will be lost. This cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={restoring}
+                      onClick={async () => {
+                        setRestoring(true);
+                        try {
+                          const res = await restoreFromCloud();
+                          toast({ title: 'Restore complete', description: `${res.incidents} record(s) and ${res.notes} note(s) restored from cloud.` });
+                        } catch (e) {
+                          toast({ title: 'Restore failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                        } finally {
+                          setRestoring(false);
+                        }
+                      }}
+                    >
+                      Replace local records
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
             {backupEnabled && pendingCount > 0 && (
               <button
                 onClick={async () => { setBusy(true); try { await retrySyncNow(); } finally { setBusy(false); } }}
@@ -156,6 +255,7 @@ const SettingsScreen = () => {
                 Retry backup now
               </button>
             )}
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button className="w-full text-[13px] text-destructive py-2 hover:bg-destructive/5 rounded-lg transition-colors">
@@ -191,6 +291,7 @@ const SettingsScreen = () => {
               </AlertDialogContent>
             </AlertDialog>
           </div>
+
 
           <div className="border-t border-border" />
 
