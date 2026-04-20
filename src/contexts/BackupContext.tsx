@@ -58,6 +58,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const [lastSyncResult, setLastRes] = useState<SyncResult | null>(null);
   const [localCount, setLocalCount] = useState(0);
   const [cloudCount, setCloudCount] = useState<number | null>(null);
+  const [cloudLastUpdatedAt, setCloudLastUpdatedAt] = useState<string | null>(null);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [lastRestoreAt, setLastRestoreAt] = useState<string | null>(null);
   const hydratedRef = useRef<string | null>(null);
