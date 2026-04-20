@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Incident } from '@/hooks/useIncidents';
 
 import { CATEGORY_BORDER_COLORS, CATEGORY_LABELS } from '@/lib/categories';
+import { displayTitle } from '@/lib/displayTitle';
 
 const defaultBorder = 'border-l-muted-foreground/40';
 
@@ -214,7 +215,7 @@ const NarrativeDayView = ({ incidents }: Props) => {
                             </p>
                           )}
                           <p className="text-[13px] font-bold leading-snug text-foreground">
-                            {inc.title || 'Untitled incident'}
+                            {displayTitle(inc)}
                           </p>
                         </button>
                       );

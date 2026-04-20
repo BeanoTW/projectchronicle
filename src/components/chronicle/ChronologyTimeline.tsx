@@ -5,6 +5,7 @@ import { MapPin, User, Paperclip, StickyNote, ChevronRight } from 'lucide-react'
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge from './CategoryBadge';
 import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
+import { displayTitle } from '@/lib/displayTitle';
 interface Props {
   incidents: Incident[];
   isPartOfPattern: (inc: Incident) => boolean;
@@ -142,7 +143,7 @@ const ChronologyTimeline = ({ incidents, isPartOfPattern, evidenceCounts = {}, n
                         {/* Title */}
                         <p className={`text-[13px] font-semibold leading-snug mb-1 ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                           {isVoided && <span className="text-[9px] font-medium text-muted-foreground/60 bg-muted rounded px-1 py-0.5 mr-1 no-underline inline-block">Voided</span>}
-                          {inc.title || 'Untitled incident'}
+                          {displayTitle(inc)}
                         </p>
 
                         {/* 1-2 line summary */}
