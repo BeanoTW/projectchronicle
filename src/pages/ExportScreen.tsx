@@ -228,7 +228,7 @@ const ExportScreen = () => {
       icon: Briefcase,
       comingSoon: false,
       onExport: handleOpenBuilder,
-      loading: tribunalLoading,
+      loading: false,
       includes: 'Includes: records in chronological order, category labels, people referenced, recorded timestamps, append-only updates',
     },
     { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true, includes: 'Includes: narrative, people involved, attachments, timestamps' },
