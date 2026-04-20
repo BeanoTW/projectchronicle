@@ -8,6 +8,7 @@ import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
+import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
 import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -221,12 +222,11 @@ const IncidentDetailScreen = () => {
           {/* 1. HEADER */}
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[12px] text-muted-foreground font-medium">{incident.id.slice(0, 8).toUpperCase()}</p>
-                {isDaily && (
-                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground uppercase tracking-wide">
-                    Daily record
-                  </span>
+                <RecordTypeLabel recordType={incident.record_type} />
+                {!isDaily && incident.category && (
+                  <span className="text-[11px] text-muted-foreground">{incident.category}{incident.subtype && incident.subtype !== incident.category ? ` — ${incident.subtype}` : ''}</span>
                 )}
               </div>
               <div className="text-right">

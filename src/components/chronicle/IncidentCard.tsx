@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Paperclip } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge, { CategoryLabel } from './CategoryBadge';
+import RecordTypeLabel from './RecordTypeLabel';
 import RecordAgeChip from './RecordAgeChip';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
@@ -48,9 +49,14 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           onClick={handleClick}
           className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
         >
-          {/* Category label always shown above title */}
-          <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
-          <div className="flex items-center justify-between gap-2">
+          {/* Primary: record-type label. Secondary: category (incidents only). */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <RecordTypeLabel recordType={incident.record_type} />
+            {incident.record_type !== 'daily_record' && (
+              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
             <h3 className={`text-[14px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
               {isVoided && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
               {titleText}
@@ -122,8 +128,13 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1">
-          {/* Category label always shown above title */}
-          <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+          {/* Primary: record-type label. Secondary: category (incidents only). */}
+          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <RecordTypeLabel recordType={incident.record_type} />
+            {incident.record_type !== 'daily_record' && (
+              <CategoryLabel category={incident.category || 'Unclassified'} subtype={incident.subtype ?? undefined} />
+            )}
+          </div>
           <h3 className={`text-[15px] font-semibold line-clamp-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
             {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
             {titleText}
