@@ -161,6 +161,7 @@ export type Database = {
           locked: boolean
           people_involved: string[]
           raw_narrative: string
+          record_date: string | null
           record_method: string | null
           record_type: string
           severity: string | null
@@ -191,6 +192,7 @@ export type Database = {
           locked?: boolean
           people_involved?: string[]
           raw_narrative: string
+          record_date?: string | null
           record_method?: string | null
           record_type?: string
           severity?: string | null
@@ -221,6 +223,7 @@ export type Database = {
           locked?: boolean
           people_involved?: string[]
           raw_narrative?: string
+          record_date?: string | null
           record_method?: string | null
           record_type?: string
           severity?: string | null
