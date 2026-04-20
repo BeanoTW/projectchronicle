@@ -1,17 +1,30 @@
 import { useState, useEffect } from 'react';
+import { ChevronUp, Minus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useBackup } from '@/contexts/BackupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
 
+type PanelState = 'expanded' | 'collapsed' | 'closed';
+const STORAGE_KEY = 'chronicle.devPanel.state';
+
 const AuthDebugPanel = () => {
-  const { devMode } = useDevMode();
+  const { devMode, toggleDevMode } = useDevMode();
   const { user, session, loading } = useAuth();
   const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, retrySyncNow } = useBackup();
   const location = useLocation();
   const [lastEvent, setLastEvent] = useState<string>('none');
   const [localAvailable, setLocalAvailable] = useState<string>('unknown');
+  const [panelState, setPanelState] = useState<PanelState>(() => {
+    if (typeof window === 'undefined') return 'collapsed';
+    const stored = sessionStorage.getItem(STORAGE_KEY) as PanelState | null;
+    return stored ?? 'collapsed';
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, panelState);
+  }, [panelState]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -31,17 +44,75 @@ const AuthDebugPanel = () => {
   }, []);
 
   if (!devMode) return null;
+  if (panelState === 'closed') return null;
 
   const hash = window.location.hash;
   const hashParams = new URLSearchParams(hash.substring(1));
+  const storageMode = backupEnabled ? 'Cloud' : 'Local';
+  const syncMode = backupEnabled ? (online ? 'Sync On' : 'Offline') : 'Sync Off';
+  const authMode = loading ? 'loading' : session ? 'active' : 'none';
+
+  const handleClose = () => {
+    setPanelState('closed');
+    // Also exit dev mode entirely so the user fully removes it from screen
+    toggleDevMode();
+  };
+
+  if (panelState === 'collapsed') {
+    return (
+      <div className="fixed bottom-20 left-2 z-50 pointer-events-none">
+        <div className="pointer-events-auto inline-flex items-center gap-1 bg-card border border-border rounded-full pl-2.5 pr-1 py-1 shadow-lg text-[10px] font-mono">
+          <button
+            onClick={() => setPanelState('expanded')}
+            className="flex items-center gap-1.5 text-foreground"
+            aria-label="Expand developer panel"
+          >
+            <span className="font-semibold text-primary">DEV</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-foreground">{authMode}</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-foreground">{storageMode}</span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-foreground">{syncMode}</span>
+            <ChevronUp className="h-3 w-3 text-muted-foreground ml-0.5" />
+          </button>
+          <button
+            onClick={handleClose}
+            className="p-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/40"
+            aria-label="Close developer panel"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed bottom-20 left-2 right-2 max-w-lg mx-auto bg-card border border-border rounded-lg p-3 z-50 text-[10px] font-mono shadow-lg max-h-[60vh] overflow-y-auto">
-      <p className="text-[11px] font-semibold text-foreground mb-2">Auth + Storage Debug</p>
-      <div className="space-y-0.5 text-muted-foreground">
+    <div className="fixed bottom-20 left-2 right-2 max-w-lg mx-auto bg-card border border-border rounded-lg z-50 text-[10px] font-mono shadow-lg max-h-[60vh] overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+        <p className="text-[11px] font-semibold text-foreground">Auth + Storage Debug</p>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setPanelState('collapsed')}
+            className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted/40"
+            aria-label="Minimise"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={handleClose}
+            className="p-1 text-muted-foreground hover:text-foreground rounded hover:bg-muted/40"
+            aria-label="Close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="overflow-y-auto p-3 space-y-0.5 text-muted-foreground">
         <p>Route: <span className="text-foreground">{location.pathname}</span></p>
         <p>Flow type: <span className="text-foreground">{hashParams.get('type') || 'n/a'}</span></p>
-        <p>Session: <span className="text-foreground">{loading ? 'loading' : session ? 'active' : 'none'}</span></p>
+        <p>Session: <span className="text-foreground">{authMode}</span></p>
         <p>User: <span className="text-foreground">{user?.email || 'none'}</span></p>
         <p>Confirmed: <span className="text-foreground">{user?.email_confirmed_at ? 'yes' : 'no'}</span></p>
         <p>Last auth event: <span className="text-foreground">{lastEvent}</span></p>
