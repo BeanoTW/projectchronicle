@@ -50,6 +50,11 @@ const AuthDebugPanel = () => {
   const hashParams = new URLSearchParams(hash.substring(1));
   const storageMode = backupEnabled ? 'Cloud' : 'Local';
   const syncMode = backupEnabled ? (online ? 'Sync On' : 'Offline') : 'Sync Off';
+  const syncLabel =
+    syncStatus === 'in_sync' ? 'in sync' :
+    syncStatus === 'local_newer' ? 'local newer' :
+    syncStatus === 'cloud_newer' ? 'cloud newer' :
+    syncStatus === 'cloud_unavailable' ? 'cloud n/a' : 'unknown';
   const authMode = loading ? 'loading' : session ? 'active' : 'none';
 
   const handleClose = () => {
