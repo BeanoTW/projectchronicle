@@ -9,6 +9,7 @@ import RecordTypeLabel from './RecordTypeLabel';
 import RecordAgeChip from './RecordAgeChip';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { displayTitle } from '@/lib/displayTitle';
 
 interface IncidentCardProps {
   incident: Incident;
@@ -37,7 +38,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
     }
   };
 
-  const titleText = maskText(incident.title || 'Untitled incident');
+  const titleText = maskText(displayTitle(incident));
   const previewSource = incident.ai_summary || incident.raw_narrative;
   const previewText = previewSource ? maskText(previewSource) : '';
 
