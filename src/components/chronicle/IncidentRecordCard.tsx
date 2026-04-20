@@ -80,7 +80,7 @@ const IncidentRecordCard = ({
           )}
           <span className="text-[12px] text-muted-foreground">—</span>
           <span className="text-[13px] text-foreground line-clamp-1">
-            {incident.title || incident.ai_summary || incident.raw_narrative?.slice(0, 80) || 'Untitled incident'}
+            {displayTitle(incident)}
           </span>
         </div>
         {followUps.length > 0 && (
