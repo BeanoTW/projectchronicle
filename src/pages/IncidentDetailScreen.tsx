@@ -70,9 +70,15 @@ const IncidentDetailScreen = () => {
   const isDaily = incident.record_type === 'daily_record';
   const interactionsRaw = (incident as any).interactions;
   const interactions = Array.isArray(interactionsRaw) ? interactionsRaw : [];
+  // Daily records use record_date as their canonical event date.
+  // Incidents use incident_date. Fall back to the other if missing.
+  const eventDate =
+    (isDaily ? (incident as any).record_date : incident.incident_date)
+    || incident.incident_date
+    || (incident as any).record_date;
   const retroGap = (() => {
     try {
-      const gap = differenceInCalendarDays(parseISO(incident.created_at), parseISO(incident.incident_date));
+      const gap = differenceInCalendarDays(parseISO(incident.created_at), parseISO(eventDate));
       return gap > 0 ? `Recorded ${gap} day${gap === 1 ? '' : 's'} after event` : null;
     } catch { return null; }
   })();
@@ -223,7 +229,7 @@ const IncidentDetailScreen = () => {
                 )}
               </div>
               <div className="text-right">
-                <p className="text-[13px] font-semibold text-foreground">{fmtDate(incident.incident_date)}</p>
+                <p className="text-[13px] font-semibold text-foreground">{fmtDate(eventDate)}</p>
                 {incident.incident_time && <p className="text-[12px] text-muted-foreground">{incident.incident_time}</p>}
               </div>
             </div>
