@@ -153,24 +153,57 @@ const ExportBuilderModal = ({
     .sort((a, b) => a.incident_date.localeCompare(b.incident_date));
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-background/95 flex flex-col pb-24 relative">
-      {/* Header */}
-      <div
-        className={`flex items-center justify-between px-5 py-4 border-b bg-card transition-shadow duration-500 ${
-          openHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
-        }`}
+    <AnimatePresence>
+      <motion.div
+        key="scrim"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-[9998] bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      <motion.div
+        key="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Export Builder"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+        className="fixed inset-0 z-[9999] bg-background flex flex-col shadow-2xl"
       >
-        <div>
-          <h2 className="text-[17px] font-bold text-foreground">Export Builder</h2>
-          <p className="text-[12px] text-muted-foreground mt-0.5">
-            {activeIncidents.length} incident{activeIncidents.length !== 1 ? "s" : ""} · {config.sequences.length}{" "}
-            sequence{config.sequences.length !== 1 ? "s" : ""}
-          </p>
+        {/* Drag handle */}
+        <div className="flex justify-center pt-2 pb-1 bg-card">
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/30" />
         </div>
-        <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
+
+        {/* Header */}
+        <div
+          className={`flex items-center justify-between px-5 py-4 border-b bg-card transition-shadow duration-500 ${
+            openHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
+          }`}
+        >
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">
+              Step 2 of 2 · Review &amp; export
+            </p>
+            <h2 className="text-[17px] font-bold text-foreground">Export Builder</h2>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              {activeIncidents.length} record{activeIncidents.length !== 1 ? 's' : ''} · {config.sequences.length}{' '}
+              sequence{config.sequences.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close Export Builder"
+            className="p-2 -mr-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 pb-40 space-y-5">
