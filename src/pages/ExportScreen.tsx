@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer } from 'lucide-react';
+import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -233,14 +233,9 @@ const ExportScreen = () => {
    *   print scope is the export document and nothing else. The same locked
    *   renderer (`renderTemplateHtml`) is used — no second renderer.
    */
-  const handlePrintExport = useCallback(() => {
-    if (!lastExportHtml) return;
-    setPrinting(true);
-
-    // Build a self-contained print document that auto-triggers the print
-    // dialog on load. We inject a tiny script that calls window.print()
-    // after the next paint so fonts/styles settle first.
-    const printDoc = lastExportHtml.includes('</body>')
+  const openExportInNewTab = useCallback((autoPrint: boolean): 'opened' | 'blocked' => {
+    if (!lastExportHtml) return 'blocked';
+    const docHtml = autoPrint && lastExportHtml.includes('</body>')
       ? lastExportHtml.replace(
           '</body>',
           `<script>
@@ -257,40 +252,51 @@ const ExportScreen = () => {
           </script></body>`
         )
       : lastExportHtml;
-
-    const blob = new Blob([printDoc], { type: 'text/html;charset=utf-8' });
+    const blob = new Blob([docHtml], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
-    const printWindow = window.open(url, '_blank', 'noopener,noreferrer');
-
-    if (!printWindow) {
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
       URL.revokeObjectURL(url);
+      return 'blocked';
+    }
+    setTimeout(() => { try { URL.revokeObjectURL(url); } catch { /* noop */ } }, 60000);
+    return 'opened';
+  }, [lastExportHtml]);
+
+  const handlePrintExport = useCallback(() => {
+    if (!lastExportHtml) return;
+    setPrinting(true);
+    const result = openExportInNewTab(true);
+    if (result === 'blocked') {
       setPrinting(false);
       toast({
-        title: 'Print blocked',
-        description: 'Your browser blocked the print window. Allow pop-ups for this site, then try again.',
-        variant: 'destructive',
+        title: 'Could not open print view',
+        description: "Please allow pop-ups or use 'Open document'.",
       });
       return;
     }
-
-    // Release the blob URL after the print window has had time to load it.
-    setTimeout(() => {
-      try { URL.revokeObjectURL(url); } catch { /* noop */ }
-    }, 60000);
-
-    // Reset local printing state — the OS print dialog now lives in the
-    // dedicated window, not in this app.
     setTimeout(() => setPrinting(false), 800);
-  }, [lastExportHtml, toast]);
+  }, [lastExportHtml, openExportInNewTab, toast]);
+
+  const handleOpenDocument = useCallback(() => {
+    if (!lastExportHtml) return;
+    const result = openExportInNewTab(false);
+    if (result === 'blocked') {
+      toast({
+        title: 'Could not open document',
+        description: 'Please allow pop-ups for this site.',
+      });
+    }
+  }, [lastExportHtml, openExportInNewTab, toast]);
 
   const handleDownloadHtml = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
     switch (result) {
-      case 'shared': toast({ title: 'Export ready to share', description: filename }); break;
+      case 'shared': toast({ title: 'Export saved', description: filename }); break;
       case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
-      case 'opened': toast({ title: 'Export opened in browser', description: 'Save the page from the new tab.' }); break;
+      case 'opened': break;
       case 'cancelled': break;
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
     }
@@ -326,37 +332,56 @@ const ExportScreen = () => {
           ref={resultRef}
           className="mx-5 mb-5 bg-primary/5 border-2 border-primary/40 rounded-xl p-4 shadow-md"
         >
-          <p className="text-[14px] font-semibold text-foreground">✓ Your export is ready</p>
-          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how to deliver it. Both options use the same export document.</p>
+          <p className="text-[15px] font-semibold text-foreground">✓ Your export is ready</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to use it. Both options use the same document.</p>
 
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full h-11 text-[13px] rounded-lg"
-                onClick={handleDownloadHtml}
-              >
-                <Download className="h-4 w-4 mr-1.5" /> Download HTML
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Editable / shareable source file.</p>
-            </div>
-            <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-11 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
-                onClick={handlePrintExport}
-                disabled={printing}
-              >
-                {printing ? (
-                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Opening…</>
-                ) : (
-                  <><Printer className="h-4 w-4 mr-1.5" /> Print / Save as PDF</>
-                )}
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Formal static copy. Allow pop-ups if blocked.</p>
-            </div>
+          {/* PRIMARY: Print / Save as PDF */}
+          <div className="mt-4">
+            <Button
+              variant="default"
+              size="lg"
+              className="w-full h-12 text-[14px] font-semibold rounded-lg"
+              onClick={handlePrintExport}
+              disabled={printing}
+            >
+              {printing ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opening…</>
+              ) : (
+                <><Printer className="h-4 w-4 mr-2" /> Print / Save as PDF</>
+              )}
+            </Button>
+            <p className="text-[11px] text-muted-foreground/80 mt-1.5 px-1 leading-relaxed">
+              Opens your document in a clean view for printing or saving as PDF.
+            </p>
+          </div>
+
+          {/* SECONDARY: Download HTML */}
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
+              onClick={handleDownloadHtml}
+            >
+              <Download className="h-4 w-4 mr-1.5" /> Download HTML
+            </Button>
+            <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">
+              Editable or shareable source file.
+            </p>
+          </div>
+
+          {/* TERTIARY: Open document */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={handleOpenDocument}
+              className="inline-flex items-center text-[12px] text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open document
+            </button>
+            <p className="text-[11px] text-muted-foreground/60 mt-0.5 px-1 leading-relaxed">
+              View the document directly in your browser.
+            </p>
           </div>
         </div>
       )}
