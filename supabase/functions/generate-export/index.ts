@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.103.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,8 +7,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function escapeHtml(str: string): string {
-  return str
+// ─────────────────────────────────────────────────────────────
+// Helpers (deterministic only – no interpretation)
+// ─────────────────────────────────────────────────────────────
+
+function escapeHtml(str: unknown): string {
+  if (str === null || str === undefined) return "";
+  return String(str)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -16,15 +21,133 @@ function escapeHtml(str: string): string {
 }
 
 function safeArray(val: unknown): string[] {
-  if (Array.isArray(val)) return val.filter((v): v is string => typeof v === "string" && v.length > 0);
+  if (Array.isArray(val))
+    return val.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
   return [];
 }
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"];
+
+function parseEventDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  // Expect YYYY-MM-DD; fall back to Date parser otherwise.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function parseEventDateTime(dateStr: string | null | undefined, timeStr: string | null | undefined): Date | null {
+  const d = parseEventDate(dateStr);
+  if (!d) return null;
+  if (timeStr) {
+    const tm = /^(\d{1,2}):(\d{2})/.exec(timeStr);
+    if (tm) {
+      d.setHours(Number(tm[1]));
+      d.setMinutes(Number(tm[2]));
+    }
+  }
+  return d;
+}
+
+function formatShortDate(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatLongDate(d: Date): string {
+  return `${d.getDate()} ${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatRecordedStamp(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const day = String(d.getDate()).padStart(2, "0");
+  const mon = MONTHS_SHORT[d.getMonth()];
+  const year = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${mon} ${year}, ${hh}:${mm}`;
+}
+
+function formatExportStamp(d: Date): string {
+  const day = d.getDate();
+  const mon = MONTHS_LONG[d.getMonth()];
+  const year = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${day} ${mon} ${year}, ${hh}:${mm}`;
+}
+
+function monthLabel(d: Date): string {
+  return `${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function daysBetween(eventISO: Date, recordedISO: Date): number {
+  const oneDay = 86400000;
+  const e = new Date(eventISO.getFullYear(), eventISO.getMonth(), eventISO.getDate()).getTime();
+  const r = new Date(recordedISO.getFullYear(), recordedISO.getMonth(), recordedISO.getDate()).getTime();
+  return Math.max(0, Math.round((r - e) / oneDay));
+}
+
+function shortId(uuid: string): string {
+  if (!uuid) return "";
+  return uuid.replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+// Category → CSS class for left border bar
+function categoryClass(cat: string | null | undefined): string {
+  const c = (cat || "").toLowerCase();
+  if (c.includes("communication")) return "communication";
+  if (c.includes("action") || c.includes("change")) return "action";
+  if (c.includes("process")) return "process";
+  if (c.includes("working")) return "working";
+  return "unclassified";
+}
+
+function categoryDisplay(cat: string | null | undefined): string {
+  if (!cat || !cat.trim()) return "Unclassified";
+  return cat;
+}
+
+// Title fallback chain: user title → first sentence (≤80 chars) → category + date
+function indexTitle(inc: any, eventDate: Date | null): string {
+  if (inc.title && String(inc.title).trim()) return String(inc.title).trim();
+  const narrative = (inc.raw_narrative || "").trim();
+  if (narrative) {
+    // First sentence
+    const firstSentence = narrative.split(/(?<=[.!?])\s+/)[0] || narrative;
+    const oneLine = firstSentence.replace(/\s+/g, " ").trim();
+    if (oneLine.length <= 80) return oneLine;
+    return oneLine.slice(0, 77).trimEnd() + "…";
+  }
+  const dateStr = eventDate ? formatShortDate(eventDate) : "";
+  const cat = inc.category && String(inc.category).trim() ? inc.category : "Unclassified";
+  return dateStr ? `${cat} — ${dateStr}` : cat;
+}
+
+// Classification line: "Category → Subtype · Location"
+function classificationLine(inc: any): string {
+  const cat = categoryDisplay(inc.category);
+  const sub = inc.subtype && String(inc.subtype).trim() ? String(inc.subtype).trim() : "";
+  const loc = inc.location && String(inc.location).trim() ? String(inc.location).trim() : "";
+  const parts: string[] = [];
+  if (sub) parts.push(`${cat} → ${sub}`);
+  else parts.push(cat);
+  if (loc) parts.push(loc);
+  return parts.join(" · ");
+}
+
+// ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("authorization");
+    const authHeader =
+      req.headers.get("authorization") || req.headers.get("Authorization") || "";
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing authorization header" }), {
         status: 401,
@@ -38,10 +161,7 @@ serve(async (req) => {
       global: { headers: { authorization: authHeader } },
     });
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -49,227 +169,382 @@ serve(async (req) => {
       });
     }
 
-    const { exportType, incidentId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const incidentId: string | undefined = body?.incidentId;
 
-    // ── Fetch user-scoped incidents ──
-    let incidentsQuery = supabase
-      .from("incidents")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("incident_date", { ascending: true });
+    let q = supabase.from("incidents").select("*").eq("user_id", user.id);
+    if (incidentId) q = q.eq("id", incidentId);
+    const { data: incidentsRaw, error: incError } = await q;
+    if (incError) throw new Error(`Failed to fetch incidents: ${incError.message}`);
 
-    if (incidentId) {
-      incidentsQuery = incidentsQuery.eq("id", incidentId);
-    }
+    const incidents = (incidentsRaw || []).filter((i: any) => !i.voided_at && !i.excluded_from_rep);
 
-    const { data: incidents, error: incError } = await incidentsQuery;
-    if (incError) {
-      throw new Error(`Failed to fetch incidents: ${incError.message}`);
-    }
-
-    // ── Fetch user-scoped evidence ──
-    const { data: evidence, error: evError } = await supabase
-      .from("evidence_files")
-      .select("*")
-      .eq("user_id", user.id);
-    if (evError) {
-      throw new Error(`Failed to fetch evidence: ${evError.message}`);
-    }
-
-    const safeIncidents = incidents || [];
-    const safeEvidence = evidence || [];
-
-    // ── HTML generation ──
-    let htmlContent = "";
-    const title =
-      exportType === "incident"
-        ? "Incident Report"
-        : exportType === "chronology"
-          ? "Incident Chronology"
-          : exportType === "evidence-index"
-            ? "Evidence Index"
-            : "Full Case Bundle";
-
-    const css = `
-      body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1A2332; line-height: 1.6; }
-      h1 { font-size: 24px; border-bottom: 2px solid #1A7A6E; padding-bottom: 8px; color: #1A2332; }
-      h2 { font-size: 18px; color: #1A7A6E; margin-top: 24px; }
-      h3 { font-size: 14px; color: #1A2332; margin-top: 16px; }
-      .meta { color: #6B7280; font-size: 12px; margin-bottom: 4px; }
-      .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-right: 4px; }
-      .severity-critical { background: #FEE2E2; color: #991B1B; }
-      .severity-serious { background: #FEF3C7; color: #B45309; }
-      .severity-moderate { background: #FEF3C7; color: #92400E; }
-      .severity-low { background: #D1FAE5; color: #065F46; }
-      .card { border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-      .narrative { background: #F9FAFB; padding: 12px; border-radius: 6px; font-size: 14px; white-space: pre-wrap; }
-      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-      th, td { border: 1px solid #E5E7EB; padding: 8px 12px; font-size: 13px; text-align: left; }
-      th { background: #F3F4F6; font-weight: 600; }
-      .disclaimer { margin-top: 40px; padding: 12px; background: #FFFBEB; border-radius: 6px; font-size: 11px; color: #92400E; }
-      .cover { text-align: center; padding: 80px 20px; }
-      .cover h1 { border: none; font-size: 32px; }
-      .page-break { page-break-after: always; }
-    `;
-
-    const generatedDate = new Date().toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    // ── Deterministic chronological sort ──
+    incidents.sort((a: any, b: any) => {
+      const da = parseEventDateTime(a.incident_date, a.incident_time)?.getTime() ?? 0;
+      const db = parseEventDateTime(b.incident_date, b.incident_time)?.getTime() ?? 0;
+      if (da !== db) return da - db;
+      const ra = new Date(a.created_at || 0).getTime();
+      const rb = new Date(b.created_at || 0).getTime();
+      if (ra !== rb) return ra - rb;
+      return String(a.id).localeCompare(String(b.id));
     });
 
-    if (exportType === "incident" && safeIncidents.length === 1) {
-      const inc = safeIncidents[0];
-      const people = safeArray(inc.people_involved);
-      const witnesses = safeArray(inc.witnesses);
-      const linkedEvidence = safeEvidence.filter((e) => e.incident_id === inc.id);
-      const narrative = inc.raw_narrative || "";
+    const now = new Date();
+    const exportStamp = formatExportStamp(now);
 
-      htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incident Report</title><style>${css}</style></head><body>
-        <h1>Incident Report</h1>
-        <p class="meta">Generated: ${generatedDate}</p>
-        <h2>${escapeHtml(inc.title || "Untitled Incident")}</h2>
-        <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}${inc.location ? " — " + escapeHtml(inc.location) : ""}</p>
-        ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
-        ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
-        <h3>Account of Incident</h3>
-        <div class="narrative">${escapeHtml(narrative)}</div>
-        ${inc.exact_words ? `<h3>Exact Wording Recorded</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ""}
-        ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ""}
-        ${people.length > 0 ? `<h3>People Involved</h3><p>${people.map(escapeHtml).join(", ")}</p>` : ""}
-        ${witnesses.length > 0 ? `<h3>Witnesses</h3><p>${witnesses.map(escapeHtml).join(", ")}</p>` : ""}
-        ${
-          linkedEvidence.length > 0
-            ? `<h3>Evidence (${linkedEvidence.length} file${linkedEvidence.length > 1 ? "s" : ""})</h3>
-        <table><tr><th>Ref</th><th>File</th><th>Type</th><th>Uploaded</th></tr>
-        ${linkedEvidence.map((e, i) => `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td></tr>`).join("")}
-        </table>`
-            : ""
-        }
-        <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.</div>
-      </body></html>`;
-    } else if (exportType === "chronology") {
-      htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Incident Chronology</title><style>${css}</style></head><body>
-        <h1>Incident Chronology</h1>
-        <p class="meta">Generated: ${generatedDate}</p>
-        <p class="meta">${safeIncidents.length} incidents recorded</p>
-        ${safeIncidents
-          .map((inc) => {
-            const people = safeArray(inc.people_involved);
-            const narrative = inc.raw_narrative || "";
-            return `
-          <div class="card">
-            <p class="meta">${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}</p>
-            <h3>${escapeHtml(inc.title || "Untitled")}</h3>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
-            <p style="margin-top:8px;font-size:14px">${escapeHtml(narrative)}</p>
-            ${people.length > 0 ? `<p class="meta">Involved: ${people.map(escapeHtml).join(", ")}</p>` : ""}
-          </div>`;
-          })
-          .join("")}
-        <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice.</div>
-      </body></html>`;
-    } else if (exportType === "evidence-index") {
-      htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Evidence Index</title><style>${css}</style></head><body>
-        <h1>Evidence Index</h1>
-        <p class="meta">Generated: ${generatedDate}</p>
-        <p class="meta">${safeEvidence.length} evidence file${safeEvidence.length !== 1 ? "s" : ""} indexed</p>
-        <table>
-          <tr><th>Ref</th><th>File Name</th><th>Type</th><th>Uploaded</th><th>Linked Incident</th></tr>
-          ${safeEvidence
-            .map((e, i) => {
-              const linked = safeIncidents.find((inc) => inc.id === e.incident_id);
-              return `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td><td>${linked ? escapeHtml(linked.title || "Untitled") : "<em>Not linked</em>"}</td></tr>`;
-            })
-            .join("")}
-        </table>
-        <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice.</div>
-      </body></html>`;
-    } else {
-      // Full Case Bundle
-      htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Full Case Bundle</title><style>${css}</style></head><body>
-        <div class="cover">
-          <h1>Case Bundle</h1>
-          <p style="font-size:16px;color:#6B7280;margin-top:16px">Project Chronicle — Workplace Incident Documentation</p>
-          <p style="font-size:14px;color:#6B7280;margin-top:8px">Generated: ${generatedDate}</p>
-          <p style="font-size:14px;color:#6B7280">${safeIncidents.length} incidents · ${safeEvidence.length} evidence files</p>
-        </div>
-        <div class="page-break"></div>
-
-        <h1>Chronology</h1>
-        ${safeIncidents
-          .map((inc) => {
-            const people = safeArray(inc.people_involved);
-            const narrative = inc.raw_narrative || "";
-            return `
-          <div class="card">
-            <p class="meta">${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}</p>
-            <h3>${escapeHtml(inc.title || "Untitled")}</h3>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
-            <p style="margin-top:8px;font-size:14px">${escapeHtml(narrative)}</p>
-            ${people.length > 0 ? `<p class="meta">Involved: ${people.map(escapeHtml).join(", ")}</p>` : ""}
-          </div>`;
-          })
-          .join("")}
-        <div class="page-break"></div>
-
-        <h1>Evidence Index</h1>
-        <table>
-          <tr><th>Ref</th><th>File Name</th><th>Type</th><th>Uploaded</th><th>Linked Incident</th></tr>
-          ${safeEvidence
-            .map((e, i) => {
-              const linked = safeIncidents.find((inc) => inc.id === e.incident_id);
-              return `<tr><td>E-${String(i + 1).padStart(3, "0")}</td><td>${escapeHtml(e.file_name)}</td><td>${escapeHtml(e.file_type || "File")}</td><td>${e.upload_date?.split("T")[0] || ""}</td><td>${linked ? escapeHtml(linked.title || "Untitled") : "<em>Not linked</em>"}</td></tr>`;
-            })
-            .join("")}
-        </table>
-        <div class="page-break"></div>
-
-        <h1>Full Incident Records</h1>
-        ${safeIncidents
-          .map((inc) => {
-            const people = safeArray(inc.people_involved);
-            const witnesses = safeArray(inc.witnesses);
-            const linkedEvidence = safeEvidence.filter((e) => e.incident_id === inc.id);
-            const narrative = inc.raw_narrative || "";
-            return `
-          <div class="card">
-            <h2>${escapeHtml(inc.title || "Untitled Incident")}</h2>
-            <p class="meta">Date: ${inc.incident_date}${inc.incident_time ? " at " + inc.incident_time : ""}${inc.location ? " — " + escapeHtml(inc.location) : ""}</p>
-            ${inc.severity ? `<span class="badge severity-${inc.severity.toLowerCase()}">${escapeHtml(inc.severity)}</span>` : ""}
-            ${inc.category ? `<span class="badge" style="background:#E8F4F2;color:#1A7A6E">${escapeHtml(inc.category)}</span>` : ""}
-            <h3>Account</h3>
-            <div class="narrative">${escapeHtml(narrative)}</div>
-            ${inc.exact_words ? `<h3>Exact Wording</h3><p><em>"${escapeHtml(inc.exact_words)}"</em></p>` : ""}
-            ${inc.impact_note ? `<h3>Impact</h3><p>${escapeHtml(inc.impact_note)}</p>` : ""}
-            ${people.length > 0 ? `<p class="meta">Involved: ${people.map(escapeHtml).join(", ")}</p>` : ""}
-            ${witnesses.length > 0 ? `<p class="meta">Witnesses: ${witnesses.map(escapeHtml).join(", ")}</p>` : ""}
-            ${linkedEvidence.length > 0 ? `<p class="meta">Evidence: ${linkedEvidence.map((e) => escapeHtml(e.file_name)).join(", ")}</p>` : ""}
-          </div>`;
-          })
-          .join("")}
-
-        <div class="disclaimer">Project Chronicle provides documentation support only — not legal advice. Always consult a qualified employment solicitor or union representative before taking formal action.</div>
-      </body></html>`;
+    // Period covered
+    let periodCovered = "—";
+    if (incidents.length > 0) {
+      const first = parseEventDate(incidents[0].incident_date);
+      const last = parseEventDate(incidents[incidents.length - 1].incident_date);
+      if (first && last) {
+        periodCovered = first.getTime() === last.getTime()
+          ? formatShortDate(first)
+          : `${formatShortDate(first)} – ${formatShortDate(last)}`;
+      }
     }
 
-    return new Response(htmlContent, {
+    // Categories present (deduped, in spec order)
+    const SPEC_ORDER = ["Communication", "Action / Change", "Process Event", "Working Conditions", "Unclassified"];
+    const presentSet = new Set<string>();
+    const counts: Record<string, number> = {};
+    for (const inc of incidents) {
+      const display = categoryDisplay(inc.category);
+      // Normalise to spec label if possible
+      const normalised = SPEC_ORDER.find(s => s.toLowerCase() === display.toLowerCase()) || display;
+      presentSet.add(normalised);
+      counts[normalised] = (counts[normalised] || 0) + 1;
+    }
+    const categoriesPresent = SPEC_ORDER.filter(s => presentSet.has(s));
+    for (const c of presentSet) if (!categoriesPresent.includes(c)) categoriesPresent.push(c);
+
+    // Record type
+    const allDaily = incidents.length > 0 && incidents.every((i: any) => i.record_type === "daily_record");
+    const allIncident = incidents.length > 0 && incidents.every((i: any) => (i.record_type || "incident") === "incident");
+    const recordTypeLabel = allDaily ? "Daily records" : allIncident ? "Incident records" : "Incident & daily records";
+
+    // Export ID
+    const exportId = `CHR-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+
+    // ── Build INDEX (grouped by month label rows only) ──
+    let lastMonth = "";
+    const indexRows: string[] = [];
+    for (const inc of incidents) {
+      const ed = parseEventDate(inc.incident_date);
+      const mLabel = ed ? monthLabel(ed) : "Undated";
+      if (mLabel !== lastMonth) {
+        indexRows.push(
+          `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${escapeHtml(mLabel)}</span></td></tr>`
+        );
+        lastMonth = mLabel;
+      }
+      const dateCell = ed ? formatShortDate(ed) : "—";
+      const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "";
+      const catCell = categoryDisplay(inc.category);
+      const titleCell = indexTitle(inc, ed);
+      const idCell = shortId(inc.id);
+      indexRows.push(`<tr>
+        <td><span class="index-date">${escapeHtml(dateCell)}</span></td>
+        <td><span class="index-date">${escapeHtml(timeCell)}</span></td>
+        <td><span class="index-cat">${escapeHtml(catCell)}</span></td>
+        <td><span class="index-title">${escapeHtml(titleCell)}</span></td>
+        <td><span class="index-id">${escapeHtml(idCell)}</span></td>
+      </tr>`);
+    }
+
+    // ── Build FULL RECORD section (cards + month dividers) ──
+    lastMonth = "";
+    const recordCards: string[] = [];
+    for (const inc of incidents) {
+      const ed = parseEventDate(inc.incident_date);
+      const mLabel = ed ? monthLabel(ed) : "Undated";
+      if (mLabel !== lastMonth) {
+        recordCards.push(`<div class="month-divider">
+          <span class="month-divider-label">${escapeHtml(mLabel)}</span>
+          <div class="month-divider-rule"></div>
+        </div>`);
+        lastMonth = mLabel;
+      }
+
+      const catClass = categoryClass(inc.category);
+      const longDate = ed ? formatLongDate(ed) : "";
+      const time = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "";
+      const classification = classificationLine(inc);
+
+      const recordedISO = inc.created_at;
+      const recordedDate = parseEventDate((recordedISO || "").slice(0, 10));
+      const recordedStamp = formatRecordedStamp(recordedISO);
+      let gapLine = "";
+      if (ed && recordedDate) {
+        const gap = daysBetween(ed, recordedDate);
+        gapLine = gap === 0 ? "Same day as event" : `${gap} day${gap === 1 ? "" : "s"} after event`;
+      }
+
+      const people = safeArray(inc.people_involved);
+      const narrative = (inc.raw_narrative || "").trim();
+      const exact = (inc.exact_words || "").trim();
+
+      const fields: string[] = [];
+      if (people.length > 0) {
+        fields.push(`<div class="record-field">
+          <p class="field-label">People involved</p>
+          <p class="field-value">${escapeHtml(people.join(", "))}</p>
+        </div>`);
+      }
+      if (narrative) {
+        fields.push(`<div class="record-field">
+          <p class="field-label">User-provided account</p>
+          <p class="narrative-text">${escapeHtml(narrative)}</p>
+        </div>`);
+      }
+      if (exact) {
+        fields.push(`<div class="exact-words-block">
+          <p class="field-label">Exact words recorded</p>
+          <p class="exact-words-text">${escapeHtml(exact)}</p>
+        </div>`);
+      }
+
+      recordCards.push(`<div class="record-card">
+        <div class="record-header">
+          <div class="record-type-bar ${catClass}"></div>
+          <div class="record-header-content">
+            <div>
+              <div class="record-datetime">${escapeHtml(longDate)}${time ? ` <span class="time">${escapeHtml(time)}</span>` : ""}</div>
+              <div class="record-classification">${escapeHtml(classification)}</div>
+            </div>
+            <div class="record-provenance">
+              ${recordedStamp ? `<div class="recorded-date">Recorded ${escapeHtml(recordedStamp)}</div>` : ""}
+              ${gapLine ? `<div class="recorded-gap">${escapeHtml(gapLine)}</div>` : ""}
+            </div>
+          </div>
+        </div>
+        <div class="record-body">
+          ${fields.join("\n")}
+        </div>
+        <div class="record-footer">
+          <span class="integrity-note">Original content preserved · Updates appended without overwriting</span>
+          <span class="record-id">${escapeHtml(shortId(inc.id))}</span>
+        </div>
+      </div>`);
+    }
+
+    const categoryBreakdown = categoriesPresent
+      .map(c => `${c}: ${counts[c] || 0}`)
+      .join(" &nbsp;·&nbsp; ");
+
+    // ── Final HTML (matches reference template) ──
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicle — Structured Record</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1C1C1E;
+    --ink-mid: #3A3A3C;
+    --ink-light: #6C6C70;
+    --ink-faint: #AEAEB2;
+    --rule: #D1D1D6;
+    --rule-light: #E5E5EA;
+    --bg: #FAFAF8;
+    --bg-tint: #F2F2F0;
+    --bg-card: #FFFFFF;
+    --accent: #2C5F2E;
+    --accent-light: #EAF2EA;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 0 80px;
+  }
+  .cover { padding: 64px 56px 48px; border-bottom: 2px solid var(--ink); position: relative; }
+  .cover-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
+  .cover h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 36px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 32px; }
+  .cover-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--rule); margin-top: 32px; }
+  .cover-meta-item { padding: 14px 0; border-bottom: 1px solid var(--rule-light); }
+  .cover-meta-item:nth-child(odd) { padding-right: 32px; border-right: 1px solid var(--rule-light); }
+  .cover-meta-item:nth-child(even) { padding-left: 32px; }
+  .meta-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 3px; }
+  .meta-value { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .cover-statement { margin-top: 28px; padding: 16px 20px; background: var(--bg-tint); border-left: 3px solid var(--accent); font-size: 12.5px; color: var(--ink-mid); line-height: 1.65; font-style: italic; }
+  .section-header { padding: 20px 56px 12px; border-bottom: 1px solid var(--rule); margin-top: 48px; display: flex; align-items: baseline; gap: 16px; }
+  .section-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
+  .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.1em; }
+  .index-container { padding: 0 56px; margin-top: 8px; }
+  .index-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .index-table thead tr { border-bottom: 1px solid var(--rule); }
+  .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 12px 8px 0; text-align: left; }
+  .index-table th:last-child { padding-right: 0; }
+  .index-table tbody tr { border-bottom: 1px solid var(--rule-light); }
+  .index-table td { padding: 9px 12px 9px 0; font-size: 12.5px; color: var(--ink-mid); vertical-align: top; }
+  .index-table td:last-child { padding-right: 0; }
+  .index-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+  .index-cat { font-size: 11px; color: var(--ink-mid); white-space: nowrap; }
+  .index-title { font-size: 12.5px; color: var(--ink); }
+  .index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; }
+  .index-month-row td { padding-top: 16px; padding-bottom: 4px; }
+  .index-month-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+  .records-container { padding: 0 56px; margin-top: 8px; }
+  .month-divider { margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+  .month-divider-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+  .month-divider-rule { flex: 1; height: 1px; background: var(--rule-light); }
+  .record-card { background: var(--bg-card); border: 1px solid var(--rule); border-radius: 4px; margin-bottom: 16px; overflow: hidden; page-break-inside: avoid; }
+  .record-header { display: flex; align-items: stretch; border-bottom: 1px solid var(--rule-light); }
+  .record-type-bar { width: 4px; background: var(--ink-mid); flex-shrink: 0; }
+  .record-type-bar.communication { background: #2C5F2E; }
+  .record-type-bar.action        { background: #1D4E89; }
+  .record-type-bar.process       { background: #6B4C11; }
+  .record-type-bar.working       { background: #5C1A1A; }
+  .record-type-bar.unclassified  { background: #D1D1D6; }
+  .record-header-content { flex: 1; padding: 14px 16px 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .record-datetime { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; color: var(--ink); line-height: 1.3; }
+  .record-datetime .time { font-size: 11px; color: var(--ink-light); margin-left: 8px; }
+  .record-classification { font-size: 11px; color: var(--ink-light); margin-top: 2px; }
+  .record-provenance { text-align: right; flex-shrink: 0; }
+  .recorded-date { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); line-height: 1.4; }
+  .recorded-gap { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); }
+  .record-body { padding: 14px 16px 14px 20px; }
+  .record-field { margin-bottom: 12px; }
+  .record-field:last-child { margin-bottom: 0; }
+  .field-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+  .field-value { font-size: 13px; color: var(--ink-mid); }
+  .narrative-text { font-size: 13.5px; line-height: 1.75; color: var(--ink); white-space: pre-wrap; }
+  .exact-words-block { margin-top: 12px; padding: 10px 16px; background: var(--bg-tint); border-left: 3px solid var(--rule); }
+  .exact-words-block .field-label { margin-bottom: 6px; }
+  .exact-words-text { font-family: 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 13px; color: var(--ink-mid); line-height: 1.6; }
+  .record-footer { padding: 8px 16px; background: var(--bg-tint); border-top: 1px solid var(--rule-light); display: flex; justify-content: space-between; align-items: center; }
+  .integrity-note { font-size: 10.5px; color: var(--ink-faint); font-style: italic; }
+  .record-id { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.05em; }
+  .closing { padding: 40px 56px; margin-top: 40px; border-top: 2px solid var(--ink); }
+  .closing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 48px; margin-bottom: 24px; }
+  .closing-item .meta-label { margin-bottom: 4px; }
+  .closing-statement { font-size: 12px; color: var(--ink-light); line-height: 1.65; font-style: italic; border-top: 1px solid var(--rule-light); padding-top: 20px; }
+  @media print {
+    body { background: white; padding: 0; max-width: 100%; }
+    .cover { padding: 48px 48px 36px; }
+    .section-header, .index-container, .records-container, .closing { padding-left: 48px; padding-right: 48px; }
+    .record-card { break-inside: avoid; page-break-inside: avoid; }
+    .month-divider { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="cover-label">Project Chronicle · Structured Record Export</p>
+  <h1>Personal Record<br>of Events</h1>
+  <div class="cover-meta-grid">
+    <div class="cover-meta-item">
+      <p class="meta-label">Total records</p>
+      <p class="meta-value">${incidents.length}</p>
+    </div>
+    <div class="cover-meta-item">
+      <p class="meta-label">Record type</p>
+      <p class="meta-value">${escapeHtml(recordTypeLabel)}</p>
+    </div>
+    <div class="cover-meta-item">
+      <p class="meta-label">Period covered</p>
+      <p class="meta-value">${escapeHtml(periodCovered)}</p>
+    </div>
+    <div class="cover-meta-item">
+      <p class="meta-label">Export generated</p>
+      <p class="meta-value">${escapeHtml(exportStamp)}</p>
+    </div>
+    <div class="cover-meta-item">
+      <p class="meta-label">Categories present</p>
+      <p class="meta-value">${categoriesPresent.length > 0 ? categoriesPresent.map(escapeHtml).join(" · ") : "—"}</p>
+    </div>
+    <div class="cover-meta-item">
+      <p class="meta-label">Export ID</p>
+      <p class="meta-value" style="font-family:'IBM Plex Mono',monospace;font-size:11px">${escapeHtml(exportId)}</p>
+    </div>
+  </div>
+  <div class="cover-statement">
+    This document contains records created by the record-holder using Project Chronicle. All entries are presented as originally recorded, in chronological order. No content has been added, edited, interpreted, or inferred. Each record includes the date of the event and the date and time it was recorded. Updates to records are appended and do not overwrite original entries. This document does not constitute legal advice.
+  </div>
+</div>
+
+<div class="section-header">
+  <h2>Chronological Index</h2>
+  <span class="section-count">${incidents.length} record${incidents.length === 1 ? "" : "s"}</span>
+</div>
+
+<div class="index-container">
+  <table class="index-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Category</th>
+        <th>Title / summary</th>
+        <th>Record ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${indexRows.join("\n")}
+    </tbody>
+  </table>
+</div>
+
+<div class="section-header">
+  <h2>Full Record</h2>
+  <span class="section-count">${incidents.length} record${incidents.length === 1 ? "" : "s"}</span>
+</div>
+
+<div class="records-container">
+  ${recordCards.join("\n")}
+</div>
+
+<div class="closing">
+  <div class="closing-grid">
+    <div class="closing-item">
+      <p class="meta-label">Total records in this export</p>
+      <p class="meta-value">${incidents.length}</p>
+    </div>
+    <div class="closing-item">
+      <p class="meta-label">Period covered</p>
+      <p class="meta-value">${escapeHtml(periodCovered)}</p>
+    </div>
+    <div class="closing-item">
+      <p class="meta-label">Category breakdown</p>
+      <p class="meta-value" style="font-weight:400;font-size:13px">${categoryBreakdown || "—"}</p>
+    </div>
+    <div class="closing-item">
+      <p class="meta-label">Export generated</p>
+      <p class="meta-value">${escapeHtml(exportStamp)}</p>
+    </div>
+  </div>
+  <p class="closing-statement">
+    This document presents records as entered by the record-holder. No content has been added, summarised, interpreted, or inferred. Counts and classifications are derived from structured fields only. This document does not constitute legal advice and should not be treated as such. Project Chronicle.
+  </p>
+</div>
+
+</body>
+</html>`;
+
+    return new Response(html, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${title.replace(/\s+/g, "_")}.html"`,
+        "Content-Disposition": `attachment; filename="Chronicle_Structured_Record.html"`,
       },
     });
   } catch (e) {
     console.error("generate-export error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
