@@ -170,8 +170,8 @@ const MyRecordScreen = () => {
             <div className="border-t border-border divide-y divide-border">
               {people.slice(0, 3).map(person => (
                 <div key={person.name} className="flex items-center justify-between px-4 py-2.5">
-                  <p className="text-[13px] font-medium text-foreground">{person.name}</p>
-                  <p className="text-[12px] text-muted-foreground">{person.count} record{person.count !== 1 ? 's' : ''}</p>
+                  <p className="text-[13px] font-medium text-foreground">{maskName(person.name)}</p>
+                  <p className="text-[12px] text-muted-foreground">Referenced in {person.count} record{person.count !== 1 ? 's' : ''}</p>
                 </div>
               ))}
               {people.length > 3 && (
@@ -182,8 +182,8 @@ const MyRecordScreen = () => {
                   <div className="divide-y divide-border border-t border-border">
                     {people.slice(3).map(person => (
                       <div key={person.name} className="flex items-center justify-between px-4 py-2.5">
-                        <p className="text-[13px] font-medium text-foreground">{person.name}</p>
-                        <p className="text-[12px] text-muted-foreground">{person.count} record{person.count !== 1 ? 's' : ''}</p>
+                        <p className="text-[13px] font-medium text-foreground">{maskName(person.name)}</p>
+                        <p className="text-[12px] text-muted-foreground">Referenced in {person.count} record{person.count !== 1 ? 's' : ''}</p>
                       </div>
                     ))}
                   </div>
@@ -214,7 +214,7 @@ const MyRecordScreen = () => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className={`text-[13px] font-medium truncate ${isDaily ? 'text-foreground/80' : 'text-foreground'}`}>
-                      {inc.title || inc.raw_narrative?.slice(0, 60) || 'Untitled'}
+                      {maskText(inc.title || inc.raw_narrative?.slice(0, 60) || 'Untitled')}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-muted-foreground/70">{dateStr}</span>

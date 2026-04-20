@@ -6,9 +6,9 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import { Activity, TrendingUp, Calendar, Bell } from 'lucide-react';
 
 const previewIndicators = [
-  { icon: TrendingUp, label: 'Records over time', desc: 'See how activity builds across weeks and months' },
-  { icon: Calendar, label: 'Activity trends', desc: 'Understand whether events are clustering or spacing out' },
-  { icon: Bell, label: 'Follow-ups', desc: 'Track what has changed since events were recorded' },
+  { icon: TrendingUp, label: 'Records over time', desc: 'See how many records have been added each week and month' },
+  { icon: Calendar, label: 'Activity calendar', desc: 'See on which days records were added' },
+  { icon: Bell, label: 'Follow-ups', desc: 'Track updates appended to existing records' },
 ];
 
 const FlowScreen = () => {
@@ -43,7 +43,7 @@ const FlowScreen = () => {
             {incidents.length === 0 ? 'No records yet' : 'One record so far'}
           </h3>
           <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            This screen shows how your records build over time — including activity trends, clustering, and changes in pace.
+            This screen shows how your records build over time.
           </p>
         </div>
 
