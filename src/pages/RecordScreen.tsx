@@ -240,8 +240,16 @@ const RecordScreen = () => {
     // Real save failures are surfaced separately by the Review/save path.
     let data: any = null;
     try {
+      // Defensive: ensure the session is hydrated and pass the access token
+      // explicitly. Avoids race-condition 401s in the live preview where
+      // invoke() is called before the SDK has attached the Authorization header.
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const accessToken = sessionRes?.session?.access_token;
+      if (!accessToken) throw new Error('not-authenticated');
+
       const res = await supabase.functions.invoke('analyse-incident', {
         body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (res.error) throw res.error;
       if (res.data?.error) throw new Error(res.data.error);
