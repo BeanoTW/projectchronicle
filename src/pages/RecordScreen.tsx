@@ -65,6 +65,7 @@ const RecordScreen = () => {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   // Long press for dev mode
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
