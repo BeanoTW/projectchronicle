@@ -13,6 +13,7 @@ import {
   getLastSyncResult,
   getLastSyncAttemptAt,
   getCloudCounts,
+  getCloudLastUpdatedAt,
   restoreFromCloud as restoreFromCloudEngine,
   getLastBackupAt as readLastBackupAt,
   getLastRestoreAt as readLastRestoreAt,
@@ -21,7 +22,7 @@ import {
 import { hydrateFromCloudOnce } from '@/local/hydration';
 import { useToast } from '@/hooks/use-toast';
 
-export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'unknown';
+export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'local_only' | 'unknown';
 
 interface BackupContextType {
   backupEnabled: boolean;
@@ -32,6 +33,7 @@ interface BackupContextType {
   // New: dataset state
   localCount: number;
   cloudCount: number | null;
+  cloudLastUpdatedAt: string | null;
   lastBackupAt: string | null;
   lastRestoreAt: string | null;
   syncStatus: SyncStatus;
@@ -56,6 +58,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const [lastSyncResult, setLastRes] = useState<SyncResult | null>(null);
   const [localCount, setLocalCount] = useState(0);
   const [cloudCount, setCloudCount] = useState<number | null>(null);
+  const [cloudLastUpdatedAt, setCloudLastUpdatedAt] = useState<string | null>(null);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [lastRestoreAt, setLastRestoreAt] = useState<string | null>(null);
   const hydratedRef = useRef<string | null>(null);
@@ -88,11 +91,21 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshCloudCount = useCallback(async () => {
     if (!user || (typeof navigator !== 'undefined' && !navigator.onLine)) {
       setCloudCount(null);
+      setCloudLastUpdatedAt(null);
       return;
     }
-    const c = await getCloudCounts();
+    const [c, t] = await Promise.all([getCloudCounts(), getCloudLastUpdatedAt()]);
     setCloudCount(c.incidents);
+    setCloudLastUpdatedAt(t);
   }, [user]);
+
+  // Always-on cloud visibility: fetch cloud snapshot on user/online change,
+  // independent of the backup toggle. Read-only — never modifies local data.
+  useEffect(() => {
+    if (!user) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    refreshCloudCount();
+  }, [user, online, refreshCloudCount]);
 
   useEffect(() => {
     isBackupEnabled().then(setBackupEnabledState);
@@ -196,12 +209,27 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     return res;
   }, [user, refreshDiagnostics, refreshCloudCount]);
 
-  // Derived sync status (incident counts + last backup timestamp).
+  // Derived sync status. Uses incident counts and the most recent updated_at on
+  // each side as a coarse "newer than" signal. No automatic sync is implied —
+  // this is purely a label so users can decide whether to Backup or Restore.
   let syncStatus: SyncStatus = 'unknown';
   if (cloudCount === null) {
-    syncStatus = backupEnabled ? 'cloud_unavailable' : 'unknown';
+    // Online but failed → unavailable; offline → unknown.
+    syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
+  } else if (cloudCount === 0) {
+    syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
   } else if (localCount === cloudCount && pendingCount === 0) {
-    syncStatus = 'in_sync';
+    // If we have a cloud timestamp and a last backup timestamp, prefer the
+    // newer one; otherwise count parity is enough to call it "in sync".
+    if (cloudLastUpdatedAt && lastBackupAt) {
+      const cloudT = new Date(cloudLastUpdatedAt).getTime();
+      const localT = new Date(lastBackupAt).getTime();
+      if (Math.abs(cloudT - localT) < 60_000) syncStatus = 'in_sync';
+      else if (cloudT > localT) syncStatus = 'cloud_newer';
+      else syncStatus = 'local_newer';
+    } else {
+      syncStatus = 'in_sync';
+    }
   } else if (localCount > cloudCount || pendingCount > 0) {
     syncStatus = 'local_newer';
   } else {
@@ -217,6 +245,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       lastSyncResult,
       localCount,
       cloudCount,
+      cloudLastUpdatedAt,
       lastBackupAt,
       lastRestoreAt,
       syncStatus,

@@ -54,6 +54,7 @@ const AuthDebugPanel = () => {
     syncStatus === 'in_sync' ? 'in sync' :
     syncStatus === 'local_newer' ? 'local newer' :
     syncStatus === 'cloud_newer' ? 'cloud newer' :
+    syncStatus === 'local_only' ? 'local only' :
     syncStatus === 'cloud_unavailable' ? 'cloud n/a' : 'unknown';
   const authMode = loading ? 'loading' : session ? 'active' : 'none';
 

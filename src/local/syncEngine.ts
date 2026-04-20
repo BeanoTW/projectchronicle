@@ -197,6 +197,22 @@ export const getCloudCounts = async (): Promise<{ incidents: number | null; note
   }
 };
 
+// Read the most recent cloud incident updated_at (best-effort). Returns null
+// if no rows or on network failure. Used purely for visibility (no sync side effects).
+export const getCloudLastUpdatedAt = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('incidents')
+      .select('updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    if (error || !data || data.length === 0) return null;
+    return data[0].updated_at ?? null;
+  } catch {
+    return null;
+  }
+};
+
 // Restore from cloud → fully replaces local dataset for this user.
 // User-initiated and confirmed in UI. Local-only (never-uploaded) records ARE wiped.
 export const restoreFromCloud = async (userId: string): Promise<{ incidents: number; notes: number }> => {

@@ -22,7 +22,7 @@ const SettingsScreen = () => {
   const { data: incidents } = useIncidents();
   const {
     backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult,
-    localCount, cloudCount, lastBackupAt, lastRestoreAt, syncStatus,
+    localCount, cloudCount, cloudLastUpdatedAt, lastBackupAt, lastRestoreAt, syncStatus,
     setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
   } = useBackup();
   const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
@@ -128,7 +128,7 @@ const SettingsScreen = () => {
             <div className="bg-muted/30 rounded-lg p-3 space-y-1.5 text-[12px]">
               <div className="flex items-center gap-1.5 text-foreground font-medium mb-1">
                 <Database className="h-3.5 w-3.5 text-primary" />
-                <span>Data on this device</span>
+                <span>Data state</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Records on this device</span>
@@ -137,7 +137,7 @@ const SettingsScreen = () => {
               <div className="flex justify-between text-muted-foreground">
                 <span>Records in cloud backup</span>
                 <span className="text-foreground tabular-nums font-medium">
-                  {cloudCount === null ? (online ? '—' : 'offline') : cloudCount}
+                  {cloudCount === null ? (online ? '—' : 'offline') : (cloudCount === 0 ? 'None' : cloudCount)}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
@@ -147,12 +147,19 @@ const SettingsScreen = () => {
                   {syncStatus === 'local_newer' && 'Local is newer'}
                   {syncStatus === 'cloud_newer' && 'Cloud is newer'}
                   {syncStatus === 'cloud_unavailable' && 'Cloud unavailable'}
-                  {syncStatus === 'unknown' && (backupEnabled ? 'Checking…' : 'Local only')}
+                  {syncStatus === 'local_only' && 'Local only (no cloud data)'}
+                  {syncStatus === 'unknown' && (online ? 'Checking…' : 'Offline')}
                 </span>
               </div>
+              {cloudLastUpdatedAt && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Last cloud update</span>
+                  <span className="text-foreground">{format(new Date(cloudLastUpdatedAt), 'd MMM HH:mm')}</span>
+                </div>
+              )}
               {lastBackupAt && (
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Last backup</span>
+                  <span>Last backup from this device</span>
                   <span className="text-foreground">{format(new Date(lastBackupAt), 'd MMM HH:mm')}</span>
                 </div>
               )}
@@ -194,32 +201,33 @@ const SettingsScreen = () => {
               )}
             </div>
 
-            {/* Explicit user-controlled actions */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* Explicit user-controlled actions. Restore is enabled whenever cloud
+                data exists, even if the backup toggle is OFF. */}
+            <div className="grid grid-cols-1 gap-2 pt-1">
               <button
                 onClick={async () => { setBusy(true); try { await backupNow(); } finally { setBusy(false); } }}
                 disabled={busy || !online || !backupEnabled}
-                className="flex items-center justify-center gap-1.5 text-[13px] text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-1.5 text-[13px] text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
-                Backup now
+                Save this device's records to your cloud backup
               </button>
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button
                     disabled={!online || cloudCount === null || cloudCount === 0}
-                    className="flex items-center justify-center gap-1.5 text-[13px] text-foreground border border-border hover:bg-muted/50 py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center justify-center gap-1.5 text-[13px] text-foreground border border-border hover:bg-muted/50 py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <CloudDownload className="h-3.5 w-3.5" />
-                    Restore from cloud
+                    Replace this device's records with your cloud backup
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Replace local records with cloud backup?</AlertDialogTitle>
+                    <AlertDialogTitle>Replace this device's records with your cloud backup?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will replace your current local records ({localCount}) with your cloud backup ({cloudCount ?? '—'} records). Any records on this device that have not been backed up will be lost. This cannot be undone.
+                      This will replace all records on this device ({localCount}) with your cloud backup ({cloudCount ?? '—'} records). Any records on this device that have not been backed up will be lost. This cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
