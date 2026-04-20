@@ -12,7 +12,7 @@ const STORAGE_KEY = 'chronicle.devPanel.state';
 const AuthDebugPanel = () => {
   const { devMode, toggleDevMode } = useDevMode();
   const { user, session, loading } = useAuth();
-  const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, retrySyncNow } = useBackup();
+  const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, retrySyncNow, localCount, cloudCount, syncStatus, lastBackupAt, lastRestoreAt, refreshCloudCount } = useBackup();
   const location = useLocation();
   const [lastEvent, setLastEvent] = useState<string>('none');
   const [localAvailable, setLocalAvailable] = useState<string>('unknown');
