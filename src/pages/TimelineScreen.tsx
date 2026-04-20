@@ -434,7 +434,7 @@ const TimelineScreen = () => {
                         <div
                           key={inc.id}
                           ref={el => { itemRefs.current[inc.id] = el; itemRefs.current[inc.incident_date.slice(0, 10)] = el; }}
-                          className="flex items-stretch gap-2"
+                          className="flex items-stretch gap-2 min-w-0 w-full"
                         >
                           {selectMode && (
                             <div className="flex items-center pl-1">
