@@ -12,7 +12,7 @@ const STORAGE_KEY = 'chronicle.devPanel.state';
 const AuthDebugPanel = () => {
   const { devMode, toggleDevMode } = useDevMode();
   const { user, session, loading } = useAuth();
-  const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, retrySyncNow } = useBackup();
+  const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, retrySyncNow, localCount, cloudCount, syncStatus, lastBackupAt, lastRestoreAt, refreshCloudCount } = useBackup();
   const location = useLocation();
   const [lastEvent, setLastEvent] = useState<string>('none');
   const [localAvailable, setLocalAvailable] = useState<string>('unknown');
@@ -50,6 +50,11 @@ const AuthDebugPanel = () => {
   const hashParams = new URLSearchParams(hash.substring(1));
   const storageMode = backupEnabled ? 'Cloud' : 'Local';
   const syncMode = backupEnabled ? (online ? 'Sync On' : 'Offline') : 'Sync Off';
+  const syncLabel =
+    syncStatus === 'in_sync' ? 'in sync' :
+    syncStatus === 'local_newer' ? 'local newer' :
+    syncStatus === 'cloud_newer' ? 'cloud newer' :
+    syncStatus === 'cloud_unavailable' ? 'cloud n/a' : 'unknown';
   const authMode = loading ? 'loading' : session ? 'active' : 'none';
 
   const handleClose = () => {
@@ -69,11 +74,13 @@ const AuthDebugPanel = () => {
           >
             <span className="font-semibold text-primary">DEV</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-foreground">{authMode}</span>
+            <span className="text-foreground">L:{localCount}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-foreground">C:{cloudCount === null ? '—' : cloudCount}</span>
             <span className="text-muted-foreground">•</span>
             <span className="text-foreground">{storageMode}</span>
             <span className="text-muted-foreground">•</span>
-            <span className="text-foreground">{syncMode}</span>
+            <span className="text-foreground">{syncLabel}</span>
             <ChevronUp className="h-3 w-3 text-muted-foreground ml-0.5" />
           </button>
           <button
@@ -120,17 +127,31 @@ const AuthDebugPanel = () => {
         <p>Backup toggle: <span className="text-foreground">{backupEnabled ? 'ON' : 'OFF'}</span></p>
         <p>Network: <span className="text-foreground">{online ? 'online' : 'offline'}</span></p>
         <p>Local storage available: <span className="text-foreground">{localAvailable}</span></p>
+        <p>Local records: <span className="text-foreground tabular-nums">{localCount}</span></p>
+        <p>Cloud records: <span className="text-foreground tabular-nums">{cloudCount === null ? 'unavailable' : cloudCount}</span></p>
+        <p>Sync status: <span className="text-foreground">{syncLabel}</span></p>
+        <p>Last backup: <span className="text-foreground">{lastBackupAt ?? 'never'}</span></p>
+        <p>Last restore: <span className="text-foreground">{lastRestoreAt ?? 'never'}</span></p>
         <p>Pending backup: <span className="text-foreground">{pendingCount}</span></p>
         <p>Last sync attempt: <span className="text-foreground">{lastSyncAttemptAt ?? 'never'}</span></p>
         <p>Last sync result: <span className="text-foreground">{lastSyncResult ? `${lastSyncResult.succeeded}/${lastSyncResult.attempted} ok, ${lastSyncResult.failed} failed` : 'n/a'}</span></p>
         <p>Last sync error: <span className="text-foreground">{lastSyncResult?.lastError ?? 'none'}</span></p>
-        <button
-          onClick={() => retrySyncNow()}
-          className="mt-1.5 text-[10px] text-primary underline disabled:opacity-50"
-          disabled={!backupEnabled || !online}
-        >
-          Force sync now
-        </button>
+        <div className="flex gap-2 mt-1.5">
+          <button
+            onClick={() => retrySyncNow()}
+            className="text-[10px] text-primary underline disabled:opacity-50"
+            disabled={!backupEnabled || !online}
+          >
+            Force sync now
+          </button>
+          <button
+            onClick={() => refreshCloudCount()}
+            className="text-[10px] text-primary underline disabled:opacity-50"
+            disabled={!online}
+          >
+            Refresh cloud count
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@
 //   - Failed backups retry only on: app load, manual "Retry now", regaining
 //     connectivity, or the next local save. No hidden background polling.
 import { supabase } from '@/integrations/supabase/client';
-import { localDB, isBackupEnabled, type LocalIncident, type LocalFollowUpNote } from './db';
+import { localDB, isBackupEnabled, setMeta, getMeta, META_KEYS, type LocalIncident, type LocalFollowUpNote } from './db';
 
 export type SyncResult = {
   attempted: number;
@@ -107,6 +107,9 @@ export const syncNow = async (userId: string): Promise<SyncResult> => {
     }
 
     lastResult = result;
+    if (result.succeeded > 0) {
+      await setMeta(META_KEYS.lastBackupAt(userId), new Date().toISOString());
+    }
     return result;
   })();
 
@@ -177,4 +180,69 @@ export const deleteCloudCopy = async (userId: string): Promise<{ incidents: numb
     await localDB.follow_up_notes.update(n.id, { sync_state: 'local_only', last_sync_error: null });
   }
   return { incidents: iCount ?? 0, notes: nCount ?? 0 };
+};
+
+// Read cloud counts (best-effort, scoped by RLS to current user).
+// Returns null fields on network failure so the UI can show "unavailable".
+export const getCloudCounts = async (): Promise<{ incidents: number | null; notes: number | null }> => {
+  try {
+    const inc = await supabase.from('incidents').select('*', { count: 'exact', head: true });
+    const notes = await supabase.from('follow_up_notes').select('*', { count: 'exact', head: true });
+    return {
+      incidents: inc.error ? null : (inc.count ?? 0),
+      notes: notes.error ? null : (notes.count ?? 0),
+    };
+  } catch {
+    return { incidents: null, notes: null };
+  }
+};
+
+// Restore from cloud → fully replaces local dataset for this user.
+// User-initiated and confirmed in UI. Local-only (never-uploaded) records ARE wiped.
+export const restoreFromCloud = async (userId: string): Promise<{ incidents: number; notes: number }> => {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new Error('You appear to be offline. Connect to the internet and try again.');
+  }
+  const incRes = await supabase.from('incidents').select('*');
+  if (incRes.error) throw incRes.error;
+  const notesRes = await supabase.from('follow_up_notes').select('*');
+  if (notesRes.error) throw notesRes.error;
+
+  const nowIso = new Date().toISOString();
+
+  await localDB.transaction('rw', localDB.incidents, localDB.follow_up_notes, async () => {
+    const localInc = await localDB.incidents.where('owner_user_id').equals(userId).primaryKeys();
+    await localDB.incidents.bulkDelete(localInc);
+    const localNotes = await localDB.follow_up_notes.where('owner_user_id').equals(userId).primaryKeys();
+    await localDB.follow_up_notes.bulkDelete(localNotes);
+
+    const incidents: LocalIncident[] = (incRes.data ?? []).map(r => ({
+      ...r,
+      owner_user_id: userId,
+      sync_state: 'backed_up',
+      last_sync_attempt_at: nowIso,
+      last_sync_error: null,
+      local_updated_at: nowIso,
+    }));
+    const notes: LocalFollowUpNote[] = (notesRes.data ?? []).map(r => ({
+      ...r,
+      owner_user_id: userId,
+      sync_state: 'backed_up',
+      last_sync_attempt_at: nowIso,
+      last_sync_error: null,
+      local_updated_at: nowIso,
+    }));
+    await localDB.incidents.bulkPut(incidents);
+    await localDB.follow_up_notes.bulkPut(notes);
+  });
+
+  await setMeta(META_KEYS.lastRestoreAt(userId), nowIso);
+  return { incidents: incRes.data?.length ?? 0, notes: notesRes.data?.length ?? 0 };
+};
+
+export const getLastBackupAt = async (userId: string): Promise<string | null> => {
+  return await getMeta(META_KEYS.lastBackupAt(userId));
+};
+export const getLastRestoreAt = async (userId: string): Promise<string | null> => {
+  return await getMeta(META_KEYS.lastRestoreAt(userId));
 };
