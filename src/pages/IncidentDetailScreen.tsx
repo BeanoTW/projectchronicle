@@ -12,6 +12,7 @@ import FollowUpDetails from '@/components/chronicle/FollowUpDetails';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   PRIMARY_CATEGORIES,
@@ -40,7 +41,7 @@ const IncidentDetailScreen = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-
+  const { maskText, maskName, maskFilename } = usePrivacy();
   const { devMode } = useDevMode();
   const { data: incident, isLoading } = useIncident(id);
   const { data: allIncidents = [] } = useIncidents();
