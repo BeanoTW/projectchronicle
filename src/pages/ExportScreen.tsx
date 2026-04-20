@@ -225,55 +225,65 @@ const ExportScreen = () => {
 
   /**
    * Print / Save as PDF.
-   * Renders the export HTML inside a hidden iframe and triggers
-   * `iframe.contentWindow.print()` so the OS print dialog targets ONLY
-   * the export document — never the surrounding app UI/navigation/buttons.
+   *
+   * Why a dedicated window (not an iframe):
+   *   On many mobile browsers (iOS Safari, Android Chrome) and several
+   *   desktop browsers, calling `iframe.contentWindow.print()` silently
+   *   falls back to printing the TOP-LEVEL document — which is why the
+   *   surrounding Lovable/app UI was appearing in the PDF.
+   *
+   *   Opening the locked export HTML in its own window/tab guarantees the
+   *   print scope is the export document and nothing else. The same locked
+   *   renderer (`renderTemplateHtml`) is used — no second renderer.
    */
   const handlePrintExport = useCallback(() => {
     if (!lastExportHtml) return;
     setPrinting(true);
-    const iframe = document.createElement('iframe');
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    iframe.style.opacity = '0';
-    document.body.appendChild(iframe);
 
-    const cleanup = () => {
+    // Build a self-contained print document that auto-triggers the print
+    // dialog on load. We inject a tiny script that calls window.print()
+    // after the next paint so fonts/styles settle first.
+    const printDoc = lastExportHtml.includes('</body>')
+      ? lastExportHtml.replace(
+          '</body>',
+          `<script>
+            (function(){
+              function go(){ try { window.focus(); window.print(); } catch(e){} }
+              if (document.readyState === 'complete') {
+                requestAnimationFrame(function(){ setTimeout(go, 200); });
+              } else {
+                window.addEventListener('load', function(){
+                  requestAnimationFrame(function(){ setTimeout(go, 200); });
+                });
+              }
+            })();
+          </script></body>`
+        )
+      : lastExportHtml;
+
+    const blob = new Blob([printDoc], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank', 'noopener,noreferrer');
+
+    if (!printWindow) {
+      URL.revokeObjectURL(url);
       setPrinting(false);
-      setTimeout(() => {
-        try { document.body.removeChild(iframe); } catch { /* noop */ }
-      }, 500);
-    };
+      toast({
+        title: 'Print blocked',
+        description: 'Your browser blocked the print window. Allow pop-ups for this site, then try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    iframe.onload = () => {
-      try {
-        const win = iframe.contentWindow;
-        if (!win) { cleanup(); return; }
-        // Wait one frame so fonts/styles settle.
-        setTimeout(() => {
-          try {
-            win.focus();
-            win.print();
-          } catch (e) {
-            console.warn('[Export] print() failed:', e);
-            toast({ title: 'Print unavailable', description: 'Your browser blocked the print dialog.', variant: 'destructive' });
-          } finally {
-            cleanup();
-          }
-        }, 250);
-      } catch (e) {
-        console.warn('[Export] iframe print setup failed:', e);
-        cleanup();
-      }
-    };
+    // Release the blob URL after the print window has had time to load it.
+    setTimeout(() => {
+      try { URL.revokeObjectURL(url); } catch { /* noop */ }
+    }, 60000);
 
-    // srcdoc isolates the print scope to just this document.
-    iframe.srcdoc = lastExportHtml;
+    // Reset local printing state — the OS print dialog now lives in the
+    // dedicated window, not in this app.
+    setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, toast]);
 
   const exportTypes = [
@@ -356,7 +366,7 @@ const ExportScreen = () => {
               <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
             )}
           </Button>
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your browser's print dialog. Choose a printer, or "Save as PDF".</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1.5 px-1">Opens your export in a new tab and triggers the print dialog. Choose a printer, or "Save as PDF". Allow pop-ups if blocked.</p>
         </div>
       )}
 
