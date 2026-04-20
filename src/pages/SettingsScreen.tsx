@@ -20,9 +20,14 @@ const SettingsScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: incidents } = useIncidents();
-  const { backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult, setBackupEnabled, retrySyncNow, deleteCloudData } = useBackup();
+  const {
+    backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult,
+    localCount, cloudCount, lastBackupAt, lastRestoreAt, syncStatus,
+    setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
+  } = useBackup();
   const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const handleLogout = async () => {
