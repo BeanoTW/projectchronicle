@@ -97,10 +97,11 @@ const ExportScreen = () => {
 
   const handleCaseNarrative = () => {
     if (activeIncidents.length < 2) {
-      toast({ title: 'Need more incidents', description: 'Record at least 2 incidents to generate a summary.', variant: 'destructive' });
+      toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
       return;
     }
     setNarrativeLoading(true);
+    toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
     try {
       const allIds = activeIncidents.map(i => i.id);
       const result = generateSummary({
@@ -120,6 +121,19 @@ const ExportScreen = () => {
       setNarrativeLoading(false);
     }
   };
+
+  // Once the structured record is mounted, scroll to it and briefly highlight.
+  useEffect(() => {
+    if (!summaryResult) return;
+    // Defer to next frame so the DOM has the rendered content.
+    const raf = requestAnimationFrame(() => {
+      summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setSummaryHighlight(true);
+      const t = setTimeout(() => setSummaryHighlight(false), 1600);
+      return () => clearTimeout(t);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [summaryResult]);
 
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
