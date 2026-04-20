@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { CalendarDays, Paperclip, FileText, Link2, X } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import CategoryBadge, { CategoryLabel } from '@/components/chronicle/CategoryBadge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
 import BoldedTitle from '@/components/chronicle/BoldedTitle';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -27,7 +28,7 @@ import type { Incident } from '@/hooks/useIncidents';
 
 type DensityScale = 'detail' | 'compact' | 'overview';
 
-const categoryFilters = ['all', ...PRIMARY_CATEGORIES];
+
 
 const scaleLabels: { value: DensityScale; label: string }[] = [
   { value: 'detail', label: 'Detail' },
@@ -126,18 +127,38 @@ const TimelineScreen = () => {
 
   const sequenceMembership = useMemo(() => getSequenceMembership(sequenceConfig), [sequenceConfig]);
 
-  const incidents = useMemo(() => {
+  const incidentsPreCategory = useMemo(() => {
     let filtered = [...allIncidents];
     if (recordTypeFilter !== 'all') {
       filtered = filtered.filter(i => (i.record_type || 'incident') === recordTypeFilter);
     }
-    if (filterCategory !== 'all') filtered = filtered.filter(i => i.category === filterCategory);
     if (gapFilter === 'no-evidence') filtered = filtered.filter(i => !allEvidence.some(e => e.incident_id === i.id));
     if (gapFilter === 'no-witnesses') filtered = filtered.filter(i => i.witnesses.length === 0);
     if (gapFilter === 'no-exact-words') filtered = filtered.filter(i => !i.exact_words);
     if (gapFilter === 'no-impact') filtered = filtered.filter(i => !i.impact_note);
-    return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
-  }, [allIncidents, filterCategory, recordTypeFilter, gapFilter, allEvidence]);
+    return filtered;
+  }, [allIncidents, recordTypeFilter, gapFilter, allEvidence]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    incidentsPreCategory.forEach(i => {
+      const key = i.category || 'Not sure yet';
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [incidentsPreCategory]);
+
+  const incidents = useMemo(() => {
+    let filtered = incidentsPreCategory;
+    if (filterCategory !== 'all') {
+      if (filterCategory === 'Not sure yet') {
+        filtered = filtered.filter(i => !i.category || i.category === 'Not sure yet');
+      } else {
+        filtered = filtered.filter(i => i.category === filterCategory);
+      }
+    }
+    return [...filtered].sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
+  }, [incidentsPreCategory, filterCategory]);
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
@@ -328,22 +349,31 @@ const TimelineScreen = () => {
               <button onClick={() => setGapFilter(null)} className="text-[13px] underline">Clear</button>
             </div>
           )}
-          <div className="px-5 pb-4 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-1.5 min-w-max">
-              {categoryFilters.map(c => (
-                <button
-                  key={c}
-                  onClick={() => { setFilterCategory(c); setGapFilter(null); }}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium whitespace-nowrap transition-all duration-150 ${
-                    filterCategory === c
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-                  }`}
-                >
-                  {c === 'all' ? 'All' : c}
-                </button>
-              ))}
-            </div>
+          <div className="px-5 pb-4">
+            <Select
+              value={filterCategory}
+              onValueChange={(v) => { setFilterCategory(v); setGapFilter(null); }}
+            >
+              <SelectTrigger
+                className="h-9 w-full bg-muted/40 border-0 text-[12px] font-medium text-foreground rounded-lg px-3 hover:bg-muted/60 transition-colors focus:ring-1 focus:ring-ring focus:ring-offset-0"
+                aria-label="Filter by category"
+              >
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[60vh]">
+                <SelectItem value="all" className="text-[13px]">
+                  All categories{incidentsPreCategory.length > 0 ? ` (${incidentsPreCategory.length})` : ''}
+                </SelectItem>
+                {PRIMARY_CATEGORIES.filter(c => c !== 'Other').map(c => (
+                  <SelectItem key={c} value={c} className="text-[13px]">
+                    {c}{categoryCounts[c] ? ` (${categoryCounts[c]})` : ''}
+                  </SelectItem>
+                ))}
+                <SelectItem value="Not sure yet" className="text-[13px]">
+                  Not sure yet{categoryCounts['Not sure yet'] ? ` (${categoryCounts['Not sure yet']})` : ''}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </>
       )}
