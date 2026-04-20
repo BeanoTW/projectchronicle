@@ -87,14 +87,37 @@ const RecordScreen = () => {
     }
   }, [narrative, incidentDate, incidentTime, location, peopleInvolved, witnesses, exactWords, impactNote, title]);
 
+  // Seed sensible defaults for a fresh record: today's date + current time.
+  // Always applied first; real drafts or returnDraft override below.
+  const seedDefaults = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    setIncidentDate(`${yyyy}-${mm}-${dd}`);
+    setIncidentTime(`${hh}:${mi}`);
+  };
+
   // Restore state when returning from review screen
   useEffect(() => {
     const returnDraft = routeLocation.state?.returnDraft;
     if (returnDraft) {
       setNarrative(returnDraft.narrative || '');
       setTitle(returnDraft.title || '');
-      setIncidentDate(returnDraft.incidentDate || '');
-      setIncidentTime(returnDraft.incidentTime || '');
+      // Preserve user-entered date/time; fall back to today/now if absent.
+      if (returnDraft.incidentDate) setIncidentDate(returnDraft.incidentDate);
+      if (returnDraft.incidentTime) setIncidentTime(returnDraft.incidentTime);
+      if (!returnDraft.incidentDate || !returnDraft.incidentTime) {
+        const now = new Date();
+        if (!returnDraft.incidentDate) {
+          setIncidentDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`);
+        }
+        if (!returnDraft.incidentTime) {
+          setIncidentTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+        }
+      }
       setLocation(returnDraft.location || '');
       setPeopleInvolved(Array.isArray(returnDraft.peopleInvolved) ? returnDraft.peopleInvolved.join(', ') : returnDraft.peopleInvolved || '');
       setWitnesses(Array.isArray(returnDraft.witnesses) ? returnDraft.witnesses.join(', ') : returnDraft.witnesses || '');
@@ -104,21 +127,36 @@ const RecordScreen = () => {
       return;
     }
 
-    // Load draft on mount
+    // Load draft on mount, but only if it represents a real in-progress record
+    // (i.e. has narrative content). Empty/stale drafts must NOT override defaults.
     const stored = localStorage.getItem('chronicle-draft');
+    let restoredFromDraft = false;
     if (stored) {
       try {
         const draft = JSON.parse(stored);
-        if (draft.narrative) setNarrative(draft.narrative);
-        if (draft.incidentDate) setIncidentDate(draft.incidentDate);
-        if (draft.incidentTime) setIncidentTime(draft.incidentTime);
-        if (draft.location) setLocation(draft.location);
-        if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
-        if (draft.witnesses) setWitnesses(draft.witnesses);
-        if (draft.exactWords) setExactWords(draft.exactWords);
-        if (draft.impactNote) setImpactNote(draft.impactNote);
-        if (draft.title) setTitle(draft.title);
-      } catch { /* ignore */ }
+        if (draft.narrative && draft.narrative.trim()) {
+          restoredFromDraft = true;
+          setNarrative(draft.narrative);
+          if (draft.incidentDate) setIncidentDate(draft.incidentDate);
+          if (draft.incidentTime) setIncidentTime(draft.incidentTime);
+          if (draft.location) setLocation(draft.location);
+          if (draft.peopleInvolved) setPeopleInvolved(draft.peopleInvolved);
+          if (draft.witnesses) setWitnesses(draft.witnesses);
+          if (draft.exactWords) setExactWords(draft.exactWords);
+          if (draft.impactNote) setImpactNote(draft.impactNote);
+          if (draft.title) setTitle(draft.title);
+        } else {
+          // Stale empty draft — clear it so it can't keep blanking defaults later.
+          localStorage.removeItem('chronicle-draft');
+        }
+      } catch {
+        localStorage.removeItem('chronicle-draft');
+      }
+    }
+
+    // Always seed today/now for fields the draft (or fresh state) didn't fill.
+    if (!restoredFromDraft) {
+      seedDefaults();
     }
   }, []);
 
