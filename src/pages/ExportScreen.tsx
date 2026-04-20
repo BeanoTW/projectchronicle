@@ -83,6 +83,7 @@ const ExportScreen = () => {
   const [tribunalLoading, setTribunalLoading] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
@@ -146,6 +147,17 @@ const ExportScreen = () => {
       cancelAnimationFrame(r1);
     };
   }, [summaryResult]);
+
+  // Scroll the export-ready result block into view as soon as it mounts.
+  useEffect(() => {
+    if (!lastExportHtml) return;
+    const r = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    return () => cancelAnimationFrame(r);
+  }, [lastExportHtml]);
 
   const handleOpenBuilder = () => {
     if (activeIncidents.length === 0) {
@@ -308,6 +320,47 @@ const ExportScreen = () => {
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
 
+      {/* Export ready — visible immediately at the top so the user cannot miss it */}
+      {lastExportHtml && (
+        <div
+          ref={resultRef}
+          className="mx-5 mb-5 bg-primary/5 border-2 border-primary/40 rounded-xl p-4 shadow-md"
+        >
+          <p className="text-[14px] font-semibold text-foreground">✓ Your export is ready</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how to deliver it. Both options use the same export document.</p>
+
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full h-11 text-[13px] rounded-lg"
+                onClick={handleDownloadHtml}
+              >
+                <Download className="h-4 w-4 mr-1.5" /> Download HTML
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Editable / shareable source file.</p>
+            </div>
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-11 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
+                onClick={handlePrintExport}
+                disabled={printing}
+              >
+                {printing ? (
+                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Opening…</>
+                ) : (
+                  <><Printer className="h-4 w-4 mr-1.5" /> Print / Save as PDF</>
+                )}
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Formal static copy. Allow pop-ups if blocked.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Case Summary */}
       <div
         ref={summaryRef}
@@ -347,44 +400,6 @@ const ExportScreen = () => {
           </div>
         </div>
       </div>
-
-      {/* Export ready — both delivery actions surfaced together */}
-      {lastExportHtml && (
-        <div className="mx-5 mb-5 bg-card border border-primary/30 rounded-xl p-4 ring-1 ring-primary/10">
-          <p className="text-[13px] font-semibold text-foreground">Your export is ready</p>
-          <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to deliver it. Both options use the same export document.</p>
-
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full h-10 text-[13px] rounded-lg"
-                onClick={handleDownloadHtml}
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5" /> Download HTML
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Editable / shareable source file.</p>
-            </div>
-            <div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full h-10 text-[13px] border-primary/30 text-primary rounded-lg hover:bg-primary/4"
-                onClick={handlePrintExport}
-                disabled={printing}
-              >
-                {printing ? (
-                  <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Opening…</>
-                ) : (
-                  <><Printer className="h-3.5 w-3.5 mr-1.5" /> Print / Save as PDF</>
-                )}
-              </Button>
-              <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">Formal static copy. Allow pop-ups if blocked.</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
