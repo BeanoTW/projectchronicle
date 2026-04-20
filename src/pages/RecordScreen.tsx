@@ -105,6 +105,37 @@ const RecordScreen = () => {
     setIncidentTime(`${hh}:${mi}`);
   };
 
+  // Full draft reset — used by "Start fresh".
+  // Clears every piece of state, persisted draft, derived UI, and remounts
+  // child inputs by bumping formKey. Defaults are then re-seeded fresh.
+  const resetForm = useCallback(() => {
+    // 1) wipe persisted draft
+    try { localStorage.removeItem('chronicle-draft'); } catch { /* ignore */ }
+    // 2) reset all controlled fields
+    setNarrative('');
+    setTitle('');
+    setLocation('');
+    setPeopleInvolved('');
+    setWitnesses('');
+    setExactWords('');
+    setImpactNote('');
+    setInteractions([]);
+    setRecordType('incident');
+    setMode('text');
+    // 3) reset derived UI / validation / transient flags
+    setErrors({});
+    setShowManualForm(false);
+    setMoreDetailsOpen(false);
+    setDraftSaved(false);
+    setAnalysing(false);
+    // 4) re-seed today's date/time
+    seedDefaults();
+    // 5) bump formKey so any child component with internal state remounts
+    setFormKey(Date.now());
+    // 6) close any open dialogs
+    setShowClearDialog(false);
+  }, []);
+
   // Restore state when returning from review screen
   useEffect(() => {
     const returnDraft = routeLocation.state?.returnDraft;
