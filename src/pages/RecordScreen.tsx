@@ -625,22 +625,34 @@ const RecordScreen = () => {
                   }
                   className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
                 />
-                <div className="flex items-center justify-between px-4 pb-2">
+                <div className="flex items-center justify-between px-4 pb-2 gap-2">
                   {narrative.length > 0 && (
                     <p className="text-[11px] text-muted-foreground/40">{narrative.length} characters</p>
                   )}
-                  <AnimatePresence>
-                    {draftSaved && (
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="text-[11px] text-primary/60 font-medium ml-auto"
+                  <div className="flex items-center gap-3 ml-auto">
+                    <AnimatePresence>
+                      {draftSaved && (
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="text-[11px] text-primary/60 font-medium"
+                        >
+                          Draft saved
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                    {hasText && (
+                      <button
+                        type="button"
+                        onClick={() => setShowClearDialog(true)}
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/60 font-medium hover:text-destructive transition-colors"
+                        aria-label="Start fresh — clear this draft"
                       >
-                        Draft saved
-                      </motion.p>
+                        <RotateCcw className="h-3 w-3" /> Start fresh
+                      </button>
                     )}
-                  </AnimatePresence>
+                  </div>
                 </div>
               </div>
               {errors.raw_narrative && (
