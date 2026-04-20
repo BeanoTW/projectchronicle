@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, Check, Heart, Trash2, Paperclip } from 'lucide-react';
+import { Mic, Keyboard, ChevronRight, ChevronDown, Loader2, Check, Heart, Trash2, Paperclip, RotateCcw } from 'lucide-react';
 import { detectCoherence } from '@/lib/coherence';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +55,11 @@ const RecordScreen = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [analysing, setAnalysing] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  // Bumped on "Start fresh" so child inputs (Textarea, Input, InteractionsEditor)
+  // remount and lose any internal/uncontrolled state.
+  const [formKey, setFormKey] = useState<number>(() => Date.now());
+  // Confirm dialog before clearing a draft in progress.
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
   // Dev mode: reset dialog
   const [showResetDialog, setShowResetDialog] = useState(false);
