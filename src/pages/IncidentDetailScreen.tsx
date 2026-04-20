@@ -331,9 +331,11 @@ const IncidentDetailScreen = () => {
               <p className="text-[11px] font-semibold text-muted-foreground mb-1">
                 {isDaily ? 'Account of the day' : 'User-provided account'}
               </p>
-              <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
-                {maskText(incident.raw_narrative)}
-              </p>
+              <ObscuredBlock>
+                <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
+                  {incident.raw_narrative}
+                </p>
+              </ObscuredBlock>
             </div>
 
             {/* 5b. INTERACTIONS — daily only */}
@@ -357,9 +359,11 @@ const IncidentDetailScreen = () => {
             {!isDaily && incident.exact_words && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Exact words</p>
-                <div className="border-l-[3px] border-muted-foreground/20 pl-3.5">
-                  <p className="text-[14px] text-foreground italic leading-relaxed">"{maskText(incident.exact_words)}"</p>
-                </div>
+                <ObscuredBlock>
+                  <div className="border-l-[3px] border-muted-foreground/20 pl-3.5">
+                    <p className="text-[14px] text-foreground italic leading-relaxed">"{incident.exact_words}"</p>
+                  </div>
+                </ObscuredBlock>
               </div>
             )}
 
@@ -367,7 +371,9 @@ const IncidentDetailScreen = () => {
             {!isDaily && incident.impact_note && (
               <div>
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">Impact</p>
-                <p className="text-[13px] text-foreground leading-relaxed">{maskText(incident.impact_note)}</p>
+                <ObscuredBlock>
+                  <p className="text-[13px] text-foreground leading-relaxed">{incident.impact_note}</p>
+                </ObscuredBlock>
               </div>
             )}
 
