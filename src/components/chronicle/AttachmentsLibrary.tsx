@@ -131,7 +131,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                         {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                       </p>
                       {linked ? (
-                        <p className="text-[11px] text-primary mt-0.5 truncate">→ {linked.title || 'Untitled'}</p>
+                        <p className="text-[11px] text-primary mt-0.5 truncate">→ {displayTitle(linked)}</p>
                       ) : (
                         <div onClick={e => e.stopPropagation()}>
                           {!isLinking ? (

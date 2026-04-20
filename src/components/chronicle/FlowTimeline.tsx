@@ -282,7 +282,7 @@ const FlowTimeline = ({ incidents }: Props) => {
                       {format(parseISO(inc.incident_date), 'd MMM yyyy')}
                     </span>
                     <p className="text-[13px] font-medium text-foreground leading-snug truncate">
-                      {inc.title || inc.category || 'Untitled'}
+                      {displayTitle(inc)}
                     </p>
                   </div>
                   {isSelected && (

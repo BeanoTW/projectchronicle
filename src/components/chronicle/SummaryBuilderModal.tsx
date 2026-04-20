@@ -259,7 +259,7 @@ const SummaryBuilderModal = ({ open, onClose, incidents, preSelected, followUpNo
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-medium text-foreground truncate">
-                          {inc.title || inc.category || "Untitled"}
+                          {displayTitle(inc)}
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {format(parseISO(inc.incident_date), "d MMM yyyy")}

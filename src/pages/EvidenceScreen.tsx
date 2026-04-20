@@ -196,7 +196,7 @@ const EvidenceScreen = () => {
                   </p>
                   {linkedIncident ? (
                     <p className="text-[12px] text-primary mt-1.5 truncate">
-                      → {linkedIncident.title || 'Untitled'}
+                      → {displayTitle(linkedIncident)}
                     </p>
                   ) : (
                     <div className="mt-2" onClick={e => e.stopPropagation()}>
