@@ -240,7 +240,7 @@ const IncidentDetailScreen = () => {
           <div className="px-4 py-2.5 border-b border-border/50 text-[12px] text-muted-foreground space-y-0.5">
             <p>Recorded: {fmtFull(incident.created_at)}</p>
             {retroGap && <p className="text-muted-foreground/70">{retroGap}</p>}
-            {incident.location && <p>{incident.location}</p>}
+            {incident.location && <p>{maskText(incident.location)}</p>}
           </div>
 
           <div className="px-4 py-3 space-y-4">
@@ -250,7 +250,7 @@ const IncidentDetailScreen = () => {
                 <p className="text-[11px] font-semibold text-muted-foreground mb-1">People involved</p>
                 <div className="flex flex-wrap gap-1.5">
                   {incident.people_involved.map(p => (
-                    <span key={p} className="bg-primary/6 text-primary px-2.5 py-1 rounded text-[12px] font-medium border border-primary/12">{p}</span>
+                    <span key={p} className="bg-primary/6 text-primary px-2.5 py-1 rounded text-[12px] font-medium border border-primary/12">{maskName(p)}</span>
                   ))}
                 </div>
               </div>
