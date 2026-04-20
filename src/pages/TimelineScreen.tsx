@@ -10,6 +10,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS } from '@/lib/categories';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import type { Incident } from '@/hooks/useIncidents';
 
 type DensityScale = 'detail' | 'compact' | 'overview';
@@ -62,6 +63,7 @@ const TimelineScreen = () => {
   const [showLibrary, setShowLibrary] = useState(false);
   const [showSummaryBuilder, setShowSummaryBuilder] = useState(false);
   const [scale, setScale] = useState<DensityScale>('compact');
+  const { maskText } = usePrivacy();
 
   // Refs for scroll-to on overview tap
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -98,39 +100,7 @@ const TimelineScreen = () => {
     return filtered.sort((a, b) => new Date(b.incident_date).getTime() - new Date(a.incident_date).getTime());
   }, [allIncidents, filterCategory, recordTypeFilter, gapFilter, allEvidence]);
 
-  const repeatedCategories = useMemo(() => {
-    const catCounts: Record<string, number> = {};
-    allIncidents.forEach(i => { if (i.category) catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
-    return new Set(Object.entries(catCounts).filter(([, c]) => c >= 3).map(([cat]) => cat));
-  }, [allIncidents]);
-
-  const repeatedPeople = useMemo(() => {
-    const peopleCounts: Record<string, number> = {};
-    allIncidents.forEach(i => i.people_involved.forEach(p => { peopleCounts[p] = (peopleCounts[p] || 0) + 1; }));
-    return new Set(Object.entries(peopleCounts).filter(([, c]) => c >= 2).map(([name]) => name));
-  }, [allIncidents]);
-
-  const isPartOfPattern = (inc: typeof allIncidents[0]) => {
-    if (inc.category && repeatedCategories.has(inc.category)) return true;
-    if (inc.people_involved.some(p => repeatedPeople.has(p))) return true;
-    return false;
-  };
-
-  const getOccurrenceLabel = (inc: typeof allIncidents[0]): string | null => {
-    if (inc.category && repeatedCategories.has(inc.category)) {
-      const sameCategory = allIncidents
-        .filter(i => i.category === inc.category)
-        .sort((a, b) => new Date(a.incident_date).getTime() - new Date(b.incident_date).getTime());
-      const idx = sameCategory.findIndex(i => i.id === inc.id);
-      if (idx >= 0) return `Repeated ${idx + 1} times`;
-    }
-    const repeatedPerson = inc.people_involved.find(p => repeatedPeople.has(p));
-    if (repeatedPerson) {
-      const count = allIncidents.filter(i => i.people_involved.includes(repeatedPerson)).length;
-      return `${repeatedPerson} appears in ${count} records`;
-    }
-    return null;
-  };
+  // No interpretive pattern detection in UI. Counts come from My Record (deterministic).
 
   const grouped = useMemo(() => {
     const groups: Record<string, typeof incidents> = {};
