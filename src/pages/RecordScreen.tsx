@@ -196,8 +196,10 @@ const RecordScreen = () => {
     }
 
     setAnalysing(true);
-    // AI structuring is best-effort. If it fails (network/auth/quota), we still
-    // navigate to Review with empty AI fields so save is never blocked.
+    // AI structuring is best-effort and ONLY for incident records.
+    // If it fails (network/auth/quota/rate-limit), we silently navigate to Review
+    // with empty AI fields so save is never blocked and no false-failure UI shows.
+    // Real save failures are surfaced separately by the Review/save path.
     let data: any = null;
     try {
       const res = await supabase.functions.invoke('analyse-incident', {
@@ -207,11 +209,9 @@ const RecordScreen = () => {
       if (res.data?.error) throw new Error(res.data.error);
       data = res.data;
     } catch (e) {
-      console.warn('analyse-incident failed, continuing without AI structuring:', e);
-      toast({
-        title: 'Continuing without AI assist',
-        description: 'You can review and save your record as normal.',
-      });
+      // Silent fallback — do NOT show a destructive or failure toast.
+      // The user can still review and save; UI must reflect that.
+      console.warn('analyse-incident unavailable, continuing without AI structuring:', e);
     } finally {
       setAnalysing(false);
     }
