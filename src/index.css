@@ -63,10 +63,10 @@
 
     --radius: 0.625rem;
 
-    --shadow-card: 0 1px 2px 0 hsl(220 20% 10% / 0.03), 0 1px 3px 0 hsl(220 20% 10% / 0.02);
-    --shadow-card-hover: 0 2px 8px -2px hsl(220 20% 10% / 0.06);
-    --shadow-nav: 0 -1px 8px 0 hsl(220 20% 10% / 0.06);
-    --shadow-elevated: 0 4px 16px -4px hsl(220 20% 10% / 0.08);
+    --shadow-card: 0 1px 2px -1px hsl(220 25% 12% / 0.05), 0 1px 3px 0 hsl(220 25% 12% / 0.04);
+    --shadow-card-hover: 0 4px 12px -4px hsl(220 25% 12% / 0.10), 0 2px 4px -2px hsl(220 25% 12% / 0.06);
+    --shadow-nav: 0 -1px 12px 0 hsl(220 25% 12% / 0.08);
+    --shadow-elevated: 0 8px 24px -8px hsl(220 25% 12% / 0.12), 0 2px 6px -2px hsl(220 25% 12% / 0.06);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -200,12 +200,23 @@
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 .page-enter {
-  animation: fade-in 0.2s ease-out;
+  animation: fade-in 0.24s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Subtle section divider — for use between grouped blocks */
+.section-divider {
+  border-top: 1px solid hsl(var(--border) / 0.6);
+}
+
+/* Long-form text safety — prevents narrative blocks from forcing scroll */
+.prose-safe {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Writing focus */
