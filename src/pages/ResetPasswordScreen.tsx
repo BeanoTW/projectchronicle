@@ -12,11 +12,6 @@ import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib
 import AuthHero from '@/components/chronicle/AuthHero';
 import AuthCard from '@/components/chronicle/AuthCard';
 
-const fade = (delay: number) => ({
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
-});
 
 type ResetState = 'verifying' | 'ready' | 'invalid' | 'timeout';
 
