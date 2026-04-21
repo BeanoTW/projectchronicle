@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff, AlertTriangle, RotateCcw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Loader2, Eye, EyeOff, AlertTriangle, RotateCcw, Lock, KeyRound } from 'lucide-react';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PasswordRulesList from '@/components/auth/PasswordRulesList';
 import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
+import AuthHero from '@/components/chronicle/AuthHero';
+import AuthCard from '@/components/chronicle/AuthCard';
 
 const fade = (delay: number) => ({
   initial: { opacity: 0, y: 8 },
