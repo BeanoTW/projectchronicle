@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
-import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
+import { Loader2, Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,12 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordRulesList from '@/components/auth/PasswordRulesList';
 import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
-
-const fade = (delay: number) => ({
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
-});
+import AuthHero from '@/components/chronicle/AuthHero';
+import AuthCard from '@/components/chronicle/AuthCard';
 
 const SignupScreen = () => {
   const navigate = useNavigate();
@@ -69,103 +63,111 @@ const SignupScreen = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 max-w-lg mx-auto">
-      <div className="pt-[100px]" />
+    <div className="min-h-screen bg-background max-w-lg mx-auto flex flex-col">
+      <AuthHero />
 
-      <motion.div className="flex justify-center" {...fade(0)}>
-        <ChronicleLogo size={64} />
-      </motion.div>
+      <AuthCard>
+        <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.02em]">
+          Create your account.
+        </h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Start your record in minutes.
+        </p>
 
-      <motion.h1
-        className="text-[22px] font-bold text-foreground text-center mt-7 tracking-[-0.03em]"
-        {...fade(0.1)}
-      >
-        Create your account.
-      </motion.h1>
+        <div className="mt-6 space-y-4">
+          <div>
+            <Label htmlFor="email" className="text-[12px] font-medium text-foreground/80 mb-1.5 block">
+              Email
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="h-12 pl-10 text-[15px]"
+              />
+            </div>
+          </div>
 
-      <motion.div className="mt-10 space-y-5" {...fade(0.2)}>
-        <div>
-          <Label htmlFor="email" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
-            Email
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30"
-          />
-        </div>
-        <div>
-          <Label htmlFor="password" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
-            Password
-          </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="At least 8 characters"
-              className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30 pr-11"
-            />
+          <div>
+            <Label htmlFor="password" className="text-[12px] font-medium text-foreground/80 mb-1.5 block">
+              Password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="h-12 pl-10 pr-11 text-[15px]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <PasswordRulesList password={password} />
+          </div>
+
+          <div>
+            <Label htmlFor="confirm-password" className="text-[12px] font-medium text-foreground/80 mb-1.5 block">
+              Confirm password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+              <Input
+                id="confirm-password"
+                type={showConfirm ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+                className="h-12 pl-10 pr-11 text-[15px]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(v => !v)}
+                aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {confirmPassword.length > 0 && password !== confirmPassword && (
+              <p className="text-[12px] text-destructive mt-1.5" role="alert">
+                {PASSWORD_MESSAGES.mismatch}
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={handleSignup}
+            disabled={!canSubmit}
+            className="w-full h-[48px] rounded-[10px] text-[14px] font-semibold mt-2"
+          >
+            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-1.5" strokeWidth={1.75} />}
+            {loading ? 'Creating account…' : 'Create account'}
+          </Button>
+
+          <div className="text-center pt-1">
             <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              onClick={() => navigate('/login')}
+              className="text-[12.5px] text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              Already have an account?{' '}
+              <span className="text-primary font-medium">Sign in</span>
             </button>
           </div>
-          <PasswordRulesList password={password} />
         </div>
-        {confirmPassword.length > 0 && password !== confirmPassword && (
-          <p className="text-[12px] text-destructive -mt-3" role="alert">
-            {PASSWORD_MESSAGES.mismatch}
-          </p>
-        )}
-        <div>
-          <Label htmlFor="confirm-password" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
-            Confirm password
-          </Label>
-          <div className="relative">
-            <Input
-              id="confirm-password"
-              type={showConfirm ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Re-enter password"
-              className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30 pr-11"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirm(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-            >
-              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-
-        <Button
-          onClick={handleSignup}
-          disabled={!canSubmit}
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-          {loading ? 'Creating account…' : 'Sign Up'}
-        </Button>
-      </motion.div>
-
-      <motion.div className="mt-8 text-center" {...fade(0.3)}>
-        <button
-          onClick={() => navigate('/login')}
-          className="text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors"
-        >
-          Already have an account? Sign in
-        </button>
-      </motion.div>
+      </AuthCard>
     </div>
   );
 };
