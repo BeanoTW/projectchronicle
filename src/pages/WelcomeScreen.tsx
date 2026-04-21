@@ -1,54 +1,51 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
+import { Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-const fade = (delay: number) => ({
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
-});
+import AuthHero from '@/components/chronicle/AuthHero';
+import AuthCard from '@/components/chronicle/AuthCard';
 
 const WelcomeScreen = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center min-h-screen bg-background px-6 max-w-lg mx-auto">
-      <div className="pt-[120px]" />
+    <div className="min-h-screen bg-background max-w-lg mx-auto flex flex-col">
+      <AuthHero tagline="Documenting progress. Building tomorrow." />
 
-      <motion.div {...fade(0)}>
-        <ChronicleLogo size={72} />
-      </motion.div>
+      <AuthCard>
+        <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.02em]">
+          Welcome.
+        </h2>
+        <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">
+          Record events clearly. Build timelines you can rely on.
+        </p>
 
-      <motion.h1
-        className="text-[24px] font-bold text-foreground text-center mt-8 tracking-[-0.03em] leading-tight"
-        {...fade(0.1)}
-      >
-        Project Chronicle
-      </motion.h1>
+        <div className="mt-7 space-y-3">
+          <Button
+            onClick={() => navigate('/signup')}
+            className="w-full h-[48px] rounded-[10px] text-[14px] font-semibold"
+          >
+            Create an account
+          </Button>
+          <Button
+            onClick={() => navigate('/login')}
+            variant="outline"
+            className="w-full h-[48px] rounded-[10px] text-[14px] font-semibold"
+          >
+            Sign in
+          </Button>
+        </div>
 
-      <motion.p
-        className="text-[14px] text-muted-foreground text-center mt-3 max-w-[260px] leading-relaxed"
-        {...fade(0.2)}
-      >
-        Record events clearly. Build timelines you can rely on.
-      </motion.p>
-
-      <motion.div className="mt-12 w-full max-w-xs space-y-3" {...fade(0.3)}>
-        <Button
-          onClick={() => navigate('/signup')}
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6 flex items-center justify-center gap-1.5 text-[11.5px] text-muted-foreground/80"
         >
-          Sign up
-        </Button>
-        <Button
-          onClick={() => navigate('/login')}
-          variant="outline"
-          className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold border-border/50 text-foreground active:scale-[0.97] transition-transform"
-        >
-          Sign in
-        </Button>
-      </motion.div>
+          <Shield className="h-3 w-3" strokeWidth={1.5} />
+          <span>Your data. Your record. Your control.</span>
+        </motion.div>
+      </AuthCard>
     </div>
   );
 };

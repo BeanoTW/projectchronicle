@@ -1,19 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
+import { Loader2, Mail, Send, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-const fade = (delay: number) => ({
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.25, delay, ease: [0.25, 0.46, 0.45, 0.94] as const },
-});
+import AuthHero from '@/components/chronicle/AuthHero';
+import AuthCard from '@/components/chronicle/AuthCard';
 
 const ForgotPasswordScreen = () => {
   const navigate = useNavigate();
@@ -30,7 +24,6 @@ const ForgotPasswordScreen = () => {
     });
     setLoading(false);
     if (error) {
-      // Do NOT claim the email was sent if the request failed.
       toast({
         title: 'Could not send reset link',
         description: error.message || 'Please check your connection and try again.',
@@ -39,7 +32,6 @@ const ForgotPasswordScreen = () => {
       return;
     }
     setSent(true);
-    // Neutral wording — does not confirm or deny the account exists.
     toast({
       title: 'Request received',
       description: 'If an account exists for this email, a reset link will arrive shortly.',
@@ -47,73 +39,73 @@ const ForgotPasswordScreen = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background px-6 max-w-lg mx-auto">
-      <div className="pt-[100px]" />
+    <div className="min-h-screen bg-background max-w-lg mx-auto flex flex-col">
+      <AuthHero />
 
-      <motion.div className="flex justify-center" {...fade(0)}>
-        <ChronicleLogo size={64} />
-      </motion.div>
+      <AuthCard>
+        <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.02em]">
+          Reset your password
+        </h2>
+        <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
+          Enter your email and we'll send a reset link if an account exists.
+        </p>
 
-      <motion.h1
-        className="text-[22px] font-bold text-foreground text-center mt-7 tracking-[-0.03em]"
-        {...fade(0.1)}
-      >
-        Reset your password
-      </motion.h1>
-
-      <motion.p
-        className="text-[13px] text-muted-foreground text-center mt-2 max-w-[280px] mx-auto leading-relaxed"
-        {...fade(0.15)}
-      >
-        Enter your email and we'll send a reset link if an account exists.
-      </motion.p>
-
-      {sent ? (
-        <motion.div className="mt-10 text-center space-y-4" {...fade(0.2)}>
-          <p className="text-[14px] text-foreground font-medium">If an account exists, a reset link will be sent.</p>
-          <p className="text-[13px] text-muted-foreground">Check your email, then follow the link to set a new password.</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="text-[13px] text-primary font-medium hover:text-primary/80 transition-colors"
-          >
-            Back to sign in
-          </button>
-        </motion.div>
-      ) : (
-        <motion.div className="mt-10 space-y-5" {...fade(0.2)}>
-          <div>
-            <Label htmlFor="email" className="text-[12px] font-medium text-muted-foreground mb-1.5 block">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="h-12 rounded-[10px] bg-muted/40 border-border/30 text-[15px] focus:border-primary/30"
-            />
+        {sent ? (
+          <div className="mt-6 text-center space-y-3">
+            <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle2 className="h-5 w-5 text-primary" strokeWidth={1.75} />
+            </div>
+            <p className="text-[14px] text-foreground font-medium">Check your inbox</p>
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
+              If an account exists, a reset link will be sent. Follow the link to set a new password.
+            </p>
+            <Button
+              onClick={() => navigate('/login')}
+              variant="outline"
+              className="w-full h-[46px] rounded-[10px] text-[14px] font-semibold mt-2"
+            >
+              Back to sign in
+            </Button>
           </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            <div>
+              <Label htmlFor="email" className="text-[12px] font-medium text-foreground/80 mb-1.5 block">
+                Email
+              </Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" strokeWidth={1.5} />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="h-12 pl-10 text-[15px]"
+                />
+              </div>
+            </div>
 
-          <Button
-            onClick={handleReset}
-            disabled={loading}
-            className="w-full h-[50px] rounded-[11px] text-[14px] font-semibold bg-primary text-primary-foreground shadow-[0_2px_8px_-3px_hsl(var(--primary)/0.25)] active:scale-[0.97] transition-transform"
-          >
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            {loading ? 'Sending…' : 'Send reset link'}
-          </Button>
-        </motion.div>
-      )}
+            <Button
+              onClick={handleReset}
+              disabled={loading}
+              className="w-full h-[48px] rounded-[10px] text-[14px] font-semibold"
+            >
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-1.5" strokeWidth={1.75} />}
+              {loading ? 'Sending…' : 'Send reset link'}
+            </Button>
 
-      <motion.div className="mt-8 text-center" {...fade(0.3)}>
-        <button
-          onClick={() => navigate('/login')}
-          className="text-[13px] text-muted-foreground/60 font-medium hover:text-muted-foreground transition-colors"
-        >
-          Back to sign in
-        </button>
-      </motion.div>
+            <div className="text-center pt-1">
+              <button
+                onClick={() => navigate('/login')}
+                className="text-[12.5px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Back to <span className="text-primary font-medium">sign in</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </AuthCard>
     </div>
   );
 };
