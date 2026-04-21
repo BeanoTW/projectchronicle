@@ -210,7 +210,25 @@
 
 /* Subtle section divider — for use between grouped blocks */
 .section-divider {
-  border-top: 1px solid hsl(var(--border) / 0.6);
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* Brand motif — minimal line-based accent under section titles.
+   Apply with `.title-accent` on a heading wrapper to add a short
+   pear-green underline that signals structure without noise. */
+.title-accent {
+  position: relative;
+  padding-bottom: 8px;
+}
+.title-accent::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 24px;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(var(--primary) / 0.7);
 }
 
 /* Long-form text safety — prevents narrative blocks from forcing scroll */
