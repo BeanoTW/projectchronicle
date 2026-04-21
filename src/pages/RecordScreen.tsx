@@ -612,9 +612,6 @@ const RecordScreen = () => {
             <div className="px-5 space-y-5">
               {/* Narrative Input */}
               <div className="writing-focus rounded-xl border border-border bg-card transition-all duration-200">
-                <Label htmlFor="narrative" className="text-[13px] font-medium text-foreground/80 px-4 pt-3 block">
-                  {recordType === 'daily_record' ? 'Your day' : 'Your account'}
-                </Label>
                 <Textarea
                   id="narrative"
                   value={narrative}
@@ -624,7 +621,7 @@ const RecordScreen = () => {
                       ? 'Record what your day involved — interactions, work, or context'
                       : 'Write what happened — include anything said, done, or noticed.'
                   }
-                  className="min-h-[180px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4"
+                  className="min-h-[200px] bg-transparent border-0 rounded-lg focus:ring-0 focus-visible:ring-0 text-[15px] leading-[1.7] shadow-none resize-none px-4 pt-4"
                 />
                 <div className="flex items-center justify-between px-4 pb-2 gap-2">
                   {narrative.length > 0 && (
