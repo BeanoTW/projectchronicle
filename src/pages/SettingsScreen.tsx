@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database } from 'lucide-react';
+import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,33 @@ const SettingsScreen = () => {
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+      const { error } = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      toast({ title: 'Your account has been deleted.' });
+      setDeleteAccountOpen(false);
+      navigate('/welcome');
+    } catch (e) {
+      toast({
+        title: 'Unable to delete account right now. Please try again.',
+        description: e instanceof Error ? e.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -357,6 +384,61 @@ const SettingsScreen = () => {
               <LogOut className="h-4 w-4" />
               Log out
             </button>
+          </div>
+          <div className="border-t border-border">
+            <AlertDialog
+              open={deleteAccountOpen}
+              onOpenChange={(o) => {
+                setDeleteAccountOpen(o);
+                if (!o) setDeleteConfirm('');
+              }}
+            >
+              <AlertDialogTrigger asChild>
+                <button
+                  className="w-full flex items-center gap-2 p-4 text-[14px] text-destructive hover:bg-destructive/5 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete account
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete account?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-[13px] text-muted-foreground">
+                      <p>This will permanently delete your account and associated cloud data. This action cannot be undone.</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        <li>Your account access will be removed.</li>
+                        <li>All records, notes, and attachments stored in your cloud backup will be deleted.</li>
+                        <li>Records stored only on this device will remain on this device but cannot be restored once your account is gone, unless you have separately exported them.</li>
+                      </ul>
+                      <p className="pt-2 text-foreground">Type <span className="font-mono font-semibold">DELETE</span> to confirm.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <input
+                  type="text"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-[14px] font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-destructive/30"
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletingAccount}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={deleteConfirm.trim() !== 'DELETE' || deletingAccount}
+                    onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deletingAccount && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                    Delete account permanently
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
