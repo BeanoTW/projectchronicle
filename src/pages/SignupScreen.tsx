@@ -44,7 +44,14 @@ const SignupScreen = () => {
     const { error, alreadyExists, needsConfirmation } = await signUp(email.trim(), password);
     setLoading(false);
     if (error) {
-      toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
+      const msg = error.message?.toLowerCase() ?? '';
+      const isWeakPassword =
+        msg.includes('weak') || msg.includes('pwned') || msg.includes('breach') || msg.includes('compromis');
+      toast({
+        title: 'Sign up failed',
+        description: isWeakPassword ? PASSWORD_MESSAGES.doesNotMeet : error.message,
+        variant: 'destructive',
+      });
       return;
     }
     if (alreadyExists) {

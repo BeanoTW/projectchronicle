@@ -1,5 +1,6 @@
 // Single source of truth for password rules used across Sign up, Reset, and Change.
-// Frontend mirrors backend (Supabase: min length 8 + HIBP leaked-password check).
+// The visible UI checklist is the ONLY validation enforced. No hidden backend
+// checks (HIBP / common-password rejection) are applied.
 // All messages are predefined — never generated dynamically.
 
 export interface PasswordRule {
@@ -36,8 +37,8 @@ export const PASSWORD_MESSAGES = {
   needsLetter: 'Password must contain at least one letter.',
   needsNumber: 'Password must contain at least one number.',
   mismatch: 'Passwords do not match.',
-  // Backend (HIBP) — surfaced verbatim from Supabase if returned.
-  leaked: 'This password has appeared in a known data breach. Choose a different one.',
+  // Fallback for any unexpected backend rejection — keep aligned with UI rules.
+  doesNotMeet: 'Please meet the password requirements above.',
 } as const;
 
 export function messageForFailedRule(ruleId: string | undefined): string {
