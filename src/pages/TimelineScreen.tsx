@@ -232,18 +232,11 @@ const TimelineScreen = () => {
     return (
       <div className="min-h-screen bg-background pb-24">
         <PageHeader title="Timeline" subtitle="Your record over time" />
-        <div className="px-5 pt-2 pb-4 text-center">
-          <CalendarDays className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="text-[15px] font-semibold text-foreground mb-1">Start building your record</h3>
-          <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            You can record events as they happen, or add them later to organise what has already occurred.
-          </p>
-        </div>
         <div className="px-5 mt-2">
           <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
-            Example of how records appear
+            Your first entries might look like this
           </p>
-          <div className="space-y-2.5 opacity-50 pointer-events-none select-none">
+          <div className="space-y-2.5 opacity-50 pointer-events-none select-none" aria-hidden="true">
             {exampleCards.map((card, i) => (
               <div key={i} className="bg-card border border-border rounded-xl px-4 py-3">
                 <p className="text-[11px] text-muted-foreground/60 mb-0.5">{card.date}</p>
@@ -253,6 +246,17 @@ const TimelineScreen = () => {
                 </span>
               </div>
             ))}
+          </div>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <button
+              onClick={() => navigate('/record')}
+              className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors active:scale-[0.98]"
+            >
+              Create your first record
+            </button>
+            <p className="text-[11px] text-muted-foreground/60 text-center max-w-xs">
+              You can record events as they happen, or add them later.
+            </p>
           </div>
         </div>
       </div>
