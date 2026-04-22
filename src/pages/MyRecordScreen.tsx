@@ -120,14 +120,79 @@ const MyRecordScreen = () => {
     );
   }
 
-  // Empty state
+  // Empty state — structured output ghost
   if (activeIncidents.length === 0) {
+    const ghostEntries = [
+      { date: '4 Apr 2026', category: 'Process / Procedure', followUp: false },
+      { date: '11 Apr 2026', category: 'Verbal Comment', followUp: true },
+      { date: '19 Apr 2026', category: 'Work Allocation', followUp: false },
+    ];
     return (
       <div className="min-h-screen bg-background pb-24">
         <PageHeader title="Your record" />
-        <div className="px-5 pt-8 text-center">
-          <FileText className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-[14px] text-muted-foreground">No records have been added yet.</p>
+        <div className="px-5 space-y-4">
+          <div aria-hidden="true" className="opacity-50 pointer-events-none select-none space-y-4">
+            {/* Ghost header */}
+            <div className="bg-card border border-border rounded-xl p-4">
+              <p className="text-[13px] font-semibold text-foreground">Chronicle Structured Record</p>
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">3 entries · April 2026</p>
+            </div>
+
+            {/* Ghost overview */}
+            <div className="bg-card border border-border rounded-xl p-4 space-y-1.5">
+              <p className="text-[12px] font-semibold text-foreground uppercase tracking-wider mb-2">Overview</p>
+              <div className="h-2 bg-muted rounded w-full" />
+              <div className="h-2 bg-muted rounded w-[88%]" />
+              <div className="h-2 bg-muted rounded w-[62%]" />
+            </div>
+
+            {/* Ghost entries */}
+            <div className="bg-card border border-border rounded-xl divide-y divide-border">
+              <div className="px-4 py-3">
+                <p className="text-[12px] font-semibold text-foreground uppercase tracking-wider">Entries</p>
+              </div>
+              {ghostEntries.map((e, i) => (
+                <div key={i} className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground/70">{e.date}</span>
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                      {e.category}
+                    </span>
+                    {e.followUp && (
+                      <span className="text-[10px] text-muted-foreground/70">· follow-up</span>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="h-2 bg-muted rounded w-full" />
+                    <div className="h-2 bg-muted rounded w-[78%]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Light data summary */}
+            <div className="text-[11px] text-muted-foreground/70 px-1 space-y-0.5">
+              <p>Entries: 3</p>
+              <p>Date range: 4 Apr 2026 → 19 Apr 2026</p>
+            </div>
+          </div>
+
+          {/* CTA + copy */}
+          <div className="pt-2 text-center">
+            <h3 className="text-[15px] font-semibold text-foreground mb-1">Your record starts here</h3>
+            <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed mb-5">
+              Add your first entry to begin building a structured record you can rely on.
+            </p>
+            <button
+              onClick={() => navigate('/record')}
+              className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors active:scale-[0.98]"
+            >
+              Create your first record
+            </button>
+            <p className="text-[11px] text-muted-foreground/60 mt-2">
+              Everything you add is preserved and organised automatically.
+            </p>
+          </div>
         </div>
       </div>
     );
