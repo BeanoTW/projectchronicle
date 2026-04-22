@@ -208,15 +208,107 @@ const CalendarScreen = () => {
   }
 
   if (incidents.length === 0) {
+    // Ghost month grid: current month, Mon-start, with a natural distribution of markers.
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    const gridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const ghostDays: Date[] = [];
+    let cur = gridStart;
+    while (cur <= gridEnd) {
+      ghostDays.push(cur);
+      cur = addDays(cur, 1);
+    }
+    // Day-of-month markers: shapes only, identical neutral colour.
+    // 'i' = incident (solid circle), 'd' = daily record (ring).
+    // Distribution: 8 marked days, isolated + one slightly denser cluster, exactly one day with 2 markers.
+    const ghostMarks: Record<number, ('i' | 'd')[]> = {
+      3: ['i'],
+      7: ['d'],
+      11: ['i'],
+      12: ['i', 'd'],   // the one day with 2 records (mixed)
+      13: ['i'],        // cluster continues
+      18: ['d'],
+      24: ['i'],
+      27: ['i'],
+    };
+
     return (
       <div className="min-h-screen bg-background pb-24">
         <PageHeader title="Calendar" />
-        <div className="px-5 pt-8 text-center">
-          <CalendarDays className="h-9 w-9 text-muted-foreground/30 mx-auto mb-3" />
-          <h3 className="text-[15px] font-semibold text-foreground mb-1">No records yet</h3>
-          <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            Your calendar will show when events were recorded.
-          </p>
+        <div className="px-5 pt-4">
+          <div aria-hidden="true" className="opacity-50 pointer-events-none select-none">
+            <h2 className="text-[14px] font-semibold text-foreground mb-2">
+              {format(monthStart, 'MMMM yyyy')}
+            </h2>
+            <div className="grid grid-cols-7 mb-1">
+              {WEEKDAYS.map(d => (
+                <div
+                  key={d}
+                  className="text-center text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider py-1"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-px">
+              {ghostDays.map((day, idx) => {
+                const inMonth = isSameMonth(day, monthStart);
+                const dom = day.getDate();
+                const marks = inMonth ? ghostMarks[dom] || [] : [];
+                return (
+                  <div
+                    key={idx}
+                    className={`relative flex flex-col items-center py-2 min-h-[48px] rounded-lg ${
+                      !inMonth ? 'opacity-30' : ''
+                    }`}
+                  >
+                    <span
+                      className={`text-[13px] ${
+                        marks.length > 0 ? 'text-foreground font-medium' : 'text-foreground/60'
+                      }`}
+                    >
+                      {format(day, 'd')}
+                    </span>
+                    {marks.length > 0 && (
+                      <div className="flex items-center gap-0.5 mt-0.5">
+                        {marks.map((m, ci) =>
+                          m === 'i' ? (
+                            <span
+                              key={ci}
+                              className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70"
+                            />
+                          ) : (
+                            <span
+                              key={ci}
+                              className="w-1.5 h-1.5 rounded-full border-[1.5px] border-muted-foreground/70"
+                            />
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 text-center">
+            <h3 className="text-[15px] font-semibold text-foreground mb-1">Nothing here yet</h3>
+            <p className="text-[13px] text-muted-foreground max-w-xs mx-auto leading-relaxed mb-5">
+              Your calendar fills as you record events.
+            </p>
+            <button
+              onClick={() => navigate('/record')}
+              className="px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors active:scale-[0.98]"
+            >
+              Create your first record
+            </button>
+            <p className="text-[11px] text-muted-foreground/60 mt-2">
+              You can record events as they happen, or add them later.
+            </p>
+          </div>
         </div>
       </div>
     );
