@@ -21,10 +21,28 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (!email.trim() || !password) return;
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error, reason } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast({ title: 'Unable to sign in', description: 'Invalid login details.', variant: 'destructive' });
+      if (reason === 'email_not_confirmed') {
+        toast({
+          title: 'Email not confirmed',
+          description: 'Please confirm your email before signing in. Check your inbox for the confirmation link.',
+          variant: 'destructive',
+        });
+      } else if (reason === 'invalid_credentials') {
+        toast({
+          title: 'Sign in failed',
+          description: 'Email or password not recognised.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Unable to sign in',
+          description: error.message || 'Something went wrong. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } else {
       navigate('/home');
     }

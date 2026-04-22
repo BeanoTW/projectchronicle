@@ -41,7 +41,7 @@ const SignupScreen = () => {
       return;
     }
     setLoading(true);
-    const { error, alreadyExists } = await signUp(email.trim(), password);
+    const { error, alreadyExists, needsConfirmation } = await signUp(email.trim(), password);
     setLoading(false);
     if (error) {
       toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
@@ -55,11 +55,16 @@ const SignupScreen = () => {
       navigate('/login');
       return;
     }
-    toast({
-      title: 'Check your email',
-      description: 'We sent a confirmation link. Verify your email, then sign in.',
-    });
-    navigate('/login');
+    if (needsConfirmation) {
+      toast({
+        title: 'Check your email',
+        description: 'Check your email to confirm your account before signing in.',
+      });
+      navigate('/login');
+      return;
+    }
+    // Session was created immediately (auto-confirm enabled)
+    navigate('/home');
   };
 
   return (

@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean; needsConfirmation?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; reason?: 'email_not_confirmed' | 'invalid_credentials' | 'other' | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -28,7 +28,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.info('[auth] state change', { event, hasSession: !!session, userId: session?.user?.id });
       settle(session);
     });
 
@@ -45,9 +46,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    console.info('[auth] signUp attempt', { email: normalizedEmail });
     const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: normalizedEmail,
+      password, // never trim/transform passwords
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     // Supabase quirk: when an account already exists, the API returns success
@@ -58,12 +61,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       !!data?.user &&
       Array.isArray(data.user.identities) &&
       data.user.identities.length === 0;
-    return { error: error as Error | null, alreadyExists };
+    const needsConfirmation = !error && !!data?.user && !data.session;
+    console.info('[auth] signUp result', {
+      ok: !error,
+      alreadyExists,
+      needsConfirmation,
+      errorMessage: error?.message,
+    });
+    return { error: error as Error | null, alreadyExists, needsConfirmation };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    const normalizedEmail = email.trim().toLowerCase();
+    console.info('[auth] signIn attempt', { email: normalizedEmail });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password, // never trim/transform passwords
+    });
+    // Map Supabase error codes to clear, user-facing reasons.
+    let reason: 'email_not_confirmed' | 'invalid_credentials' | 'other' | null = null;
+    if (error) {
+      const code = (error as { code?: string }).code;
+      const msg = error.message?.toLowerCase() ?? '';
+      if (code === 'email_not_confirmed' || msg.includes('not confirmed')) {
+        reason = 'email_not_confirmed';
+      } else if (code === 'invalid_credentials' || msg.includes('invalid login')) {
+        reason = 'invalid_credentials';
+      } else {
+        reason = 'other';
+      }
+    }
+    console.info('[auth] signIn result', {
+      ok: !error,
+      hasSession: !!data?.session,
+      userId: data?.user?.id,
+      reason,
+      errorMessage: error?.message,
+    });
+    return { error: error as Error | null, reason };
   };
 
   const signOut = async () => {
