@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean; needsConfirmation?: boolean }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; reason?: 'email_not_confirmed' | 'invalid_credentials' | 'other' | null }>;
   signOut: () => Promise<void>;
 }
 
