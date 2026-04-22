@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database } from 'lucide-react';
+import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
