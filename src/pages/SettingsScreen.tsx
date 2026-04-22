@@ -29,6 +29,33 @@ const SettingsScreen = () => {
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No active session');
+      const { error } = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      try { await supabase.auth.signOut(); } catch { /* ignore */ }
+      toast({ title: 'Your account has been deleted.' });
+      setDeleteAccountOpen(false);
+      navigate('/welcome');
+    } catch (e) {
+      toast({
+        title: 'Unable to delete account right now. Please try again.',
+        description: e instanceof Error ? e.message : undefined,
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
