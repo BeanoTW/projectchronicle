@@ -37,8 +37,8 @@ export const PASSWORD_MESSAGES = {
   needsLetter: 'Password must contain at least one letter.',
   needsNumber: 'Password must contain at least one number.',
   mismatch: 'Passwords do not match.',
-  // Backend (HIBP) — surfaced verbatim from Supabase if returned.
-  leaked: 'This password has appeared in a known data breach. Choose a different one.',
+  // Fallback for any unexpected backend rejection — keep aligned with UI rules.
+  doesNotMeet: 'Please meet the password requirements above.',
 } as const;
 
 export function messageForFailedRule(ruleId: string | undefined): string {
