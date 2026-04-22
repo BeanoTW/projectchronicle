@@ -1,5 +1,6 @@
 // Single source of truth for password rules used across Sign up, Reset, and Change.
-// Frontend mirrors backend (Supabase: min length 8 + HIBP leaked-password check).
+// The visible UI checklist is the ONLY validation enforced. No hidden backend
+// checks (HIBP / common-password rejection) are applied.
 // All messages are predefined — never generated dynamically.
 
 export interface PasswordRule {
