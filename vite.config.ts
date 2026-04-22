@@ -28,15 +28,18 @@ export default defineConfig(({ mode }) => ({
         description: "Secure workplace incident documentation platform.",
         display: "standalone",
         start_url: "/",
-        theme_color: "#1A7A6E",
-        background_color: "#F9FAFB",
+        theme_color: "#0F1115",
+        background_color: "#0F1115",
         icons: [
-          { src: "/favicon.ico", sizes: "64x64", type: "image/x-icon" },
+          { src: "/icons/icon-192-v2.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512-v2.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-maskable-512-v2.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {
         // App-shell precache only: built JS/CSS/HTML + manifest/icons/fonts.
-        globPatterns: ["**/*.{js,css,html,ico,svg,webmanifest,woff,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,svg,png,webmanifest,woff,woff2}"],
+        cacheId: "chronicle-v2",
         // Allow large bundled assets (e.g. logo PNG) to be precached.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA fallback: offline navigations resolve to index.html so React
