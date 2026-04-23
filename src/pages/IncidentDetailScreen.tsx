@@ -506,14 +506,21 @@ const IncidentDetailScreen = () => {
               ) : (
                 <div className="space-y-2">
                   {evidence.map(ev => (
-                    <div key={ev.id} className="flex items-center gap-3 p-2.5 bg-muted/30 rounded-lg">
-                      <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12">
+                    <div key={ev.id} className="flex items-center gap-2 p-2.5 bg-muted/30 rounded-lg">
+                      <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12 flex-shrink-0">
                         E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-medium text-foreground truncate">{maskFilename(ev.file_name)}</p>
                         <p className="text-[11px] text-muted-foreground/60">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
                       </div>
+                      <button
+                        onClick={() => requestDeleteEvidence(ev)}
+                        aria-label="Delete attachment"
+                        className="p-2 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/8 transition-colors active:scale-[0.95] flex-shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
