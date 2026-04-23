@@ -180,6 +180,7 @@ export type Database = {
           transcription_source_attachment_id: string | null
           updated_at: string
           user_id: string
+          version: number
           void_reason: string | null
           voided_at: string | null
           witnesses: string[]
@@ -217,6 +218,7 @@ export type Database = {
           transcription_source_attachment_id?: string | null
           updated_at?: string
           user_id: string
+          version?: number
           void_reason?: string | null
           voided_at?: string | null
           witnesses?: string[]
@@ -254,6 +256,7 @@ export type Database = {
           transcription_source_attachment_id?: string | null
           updated_at?: string
           user_id?: string
+          version?: number
           void_reason?: string | null
           voided_at?: string | null
           witnesses?: string[]
@@ -301,7 +304,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_edit_source: { Args: never; Returns: string }
+      sync_upsert_incident: {
+        Args: { _expected_version: number; _row: Json }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
