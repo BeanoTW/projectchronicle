@@ -268,7 +268,7 @@ const TimelineScreen = () => {
       <PageHeader title="Timeline" subtitle="Your record over time">
         <button
           onClick={() => setShowLibrary(true)}
-          className="p-2 rounded-lg hover:bg-muted/40 text-warm-accent/70 hover:text-warm-accent transition-colors relative"
+          className="p-2 rounded-lg text-warm-accent/65 hover:text-warm-accent/90 active:text-warm-accent/50 hover:bg-warm-accent/5 active:bg-warm-accent/10 transition-colors duration-150 relative"
           aria-label="Attachments"
         >
           <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />

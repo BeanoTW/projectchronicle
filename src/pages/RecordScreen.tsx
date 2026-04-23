@@ -451,10 +451,10 @@ const RecordScreen = () => {
       >
         <button
           onClick={() => setShowLibrary(true)}
-          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
+          className="p-2 rounded-lg text-warm-accent/65 hover:text-warm-accent/90 active:text-warm-accent/50 hover:bg-warm-accent/5 active:bg-warm-accent/10 transition-colors duration-150 relative"
           aria-label="Attachments"
         >
-          <Paperclip className="h-[18px] w-[18px] text-warm-accent/70" strokeWidth={1.5} />
+          <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />
           {allEvidence.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
               {allEvidence.length}

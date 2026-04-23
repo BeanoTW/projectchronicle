@@ -18,11 +18,11 @@ const MountainBackdrop = () => {
       >
         <defs>
           <linearGradient id="mtn-fade-back" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.10" />
+            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.085" />
             <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="mtn-fade-front" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.14" />
+            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.12" />
             <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
           </linearGradient>
         </defs>
