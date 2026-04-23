@@ -48,6 +48,12 @@ function fmtDateShort(d: string): string {
   return v ? format(v, 'dd MMM yyyy') : d;
 }
 
+/** Compact index date format: DD/MM/YY (always 2-digit). */
+function fmtDateIndex(d: string): string {
+  const v = safeParse(d);
+  return v ? format(v, 'dd/MM/yy') : d;
+}
+
 function fmtDateLong(d: string): string {
   const v = safeParse(d);
   return v ? format(v, 'd MMMM yyyy') : d;
@@ -124,19 +130,18 @@ function buildShortTitle(inc: Incident): string {
 }
 
 /**
- * Two-column index summary: target ~4–8 words / ≤52 chars, truncate ONLY at a
- * word boundary so the row remains scannable ("Manager remarked about
- * absences…" instead of "Manag…").
+ * Two-column index summary — SECONDARY hint only.
+ * Target: 2–4 words, ~25–35 characters. Truncate at word boundary.
+ * If narrative is very short, show in full (no ellipsis).
  */
 function indexSummary(inc: Incident): string {
   const full = buildShortTitle(inc);
-  const MAX = 52;
+  const MAX = 32;
   if (full.length <= MAX) return full;
-  // Cut at last whitespace before MAX.
   const slice = full.slice(0, MAX);
   const lastSpace = slice.lastIndexOf(' ');
-  const cut = lastSpace > 20 ? slice.slice(0, lastSpace) : slice;
-  return cut.replace(/[\s,;:.\-—]+$/, '') + '…';
+  const cut = lastSpace > 12 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s,;:.\-—"“”]+$/, '') + '…';
 }
 
 function isDaily(inc: Incident): boolean {
@@ -216,10 +221,10 @@ body {
 .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 14px; align-items: start; }
 .index-col { min-width: 0; }
 .index-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
-.index-table colgroup .cg-date { width: 24%; }
-.index-table colgroup .cg-time { width: 12%; }
-.index-table colgroup .cg-cat  { width: 24%; }
-.index-table colgroup .cg-sum  { width: 28%; }
+.index-table colgroup .cg-date { width: 16%; }
+.index-table colgroup .cg-time { width: 11%; }
+.index-table colgroup .cg-cat  { width: 28%; }
+.index-table colgroup .cg-sum  { width: 33%; }
 .index-table colgroup .cg-id   { width: 12%; }
 .index-table thead tr { border-bottom: 1px solid var(--rule); }
 .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; padding: 6px 6px 6px 0; text-align: left; }
@@ -228,8 +233,8 @@ body {
 .index-table td { padding: 6px 6px 6px 0; font-size: 11px; color: var(--ink-mid); vertical-align: top; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .index-table td:last-child { padding-right: 0; text-align: right; }
 .index-date { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink); font-weight: 500; white-space: nowrap; }
-.index-cat { font-size: 10.5px; color: var(--ink-mid); white-space: nowrap; overflow: hidden; text-overflow: clip; display: block; }
-.index-title { font-size: 11px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.index-cat { font-size: 11px; color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: clip; display: block; }
+.index-title { font-size: 10px; color: var(--ink-faint); font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
 .index-month-row td { padding-top: 12px; padding-bottom: 4px; white-space: normal; border-bottom: none; }
 .index-month-label { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
@@ -495,7 +500,7 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
         const catRaw = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
         const cat = indexCategoryLabel(catRaw);
         h += `<tr>`;
-        h += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
+        h += `<td><span class="index-date">${esc(fmtDateIndex(rec.incident_date))}</span></td>`;
         h += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
         h += `<td><span class="index-cat">${esc(cat)}</span></td>`;
         h += `<td><span class="index-title">${esc(indexSummary(rec))}</span></td>`;
