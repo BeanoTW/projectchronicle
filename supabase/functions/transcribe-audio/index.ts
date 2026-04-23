@@ -63,8 +63,8 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | R
       global: { headers: { authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data, error } = await supabase.auth.getClaims(token);
-    const userId = data?.claims?.sub as string | undefined;
+    const { data, error } = await supabase.auth.getUser(token);
+    const userId = data?.user?.id;
     if (error || !userId) {
       console.warn('[transcribe-audio] auth: token rejected', { reason: error?.message });
       return jsonError('unauthorized', 'Unauthorized', 401);
