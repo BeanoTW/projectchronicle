@@ -88,6 +88,7 @@ export const useCreateIncident = () => {
         transcription_created_at: null,
         transcription_provider: null,
         transcription_model: null,
+        version: 1,
         ...(incident as Partial<LocalIncident>),
         id,
         user_id: user.id,
