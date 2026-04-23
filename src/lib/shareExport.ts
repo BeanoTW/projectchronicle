@@ -1,9 +1,12 @@
 /**
  * Share an exported HTML document via the native share sheet.
  *
- * Uses Web Share Level 2 (files) when available so the user can route the
- * document to Mail, Messages, Drive, etc. Falls back to a plain anchor
- * download when the platform cannot share files.
+ * Behaviour:
+ *  - If the platform supports Web Share with files, share the file directly.
+ *  - If file-share is unsupported but navigator.share exists, share metadata
+ *    (title only) so the share sheet still opens — no silent download.
+ *  - Only fall back to a download when navigator.share is entirely missing
+ *    or the share call throws a non-cancellation error.
  *
  * Important:
  *  - This does NOT send anything from the backend.
@@ -23,14 +26,21 @@ export async function shareExportFile(html: string, filename: string, title?: st
       share?: (data: { files?: File[]; title?: string; text?: string }) => Promise<void>;
     };
 
-    if (nav.share && nav.canShare?.({ files: [file] })) {
-      try {
-        await nav.share({ files: [file], title: title || filename });
-        return 'shared';
-      } catch (e: unknown) {
-        const err = e as Error;
-        if (err?.name === 'AbortError') return 'cancelled';
-        // Fall through to download fallback.
+    // Preferred: share the file via the native share sheet.
+    if (typeof nav.share === 'function') {
+      const canShareFiles = typeof nav.canShare === 'function'
+        ? (() => { try { return nav.canShare!({ files: [file] }); } catch { return false; } })()
+        : true; // assume yes if canShare not implemented; share() will reject if not supported
+
+      if (canShareFiles) {
+        try {
+          await nav.share({ files: [file], title: title || filename });
+          return 'shared';
+        } catch (e: unknown) {
+          const err = e as Error;
+          if (err?.name === 'AbortError') return 'cancelled';
+          // Non-abort error: fall through to download fallback below.
+        }
       }
     }
 
