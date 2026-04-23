@@ -133,58 +133,71 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                 }
 
                 return (
-                  <button
+                  <div
                     key={ev.id}
-                    onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-[var(--shadow-card-hover)] transition-all text-left active:scale-[0.98]"
+                    className="w-full flex items-center gap-2 p-3 rounded-xl border border-border bg-card hover:shadow-[var(--shadow-card-hover)] transition-all"
                   >
-                    {/* Thumbnail / Icon */}
-                    <div className="w-11 h-11 rounded-lg bg-muted/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {isImage && thumbnails[ev.id] ? (
-                        <img src={thumbnails[ev.id]} alt="" className="w-full h-full object-cover rounded-lg" />
-                      ) : (
-                        <Icon className="h-4.5 w-4.5 text-muted-foreground/60" />
-                      )}
-                    </div>
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
-                      <p className="text-[11px] text-muted-foreground/50 mt-0.5">
-                        {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
-                      </p>
-                      {linked ? (
-                        <p className="text-[11px] text-primary mt-0.5 truncate">→ {displayTitle(linked)}</p>
-                      ) : (
-                        <div onClick={e => e.stopPropagation()}>
-                          {!isLinking ? (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setLinkingId(ev.id); }}
-                              className="text-[11px] text-primary/70 font-medium mt-0.5 inline-flex items-center gap-1 hover:text-primary"
-                            >
-                              <Link2 className="h-2.5 w-2.5" /> Link to record
-                            </button>
-                          ) : (
-                            <div className="flex gap-1.5 items-center mt-1" onClick={e => e.stopPropagation()}>
-                              <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
-                                <SelectTrigger className="bg-card text-[11px] h-7 flex-1 rounded-lg">
-                                  <SelectValue placeholder="Select record" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {incidents.slice(0, 20).map(inc => (
-                                    <SelectItem key={inc.id} value={inc.id}>
-                                      {inc.title || format(parseISO(inc.incident_date), 'dd MMM yyyy')}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <button onClick={() => selectedIncidentId && handleLink(ev.id, selectedIncidentId)} disabled={!selectedIncidentId} className="text-[11px] text-primary font-medium disabled:opacity-40">Link</button>
-                              <button onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }} className="text-[11px] text-muted-foreground">✕</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </button>
+                    <button
+                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+                      className="flex-1 min-w-0 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+                    >
+                      {/* Thumbnail / Icon */}
+                      <div className="w-11 h-11 rounded-lg bg-muted/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {isImage && thumbnails[ev.id] ? (
+                          <img src={thumbnails[ev.id]} alt="" className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <Icon className="h-4.5 w-4.5 text-muted-foreground/60" />
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                        <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                          {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
+                        </p>
+                        {linked ? (
+                          <p className="text-[11px] text-primary mt-0.5 truncate">→ {displayTitle(linked)}</p>
+                        ) : (
+                          <div onClick={e => e.stopPropagation()}>
+                            {!isLinking ? (
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => { e.stopPropagation(); setLinkingId(ev.id); }}
+                                className="text-[11px] text-primary/70 font-medium mt-0.5 inline-flex items-center gap-1 hover:text-primary cursor-pointer"
+                              >
+                                <Link2 className="h-2.5 w-2.5" /> Link to record
+                              </span>
+                            ) : (
+                              <div className="flex gap-1.5 items-center mt-1" onClick={e => e.stopPropagation()}>
+                                <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
+                                  <SelectTrigger className="bg-card text-[11px] h-7 flex-1 rounded-lg">
+                                    <SelectValue placeholder="Select record" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {incidents.slice(0, 20).map(inc => (
+                                      <SelectItem key={inc.id} value={inc.id}>
+                                        {inc.title || format(parseISO(inc.incident_date), 'dd MMM yyyy')}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <span role="button" tabIndex={0} onClick={() => selectedIncidentId && handleLink(ev.id, selectedIncidentId)} className={`text-[11px] font-medium cursor-pointer ${!selectedIncidentId ? 'text-primary/40' : 'text-primary'}`}>Link</span>
+                                <span role="button" tabIndex={0} onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }} className="text-[11px] text-muted-foreground cursor-pointer">✕</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => requestDelete(ev)}
+                      aria-label="Delete attachment"
+                      className="p-2 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/8 transition-colors active:scale-[0.95] flex-shrink-0"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 );
               })
             )}
