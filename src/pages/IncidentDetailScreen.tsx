@@ -1,7 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
-import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info, History } from 'lucide-react';
+import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info, History, Share2 } from 'lucide-react';
+import { renderTemplateHtml } from '@/lib/templateRenderer';
+import { shareExportFile } from '@/lib/shareExport';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
