@@ -10,6 +10,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useBackup } from '@/contexts/BackupContext';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { format } from 'date-fns';
+import SyncStatusPill from '@/components/chronicle/SyncStatusPill';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
