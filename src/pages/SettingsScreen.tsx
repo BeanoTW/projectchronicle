@@ -169,7 +169,10 @@ const SettingsScreen = () => {
             </p>
 
             {conflictCount > 0 && (
-              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1">
+              <div
+                id="settings-cloud-conflicts"
+                className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1 scroll-mt-20"
+              >
                 <div className="font-medium">
                   {conflictCount} record{conflictCount === 1 ? '' : 's'} changed elsewhere.
                 </div>
