@@ -1,5 +1,6 @@
 import { Home, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import MountainBackdrop from './MountainBackdrop';
 
 interface PageHeaderProps {
   title: string;
@@ -7,14 +8,16 @@ interface PageHeaderProps {
   children?: React.ReactNode;
   hideHome?: boolean;
   hideSettings?: boolean;
+  hideMountain?: boolean;
 }
 
-const PageHeader = ({ title, subtitle, children, hideHome, hideSettings }: PageHeaderProps) => {
+const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMountain }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="px-5 pt-8 pb-4">
-      <div className="flex items-center justify-between mb-1">
+    <div className="relative px-5 pt-8 pb-4">
+      {!hideMountain && <MountainBackdrop />}
+      <div className="relative z-10 flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
           {!hideHome && (
             <button
@@ -41,7 +44,7 @@ const PageHeader = ({ title, subtitle, children, hideHome, hideSettings }: PageH
         </div>
       </div>
       {subtitle && (
-        <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
+        <p className="relative z-10 text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
           {subtitle}
         </p>
       )}
