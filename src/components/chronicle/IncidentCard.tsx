@@ -7,6 +7,8 @@ import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge, { CategoryLabel } from './CategoryBadge';
 import RecordTypeLabel from './RecordTypeLabel';
 import RecordAgeChip from './RecordAgeChip';
+import ConflictBadge from './ConflictBadge';
+import IntegrityFooter from './IntegrityFooter';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
