@@ -456,9 +456,20 @@ const IncidentDetailScreen = () => {
 
             {/* 5. RAW NARRATIVE (primary) */}
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground mb-1">
-                {isDaily ? 'Account of the day' : 'User-provided account'}
-              </p>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-[11px] font-semibold text-muted-foreground">
+                  {isDaily ? 'Account of the day' : 'User-provided account'}
+                </p>
+                {hasTranscriptInfo && (
+                  <TranscriptProvenanceChip
+                    sourceAttachmentId={transcriptSourceId}
+                    sourcePresent={transcriptSourcePresent}
+                    onClick={transcriptSourcePresent
+                      ? () => evidenceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      : undefined}
+                  />
+                )}
+              </div>
               <ObscuredBlock>
                 <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
                   {incident.raw_narrative}
