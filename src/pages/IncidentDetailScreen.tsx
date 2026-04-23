@@ -136,6 +136,7 @@ const IncidentDetailScreen = () => {
     const validSubs = cat ? (SUBTYPES[cat as PrimaryCategory] || []) : [];
     const currentSub = incident.subtype;
     const newSubtype = validSubs.includes(currentSub || '') ? currentSub : null;
+    const oldCat = incident.category ?? '';
 
     await updateIncident.mutateAsync({
       id: incident.id,
@@ -143,14 +144,43 @@ const IncidentDetailScreen = () => {
       subtype: newSubtype,
       category_source: 'user',
     } as any);
+    // Audit trail (best-effort — append-only at the DB layer)
+    try {
+      if (oldCat !== (cat ?? '')) {
+        await createEditHistory.mutateAsync({
+          incident_id: incident.id,
+          field_changed: 'category',
+          old_value: oldCat || '(none)',
+          new_value: cat ?? '(none)',
+          edit_source: 'user',
+        });
+      }
+    } catch (e) {
+      console.warn('[IncidentDetail] edit_history insert skipped:', e);
+    }
     toast({ title: 'Category updated' });
   };
 
   const handleSubtypeUpdate = async (newSubtype: string) => {
+    const oldSub = incident.subtype ?? '';
+    const next = newSubtype === 'Not sure yet' ? null : newSubtype;
     await updateIncident.mutateAsync({
       id: incident.id,
-      subtype: newSubtype === 'Not sure yet' ? null : newSubtype,
+      subtype: next,
     } as any);
+    try {
+      if (oldSub !== (next ?? '')) {
+        await createEditHistory.mutateAsync({
+          incident_id: incident.id,
+          field_changed: 'subtype',
+          old_value: oldSub || '(none)',
+          new_value: next ?? '(none)',
+          edit_source: 'user',
+        });
+      }
+    } catch (e) {
+      console.warn('[IncidentDetail] edit_history insert skipped:', e);
+    }
     toast({ title: 'Subtype updated' });
   };
 
