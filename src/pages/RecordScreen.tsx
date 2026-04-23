@@ -36,6 +36,13 @@ const RecordScreen = () => {
   const { data: allEvidence = [] } = useEvidence();
   const [transcribing, setTranscribing] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
+  // Provenance for transcript-derived narrative content (carried into Review/save).
+  const [transcriptProvenance, setTranscriptProvenance] = useState<{
+    attachmentId: string;
+    createdAt: string;
+    provider: string;
+    model: string;
+  } | null>(null);
 
   const [mode, setMode] = useState<'voice' | 'text'>('text');
   // Daily Record extension — second record type within the same system.
@@ -264,6 +271,7 @@ const RecordScreen = () => {
             recordMethod: mode,
             recordType: 'daily_record',
             interactions,
+            transcriptProvenance,
           },
         },
       });
@@ -321,6 +329,7 @@ const RecordScreen = () => {
           recordMethod: mode,
           recordType: 'incident',
           interactions: [],
+          transcriptProvenance,
         },
       },
     });
@@ -348,6 +357,7 @@ const RecordScreen = () => {
           recordMethod: mode,
           recordType,
           interactions: recordType === 'daily_record' ? interactions : [],
+          transcriptProvenance,
         },
       },
     });
@@ -522,7 +532,7 @@ const RecordScreen = () => {
                 if (!user) return;
                 try {
                   const file = new File([blob], `voice-note-${Date.now()}.webm`, { type: blob.type });
-                  await uploadEvidence.mutateAsync({ file, description: `Voice note (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')})` });
+                  const uploaded = await uploadEvidence.mutateAsync({ file, description: `Voice note (${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')})` });
                   toast({ title: 'Voice note saved', description: 'Stored as an attachment. Transcribing…' });
 
                   setTranscribing(true);
@@ -535,6 +545,16 @@ const RecordScreen = () => {
                     if (error) throw error;
                     if (data?.transcript && data.transcript !== '[inaudible]') {
                       setNarrative(prev => prev ? prev + '\n\n' + data.transcript : data.transcript);
+                      // Capture provenance so the saved record links the transcript
+                      // back to the exact attachment used.
+                      if (uploaded?.id) {
+                        setTranscriptProvenance({
+                          attachmentId: uploaded.id,
+                          createdAt: new Date().toISOString(),
+                          provider: 'lovable-ai',
+                          model: 'google/gemini-2.5-flash',
+                        });
+                      }
                       setMode('text');
                       toast({ title: 'Transcript added', description: 'Your words have been added as editable text.' });
                     } else {

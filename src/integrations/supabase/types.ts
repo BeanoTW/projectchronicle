@@ -17,6 +17,7 @@ export type Database = {
       edit_history: {
         Row: {
           changed_at: string
+          edit_source: string
           field_changed: string
           id: string
           incident_id: string
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           changed_at?: string
+          edit_source?: string
           field_changed: string
           id?: string
           incident_id: string
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           changed_at?: string
+          edit_source?: string
           field_changed?: string
           id?: string
           incident_id?: string
@@ -157,8 +160,10 @@ export type Database = {
           incident_date: string
           incident_time: string | null
           interactions: Json | null
+          last_modified_at: string | null
           location: string | null
           locked: boolean
+          original_created_at: string | null
           people_involved: string[]
           raw_narrative: string
           record_date: string | null
@@ -169,6 +174,10 @@ export type Database = {
           subtype: string | null
           tags: string[]
           title: string | null
+          transcription_created_at: string | null
+          transcription_model: string | null
+          transcription_provider: string | null
+          transcription_source_attachment_id: string | null
           updated_at: string
           user_id: string
           void_reason: string | null
@@ -188,8 +197,10 @@ export type Database = {
           incident_date: string
           incident_time?: string | null
           interactions?: Json | null
+          last_modified_at?: string | null
           location?: string | null
           locked?: boolean
+          original_created_at?: string | null
           people_involved?: string[]
           raw_narrative: string
           record_date?: string | null
@@ -200,6 +211,10 @@ export type Database = {
           subtype?: string | null
           tags?: string[]
           title?: string | null
+          transcription_created_at?: string | null
+          transcription_model?: string | null
+          transcription_provider?: string | null
+          transcription_source_attachment_id?: string | null
           updated_at?: string
           user_id: string
           void_reason?: string | null
@@ -219,8 +234,10 @@ export type Database = {
           incident_date?: string
           incident_time?: string | null
           interactions?: Json | null
+          last_modified_at?: string | null
           location?: string | null
           locked?: boolean
+          original_created_at?: string | null
           people_involved?: string[]
           raw_narrative?: string
           record_date?: string | null
@@ -231,6 +248,10 @@ export type Database = {
           subtype?: string | null
           tags?: string[]
           title?: string | null
+          transcription_created_at?: string | null
+          transcription_model?: string | null
+          transcription_provider?: string | null
+          transcription_source_attachment_id?: string | null
           updated_at?: string
           user_id?: string
           void_reason?: string | null

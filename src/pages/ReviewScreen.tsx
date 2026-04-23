@@ -47,6 +47,13 @@ export interface ReviewDraft {
   // Daily Record extension
   recordType?: RecordType;
   interactions?: Interaction[];
+  // Transcript provenance — set when narrative was seeded from a transcribed audio attachment.
+  transcriptProvenance?: {
+    attachmentId: string;
+    createdAt: string;
+    provider: string;
+    model: string;
+  } | null;
 }
 
 function normSubtype(s: string): string {
@@ -508,6 +515,11 @@ const ReviewScreen = () => {
           category_source: isDaily ? null : (s.categorySource || 'ai'),
           record_type: isDaily ? 'daily_record' : 'incident',
           interactions: isDaily ? (d.interactions ?? []) : null,
+          // Transcript provenance — links narrative back to the source audio attachment.
+          transcription_source_attachment_id: d.transcriptProvenance?.attachmentId ?? null,
+          transcription_created_at: d.transcriptProvenance?.createdAt ?? null,
+          transcription_provider: d.transcriptProvenance?.provider ?? null,
+          transcription_model: d.transcriptProvenance?.model ?? null,
         } as any);
         // Best-effort: edit history is a non-critical audit trail.
         // The incident is local-first and may not yet be synced to the server,
@@ -516,7 +528,18 @@ const ReviewScreen = () => {
           await createEditHistory.mutateAsync({
             incident_id: result.id,
             field_changed: 'incident_recorded',
+            edit_source: 'system',
           });
+          // If the narrative was seeded from a transcript, log that explicitly
+          // so the audit trail shows where the text came from.
+          if (d.transcriptProvenance) {
+            await createEditHistory.mutateAsync({
+              incident_id: result.id,
+              field_changed: 'raw_narrative',
+              new_value: `Inserted from transcribed audio (attachment ${d.transcriptProvenance.attachmentId.slice(0, 8)})`,
+              edit_source: 'transcription',
+            });
+          }
         } catch (historyErr) {
           console.warn('[ReviewScreen] edit_history insert skipped (non-critical):', historyErr);
         }

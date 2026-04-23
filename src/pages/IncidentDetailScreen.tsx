@@ -136,6 +136,7 @@ const IncidentDetailScreen = () => {
     const validSubs = cat ? (SUBTYPES[cat as PrimaryCategory] || []) : [];
     const currentSub = incident.subtype;
     const newSubtype = validSubs.includes(currentSub || '') ? currentSub : null;
+    const oldCat = incident.category ?? '';
 
     await updateIncident.mutateAsync({
       id: incident.id,
@@ -143,14 +144,43 @@ const IncidentDetailScreen = () => {
       subtype: newSubtype,
       category_source: 'user',
     } as any);
+    // Audit trail (best-effort — append-only at the DB layer)
+    try {
+      if (oldCat !== (cat ?? '')) {
+        await createEditHistory.mutateAsync({
+          incident_id: incident.id,
+          field_changed: 'category',
+          old_value: oldCat || '(none)',
+          new_value: cat ?? '(none)',
+          edit_source: 'user',
+        });
+      }
+    } catch (e) {
+      console.warn('[IncidentDetail] edit_history insert skipped:', e);
+    }
     toast({ title: 'Category updated' });
   };
 
   const handleSubtypeUpdate = async (newSubtype: string) => {
+    const oldSub = incident.subtype ?? '';
+    const next = newSubtype === 'Not sure yet' ? null : newSubtype;
     await updateIncident.mutateAsync({
       id: incident.id,
-      subtype: newSubtype === 'Not sure yet' ? null : newSubtype,
+      subtype: next,
     } as any);
+    try {
+      if (oldSub !== (next ?? '')) {
+        await createEditHistory.mutateAsync({
+          incident_id: incident.id,
+          field_changed: 'subtype',
+          old_value: oldSub || '(none)',
+          new_value: next ?? '(none)',
+          edit_source: 'user',
+        });
+      }
+    } catch (e) {
+      console.warn('[IncidentDetail] edit_history insert skipped:', e);
+    }
     toast({ title: 'Subtype updated' });
   };
 
@@ -416,10 +446,27 @@ const IncidentDetailScreen = () => {
 
             {/* 9. INTEGRITY BLOCK */}
             <div className="pt-3 border-t border-border/50 space-y-0.5">
-              <p className="text-[10px] text-muted-foreground/60">This record was created on {fmtFull(incident.created_at)}</p>
+              <p className="text-[10px] text-muted-foreground/60">
+                Original entry created: {fmtFull((incident as any).original_created_at || incident.created_at)}
+              </p>
+              {(() => {
+                const orig = (incident as any).original_created_at || incident.created_at;
+                const last = (incident as any).last_modified_at || incident.updated_at;
+                const changed = orig && last && new Date(last).getTime() - new Date(orig).getTime() > 1000;
+                return (
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {changed ? `Last modified: ${fmtFull(last)}` : 'No later modifications recorded'}
+                  </p>
+                );
+              })()}
               <p className="text-[10px] text-muted-foreground/60">Original content preserved · Updates appended without overwriting</p>
               {incident.category_source === 'user' && (
                 <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
+              )}
+              {(incident as any).transcription_source_attachment_id && (
+                <p className="text-[10px] text-muted-foreground/60">
+                  Transcript source: audio attachment {String((incident as any).transcription_source_attachment_id).slice(0, 8)}
+                </p>
               )}
             </div>
 

@@ -29,13 +29,13 @@ export const useUploadEvidence = () => {
       const uniqueId = crypto.randomUUID();
       const ext = file.name.split('.').pop() || 'bin';
       const filePath = `${user!.id}/${uniqueId}.${ext}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('evidence')
         .upload(filePath, file, { upsert: false });
       if (uploadError) throw uploadError;
 
-      const { error: dbError } = await supabase
+      const { data: inserted, error: dbError } = await supabase
         .from('evidence_files')
         .insert({
           user_id: user!.id,
@@ -46,8 +46,11 @@ export const useUploadEvidence = () => {
           mime_type: file.type,
           file_size: file.size,
           description,
-        });
+        })
+        .select()
+        .single();
       if (dbError) throw dbError;
+      return inserted as EvidenceFile;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evidence'] });

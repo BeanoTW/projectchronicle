@@ -82,6 +82,12 @@ export const useCreateIncident = () => {
         voided_at: null,
         witnesses: [],
         locked: false,
+        original_created_at: ts,
+        last_modified_at: ts,
+        transcription_source_attachment_id: null,
+        transcription_created_at: null,
+        transcription_provider: null,
+        transcription_model: null,
         ...(incident as Partial<LocalIncident>),
         id,
         user_id: user.id,
@@ -104,6 +110,16 @@ export const useCreateIncident = () => {
   });
 };
 
+// Fields that count as a "main record edit" — touching any of these bumps
+// last_modified_at locally. The DB trigger enforces the same set server-side.
+const TRACKED_FIELDS: ReadonlyArray<keyof Incident> = [
+  'raw_narrative',
+  'category',
+  'subtype',
+  'location',
+  'people_involved',
+];
+
 export const useUpdateIncident = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -114,10 +130,16 @@ export const useUpdateIncident = () => {
       if (!existing || existing.owner_user_id !== user.id) throw new Error('Record not found');
       const enabled = await isBackupEnabled();
       const ts = nowIso();
+      const trackedChanged = TRACKED_FIELDS.some(
+        (f) => f in updates && JSON.stringify((updates as Partial<Incident>)[f]) !== JSON.stringify(existing[f]),
+      );
       const next: LocalIncident = {
         ...existing,
         ...updates,
+        // original_created_at must never be overwritten from the client
+        original_created_at: existing.original_created_at ?? existing.created_at,
         updated_at: ts,
+        last_modified_at: trackedChanged ? ts : (existing.last_modified_at ?? existing.updated_at),
         local_updated_at: ts,
         sync_state: enabled ? 'queued' : (existing.sync_state === 'backed_up' ? 'queued' : 'local_only'),
       };

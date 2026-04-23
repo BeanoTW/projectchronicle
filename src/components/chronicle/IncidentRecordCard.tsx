@@ -195,13 +195,28 @@ const IncidentRecordCard = ({
         {/* 9. INTEGRITY BLOCK */}
         <div className="pt-2 border-t border-border/50 space-y-0.5">
           <p className="text-[10px] text-muted-foreground/60">
-            This record was created on {fmtFull(incident.created_at)}
+            Original entry created: {fmtFull((incident as any).original_created_at || incident.created_at)}
           </p>
+          {(() => {
+            const orig = (incident as any).original_created_at || incident.created_at;
+            const last = (incident as any).last_modified_at || incident.updated_at;
+            const changed = orig && last && new Date(last).getTime() - new Date(orig).getTime() > 1000;
+            return (
+              <p className="text-[10px] text-muted-foreground/60">
+                {changed ? `Last modified: ${fmtFull(last)}` : 'No later modifications recorded'}
+              </p>
+            );
+          })()}
           <p className="text-[10px] text-muted-foreground/60">
             Original content preserved · Updates appended without overwriting
           </p>
           {incident.category_source === 'user' && (
             <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
+          )}
+          {(incident as any).transcription_source_attachment_id && (
+            <p className="text-[10px] text-muted-foreground/60">
+              Transcript source: audio attachment {String((incident as any).transcription_source_attachment_id).slice(0, 8)}
+            </p>
           )}
         </div>
 
@@ -314,9 +329,16 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
     }
 
     // Integrity
+    const dOrig = (incident as any).original_created_at || incident.created_at;
+    const dLast = (incident as any).last_modified_at || incident.updated_at;
+    const dChanged = dOrig && dLast && new Date(dLast).getTime() - new Date(dOrig).getTime() > 1000;
     html += `<div class="section integrity">`;
-    html += `<p>This record was created on ${fmtFullHtml(incident.created_at)}</p>`;
+    html += `<p>Original entry created: ${fmtFullHtml(dOrig)}</p>`;
+    html += `<p>${dChanged ? `Last modified: ${fmtFullHtml(dLast)}` : 'No later modifications recorded'}</p>`;
     html += `<p>Original content preserved · Updates appended without overwriting</p>`;
+    if ((incident as any).transcription_source_attachment_id) {
+      html += `<p>Transcript source: audio attachment ${esc(String((incident as any).transcription_source_attachment_id).slice(0, 8))}</p>`;
+    }
     html += `</div>`;
 
     // Citation
@@ -392,10 +414,17 @@ export function renderIncidentCardHtml(data: IncidentCardHtmlData): string {
   }
 
   // 9. INTEGRITY
+  const origTs = (incident as any).original_created_at || incident.created_at;
+  const lastTs = (incident as any).last_modified_at || incident.updated_at;
+  const hasChanges = origTs && lastTs && new Date(lastTs).getTime() - new Date(origTs).getTime() > 1000;
   html += `<div class="section integrity">`;
-  html += `<p>This record was created on ${fmtFullHtml(incident.created_at)}</p>`;
+  html += `<p>Original entry created: ${fmtFullHtml(origTs)}</p>`;
+  html += `<p>${hasChanges ? `Last modified: ${fmtFullHtml(lastTs)}` : 'No later modifications recorded'}</p>`;
   html += `<p>Original content preserved · Updates appended without overwriting</p>`;
   if (incident.category_source === 'user') html += `<p>Classification reviewed before save</p>`;
+  if ((incident as any).transcription_source_attachment_id) {
+    html += `<p>Transcript source: audio attachment ${esc(String((incident as any).transcription_source_attachment_id).slice(0, 8))}</p>`;
+  }
   html += `</div>`;
 
   // 10. CITATION
