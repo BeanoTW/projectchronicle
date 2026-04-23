@@ -443,11 +443,11 @@ serve(async (req) => {
   .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; margin-top: 16px; }
   .index-col { min-width: 0; }
   .index-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-  .index-table colgroup .cg-date { width: 19%; }
-  .index-table colgroup .cg-time { width: 12%; }
-  .index-table colgroup .cg-cat  { width: 24%; }
-  .index-table colgroup .cg-sum  { width: 33%; }
-  .index-table colgroup .cg-id   { width: 12%; }
+  .index-table colgroup .cg-date { width: 21%; }
+  .index-table colgroup .cg-time { width: 11%; }
+  .index-table colgroup .cg-cat  { width: 22%; }
+  .index-table colgroup .cg-sum  { width: 35%; }
+  .index-table colgroup .cg-id   { width: 11%; }
   .index-table th, .index-table td { padding: 7px 6px !important; line-height: 1.35; vertical-align: middle; overflow: hidden; }
   .index-table .c-id, .c-id .index-id, .index-table th:last-child { text-align: right; }
   .index-table .c-sum { text-overflow: ellipsis; white-space: nowrap; }
