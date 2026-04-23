@@ -10,6 +10,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import IncidentCard from '@/components/chronicle/IncidentCard';
 import PageHeader from '@/components/chronicle/PageHeader';
+import { TimelineSkeleton } from '@/components/chronicle/Skeletons';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SummaryBuilderModal from '@/components/chronicle/SummaryBuilderModal';
 import { PRIMARY_CATEGORIES, CATEGORY_BORDER_COLORS, CATEGORY_CARD_TINTS } from '@/lib/categories';
