@@ -22,15 +22,27 @@ export const useEditHistory = (incidentId: string | undefined) => {
   });
 };
 
+export type EditSource = 'user' | 'transcription' | 'system';
+
 export const useCreateEditHistory = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (entry: { incident_id: string; field_changed: string; old_value?: string; new_value?: string }) => {
+    mutationFn: async (entry: {
+      incident_id: string;
+      field_changed: string;
+      old_value?: string;
+      new_value?: string;
+      edit_source?: EditSource;
+    }) => {
       const { error } = await supabase
         .from('edit_history')
-        .insert({ ...entry, user_id: user!.id });
+        .insert({
+          ...entry,
+          edit_source: entry.edit_source ?? 'user',
+          user_id: user!.id,
+        });
       if (error) throw error;
     },
     onSuccess: (_, vars) => {
