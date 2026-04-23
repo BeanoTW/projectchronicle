@@ -1,13 +1,18 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
-import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info } from 'lucide-react';
+import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info, History } from 'lucide-react';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useBackup } from '@/contexts/BackupContext';
 import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
 import DeleteAttachmentDialog from '@/components/chronicle/DeleteAttachmentDialog';
+import ConfirmDialog from '@/components/chronicle/ConfirmDialog';
+import EditHistorySheet from '@/components/chronicle/EditHistorySheet';
+import IntegrityFooter from '@/components/chronicle/IntegrityFooter';
+import TranscriptProvenanceChip from '@/components/chronicle/TranscriptProvenanceChip';
+import { IncidentDetailSkeleton } from '@/components/chronicle/Skeletons';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
@@ -65,11 +70,14 @@ const IncidentDetailScreen = () => {
   const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   const followUpRef = useRef<HTMLDivElement>(null);
+  const evidenceRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
+    return <IncidentDetailSkeleton />;
   }
 
   if (!incident) {
@@ -92,6 +100,15 @@ const IncidentDetailScreen = () => {
       return gap > 0 ? `Recorded ${gap} day${gap === 1 ? '' : 's'} after event` : null;
     } catch { return null; }
   })();
+
+  // Transcript provenance: pointer + whether the source file still exists.
+  const transcriptSourceId =
+    (incident as { transcription_source_attachment_id?: string | null }).transcription_source_attachment_id ?? null;
+  const transcriptSourcePresent = !!transcriptSourceId
+    && evidence.some(ev => ev.id === transcriptSourceId);
+  const hasTranscriptInfo =
+    !!transcriptSourceId
+    || !!(incident as { transcription_created_at?: string | null }).transcription_created_at;
 
   const handleDelete = async () => {
     await deleteIncident.mutateAsync(incident.id);
@@ -439,9 +456,20 @@ const IncidentDetailScreen = () => {
 
             {/* 5. RAW NARRATIVE (primary) */}
             <div>
-              <p className="text-[11px] font-semibold text-muted-foreground mb-1">
-                {isDaily ? 'Account of the day' : 'User-provided account'}
-              </p>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-[11px] font-semibold text-muted-foreground">
+                  {isDaily ? 'Account of the day' : 'User-provided account'}
+                </p>
+                {hasTranscriptInfo && (
+                  <TranscriptProvenanceChip
+                    sourceAttachmentId={transcriptSourceId}
+                    sourcePresent={transcriptSourcePresent}
+                    onClick={transcriptSourcePresent
+                      ? () => evidenceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      : undefined}
+                  />
+                )}
+              </div>
               <ObscuredBlock>
                 <p className="text-[14px] text-foreground leading-relaxed whitespace-pre-wrap">
                   {incident.raw_narrative}
@@ -531,30 +559,30 @@ const IncidentDetailScreen = () => {
               </label>
             </div>
 
+            {/* 8. EVIDENCE wrapper ref target */}
+            <div ref={evidenceRef} aria-hidden="true" />
+
             {/* 9. INTEGRITY BLOCK */}
-            <div className="pt-3 border-t border-border/50 space-y-0.5">
-              <p className="text-[10px] text-muted-foreground/60">
-                Original entry created: {fmtFull((incident as any).original_created_at || incident.created_at)}
-              </p>
-              {(() => {
-                const orig = (incident as any).original_created_at || incident.created_at;
-                const last = (incident as any).last_modified_at || incident.updated_at;
-                const changed = orig && last && new Date(last).getTime() - new Date(orig).getTime() > 1000;
-                return (
-                  <p className="text-[10px] text-muted-foreground/60">
-                    {changed ? `Last modified: ${fmtFull(last)}` : 'No later modifications recorded'}
-                  </p>
-                );
-              })()}
+            <div className="pt-3 border-t border-border/50 space-y-1.5">
+              <IntegrityFooter
+                createdAt={incident.created_at}
+                originalCreatedAt={(incident as { original_created_at?: string | null }).original_created_at}
+                lastModifiedAt={(incident as { last_modified_at?: string | null }).last_modified_at}
+                updatedAt={incident.updated_at}
+                version={(incident as { version?: number | null }).version}
+              />
               <p className="text-[10px] text-muted-foreground/60">Original content preserved · Updates appended without overwriting</p>
               {incident.category_source === 'user' && (
                 <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
               )}
-              {(incident as any).transcription_source_attachment_id && (
-                <p className="text-[10px] text-muted-foreground/60">
-                  Transcript source: audio attachment {String((incident as any).transcription_source_attachment_id).slice(0, 8)}
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowHistory(true)}
+                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-1"
+              >
+                <History className="h-3 w-3" />
+                View edit history{editHistory.length > 0 ? ` (${editHistory.length})` : ''}
+              </button>
             </div>
 
             {/* 10. CITATION BLOCK */}
@@ -615,7 +643,7 @@ const IncidentDetailScreen = () => {
                 <Archive className="h-4 w-4 mr-2" /> Void Record
               </Button>
             </div>
-            <button onClick={handleDelete} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
+            <button onClick={() => setShowDeleteDialog(true)} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
               <Trash2 className="h-4 w-4 inline mr-1.5" />Delete incident
             </button>
           </div>
@@ -654,6 +682,25 @@ const IncidentDetailScreen = () => {
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmDeleteEvidence}
         />
+        <ConfirmDialog
+          open={showDeleteDialog}
+          title="Delete record?"
+          description="This permanently removes the record and its history from this device. This cannot be undone."
+          confirmLabel="Delete"
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={() => { setShowDeleteDialog(false); handleDelete(); }}
+        />
+        <EditHistorySheet
+          open={showHistory}
+          onOpenChange={setShowHistory}
+          entries={editHistory}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default IncidentDetailScreen;
       </div>
     </div>
   );

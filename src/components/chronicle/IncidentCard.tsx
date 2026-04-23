@@ -7,6 +7,8 @@ import type { Incident } from '@/hooks/useIncidents';
 import CategoryBadge, { CategoryLabel } from './CategoryBadge';
 import RecordTypeLabel from './RecordTypeLabel';
 import RecordAgeChip from './RecordAgeChip';
+import ConflictBadge from './ConflictBadge';
+import IntegrityFooter from './IntegrityFooter';
 import { CATEGORY_CARD_TINTS } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
@@ -46,11 +48,12 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
 
   if (compact) {
     const isVoided = !!incident.voided_at;
+    const hasConflict = (incident as { sync_state?: string }).sync_state === 'conflict';
     return (
       <div className={isVoided ? 'opacity-50' : ''}>
         <button
           onClick={handleClick}
-          className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint}`}
+          className={`w-full text-left rounded-xl border border-border border-l-4 px-3.5 py-3.5 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.97] ${tint}`}
         >
           {/* Primary: record-type label. Secondary: category (incidents only). */}
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -58,6 +61,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
             {incident.record_type !== 'daily_record' && (
               <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
+            {hasConflict && <ConflictBadge />}
           </div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
             <h3 className={`text-[14px] font-semibold line-clamp-1 flex-1 leading-snug ${isVoided ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
@@ -87,6 +91,14 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
               </span>
             </div>
           )}
+          <IntegrityFooter
+            createdAt={incident.created_at}
+            originalCreatedAt={(incident as { original_created_at?: string | null }).original_created_at}
+            lastModifiedAt={(incident as { last_modified_at?: string | null }).last_modified_at}
+            updatedAt={incident.updated_at}
+            version={(incident as { version?: number | null }).version}
+            className="mt-2 pt-2 border-t border-border/40"
+          />
         </button>
         <AnimatePresence>
           {expandable && expanded && (
@@ -124,10 +136,11 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
   }
 
   const isVoidedFull = !!incident.voided_at;
+  const hasConflictFull = (incident as { sync_state?: string }).sync_state === 'conflict';
   return (
     <button
       onClick={() => navigate(`/incident/${incident.id}`)}
-      className={`w-full text-left rounded-xl border border-border border-l-4 p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.98] ${tint} ${isVoidedFull ? 'opacity-50' : ''}`}
+      className={`w-full text-left rounded-xl border border-border border-l-4 p-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-px transition-all duration-200 active:scale-[0.97] ${tint} ${isVoidedFull ? 'opacity-50' : ''}`}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1">
@@ -137,6 +150,7 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
             {incident.record_type !== 'daily_record' && (
               <CategoryLabel category={incident.category || ''} subtype={incident.subtype ?? undefined} />
             )}
+            {hasConflictFull && <ConflictBadge />}
           </div>
           <h3 className={`text-[15px] font-semibold line-clamp-1 leading-snug ${isVoidedFull ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
             {isVoidedFull && <span className="text-[10px] font-medium text-muted-foreground/60 bg-muted rounded px-1.5 py-0.5 mr-1.5 no-underline inline-block">Voided</span>}
@@ -165,6 +179,15 @@ const IncidentCard = ({ incident, attachmentCount, compact, expandable }: Incide
           </>
         )}
       </div>
+
+      <IntegrityFooter
+        createdAt={incident.created_at}
+        originalCreatedAt={(incident as { original_created_at?: string | null }).original_created_at}
+        lastModifiedAt={(incident as { last_modified_at?: string | null }).last_modified_at}
+        updatedAt={incident.updated_at}
+        version={(incident as { version?: number | null }).version}
+        className="mt-3 pt-2 border-t border-border/40"
+      />
     </button>
   );
 };
