@@ -44,7 +44,7 @@ const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMou
         </div>
       </div>
       {subtitle && (
-        <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
+        <p className="relative z-10 text-[13px] text-muted-foreground mt-0.5 leading-relaxed pl-[30px]">
           {subtitle}
         </p>
       )}
