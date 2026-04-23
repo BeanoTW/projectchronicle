@@ -558,8 +558,7 @@ serve(async (req) => {
   </div>
 </div>
 
-<div class="section-header">
-  <h2>Chronological Index</h2>
+<div class="section-header index-section">
   <span class="section-count">${incidents.length} record${incidents.length === 1 ? "" : "s"}</span>
 </div>
 
