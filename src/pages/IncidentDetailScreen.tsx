@@ -6,7 +6,8 @@ import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from 
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useBackup } from '@/contexts/BackupContext';
-import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
+import DeleteAttachmentDialog from '@/components/chronicle/DeleteAttachmentDialog';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
