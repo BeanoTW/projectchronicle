@@ -76,18 +76,21 @@ const SettingsScreen = () => {
   const syncPillState: 'local_only' | 'backed_up' | 'conflict' =
     conflictCount > 0 ? 'conflict' : (backupEnabled && lastBackupAt ? 'backed_up' : 'local_only');
 
+  const scrollToConflicts = () => {
+    const el = document.getElementById('settings-cloud-conflicts');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Settings" hideSettings />
-
-      {/* Sync status pill — single, calm summary */}
-      <div className="mx-5 mb-4 flex justify-end">
+      <PageHeader title="Settings" hideSettings>
         <SyncStatusPill
           state={syncPillState}
           lastBackupAt={lastBackupAt}
           conflictCount={conflictCount}
+          onClick={syncPillState === 'conflict' ? scrollToConflicts : undefined}
         />
-      </div>
+      </PageHeader>
 
       {/* Hero — Your Record */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
@@ -166,7 +169,10 @@ const SettingsScreen = () => {
             </p>
 
             {conflictCount > 0 && (
-              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1">
+              <div
+                id="settings-cloud-conflicts"
+                className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1 scroll-mt-20"
+              >
                 <div className="font-medium">
                   {conflictCount} record{conflictCount === 1 ? '' : 's'} changed elsewhere.
                 </div>
