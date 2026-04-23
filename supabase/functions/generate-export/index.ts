@@ -430,23 +430,26 @@ serve(async (req) => {
     color: var(--ink);
     font-size: 14px;
     line-height: 1.7;
-    max-width: 820px;
+    max-width: 1180px;
     margin: 0 auto;
     padding: 0 0 80px;
-    max-width: 1180px;
   }
+  /* Cover, Full Record and Closing remain narrow & strictly single-column */
+  .cover, .closing,
+  .records-container { max-width: 820px; margin-left: auto; margin-right: auto; }
+  .section-header { max-width: 820px; margin-left: auto; margin-right: auto; }
+  .section-header.index-section { max-width: 1180px; }
   /* Two-column ledger index */
-  .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; margin-top: 16px; }
+  .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; margin-top: 16px; }
   .index-col { min-width: 0; }
   .index-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-  .index-table colgroup .cg-date { width: 18%; }
+  .index-table colgroup .cg-date { width: 19%; }
   .index-table colgroup .cg-time { width: 12%; }
-  .index-table colgroup .cg-cat  { width: 26%; }
-  .index-table colgroup .cg-sum  { width: 32%; }
+  .index-table colgroup .cg-cat  { width: 24%; }
+  .index-table colgroup .cg-sum  { width: 33%; }
   .index-table colgroup .cg-id   { width: 12%; }
-  .index-table th, .index-table td { padding: 7px 6px; line-height: 1.35; }
-  .index-table .c-id, .c-id .index-id { text-align: right; }
-  .index-table th:last-child { text-align: right; }
+  .index-table th, .index-table td { padding: 7px 6px !important; line-height: 1.35; vertical-align: middle; }
+  .index-table .c-id, .c-id .index-id, .index-table th:last-child { text-align: right; }
   .index-table .c-sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cover { padding: 64px 56px 48px; border-bottom: 2px solid var(--ink); position: relative; }
   .cover-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
