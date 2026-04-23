@@ -218,6 +218,26 @@ async function authenticateRequest(req: Request): Promise<{ userId: string } | R
   }
 }
 
+function pickAudioFormat(mime: string): string {
+  const m = mime.toLowerCase();
+  if (m.includes('webm')) return 'webm';
+  if (m.includes('mp4') || m.includes('m4a') || m.includes('aac')) return 'mp4';
+  if (m.includes('mpeg') || m.includes('mp3')) return 'mp3';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('flac')) return 'flac';
+  return 'wav';
+}
+
+function bufferToBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
