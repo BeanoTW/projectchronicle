@@ -112,21 +112,52 @@ function categoryDisplay(cat: string | null | undefined): string {
   return cat;
 }
 
-// Title fallback chain: user title → first sentence (≤80 chars) → category + date
-function indexTitle(inc: any, eventDate: Date | null): string {
-  if (inc.title && String(inc.title).trim()) return String(inc.title).trim();
-  const narrative = (inc.raw_narrative || "").trim();
-  if (narrative) {
-    // First sentence
-    const firstSentence = narrative.split(/(?<=[.!?])\s+/)[0] || narrative;
+// Compact category display used only inside the Chronological Index (purely visual,
+// matches the reference ledger style — never alters underlying category data).
+function categoryIndexDisplay(cat: string | null | undefined): string {
+  const v = categoryDisplay(cat);
+  const map: Record<string, string> = {
+    "Working Conditions": "Working Cond.",
+    "Observed Behaviour": "Obs. Behaviour",
+    "Action / Change": "Action / Change",
+    "Process Event": "Process Event",
+    "Pay / Benefits": "Pay / Benefits",
+    "Record Issued": "Record Issued",
+    "Communication": "Communication",
+    "Daily": "Daily",
+    "Unclassified": "Unclassified",
+  };
+  return map[v] || v;
+}
+// Never mid-word truncation like "Manag…". Always end after a meaningful chunk.
+function indexSummary(inc: any, eventDate: Date | null): string {
+  const source =
+    (inc.title && String(inc.title).trim()) ||
+    (inc.raw_narrative && String(inc.raw_narrative).trim()) ||
+    "";
+  if (source) {
+    const firstSentence = source.split(/(?<=[.!?])\s+/)[0] || source;
     const oneLine = firstSentence.replace(/\s+/g, " ").trim();
-    if (oneLine.length <= 80) return oneLine;
-    return oneLine.slice(0, 77).trimEnd() + "…";
+    const words = oneLine.split(" ");
+    const TARGET_WORDS = 8;
+    const MAX_CHARS = 52;
+    if (words.length <= TARGET_WORDS && oneLine.length <= MAX_CHARS) return oneLine;
+    // Take up to TARGET_WORDS but stay within MAX_CHARS at a word boundary.
+    let acc = "";
+    for (let i = 0; i < Math.min(words.length, TARGET_WORDS); i++) {
+      const next = acc ? acc + " " + words[i] : words[i];
+      if (next.length > MAX_CHARS) break;
+      acc = next;
+    }
+    if (!acc) acc = words[0].slice(0, MAX_CHARS); // single very long word fallback
+    return acc + "…";
   }
   const dateStr = eventDate ? formatShortDate(eventDate) : "";
   const cat = inc.category && String(inc.category).trim() ? inc.category : "Unclassified";
   return dateStr ? `${cat} — ${dateStr}` : cat;
 }
+// Backwards alias (used elsewhere if any)
+const indexTitle = indexSummary;
 
 // Classification line: "Category → Subtype · Location"
 function classificationLine(inc: any): string {
@@ -227,33 +258,84 @@ serve(async (req) => {
     // Export ID
     const exportId = `CHR-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
 
-    // ── Build INDEX (grouped by month label rows only) ──
+    // ── Build INDEX rows (split into two columns: top→bottom in col1, then col2) ──
+    type IdxItem = { kind: "month" | "row"; month?: string; html?: string };
+    const flatIndex: IdxItem[] = [];
     let lastMonth = "";
-    const indexRows: string[] = [];
     for (const inc of incidents) {
       const ed = parseEventDate(inc.incident_date);
       const mLabel = ed ? monthLabel(ed) : "Undated";
       if (mLabel !== lastMonth) {
-        indexRows.push(
-          `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${escapeHtml(mLabel)}</span></td></tr>`
-        );
+        flatIndex.push({ kind: "month", month: mLabel });
         lastMonth = mLabel;
       }
       const dateCell = ed ? formatShortDate(ed) : "—";
-      const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "";
-      const catCell = categoryDisplay(inc.category);
-      const titleCell = indexTitle(inc, ed);
+      const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "—";
+      const catCell = categoryIndexDisplay(inc.category);
+      const summaryCell = indexSummary(inc, ed);
       const idCell = shortId(inc.id);
-      indexRows.push(`<tr>
-        <td><span class="index-date">${escapeHtml(dateCell)}</span></td>
-        <td><span class="index-date">${escapeHtml(timeCell)}</span></td>
-        <td><span class="index-cat">${escapeHtml(catCell)}</span></td>
-        <td><span class="index-title">${escapeHtml(titleCell)}</span></td>
-        <td><span class="index-id">${escapeHtml(idCell)}</span></td>
-      </tr>`);
+      flatIndex.push({
+        kind: "row",
+        month: mLabel,
+        html: `<tr>
+          <td class="c-date"><span class="index-date">${escapeHtml(dateCell)}</span></td>
+          <td class="c-time"><span class="index-date">${escapeHtml(timeCell)}</span></td>
+          <td class="c-cat"><span class="index-cat">${escapeHtml(catCell)}</span></td>
+          <td class="c-sum"><span class="index-title">${escapeHtml(summaryCell)}</span></td>
+          <td class="c-id"><span class="index-id">${escapeHtml(idCell)}</span></td>
+        </tr>`,
+      });
     }
 
-    // ── Build FULL RECORD section (cards + month dividers) ──
+    // Split point: roughly half the rows go to column 1, remainder to column 2.
+    const totalRows = flatIndex.filter(x => x.kind === "row").length;
+    const halfRows = Math.ceil(totalRows / 2);
+    const col1Items: IdxItem[] = [];
+    const col2Items: IdxItem[] = [];
+    let rowsSeen = 0;
+    let splitMonth = "";
+    for (const item of flatIndex) {
+      if (rowsSeen < halfRows) {
+        col1Items.push(item);
+        if (item.kind === "row") {
+          rowsSeen++;
+          splitMonth = item.month || "";
+        }
+      } else {
+        col2Items.push(item);
+      }
+    }
+    // Trim trailing month header from col1 if no rows under it
+    while (col1Items.length && col1Items[col1Items.length - 1].kind === "month") col1Items.pop();
+    // If col2 doesn't start with a month header, prepend continuation header
+    const col2StartsWithMonth = col2Items[0]?.kind === "month";
+    if (!col2StartsWithMonth && splitMonth) {
+      col2Items.unshift({ kind: "month", month: `${splitMonth} (cont.)` });
+    }
+
+    function renderIndexCol(items: IdxItem[]): string {
+      if (items.length === 0) return "";
+      const out: string[] = [];
+      out.push(`<table class="index-table"><colgroup>
+        <col class="cg-date"><col class="cg-time"><col class="cg-cat"><col class="cg-sum"><col class="cg-id">
+      </colgroup><thead><tr>
+        <th>Date</th><th>Time</th><th>Category</th><th>Summary</th><th>Record ID</th>
+      </tr></thead><tbody>`);
+      for (const it of items) {
+        if (it.kind === "month") {
+          out.push(`<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${escapeHtml(it.month || "")}</span></td></tr>`);
+        } else {
+          out.push(it.html || "");
+        }
+      }
+      out.push(`</tbody></table>`);
+      return out.join("");
+    }
+
+    const indexColumn1Html = renderIndexCol(col1Items);
+    const indexColumn2Html = renderIndexCol(col2Items);
+
+    // ── Build FULL RECORD section (cards + month dividers) — strictly single column ──
     lastMonth = "";
     const recordCards: string[] = [];
     for (const inc of incidents) {
@@ -364,10 +446,33 @@ serve(async (req) => {
     color: var(--ink);
     font-size: 14px;
     line-height: 1.7;
-    max-width: 820px;
+    max-width: 880px;
     margin: 0 auto;
     padding: 0 0 80px;
   }
+  /* Cover, Full Record and Closing remain single-column */
+  .cover, .closing,
+  .records-container { max-width: 820px; margin-left: auto; margin-right: auto; }
+  .section-header { max-width: 820px; margin-left: auto; margin-right: auto; }
+  .section-header.index-section { max-width: 880px; }
+  /* Two-column ledger index */
+  .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 16px; }
+  .index-col { min-width: 0; }
+  .index-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
+  .index-table colgroup .cg-date { width: 26%; }
+  .index-table colgroup .cg-time { width: 13%; }
+  .index-table colgroup .cg-cat  { width: 22%; }
+  .index-table colgroup .cg-sum  { width: 27%; }
+  .index-table colgroup .cg-id   { width: 12%; }
+  .index-table th, .index-table td { padding: 6px 5px !important; line-height: 1.35; vertical-align: middle; overflow: hidden; }
+  .index-table th { font-size: 8.5px !important; }
+  .index-table .index-date { font-size: 10px; }
+  .index-table .index-cat { font-size: 10px; }
+  .index-table .index-title { font-size: 11px; }
+  .index-table .index-id { font-size: 9px; }
+  .index-table .c-id, .c-id .index-id, .index-table th:last-child { text-align: right; }
+  .index-table .c-sum { text-overflow: ellipsis; white-space: nowrap; }
+  .index-table .c-date, .index-table .c-time, .index-table .c-cat { white-space: nowrap; text-overflow: ellipsis; }
   .cover { padding: 64px 56px 48px; border-bottom: 2px solid var(--ink); position: relative; }
   .cover-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
   .cover h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 36px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 32px; }
@@ -381,7 +486,7 @@ serve(async (req) => {
   .section-header { padding: 20px 56px 12px; border-bottom: 1px solid var(--rule); margin-top: 48px; display: flex; align-items: baseline; gap: 16px; }
   .section-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
   .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.1em; }
-  .index-container { padding: 0 56px; margin-top: 8px; }
+  .index-container { padding: 0 32px; margin-top: 8px; }
   .index-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
   .index-table thead tr { border-bottom: 1px solid var(--rule); }
   .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 12px 8px 0; text-align: left; }
@@ -475,26 +580,16 @@ serve(async (req) => {
   </div>
 </div>
 
-<div class="section-header">
+<div class="section-header index-section">
   <h2>Chronological Index</h2>
   <span class="section-count">${incidents.length} record${incidents.length === 1 ? "" : "s"}</span>
 </div>
 
 <div class="index-container">
-  <table class="index-table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Time</th>
-        <th>Category</th>
-        <th>Title / summary</th>
-        <th>Record ID</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${indexRows.join("\n")}
-    </tbody>
-  </table>
+  <div class="index-grid">
+    <div class="index-col">${indexColumn1Html}</div>
+    <div class="index-col">${indexColumn2Html}</div>
+  </div>
 </div>
 
 <div class="section-header">
