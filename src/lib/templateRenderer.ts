@@ -331,28 +331,81 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
   html += `<div class="cover-statement">This document contains records created by the record-holder using Project Chronicle. All entries are presented as originally recorded, in chronological order. No content has been added, edited, interpreted, or inferred. Each record includes the date of the event and the date and time it was recorded. Updates to records are appended and do not overwrite original entries. This document does not constitute legal advice.</div>`;
   html += `</div>`;
 
-  // ── INDEX ──
+  // ── INDEX (two columns; top→bottom in col 1, then top→bottom in col 2) ──
   html += `<div class="section-header"><h2>Chronological Index</h2><span class="section-count">${total} record${total !== 1 ? 's' : ''}</span></div>`;
-  html += `<div class="index-container"><table class="index-table">`;
-  html += `<thead><tr><th>Date</th><th>Time</th><th>Category</th><th>Title / summary</th><th>Record ID</th></tr></thead><tbody>`;
 
+  type IdxItem =
+    | { kind: 'month'; month: string; cont?: boolean }
+    | { kind: 'row'; rec: Incident };
+
+  const flat: IdxItem[] = [];
   let lastIndexMonth = '';
   for (const rec of records) {
     const monthKey = (safeParse(rec.incident_date) ? format(safeParse(rec.incident_date)!, 'yyyy-MM') : '');
     if (monthKey && monthKey !== lastIndexMonth) {
       lastIndexMonth = monthKey;
-      html += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(fmtMonthYear(rec.incident_date))}</span></td></tr>`;
+      flat.push({ kind: 'month', month: fmtMonthYear(rec.incident_date) });
     }
-    const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
-    html += `<tr>`;
-    html += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
-    html += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
-    html += `<td><span class="index-cat">${esc(cat)}</span></td>`;
-    html += `<td><span class="index-title">${esc(buildShortTitle(rec))}</span></td>`;
-    html += `<td><span class="index-id">${esc(rec.id.slice(0, 8).toUpperCase())}</span></td>`;
-    html += `</tr>`;
+    flat.push({ kind: 'row', rec });
   }
-  html += `</tbody></table></div>`;
+
+  // Split: roughly half the ROWS go to col 1, the rest to col 2.
+  // Month-headers don't count toward the row total.
+  const totalRows = flat.filter(i => i.kind === 'row').length;
+  const halfRows = Math.ceil(totalRows / 2);
+  const col1: IdxItem[] = [];
+  const col2: IdxItem[] = [];
+  let rowsSeen = 0;
+  let splitMonth = '';
+  for (const item of flat) {
+    if (rowsSeen < halfRows) {
+      col1.push(item);
+      if (item.kind === 'row') {
+        rowsSeen++;
+        const mk = safeParse(item.rec.incident_date) ? format(safeParse(item.rec.incident_date)!, 'yyyy-MM') : '';
+        splitMonth = mk ? fmtMonthYear(item.rec.incident_date) : splitMonth;
+      } else {
+        splitMonth = item.month;
+      }
+    } else {
+      col2.push(item);
+    }
+  }
+  // If column 2 doesn't open with a month header, prepend a "(cont.)" marker
+  // so the reader sees the timeline continues from column 1.
+  const col2OpensWithMonth = col2[0]?.kind === 'month';
+  if (!col2OpensWithMonth && splitMonth && col2.some(i => i.kind === 'row')) {
+    col2.unshift({ kind: 'month', month: splitMonth, cont: true });
+  }
+
+  const renderCol = (items: IdxItem[]): string => {
+    let h = '';
+    h += `<table class="index-table">`;
+    h += `<colgroup><col class="cg-date"><col class="cg-time"><col class="cg-cat"><col class="cg-sum"><col class="cg-id"></colgroup>`;
+    h += `<thead><tr><th>Date</th><th>Time</th><th>Category</th><th>Summary</th><th>ID</th></tr></thead><tbody>`;
+    for (const it of items) {
+      if (it.kind === 'month') {
+        h += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(it.month)}</span>${it.cont ? `<span class="index-month-cont">(cont.)</span>` : ''}</td></tr>`;
+      } else {
+        const rec = it.rec;
+        const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
+        h += `<tr>`;
+        h += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
+        h += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
+        h += `<td><span class="index-cat">${esc(cat)}</span></td>`;
+        h += `<td><span class="index-title">${esc(indexSummary(rec))}</span></td>`;
+        h += `<td><span class="index-id">${esc(rec.id.slice(0, 8).toUpperCase())}</span></td>`;
+        h += `</tr>`;
+      }
+    }
+    h += `</tbody></table>`;
+    return h;
+  };
+
+  html += `<div class="index-container"><div class="index-grid">`;
+  html += `<div class="index-col">${renderCol(col1)}</div>`;
+  html += `<div class="index-col">${renderCol(col2)}</div>`;
+  html += `</div></div>`;
 
   // ── FULL RECORD ──
   html += `<div class="section-header"><h2>Full Record</h2><span class="section-count">Chronological · ${total} ${total === 1 ? 'entry' : 'entries'}</span></div>`;
