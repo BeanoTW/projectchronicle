@@ -221,11 +221,9 @@ body {
 .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 14px; align-items: start; }
 .index-col { min-width: 0; }
 .index-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
-.index-table colgroup .cg-date { width: 16%; }
-.index-table colgroup .cg-time { width: 11%; }
-.index-table colgroup .cg-cat  { width: 28%; }
-.index-table colgroup .cg-sum  { width: 33%; }
-.index-table colgroup .cg-id   { width: 12%; }
+.index-table colgroup .cg-date { width: 26%; }
+.index-table colgroup .cg-cat  { width: 52%; }
+.index-table colgroup .cg-id   { width: 22%; }
 .index-table thead tr { border-bottom: 1px solid var(--rule); }
 .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; padding: 6px 6px 6px 0; text-align: left; }
 .index-table th:last-child { padding-right: 0; text-align: right; }
@@ -490,20 +488,18 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
   const renderCol = (items: IdxItem[]): string => {
     let h = '';
     h += `<table class="index-table">`;
-    h += `<colgroup><col class="cg-date"><col class="cg-time"><col class="cg-cat"><col class="cg-sum"><col class="cg-id"></colgroup>`;
-    h += `<thead><tr><th>Date</th><th>Time</th><th>Category</th><th>Summary</th><th>ID</th></tr></thead><tbody>`;
+    h += `<colgroup><col class="cg-date"><col class="cg-cat"><col class="cg-id"></colgroup>`;
+    h += `<thead><tr><th>Date</th><th>Category</th><th>ID</th></tr></thead><tbody>`;
     for (const it of items) {
       if (it.kind === 'month') {
-        h += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(it.month)}</span>${it.cont ? `<span class="index-month-cont">(cont.)</span>` : ''}</td></tr>`;
+        h += `<tr class="index-month-row"><td colspan="3"><span class="index-month-label">${esc(it.month)}</span>${it.cont ? `<span class="index-month-cont">(cont.)</span>` : ''}</td></tr>`;
       } else {
         const rec = it.rec;
         const catRaw = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
         const cat = indexCategoryLabel(catRaw);
         h += `<tr>`;
         h += `<td><span class="index-date">${esc(fmtDateIndex(rec.incident_date))}</span></td>`;
-        h += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
         h += `<td><span class="index-cat">${esc(cat)}</span></td>`;
-        h += `<td><span class="index-title">${esc(indexSummary(rec))}</span></td>`;
         h += `<td><span class="index-id">${esc(rec.id.slice(0, 8).toUpperCase())}</span></td>`;
         h += `</tr>`;
       }
