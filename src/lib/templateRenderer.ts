@@ -192,19 +192,27 @@ body {
 .section-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
 .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.1em; }
 .index-container { padding: 0 56px; margin-top: 8px; }
-.index-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 16px; align-items: start; }
+.index-col { min-width: 0; }
+.index-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.index-table colgroup .cg-date { width: 22%; }
+.index-table colgroup .cg-time { width: 12%; }
+.index-table colgroup .cg-cat  { width: 22%; }
+.index-table colgroup .cg-sum  { width: 32%; }
+.index-table colgroup .cg-id   { width: 12%; }
 .index-table thead tr { border-bottom: 1px solid var(--rule); }
-.index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 12px 8px 0; text-align: left; }
-.index-table th:last-child { padding-right: 0; }
+.index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 8px 8px 0; text-align: left; }
+.index-table th:last-child { padding-right: 0; text-align: right; }
 .index-table tbody tr { border-bottom: 1px solid var(--rule-light); }
-.index-table td { padding: 9px 12px 9px 0; font-size: 12.5px; color: var(--ink-mid); vertical-align: top; }
-.index-table td:last-child { padding-right: 0; }
-.index-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); font-weight: 500; white-space: nowrap; }
-.index-cat { font-size: 11px; color: var(--ink-mid); white-space: nowrap; }
-.index-title { font-size: 12.5px; color: var(--ink); }
-.index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; }
-.index-month-row td { padding-top: 16px; padding-bottom: 4px; }
+.index-table td { padding: 7px 8px 7px 0; font-size: 11.5px; color: var(--ink-mid); vertical-align: top; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.index-table td:last-child { padding-right: 0; text-align: right; }
+.index-date { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+.index-cat { font-size: 10.5px; color: var(--ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.index-title { font-size: 11.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
+.index-month-row td { padding-top: 14px; padding-bottom: 4px; white-space: normal; }
 .index-month-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+.index-month-cont { color: var(--ink-faint); font-style: italic; letter-spacing: 0.12em; margin-left: 6px; }
 .records-container { padding: 0 56px; margin-top: 8px; }
 .month-divider { margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
 .month-divider-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
