@@ -21,7 +21,7 @@ const SettingsScreen = () => {
   const { toast } = useToast();
   const { data: incidents } = useIncidents();
   const {
-    backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult,
+    backupEnabled, online, pendingCount, conflictCount, lastSyncAttemptAt, lastSyncResult,
     localCount, cloudCount, cloudLastUpdatedAt, lastBackupAt, lastRestoreAt, syncStatus,
     setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
   } = useBackup();
