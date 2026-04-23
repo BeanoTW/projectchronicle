@@ -211,6 +211,13 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
               onClose={() => setPreviewFile(null)}
             />
           )}
+          <DeleteAttachmentDialog
+            open={!!pendingDelete}
+            fileName={pendingDelete?.evidence.file_name}
+            isTranscriptSource={!!pendingDelete?.isSource}
+            onCancel={() => setPendingDelete(null)}
+            onConfirm={confirmDelete}
+          />
         </motion.div>
       )}
     </AnimatePresence>
