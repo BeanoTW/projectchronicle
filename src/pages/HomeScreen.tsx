@@ -70,35 +70,50 @@ const HomeScreen = () => {
           style={{ background: 'linear-gradient(180deg, transparent, hsl(220 35% 8% / 0.40))' }}
         />
 
-        {/* Content */}
-        <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-8">
+        {/* Content — brand anchored top, headline anchored bottom */}
+        <div className="relative z-10 flex h-full flex-col px-6 pt-8 pb-8">
           {/* Brand anchor — matches AuthHero wordmark exactly */}
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
-            className="font-serif text-white tracking-[0.18em] text-[26px] sm:text-[30px] leading-none mb-4"
-            style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
-          >
-            PROJECT&nbsp;CHRONICLE
-          </motion.div>
+          <div className="flex flex-col items-center">
+            <motion.h1
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
+              className="font-serif text-white tracking-[0.18em] text-[26px] sm:text-[30px] leading-none"
+              style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+            >
+              PROJECT&nbsp;CHRONICLE
+            </motion.h1>
+
+            {/* Decorative mountain motif — identical to AuthHero */}
+            <motion.svg
+              initial={{ opacity: 0, scaleX: 0.85 }}
+              animate={{ opacity: 0.85, scaleX: 1 }}
+              transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 0.61, 0.36, 1] }}
+              width="120"
+              height="14"
+              viewBox="0 0 120 14"
+              fill="none"
+              className="mt-3"
+              aria-hidden="true"
+            >
+              <line x1="0" y1="11" x2="42" y2="11" stroke="hsl(38 70% 70%)" strokeWidth="0.8" strokeOpacity="0.7" />
+              <circle cx="46" cy="11" r="1.1" fill="hsl(38 70% 70%)" fillOpacity="0.8" />
+              <path d="M50 11 L58 4 L64 8 L70 2 L76 8 L84 11" stroke="hsl(38 75% 72%)" strokeWidth="0.9" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+              <circle cx="86" cy="11" r="1.1" fill="hsl(38 70% 70%)" fillOpacity="0.8" />
+              <line x1="90" y1="11" x2="120" y2="11" stroke="hsl(38 70% 70%)" strokeWidth="0.8" strokeOpacity="0.7" />
+            </motion.svg>
+          </div>
+
+          {/* Main headline — anchored to bottom */}
           <motion.h2
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 0.61, 0.36, 1] }}
-            className="text-white font-serif text-[22px] sm:text-[24px] leading-[1.2] tracking-[-0.005em]"
+            transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
+            className="mt-auto text-white font-serif text-[22px] sm:text-[24px] leading-[1.25] tracking-[-0.005em]"
             style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
           >
             When everything feels unclear, clarity matters.
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 0.61, 0.36, 1] }}
-            className="mt-3 text-[13px] leading-relaxed text-white/80 max-w-[340px]"
-          >
-            Project Chronicle helps you capture events as they happen — or record them later to build a clear timeline.
-          </motion.p>
         </div>
       </div>
 
