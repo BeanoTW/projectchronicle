@@ -72,15 +72,25 @@ const HomeScreen = () => {
 
         {/* Content */}
         <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-8">
-          <motion.h1
+          {/* Brand anchor — matches AuthHero wordmark exactly */}
+          <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
-            className="text-white font-serif text-[24px] sm:text-[26px] leading-[1.2] tracking-[-0.005em]"
+            transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
+            className="font-serif text-white tracking-[0.18em] text-[26px] sm:text-[30px] leading-none mb-4"
+            style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+          >
+            PROJECT&nbsp;CHRONICLE
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 0.61, 0.36, 1] }}
+            className="text-white font-serif text-[22px] sm:text-[24px] leading-[1.2] tracking-[-0.005em]"
             style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
           >
             When everything feels unclear, clarity matters.
-          </motion.h1>
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
