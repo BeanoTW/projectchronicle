@@ -101,6 +101,15 @@ const IncidentDetailScreen = () => {
     } catch { return null; }
   })();
 
+  // Transcript provenance: pointer + whether the source file still exists.
+  const transcriptSourceId =
+    (incident as { transcription_source_attachment_id?: string | null }).transcription_source_attachment_id ?? null;
+  const transcriptSourcePresent = !!transcriptSourceId
+    && evidence.some(ev => ev.id === transcriptSourceId);
+  const hasTranscriptInfo =
+    !!transcriptSourceId
+    || !!(incident as { transcription_created_at?: string | null }).transcription_created_at;
+
   const handleDelete = async () => {
     await deleteIncident.mutateAsync(incident.id);
     toast({ title: 'Incident deleted' });
