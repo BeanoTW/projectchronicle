@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Shield } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import AuthHero from '@/components/chronicle/AuthHero';
 import AuthCard from '@/components/chronicle/AuthCard';
@@ -36,15 +36,17 @@ const WelcomeScreen = () => {
           </Button>
         </div>
 
-        <motion.div
+        <motion.ul
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mt-6 flex items-center justify-center gap-1.5 text-[11.5px] text-muted-foreground/80"
+          className="mt-6 space-y-1 text-center text-[11.5px] text-muted-foreground/80 leading-snug"
         >
-          <Shield className="h-3 w-3" strokeWidth={1.5} />
-          <span>Your data. Your record. Your control.</span>
-        </motion.div>
+          <li>Local-first storage by default</li>
+          <li>Encrypted sync when enabled</li>
+          <li>Your records stay under your control</li>
+          <li>No interpretation or alteration of your entries</li>
+        </motion.ul>
       </AuthCard>
     </div>
   );

@@ -131,6 +131,13 @@ const LoginScreen = () => {
           >
             Create an account
           </Button>
+
+          <ul className="mt-5 space-y-1 text-center text-[11.5px] text-muted-foreground/80 leading-snug">
+            <li>Local-first storage by default</li>
+            <li>Encrypted sync when enabled</li>
+            <li>Your records stay under your control</li>
+            <li>No interpretation or alteration of your entries</li>
+          </ul>
         </div>
       </AuthCard>
     </div>
