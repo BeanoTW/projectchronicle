@@ -701,9 +701,3 @@ const IncidentDetailScreen = () => {
 };
 
 export default IncidentDetailScreen;
-      </div>
-    </div>
-  );
-};
-
-export default IncidentDetailScreen;
