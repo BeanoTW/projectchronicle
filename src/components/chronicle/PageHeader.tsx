@@ -22,10 +22,10 @@ const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMou
           {!hideHome && (
             <button
               onClick={() => navigate('/home')}
-              className="p-1.5 -ml-1.5 text-warm-accent hover:text-warm-accent/80 transition-colors rounded-lg hover:bg-muted/40"
+              className="p-1.5 -ml-1.5 text-warm-accent/95 hover:text-warm-accent active:text-warm-accent/70 transition-colors duration-150 rounded-lg hover:bg-warm-accent/5 active:bg-warm-accent/10"
               aria-label="Home"
             >
-              <Home className="h-[18px] w-[18px]" strokeWidth={1.75} />
+              <Home className="h-[18px] w-[18px]" strokeWidth={1.85} />
             </button>
           )}
           <h1>{title}</h1>
@@ -35,7 +35,7 @@ const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMou
           {!hideSettings && (
             <button
               onClick={() => navigate('/settings')}
-              className="p-2 -mr-1 text-warm-accent/70 hover:text-warm-accent transition-colors rounded-lg hover:bg-muted/40"
+              className="p-2 -mr-1 text-warm-accent/65 hover:text-warm-accent/90 active:text-warm-accent/50 transition-colors duration-150 rounded-lg hover:bg-warm-accent/5 active:bg-warm-accent/10"
               aria-label="Settings"
             >
               <Settings className="h-[18px] w-[18px]" strokeWidth={1.5} />
