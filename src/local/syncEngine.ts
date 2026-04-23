@@ -68,8 +68,8 @@ export const syncNow = async (userId: string): Promise<SyncResult> => {
         // _expected_version=null (handled below for inserts).
         const expected = (row.cloud_version ?? row.version ?? null) as number | null;
         const { data, error } = await supabase.rpc('sync_upsert_incident', {
-          _row: payload as unknown as Record<string, unknown>,
-          _expected_version: expected,
+          _row: payload as never,
+          _expected_version: expected as never,
         });
         if (error) throw error;
 
