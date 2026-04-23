@@ -24,12 +24,15 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const { data: allEvidence = [], refetch } = useEvidence();
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
+  const deleteEvidence = useDeleteEvidence();
+  const isTranscriptSource = useIsTranscriptSource();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   // Generate signed URLs for image thumbnails
   const getThumbnail = async (filePath: string, id: string) => {
