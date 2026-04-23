@@ -242,33 +242,84 @@ serve(async (req) => {
     // Export ID
     const exportId = `CHR-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
 
-    // ── Build INDEX (grouped by month label rows only) ──
+    // ── Build INDEX rows (split into two columns: top→bottom in col1, then col2) ──
+    type IdxItem = { kind: "month" | "row"; month?: string; html?: string };
+    const flatIndex: IdxItem[] = [];
     let lastMonth = "";
-    const indexRows: string[] = [];
     for (const inc of incidents) {
       const ed = parseEventDate(inc.incident_date);
       const mLabel = ed ? monthLabel(ed) : "Undated";
       if (mLabel !== lastMonth) {
-        indexRows.push(
-          `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${escapeHtml(mLabel)}</span></td></tr>`
-        );
+        flatIndex.push({ kind: "month", month: mLabel });
         lastMonth = mLabel;
       }
       const dateCell = ed ? formatShortDate(ed) : "—";
-      const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "";
+      const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "—";
       const catCell = categoryDisplay(inc.category);
-      const titleCell = indexTitle(inc, ed);
+      const summaryCell = indexSummary(inc, ed);
       const idCell = shortId(inc.id);
-      indexRows.push(`<tr>
-        <td><span class="index-date">${escapeHtml(dateCell)}</span></td>
-        <td><span class="index-date">${escapeHtml(timeCell)}</span></td>
-        <td><span class="index-cat">${escapeHtml(catCell)}</span></td>
-        <td><span class="index-title">${escapeHtml(titleCell)}</span></td>
-        <td><span class="index-id">${escapeHtml(idCell)}</span></td>
-      </tr>`);
+      flatIndex.push({
+        kind: "row",
+        month: mLabel,
+        html: `<tr>
+          <td class="c-date"><span class="index-date">${escapeHtml(dateCell)}</span></td>
+          <td class="c-time"><span class="index-date">${escapeHtml(timeCell)}</span></td>
+          <td class="c-cat"><span class="index-cat">${escapeHtml(catCell)}</span></td>
+          <td class="c-sum"><span class="index-title">${escapeHtml(summaryCell)}</span></td>
+          <td class="c-id"><span class="index-id">${escapeHtml(idCell)}</span></td>
+        </tr>`,
+      });
     }
 
-    // ── Build FULL RECORD section (cards + month dividers) ──
+    // Split point: roughly half the rows go to column 1, remainder to column 2.
+    const totalRows = flatIndex.filter(x => x.kind === "row").length;
+    const halfRows = Math.ceil(totalRows / 2);
+    const col1Items: IdxItem[] = [];
+    const col2Items: IdxItem[] = [];
+    let rowsSeen = 0;
+    let splitMonth = "";
+    for (const item of flatIndex) {
+      if (rowsSeen < halfRows) {
+        col1Items.push(item);
+        if (item.kind === "row") {
+          rowsSeen++;
+          splitMonth = item.month || "";
+        }
+      } else {
+        col2Items.push(item);
+      }
+    }
+    // Trim trailing month header from col1 if no rows under it
+    while (col1Items.length && col1Items[col1Items.length - 1].kind === "month") col1Items.pop();
+    // If col2 doesn't start with a month header, prepend continuation header
+    const col2StartsWithMonth = col2Items[0]?.kind === "month";
+    if (!col2StartsWithMonth && splitMonth) {
+      col2Items.unshift({ kind: "month", month: `${splitMonth} (cont.)` });
+    }
+
+    function renderIndexCol(items: IdxItem[]): string {
+      if (items.length === 0) return "";
+      const out: string[] = [];
+      out.push(`<table class="index-table"><colgroup>
+        <col class="cg-date"><col class="cg-time"><col class="cg-cat"><col class="cg-sum"><col class="cg-id">
+      </colgroup><thead><tr>
+        <th>Date</th><th>Time</th><th>Category</th><th>Summary</th><th>Record ID</th>
+      </tr></thead><tbody>`);
+      for (const it of items) {
+        if (it.kind === "month") {
+          out.push(`<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${escapeHtml(it.month || "")}</span></td></tr>`);
+        } else {
+          out.push(it.html || "");
+        }
+      }
+      out.push(`</tbody></table>`);
+      return out.join("");
+    }
+
+    const indexColumn1Html = renderIndexCol(col1Items);
+    const indexColumn2Html = renderIndexCol(col2Items);
+
+    // ── Build FULL RECORD section (cards + month dividers) — strictly single column ──
     lastMonth = "";
     const recordCards: string[] = [];
     for (const inc of incidents) {
