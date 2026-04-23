@@ -643,7 +643,7 @@ const IncidentDetailScreen = () => {
                 <Archive className="h-4 w-4 mr-2" /> Void Record
               </Button>
             </div>
-            <button onClick={handleDelete} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
+            <button onClick={() => setShowDeleteDialog(true)} className="w-full text-center py-3 text-[13px] text-destructive/60 hover:text-destructive font-medium transition-colors">
               <Trash2 className="h-4 w-4 inline mr-1.5" />Delete incident
             </button>
           </div>
