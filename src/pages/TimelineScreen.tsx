@@ -222,8 +222,9 @@ const TimelineScreen = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <p className="text-muted-foreground text-[14px]">Loading...</p>
+      <div className="min-h-screen bg-background pb-24">
+        <PageHeader title="Timeline" subtitle="Your record over time" />
+        <TimelineSkeleton />
       </div>
     );
   }
