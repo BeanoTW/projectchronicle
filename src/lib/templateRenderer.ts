@@ -520,9 +520,9 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
     const monthKey = (safeParse(rec.incident_date) ? format(safeParse(rec.incident_date)!, 'yyyy-MM') : '');
     if (monthKey && monthKey !== lastCardMonth) {
       lastCardMonth = monthKey;
-      html += `<div class="month-divider"><span class="month-divider-label">${esc(fmtMonthYear(rec.incident_date))}</span><div class="month-divider-rule"></div></div>`;
+      html += `<div class="month-divider">${esc(fmtMonthYear(rec.incident_date))}</div>`;
     }
-    html += renderRecordCard(rec, input.followUps, input.evidence);
+    html += renderRecordFlat(rec, input.followUps, input.evidence);
   }
   html += `</div>`;
 
