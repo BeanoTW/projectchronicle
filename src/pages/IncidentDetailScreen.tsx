@@ -682,6 +682,25 @@ const IncidentDetailScreen = () => {
           onCancel={() => setPendingDelete(null)}
           onConfirm={confirmDeleteEvidence}
         />
+        <ConfirmDialog
+          open={showDeleteDialog}
+          title="Delete record?"
+          description="This permanently removes the record and its history from this device. This cannot be undone."
+          confirmLabel="Delete"
+          onCancel={() => setShowDeleteDialog(false)}
+          onConfirm={() => { setShowDeleteDialog(false); handleDelete(); }}
+        />
+        <EditHistorySheet
+          open={showHistory}
+          onOpenChange={setShowHistory}
+          entries={editHistory}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default IncidentDetailScreen;
       </div>
     </div>
   );
