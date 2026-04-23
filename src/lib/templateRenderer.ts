@@ -492,7 +492,8 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
         h += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(it.month)}</span>${it.cont ? `<span class="index-month-cont">(cont.)</span>` : ''}</td></tr>`;
       } else {
         const rec = it.rec;
-        const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
+        const catRaw = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
+        const cat = indexCategoryLabel(catRaw);
         h += `<tr>`;
         h += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
         h += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
