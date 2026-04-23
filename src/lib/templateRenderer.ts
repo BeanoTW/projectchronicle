@@ -548,100 +548,97 @@ function closingItem(label: string, value: string, raw = false): string {
   return `<div class="closing-item"><p class="meta-label">${esc(label)}</p><p class="meta-value">${raw ? value : value}</p></div>`;
 }
 
-function renderRecordCard(inc: Incident, allFollowUps: FollowUpNote[], allEvidence: EvidenceFile[]): string {
-  const slug = isDaily(inc) ? 'unclassified' : categorySlug(inc.category);
+function renderRecordFlat(inc: Incident, allFollowUps: FollowUpNote[], allEvidence: EvidenceFile[]): string {
+  // 1. HEADER LINE — left: event date+time; right: recorded timestamp + lag
   const dateStr = fmtDateLong(inc.incident_date);
-  const timeStr = inc.incident_time ? `<span class="time">${esc(inc.incident_time)}</span>` : '';
-  const classification = classificationLine(inc);
+  const timeStr = inc.incident_time ? ` ${esc(inc.incident_time)}` : '';
 
-  let recordedHtml = '';
+  let recordedRight = '';
   const recAt = safeParse(inc.created_at);
   if (recAt) {
-    recordedHtml += `<div class="recorded-date">Recorded ${esc(fmtRecorded(inc.created_at))}</div>`;
     const evtDate = safeParse(inc.incident_date);
+    let lag = '';
     if (evtDate) {
       const gap = differenceInCalendarDays(recAt, evtDate);
-      if (gap > 0) {
-        recordedHtml += `<div class="recorded-gap">${gap} day${gap === 1 ? '' : 's'} after event</div>`;
-      } else if (gap === 0) {
-        recordedHtml += `<div class="recorded-gap">Recorded same day</div>`;
-      }
+      if (gap === 0) lag = ' · Same day';
+      else if (gap > 0) lag = ` · ${gap} day${gap === 1 ? '' : 's'} later`;
     }
+    recordedRight = `Recorded ${esc(fmtRecorded(inc.created_at))}${lag}`;
   }
 
-  let html = `<div class="record-card" data-incident-id="${esc(inc.id)}"${isDaily(inc) ? ' data-record-type="daily_record"' : ''}>`;
-  html += `<div class="record-header">`;
-  html += `<div class="record-type-bar ${slug}"></div>`;
-  html += `<div class="record-header-content">`;
-  html += `<div><div class="record-datetime">${esc(dateStr)} ${timeStr}</div>`;
-  if (classification) html += `<div class="record-classification">${esc(classification)}</div>`;
+  // 2. METADATA LINE — category → subtype · location
+  const meta = classificationLine(inc);
+
+  let html = `<div class="record" data-incident-id="${esc(inc.id)}"${isDaily(inc) ? ' data-record-type="daily_record"' : ''}>`;
+  html += `<div class="record-head">`;
+  html += `<div class="left">${esc(dateStr)}${timeStr}</div>`;
+  html += `<div class="right">${recordedRight}</div>`;
   html += `</div>`;
-  html += `<div class="record-provenance">${recordedHtml}</div>`;
-  html += `</div></div>`;
 
-  // Body
-  html += `<div class="record-body">`;
+  if (meta) html += `<div class="record-meta">${esc(meta)}</div>`;
 
+  // 3. PEOPLE LINE (inline)
   if (inc.people_involved && inc.people_involved.length > 0) {
-    html += `<div class="record-field"><p class="field-label">People involved</p><p class="field-value">${esc(inc.people_involved.join(', '))}</p></div>`;
+    html += `<div class="record-people"><span class="label">People involved:</span>${esc(inc.people_involved.join(', '))}</div>`;
   }
 
-  const narrativeLabel = isDaily(inc) ? 'Record entry' : 'User-provided account';
+  // 4. NARRATIVE
   const narrative = (inc.raw_narrative || '').trim();
   if (narrative) {
-    html += `<div class="record-field"><p class="field-label">${esc(narrativeLabel)}</p><p class="narrative-text">${esc(narrative)}</p></div>`;
+    html += `<div class="record-narrative">${esc(narrative)}</div>`;
   }
 
+  // Exact words (inline italic, no card box)
   if (!isDaily(inc) && inc.exact_words && inc.exact_words.trim().length > 0) {
     const ew = inc.exact_words.trim().replace(/^["“”]+|["“”]+$/g, '');
-    html += `<div class="exact-words-block"><p class="field-label">Exact words recorded</p><p class="exact-words-text">"${esc(ew)}"</p></div>`;
+    html += `<div class="record-extra"><span class="label">Exact words:</span><span class="exact-words-inline">"${esc(ew)}"</span></div>`;
   }
 
-  // Daily record interactions
+  // Daily record interactions (inline)
   const interactionsRaw = (inc as any).interactions;
   if (isDaily(inc) && Array.isArray(interactionsRaw) && interactionsRaw.length > 0) {
-    html += `<div class="record-field"><p class="field-label">Notable interactions</p>`;
+    html += `<div class="record-extra"><span class="label">Notable interactions:</span>`;
+    const items: string[] = [];
     interactionsRaw.forEach((it: any) => {
       const parts: string[] = [];
       if (it.time) parts.push(esc(it.time));
       if (it.type) parts.push(esc(it.type));
       if (it.who) parts.push(esc(it.who));
       if (it.context) parts.push(esc(it.context));
-      html += `<p class="field-value">— ${parts.join(' — ')}</p>`;
+      items.push(parts.join(' — '));
     });
+    html += items.map(i => ` — ${i}`).join('');
     html += `</div>`;
   }
 
-  // Follow-ups
+  // Follow-ups (inline indented)
   const fus = allFollowUps.filter(f => f.incident_id === inc.id).sort((a, b) => a.created_at.localeCompare(b.created_at));
   if (fus.length > 0) {
-    html += `<div class="record-field"><p class="field-label">Follow-ups</p>`;
+    html += `<div class="record-extra"><span class="label">Follow-ups:</span>`;
     fus.forEach(fu => {
-      html += `<div class="followup-entry" data-followup-id="${esc(fu.id)}"><span class="followup-date">${esc(fmtRecorded(fu.created_at))}</span><span class="followup-text">${esc(fu.note_text)}</span></div>`;
+      html += `<span class="followup-inline" data-followup-id="${esc(fu.id)}"><span class="followup-date">${esc(fmtRecorded(fu.created_at))}</span>${esc(fu.note_text)}</span>`;
     });
     html += `</div>`;
   }
 
-  // Evidence
+  // Evidence (inline)
   const evs = allEvidence.filter(e => e.incident_id === inc.id);
   if (evs.length > 0) {
-    html += `<div class="record-field"><p class="field-label">Attachments</p>`;
+    html += `<div class="record-extra"><span class="label">Attachments:</span>`;
     evs.forEach(ev => {
       const ref = ev.evidence_ref_number != null ? `E${String(ev.evidence_ref_number).padStart(2, '0')}` : 'E—';
-      html += `<div class="evidence-entry">${esc(ref)} — ${esc(ev.file_name)}</div>`;
+      html += `<span class="evidence-inline">${esc(ref)} — ${esc(ev.file_name)}</span>`;
     });
     html += `</div>`;
   }
 
-  html += `</div>`; // /record-body
-
-  // Footer
-  html += `<div class="record-footer">`;
-  html += `<span class="integrity-note">Original content preserved · Updates appended without overwriting</span>`;
-  html += `<span class="record-id">${esc(inc.id.slice(0, 8).toUpperCase())}</span>`;
+  // 5. FOOTER LINE
+  html += `<div class="record-foot">`;
+  html += `<span class="integrity">Original content preserved · Updates appended without overwriting</span>`;
+  html += `<span class="id">ID: ${esc(inc.id.slice(0, 8).toUpperCase())}</span>`;
   html += `</div>`;
 
-  html += `</div>`; // /record-card
+  html += `</div>`;
   return html;
 }
 
