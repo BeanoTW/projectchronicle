@@ -104,6 +104,22 @@ function buildShortTitle(inc: Incident): string {
   return firstSentence.length > 110 ? firstSentence.slice(0, 107) + '…' : firstSentence;
 }
 
+/**
+ * Two-column index summary: target ~4–8 words / ≤52 chars, truncate ONLY at a
+ * word boundary so the row remains scannable ("Manager remarked about
+ * absences…" instead of "Manag…").
+ */
+function indexSummary(inc: Incident): string {
+  const full = buildShortTitle(inc);
+  const MAX = 52;
+  if (full.length <= MAX) return full;
+  // Cut at last whitespace before MAX.
+  const slice = full.slice(0, MAX);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > 20 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s,;:.\-—]+$/, '') + '…';
+}
+
 function isDaily(inc: Incident): boolean {
   return (inc as any).record_type === 'daily_record';
 }
@@ -176,19 +192,27 @@ body {
 .section-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
 .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.1em; }
 .index-container { padding: 0 56px; margin-top: 8px; }
-.index-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+.index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 16px; align-items: start; }
+.index-col { min-width: 0; }
+.index-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.index-table colgroup .cg-date { width: 22%; }
+.index-table colgroup .cg-time { width: 12%; }
+.index-table colgroup .cg-cat  { width: 22%; }
+.index-table colgroup .cg-sum  { width: 32%; }
+.index-table colgroup .cg-id   { width: 12%; }
 .index-table thead tr { border-bottom: 1px solid var(--rule); }
-.index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 12px 8px 0; text-align: left; }
-.index-table th:last-child { padding-right: 0; }
+.index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 8px 8px 0; text-align: left; }
+.index-table th:last-child { padding-right: 0; text-align: right; }
 .index-table tbody tr { border-bottom: 1px solid var(--rule-light); }
-.index-table td { padding: 9px 12px 9px 0; font-size: 12.5px; color: var(--ink-mid); vertical-align: top; }
-.index-table td:last-child { padding-right: 0; }
-.index-date { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink); font-weight: 500; white-space: nowrap; }
-.index-cat { font-size: 11px; color: var(--ink-mid); white-space: nowrap; }
-.index-title { font-size: 12.5px; color: var(--ink); }
-.index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-faint); white-space: nowrap; }
-.index-month-row td { padding-top: 16px; padding-bottom: 4px; }
+.index-table td { padding: 7px 8px 7px 0; font-size: 11.5px; color: var(--ink-mid); vertical-align: top; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.index-table td:last-child { padding-right: 0; text-align: right; }
+.index-date { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink); font-weight: 500; white-space: nowrap; }
+.index-cat { font-size: 10.5px; color: var(--ink-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.index-title { font-size: 11.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.index-id { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-faint); white-space: nowrap; }
+.index-month-row td { padding-top: 14px; padding-bottom: 4px; white-space: normal; }
 .index-month-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+.index-month-cont { color: var(--ink-faint); font-style: italic; letter-spacing: 0.12em; margin-left: 6px; }
 .records-container { padding: 0 56px; margin-top: 8px; }
 .month-divider { margin-top: 40px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
 .month-divider-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
@@ -307,28 +331,81 @@ export function renderTemplateHtml(input: TemplateRenderInput): string {
   html += `<div class="cover-statement">This document contains records created by the record-holder using Project Chronicle. All entries are presented as originally recorded, in chronological order. No content has been added, edited, interpreted, or inferred. Each record includes the date of the event and the date and time it was recorded. Updates to records are appended and do not overwrite original entries. This document does not constitute legal advice.</div>`;
   html += `</div>`;
 
-  // ── INDEX ──
+  // ── INDEX (two columns; top→bottom in col 1, then top→bottom in col 2) ──
   html += `<div class="section-header"><h2>Chronological Index</h2><span class="section-count">${total} record${total !== 1 ? 's' : ''}</span></div>`;
-  html += `<div class="index-container"><table class="index-table">`;
-  html += `<thead><tr><th>Date</th><th>Time</th><th>Category</th><th>Title / summary</th><th>Record ID</th></tr></thead><tbody>`;
 
+  type IdxItem =
+    | { kind: 'month'; month: string; cont?: boolean }
+    | { kind: 'row'; rec: Incident };
+
+  const flat: IdxItem[] = [];
   let lastIndexMonth = '';
   for (const rec of records) {
     const monthKey = (safeParse(rec.incident_date) ? format(safeParse(rec.incident_date)!, 'yyyy-MM') : '');
     if (monthKey && monthKey !== lastIndexMonth) {
       lastIndexMonth = monthKey;
-      html += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(fmtMonthYear(rec.incident_date))}</span></td></tr>`;
+      flat.push({ kind: 'month', month: fmtMonthYear(rec.incident_date) });
     }
-    const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
-    html += `<tr>`;
-    html += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
-    html += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
-    html += `<td><span class="index-cat">${esc(cat)}</span></td>`;
-    html += `<td><span class="index-title">${esc(buildShortTitle(rec))}</span></td>`;
-    html += `<td><span class="index-id">${esc(rec.id.slice(0, 8).toUpperCase())}</span></td>`;
-    html += `</tr>`;
+    flat.push({ kind: 'row', rec });
   }
-  html += `</tbody></table></div>`;
+
+  // Split: roughly half the ROWS go to col 1, the rest to col 2.
+  // Month-headers don't count toward the row total.
+  const totalRows = flat.filter(i => i.kind === 'row').length;
+  const halfRows = Math.ceil(totalRows / 2);
+  const col1: IdxItem[] = [];
+  const col2: IdxItem[] = [];
+  let rowsSeen = 0;
+  let splitMonth = '';
+  for (const item of flat) {
+    if (rowsSeen < halfRows) {
+      col1.push(item);
+      if (item.kind === 'row') {
+        rowsSeen++;
+        const mk = safeParse(item.rec.incident_date) ? format(safeParse(item.rec.incident_date)!, 'yyyy-MM') : '';
+        splitMonth = mk ? fmtMonthYear(item.rec.incident_date) : splitMonth;
+      } else {
+        splitMonth = item.month;
+      }
+    } else {
+      col2.push(item);
+    }
+  }
+  // If column 2 doesn't open with a month header, prepend a "(cont.)" marker
+  // so the reader sees the timeline continues from column 1.
+  const col2OpensWithMonth = col2[0]?.kind === 'month';
+  if (!col2OpensWithMonth && splitMonth && col2.some(i => i.kind === 'row')) {
+    col2.unshift({ kind: 'month', month: splitMonth, cont: true });
+  }
+
+  const renderCol = (items: IdxItem[]): string => {
+    let h = '';
+    h += `<table class="index-table">`;
+    h += `<colgroup><col class="cg-date"><col class="cg-time"><col class="cg-cat"><col class="cg-sum"><col class="cg-id"></colgroup>`;
+    h += `<thead><tr><th>Date</th><th>Time</th><th>Category</th><th>Summary</th><th>ID</th></tr></thead><tbody>`;
+    for (const it of items) {
+      if (it.kind === 'month') {
+        h += `<tr class="index-month-row"><td colspan="5"><span class="index-month-label">${esc(it.month)}</span>${it.cont ? `<span class="index-month-cont">(cont.)</span>` : ''}</td></tr>`;
+      } else {
+        const rec = it.rec;
+        const cat = isDaily(rec) ? 'Daily record' : displayCategory(rec.category);
+        h += `<tr>`;
+        h += `<td><span class="index-date">${esc(fmtDateShort(rec.incident_date))}</span></td>`;
+        h += `<td><span class="index-date">${esc(rec.incident_time || '')}</span></td>`;
+        h += `<td><span class="index-cat">${esc(cat)}</span></td>`;
+        h += `<td><span class="index-title">${esc(indexSummary(rec))}</span></td>`;
+        h += `<td><span class="index-id">${esc(rec.id.slice(0, 8).toUpperCase())}</span></td>`;
+        h += `</tr>`;
+      }
+    }
+    h += `</tbody></table>`;
+    return h;
+  };
+
+  html += `<div class="index-container"><div class="index-grid">`;
+  html += `<div class="index-col">${renderCol(col1)}</div>`;
+  html += `<div class="index-col">${renderCol(col2)}</div>`;
+  html += `</div></div>`;
 
   // ── FULL RECORD ──
   html += `<div class="section-header"><h2>Full Record</h2><span class="section-count">Chronological · ${total} ${total === 1 ? 'entry' : 'entries'}</span></div>`;
