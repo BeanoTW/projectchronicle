@@ -2,36 +2,40 @@
  * Subtle mountain range backdrop used behind page headers.
  * - Sits behind all UI (z-0, parent should be relative)
  * - Pointer-events: none (never blocks taps)
- * - Very low opacity, fades into background at the bottom
+ * - Soft neutral silhouette, fades into background at the bottom
  */
 const MountainBackdrop = () => {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden"
-      style={{ height: 96 }}
+      style={{ height: 120 }}
     >
       <svg
-        viewBox="0 0 400 96"
+        viewBox="0 0 400 120"
         preserveAspectRatio="none"
         className="h-full w-full"
-        style={{ opacity: 0.07 }}
       >
         <defs>
-          <linearGradient id="mtn-fade" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="1" />
+          <linearGradient id="mtn-fade-back" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.10" />
             <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
           </linearGradient>
-          <mask id="mtn-mask">
-            <rect width="400" height="96" fill="url(#mtn-fade)" />
-          </mask>
+          <linearGradient id="mtn-fade-front" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--foreground))" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="hsl(var(--foreground))" stopOpacity="0" />
+          </linearGradient>
         </defs>
-        <g mask="url(#mtn-mask)" fill="none" stroke="hsl(var(--foreground))" strokeWidth="0.8" strokeLinejoin="round" strokeLinecap="round">
-          {/* Back range — softer, lower */}
-          <path d="M0 78 L40 58 L70 68 L110 46 L150 64 L190 50 L230 66 L275 44 L320 62 L360 52 L400 70 L400 96 L0 96 Z" />
-          {/* Front range — slightly sharper peaks */}
-          <path d="M0 86 L25 72 L55 80 L90 64 L130 78 L170 60 L210 76 L250 58 L295 74 L335 66 L375 80 L400 72 L400 96 L0 96 Z" />
-        </g>
+        {/* Back range — softer, lower */}
+        <path
+          d="M0 88 L40 62 L70 74 L110 48 L150 70 L190 54 L230 72 L275 46 L320 68 L360 56 L400 78 L400 120 L0 120 Z"
+          fill="url(#mtn-fade-back)"
+        />
+        {/* Front range — slightly sharper peaks */}
+        <path
+          d="M0 102 L25 84 L55 94 L90 72 L130 90 L170 66 L210 88 L250 64 L295 86 L335 76 L375 92 L400 84 L400 120 L0 120 Z"
+          fill="url(#mtn-fade-front)"
+        />
       </svg>
     </div>
   );
