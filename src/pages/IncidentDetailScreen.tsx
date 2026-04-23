@@ -57,9 +57,12 @@ const IncidentDetailScreen = () => {
   const deleteIncident = useDeleteIncident();
   const createEditHistory = useCreateEditHistory();
   const uploadEvidence = useUploadEvidence();
+  const deleteEvidence = useDeleteEvidence();
+  const isTranscriptSource = useIsTranscriptSource();
   const createNote = useCreateFollowUpNote();
   const { resolveConflictKeepLocal, resolveConflictKeepCloud } = useBackup();
   const [resolvingConflict, setResolvingConflict] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   const followUpRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
