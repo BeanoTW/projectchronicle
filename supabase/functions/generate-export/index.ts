@@ -430,25 +430,30 @@ serve(async (req) => {
     color: var(--ink);
     font-size: 14px;
     line-height: 1.7;
-    max-width: 1180px;
+    max-width: 880px;
     margin: 0 auto;
     padding: 0 0 80px;
   }
-  /* Cover, Full Record and Closing remain narrow & strictly single-column */
+  /* Cover, Full Record and Closing remain single-column */
   .cover, .closing,
   .records-container { max-width: 820px; margin-left: auto; margin-right: auto; }
   .section-header { max-width: 820px; margin-left: auto; margin-right: auto; }
-  .section-header.index-section { max-width: 1180px; }
+  .section-header.index-section { max-width: 880px; }
   /* Two-column ledger index */
-  .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 36px; margin-top: 16px; }
+  .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 16px; }
   .index-col { min-width: 0; }
   .index-table { table-layout: fixed; width: 100%; border-collapse: collapse; }
-  .index-table colgroup .cg-date { width: 21%; }
-  .index-table colgroup .cg-time { width: 11%; }
+  .index-table colgroup .cg-date { width: 26%; }
+  .index-table colgroup .cg-time { width: 13%; }
   .index-table colgroup .cg-cat  { width: 22%; }
-  .index-table colgroup .cg-sum  { width: 35%; }
-  .index-table colgroup .cg-id   { width: 11%; }
-  .index-table th, .index-table td { padding: 7px 6px !important; line-height: 1.35; vertical-align: middle; overflow: hidden; }
+  .index-table colgroup .cg-sum  { width: 27%; }
+  .index-table colgroup .cg-id   { width: 12%; }
+  .index-table th, .index-table td { padding: 6px 5px !important; line-height: 1.35; vertical-align: middle; overflow: hidden; }
+  .index-table th { font-size: 8.5px !important; }
+  .index-table .index-date { font-size: 10px; }
+  .index-table .index-cat { font-size: 10px; }
+  .index-table .index-title { font-size: 11px; }
+  .index-table .index-id { font-size: 9px; }
   .index-table .c-id, .c-id .index-id, .index-table th:last-child { text-align: right; }
   .index-table .c-sum { text-overflow: ellipsis; white-space: nowrap; }
   .index-table .c-date, .index-table .c-time, .index-table .c-cat { white-space: nowrap; text-overflow: ellipsis; }
