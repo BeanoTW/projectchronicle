@@ -303,6 +303,17 @@ const ExportScreen = () => {
     }
   }, [lastExportHtml, toast]);
 
+  const handleSendExport = useCallback(async () => {
+    if (!lastExportHtml) return;
+    const filename = getTemplateFilename();
+    const result = await shareExportFile(lastExportHtml, filename, 'Export from Chronicle');
+    if (result === 'shared' || result === 'downloaded') {
+      toast({ title: 'Ready to send', description: 'Choose an app to share this export.' });
+    } else if (result === 'failed') {
+      toast({ title: 'Could not prepare export', description: 'Please try again.', variant: 'destructive' });
+    }
+  }, [lastExportHtml, toast]);
+
   const exportTypes = [
     {
       key: 'issue-based-record',
