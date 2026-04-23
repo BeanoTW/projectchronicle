@@ -221,11 +221,9 @@ body {
 .index-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 28px; margin-top: 14px; align-items: start; }
 .index-col { min-width: 0; }
 .index-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
-.index-table colgroup .cg-date { width: 16%; }
-.index-table colgroup .cg-time { width: 11%; }
-.index-table colgroup .cg-cat  { width: 28%; }
-.index-table colgroup .cg-sum  { width: 33%; }
-.index-table colgroup .cg-id   { width: 12%; }
+.index-table colgroup .cg-date { width: 26%; }
+.index-table colgroup .cg-cat  { width: 52%; }
+.index-table colgroup .cg-id   { width: 22%; }
 .index-table thead tr { border-bottom: 1px solid var(--rule); }
 .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; padding: 6px 6px 6px 0; text-align: left; }
 .index-table th:last-child { padding-right: 0; text-align: right; }
