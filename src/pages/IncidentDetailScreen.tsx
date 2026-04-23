@@ -6,7 +6,8 @@ import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from 
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
 import { useBackup } from '@/contexts/BackupContext';
-import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
+import DeleteAttachmentDialog from '@/components/chronicle/DeleteAttachmentDialog';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
 import RecordTypeLabel from '@/components/chronicle/RecordTypeLabel';
@@ -56,9 +57,12 @@ const IncidentDetailScreen = () => {
   const deleteIncident = useDeleteIncident();
   const createEditHistory = useCreateEditHistory();
   const uploadEvidence = useUploadEvidence();
+  const deleteEvidence = useDeleteEvidence();
+  const isTranscriptSource = useIsTranscriptSource();
   const createNote = useCreateFollowUpNote();
   const { resolveConflictKeepLocal, resolveConflictKeepCloud } = useBackup();
   const [resolvingConflict, setResolvingConflict] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   const followUpRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
@@ -130,6 +134,28 @@ const IncidentDetailScreen = () => {
       toast({ title: 'Attachment uploaded' });
     } catch {
       toast({ title: 'Upload failed', variant: 'destructive' });
+    }
+  };
+
+  const requestDeleteEvidence = async (ev: EvidenceFile) => {
+    const isSource = await isTranscriptSource(ev.id);
+    setPendingDelete({ evidence: ev, isSource });
+  };
+
+  const confirmDeleteEvidence = async () => {
+    if (!pendingDelete) return;
+    const { evidence: ev } = pendingDelete;
+    setPendingDelete(null);
+    try {
+      await deleteEvidence.mutateAsync({ evidence: ev });
+      await createEditHistory.mutateAsync({
+        incident_id: incident.id,
+        field_changed: 'evidence_deleted',
+        old_value: ev.file_name,
+      });
+      toast({ title: 'Attachment deleted' });
+    } catch {
+      toast({ title: 'Could not delete attachment. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -480,14 +506,21 @@ const IncidentDetailScreen = () => {
               ) : (
                 <div className="space-y-2">
                   {evidence.map(ev => (
-                    <div key={ev.id} className="flex items-center gap-3 p-2.5 bg-muted/30 rounded-lg">
-                      <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12">
+                    <div key={ev.id} className="flex items-center gap-2 p-2.5 bg-muted/30 rounded-lg">
+                      <div className="w-8 h-8 bg-primary/8 rounded-lg flex items-center justify-center text-primary text-[10px] font-bold border border-primary/12 flex-shrink-0">
                         E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-medium text-foreground truncate">{maskFilename(ev.file_name)}</p>
                         <p className="text-[11px] text-muted-foreground/60">{ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}</p>
                       </div>
+                      <button
+                        onClick={() => requestDeleteEvidence(ev)}
+                        aria-label="Delete attachment"
+                        className="p-2 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/8 transition-colors active:scale-[0.95] flex-shrink-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -614,6 +647,13 @@ const IncidentDetailScreen = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <DeleteAttachmentDialog
+          open={!!pendingDelete}
+          fileName={pendingDelete?.evidence.file_name}
+          isTranscriptSource={!!pendingDelete?.isSource}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDeleteEvidence}
+        />
       </div>
     </div>
   );
