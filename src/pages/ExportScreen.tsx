@@ -367,12 +367,27 @@ const ExportScreen = () => {
             </p>
           </div>
 
-          {/* SECONDARY: Download HTML */}
+          {/* SECONDARY: Send export via share sheet */}
           <div className="mt-3">
             <Button
               variant="outline"
               size="sm"
               className="w-full h-10 text-[13px] border-primary/40 text-primary rounded-lg hover:bg-primary/10 bg-card"
+              onClick={handleSendExport}
+            >
+              <Share2 className="h-4 w-4 mr-1.5" /> Send export
+            </Button>
+            <p className="text-[11px] text-muted-foreground/70 mt-1 px-1 leading-relaxed">
+              Share via your email or another app.
+            </p>
+          </div>
+
+          {/* TERTIARY: Download HTML */}
+          <div className="mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-10 text-[13px] border-border text-foreground rounded-lg hover:bg-muted bg-card"
               onClick={handleDownloadHtml}
             >
               <Download className="h-4 w-4 mr-1.5" /> Download HTML
