@@ -637,6 +637,32 @@ const IncidentDetailScreen = () => {
               </button>
             )}
 
+            <Button
+              variant="outline"
+              className="w-full text-foreground border-border h-11 rounded-xl text-[13px]"
+              onClick={async () => {
+                try {
+                  const html = renderTemplateHtml({
+                    incidents: [incident],
+                    followUps: notes,
+                    evidence,
+                  });
+                  const datePart = (incident.incident_date || '').replace(/-/g, '');
+                  const filename = `chronicle-record-${datePart || 'export'}.html`;
+                  const result = await shareExportFile(html, filename, 'Record from Chronicle');
+                  if (result === 'shared' || result === 'downloaded') {
+                    toast({ title: 'Ready to send', description: 'Choose an app to share this record.' });
+                  } else if (result === 'failed') {
+                    toast({ title: 'Could not prepare record', description: 'Please try again.', variant: 'destructive' });
+                  }
+                } catch (e) {
+                  toast({ title: 'Could not prepare record', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                }
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" /> Send record
+            </Button>
+
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
                 <EyeOff className="h-4 w-4 mr-2" /> {incident.excluded_from_rep ? 'Include' : 'Exclude'}
