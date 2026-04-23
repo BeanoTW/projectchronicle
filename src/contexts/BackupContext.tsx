@@ -17,6 +17,9 @@ import {
   restoreFromCloud as restoreFromCloudEngine,
   getLastBackupAt as readLastBackupAt,
   getLastRestoreAt as readLastRestoreAt,
+  getConflictCount,
+  resolveConflictKeepLocal as engineKeepLocal,
+  resolveConflictKeepCloud as engineKeepCloud,
   type SyncResult,
 } from '@/local/syncEngine';
 import { hydrateFromCloudOnce } from '@/local/hydration';
@@ -28,6 +31,7 @@ interface BackupContextType {
   backupEnabled: boolean;
   online: boolean;
   pendingCount: number;
+  conflictCount: number;
   lastSyncAttemptAt: string | null;
   lastSyncResult: SyncResult | null;
   // New: dataset state
@@ -44,6 +48,8 @@ interface BackupContextType {
   deleteCloudData: () => Promise<{ incidents: number; notes: number }>;
   refreshDiagnostics: () => Promise<void>;
   refreshCloudCount: () => Promise<void>;
+  resolveConflictKeepLocal: (incidentId: string) => Promise<void>;
+  resolveConflictKeepCloud: (incidentId: string) => Promise<void>;
 }
 
 const BackupContext = createContext<BackupContextType | undefined>(undefined);
@@ -54,6 +60,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const [backupEnabled, setBackupEnabledState] = useState(false);
   const [online, setOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
   const [lastSyncAttemptAt, setLastAt] = useState<string | null>(null);
   const [lastSyncResult, setLastRes] = useState<SyncResult | null>(null);
   const [localCount, setLocalCount] = useState(0);
@@ -82,6 +89,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
       .count();
     setPendingCount(incidents + notes);
+    setConflictCount(await getConflictCount(user.id));
     setLastAt(getLastSyncAttemptAt());
     setLastRes(getLastSyncResult());
     setLastBackupAt(await readLastBackupAt(user.id));
@@ -209,6 +217,19 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     return res;
   }, [user, refreshDiagnostics, refreshCloudCount]);
 
+  const resolveConflictKeepLocal = useCallback(async (incidentId: string) => {
+    await engineKeepLocal(incidentId);
+    if (user) await syncNow(user.id);
+    await refreshDiagnostics();
+    await refreshCloudCount();
+  }, [user, refreshDiagnostics, refreshCloudCount]);
+
+  const resolveConflictKeepCloud = useCallback(async (incidentId: string) => {
+    await engineKeepCloud(incidentId);
+    await refreshDiagnostics();
+    await refreshCloudCount();
+  }, [refreshDiagnostics, refreshCloudCount]);
+
   // Derived sync status. Uses incident counts and the most recent updated_at on
   // each side as a coarse "newer than" signal. No automatic sync is implied —
   // this is purely a label so users can decide whether to Backup or Restore.
@@ -241,6 +262,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       backupEnabled,
       online,
       pendingCount,
+      conflictCount,
       lastSyncAttemptAt,
       lastSyncResult,
       localCount,
@@ -256,6 +278,8 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       deleteCloudData,
       refreshDiagnostics,
       refreshCloudCount,
+      resolveConflictKeepLocal,
+      resolveConflictKeepCloud,
     }}>
       {children}
     </BackupContext.Provider>

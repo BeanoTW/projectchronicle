@@ -24,13 +24,21 @@ export const getLastSyncAttemptAt = () => lastAttemptAt;
 
 // Strip local-only fields before sending to Supabase.
 const stripLocalIncident = (r: LocalIncident) => {
-  const { owner_user_id, sync_state, last_sync_attempt_at, last_sync_error, local_updated_at, ...rest } = r;
+  const {
+    owner_user_id, sync_state, last_sync_attempt_at, last_sync_error, local_updated_at,
+    conflict_detected_at, cloud_last_modified_at, cloud_version,
+    ...rest
+  } = r;
   return rest;
 };
 const stripLocalNote = (r: LocalFollowUpNote) => {
   const { owner_user_id, sync_state, last_sync_attempt_at, last_sync_error, local_updated_at, ...rest } = r;
   return rest;
 };
+
+type SyncUpsertResponse =
+  | { status: 'ok'; row: LocalIncident & { version: number; last_modified_at: string | null } }
+  | { status: 'conflict'; server_version: number; server_last_modified_at: string | null; server_row: LocalIncident };
 
 export const syncNow = async (userId: string): Promise<SyncResult> => {
   if (inFlight) return inFlight;
@@ -45,7 +53,7 @@ export const syncNow = async (userId: string): Promise<SyncResult> => {
       return result;
     }
 
-    // --- Incidents ---
+    // --- Incidents (conflict-aware via sync_upsert_incident RPC) ---
     const pendingIncidents = await localDB.incidents
       .where('owner_user_id').equals(userId)
       .filter(r => r.sync_state === 'queued' || r.sync_state === 'backup_failed')
@@ -55,13 +63,42 @@ export const syncNow = async (userId: string): Promise<SyncResult> => {
       result.attempted += 1;
       try {
         const payload = stripLocalIncident(row);
-        // upsert by primary key; identity is preserved (PART 6).
-        const { error } = await supabase.from('incidents').upsert(payload, { onConflict: 'id' });
+        // Send the version we last observed from the server. New local-only
+        // records never round-tripped through the server have version=1 and
+        // _expected_version=null (handled below for inserts).
+        const expected = (row.cloud_version ?? row.version ?? null) as number | null;
+        const { data, error } = await supabase.rpc('sync_upsert_incident', {
+          _row: payload as never,
+          _expected_version: expected as never,
+        });
         if (error) throw error;
+
+        const resp = data as SyncUpsertResponse;
+        if (resp?.status === 'conflict') {
+          // Another device has moved this record on. Mark conflict and keep both copies.
+          await localDB.incidents.update(row.id, {
+            sync_state: 'conflict',
+            last_sync_attempt_at: new Date().toISOString(),
+            last_sync_error: 'Server has a newer version. Review before overwriting.',
+            conflict_detected_at: new Date().toISOString(),
+            cloud_last_modified_at: resp.server_last_modified_at,
+            cloud_version: resp.server_version,
+          });
+          result.failed += 1;
+          result.lastError = 'conflict';
+          continue;
+        }
+
+        // OK — capture the server version so future edits stay conflict-safe.
+        const serverVersion = resp?.row?.version ?? row.version ?? 1;
         await localDB.incidents.update(row.id, {
           sync_state: 'backed_up',
           last_sync_attempt_at: new Date().toISOString(),
           last_sync_error: null,
+          version: serverVersion,
+          cloud_version: serverVersion,
+          conflict_detected_at: null,
+          cloud_last_modified_at: null,
         });
         result.succeeded += 1;
       } catch (e) {
@@ -158,6 +195,50 @@ export const demoteQueuedToLocalOnly = async (userId: string): Promise<number> =
     await localDB.follow_up_notes.update(n.id, { sync_state: 'local_only' });
   }
   return incidents.length + notes.length;
+};
+
+// ---------- Conflict helpers ----------
+
+// Number of local incidents currently in `conflict` state for this user.
+export const getConflictCount = async (userId: string): Promise<number> => {
+  return await localDB.incidents
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'conflict')
+    .count();
+};
+
+// Resolve a conflict by keeping the local copy and overwriting cloud.
+// We re-arm the row at the server's current version so the next push wins.
+export const resolveConflictKeepLocal = async (incidentId: string): Promise<void> => {
+  const row = await localDB.incidents.get(incidentId);
+  if (!row) return;
+  await localDB.incidents.update(incidentId, {
+    sync_state: 'queued',
+    last_sync_error: null,
+    conflict_detected_at: null,
+    // Adopt the server version so the next push is no longer "stale".
+    version: row.cloud_version ?? row.version,
+  });
+};
+
+// Resolve a conflict by discarding local edits and pulling cloud version.
+export const resolveConflictKeepCloud = async (incidentId: string): Promise<void> => {
+  const row = await localDB.incidents.get(incidentId);
+  if (!row) return;
+  const { data, error } = await supabase.from('incidents').select('*').eq('id', incidentId).maybeSingle();
+  if (error || !data) return;
+  const ts = new Date().toISOString();
+  await localDB.incidents.put({
+    ...(data as LocalIncident),
+    owner_user_id: row.owner_user_id,
+    sync_state: 'backed_up',
+    last_sync_attempt_at: ts,
+    last_sync_error: null,
+    local_updated_at: ts,
+    conflict_detected_at: null,
+    cloud_last_modified_at: null,
+    cloud_version: (data as { version?: number }).version ?? null,
+  });
 };
 
 // User-initiated remote wipe (PART 9 / "Delete cloud copy"). Local data is untouched.

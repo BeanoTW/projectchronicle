@@ -5,6 +5,7 @@ import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info } from 'lucide
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
+import { useBackup } from '@/contexts/BackupContext';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import CategoryBadge from '@/components/chronicle/CategoryBadge';
@@ -56,6 +57,8 @@ const IncidentDetailScreen = () => {
   const createEditHistory = useCreateEditHistory();
   const uploadEvidence = useUploadEvidence();
   const createNote = useCreateFollowUpNote();
+  const { resolveConflictKeepLocal, resolveConflictKeepCloud } = useBackup();
+  const [resolvingConflict, setResolvingConflict] = useState(false);
 
   const followUpRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
@@ -235,6 +238,57 @@ const IncidentDetailScreen = () => {
       </div>
 
       <div className="px-5 pt-5 space-y-4">
+        {/* Sync conflict banner */}
+        {(incident as { sync_state?: string }).sync_state === 'conflict' && (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+            <div>
+              <p className="text-[14px] font-semibold text-foreground">This record was changed elsewhere.</p>
+              <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
+                Another device updated this record after this device last synced. Choose which version to keep. The other version will be discarded.
+              </p>
+              {(incident as { cloud_last_modified_at?: string | null }).cloud_last_modified_at && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Other device last modified: {fmtFull((incident as { cloud_last_modified_at: string }).cloud_last_modified_at)}
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={resolvingConflict}
+                onClick={async () => {
+                  setResolvingConflict(true);
+                  try {
+                    await resolveConflictKeepLocal(incident.id);
+                    toast({ title: 'Kept this device\'s version' });
+                  } catch (e) {
+                    toast({ title: 'Could not resolve', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+                  } finally { setResolvingConflict(false); }
+                }}
+              >
+                Keep this version
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={resolvingConflict}
+                onClick={async () => {
+                  setResolvingConflict(true);
+                  try {
+                    await resolveConflictKeepCloud(incident.id);
+                    toast({ title: 'Replaced with the other device\'s version' });
+                  } catch (e) {
+                    toast({ title: 'Could not resolve', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+                  } finally { setResolvingConflict(false); }
+                }}
+              >
+                Use other version
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Voided banner */}
         {isVoided && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-muted/60 text-muted-foreground border border-border">

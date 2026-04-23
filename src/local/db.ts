@@ -7,16 +7,24 @@ export type SyncState =
   | 'local_only'         // never attempted backup (backup OFF, or queued before activation)
   | 'queued'             // backup ON, awaiting upload
   | 'backed_up'          // upload confirmed by backend
-  | 'backup_failed';     // last upload attempt failed; record still safe locally
+  | 'backup_failed'      // last upload attempt failed; record still safe locally
+  | 'conflict';          // server rejected upload — server row has moved on (multi-device edit)
 
 // Local rows mirror the Supabase row shapes but add sync metadata.
 // owner_user_id scopes records to the signed-in account on this device.
+// `version` mirrors the server's monotonic version for conflict detection.
+// When a local edit happens, version stays at the last server-known value;
+// the sync engine sends it as `_expected_version` so the server can reject
+// stale overwrites.
 export type LocalIncident = Tables<'incidents'> & {
   owner_user_id: string;
   sync_state: SyncState;
   last_sync_attempt_at: string | null;
   last_sync_error: string | null;
-  local_updated_at: string; // bumped on any local write so sync can detect dirtiness
+  local_updated_at: string;            // bumped on any local write so sync can detect dirtiness
+  conflict_detected_at?: string | null;
+  cloud_last_modified_at?: string | null;
+  cloud_version?: number | null;       // server version observed at conflict time
 };
 
 export type LocalFollowUpNote = Tables<'follow_up_notes'> & {

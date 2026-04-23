@@ -21,7 +21,7 @@ const SettingsScreen = () => {
   const { toast } = useToast();
   const { data: incidents } = useIncidents();
   const {
-    backupEnabled, online, pendingCount, lastSyncAttemptAt, lastSyncResult,
+    backupEnabled, online, pendingCount, conflictCount, lastSyncAttemptAt, lastSyncResult,
     localCount, cloudCount, cloudLastUpdatedAt, lastBackupAt, lastRestoreAt, syncStatus,
     setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
   } = useBackup();
@@ -150,6 +150,17 @@ const SettingsScreen = () => {
             <p className="text-[12px] text-muted-foreground leading-relaxed">
               Your records are stored on this device. Cloud backup is optional and uploads them to your account so they can be restored on another device.
             </p>
+
+            {conflictCount > 0 && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1">
+                <div className="font-medium">
+                  {conflictCount} record{conflictCount === 1 ? '' : 's'} changed elsewhere.
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  These records were modified on another device since this device last synced. Open each record to review and choose which version to keep.
+                </p>
+              </div>
+            )}
 
             {/* Data state — what you're viewing */}
             <div className="bg-muted/30 rounded-lg p-3 space-y-1.5 text-[12px]">
