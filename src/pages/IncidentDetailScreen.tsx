@@ -1,7 +1,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo, useRef } from 'react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
-import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info, History } from 'lucide-react';
+import { ArrowLeft, EyeOff, Trash2, Plus, Archive, Scissors, Info, History, Share2 } from 'lucide-react';
+import { renderTemplateHtml } from '@/lib/templateRenderer';
+import { shareExportFile } from '@/lib/shareExport';
 import { useIncident, useIncidents, useUpdateIncident, useDeleteIncident } from '@/hooks/useIncidents';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { useEditHistory, useCreateEditHistory } from '@/hooks/useEditHistory';
@@ -634,6 +636,32 @@ const IncidentDetailScreen = () => {
                 <Scissors className="h-3.5 w-3.5" /> Split into separate records
               </button>
             )}
+
+            <Button
+              variant="outline"
+              className="w-full text-foreground border-border h-11 rounded-xl text-[13px]"
+              onClick={async () => {
+                try {
+                  const html = renderTemplateHtml({
+                    incidents: [incident],
+                    followUps: notes,
+                    evidence,
+                  });
+                  const datePart = (incident.incident_date || '').replace(/-/g, '');
+                  const filename = `chronicle-record-${datePart || 'export'}.html`;
+                  const result = await shareExportFile(html, filename, 'Record from Chronicle');
+                  if (result === 'shared' || result === 'downloaded') {
+                    toast({ title: 'Ready to send', description: 'Choose an app to share this record.' });
+                  } else if (result === 'failed') {
+                    toast({ title: 'Could not prepare record', description: 'Please try again.', variant: 'destructive' });
+                  }
+                } catch (e) {
+                  toast({ title: 'Could not prepare record', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+                }
+              }}
+            >
+              <Share2 className="h-4 w-4 mr-2" /> Send record
+            </Button>
 
             <div className="flex gap-2.5">
               <Button variant="outline" className="flex-1 text-muted-foreground border-border h-11 rounded-xl text-[13px]" onClick={handleExclude}>
