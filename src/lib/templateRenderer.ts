@@ -130,19 +130,18 @@ function buildShortTitle(inc: Incident): string {
 }
 
 /**
- * Two-column index summary: target ~4–8 words / ≤52 chars, truncate ONLY at a
- * word boundary so the row remains scannable ("Manager remarked about
- * absences…" instead of "Manag…").
+ * Two-column index summary — SECONDARY hint only.
+ * Target: 2–4 words, ~25–35 characters. Truncate at word boundary.
+ * If narrative is very short, show in full (no ellipsis).
  */
 function indexSummary(inc: Incident): string {
   const full = buildShortTitle(inc);
-  const MAX = 52;
+  const MAX = 32;
   if (full.length <= MAX) return full;
-  // Cut at last whitespace before MAX.
   const slice = full.slice(0, MAX);
   const lastSpace = slice.lastIndexOf(' ');
-  const cut = lastSpace > 20 ? slice.slice(0, lastSpace) : slice;
-  return cut.replace(/[\s,;:.\-—]+$/, '') + '…';
+  const cut = lastSpace > 12 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s,;:.\-—"“”]+$/, '') + '…';
 }
 
 function isDaily(inc: Incident): boolean {
