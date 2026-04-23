@@ -72,9 +72,22 @@ const SettingsScreen = () => {
     ? incidents.reduce((latest, i) => (i.updated_at > latest ? i.updated_at : latest), incidents[0].updated_at)
     : null;
 
+  // Derive a single, calm sync state for the header pill.
+  const syncPillState: 'local_only' | 'backed_up' | 'conflict' =
+    conflictCount > 0 ? 'conflict' : (backupEnabled && lastBackupAt ? 'backed_up' : 'local_only');
+
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Settings" hideSettings />
+
+      {/* Sync status pill — single, calm summary */}
+      <div className="mx-5 mb-4 flex justify-end">
+        <SyncStatusPill
+          state={syncPillState}
+          lastBackupAt={lastBackupAt}
+          conflictCount={conflictCount}
+        />
+      </div>
 
       {/* Hero — Your Record */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
