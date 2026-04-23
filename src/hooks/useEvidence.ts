@@ -57,3 +57,71 @@ export const useUploadEvidence = () => {
     },
   });
 };
+
+/**
+ * Check whether an attachment is referenced as the source for any transcript.
+ * Used to surface a stronger confirmation before deletion.
+ */
+export const useIsTranscriptSource = () => {
+  const { user } = useAuth();
+  return async (evidenceId: string): Promise<boolean> => {
+    if (!user) return false;
+    const { data, error } = await supabase
+      .from('incidents')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('transcription_source_attachment_id', evidenceId)
+      .limit(1);
+    if (error) return false;
+    return (data?.length ?? 0) > 0;
+  };
+};
+
+/**
+ * Controlled, two-layer deletion:
+ * 1) Removes the file from the 'evidence' storage bucket
+ * 2) Deletes the evidence_files row (RLS scopes to owner)
+ *
+ * If the attachment is referenced as a transcript source, the linked
+ * incident keeps its transcript text but the source attachment id is
+ * cleared so rendering can show "Transcript source file removed".
+ */
+export const useDeleteEvidence = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ evidence }: { evidence: EvidenceFile }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Clear transcript provenance pointers on any incidents that referenced this file.
+      // Transcript text in raw_narrative is intentionally preserved.
+      await supabase
+        .from('incidents')
+        .update({ transcription_source_attachment_id: null })
+        .eq('user_id', user.id)
+        .eq('transcription_source_attachment_id', evidence.id);
+
+      // Remove the underlying storage object first to avoid orphans.
+      const { error: storageError } = await supabase.storage
+        .from('evidence')
+        .remove([evidence.file_path]);
+      // Storage 'not found' is acceptable (already gone) – do not abort row delete.
+      if (storageError && !/not.?found/i.test(storageError.message)) {
+        throw storageError;
+      }
+
+      const { error: dbError } = await supabase
+        .from('evidence_files')
+        .delete()
+        .eq('id', evidence.id);
+      if (dbError) throw dbError;
+
+      return evidence.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evidence'] });
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+    },
+  });
+};
