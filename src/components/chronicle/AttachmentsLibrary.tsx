@@ -1,13 +1,14 @@
 import { useState, useRef } from 'react';
-import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2 } from 'lucide-react';
+import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EvidencePreview from './EvidencePreview';
+import DeleteAttachmentDialog from './DeleteAttachmentDialog';
 import { displayTitle } from '@/lib/displayTitle';
 
 const typeIcons: Record<string, typeof FileText> = {
