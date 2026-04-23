@@ -76,6 +76,25 @@ function categorySlug(cat?: string | null): string {
   return 'unclassified';
 }
 
+/**
+ * Compact category label for the index — abbreviation, NOT truncation.
+ * Keeps the column tight without losing meaning.
+ */
+function indexCategoryLabel(cat: string): string {
+  const c = (cat || '').trim();
+  const lower = c.toLowerCase();
+  if (lower === 'daily record' || lower === 'daily') return 'Daily';
+  if (lower.startsWith('communication')) return 'Communication';
+  if (lower.startsWith('working')) return 'Working Cond.';
+  if (lower.startsWith('record issued') || lower.startsWith('record-issued')) return 'Record Issued';
+  if (lower.startsWith('process')) return 'Process Event';
+  if (lower.startsWith('pay')) return 'Pay / Benefits';
+  if (lower.startsWith('observed')) return 'Obs. Behaviour';
+  if (lower.startsWith('action')) return 'Action / Change';
+  if (lower === 'not sure yet' || lower === 'unclassified' || lower === 'other') return 'Not Sure Yet';
+  return c;
+}
+
 function cleanLine(s: string): string {
   // Strip field-label prefixes ("Date:", "Location:", etc.), collapse whitespace,
   // take the first line only.
