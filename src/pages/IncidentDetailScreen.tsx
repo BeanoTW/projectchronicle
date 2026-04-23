@@ -647,6 +647,13 @@ const IncidentDetailScreen = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <DeleteAttachmentDialog
+          open={!!pendingDelete}
+          fileName={pendingDelete?.evidence.file_name}
+          isTranscriptSource={!!pendingDelete?.isSource}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={confirmDeleteEvidence}
+        />
       </div>
     </div>
   );
