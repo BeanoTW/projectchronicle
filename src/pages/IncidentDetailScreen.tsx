@@ -70,11 +70,14 @@ const IncidentDetailScreen = () => {
   const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   const followUpRef = useRef<HTMLDivElement>(null);
+  const evidenceRef = useRef<HTMLDivElement>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
+    return <IncidentDetailSkeleton />;
   }
 
   if (!incident) {
