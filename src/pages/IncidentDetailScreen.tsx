@@ -446,10 +446,27 @@ const IncidentDetailScreen = () => {
 
             {/* 9. INTEGRITY BLOCK */}
             <div className="pt-3 border-t border-border/50 space-y-0.5">
-              <p className="text-[10px] text-muted-foreground/60">This record was created on {fmtFull(incident.created_at)}</p>
+              <p className="text-[10px] text-muted-foreground/60">
+                Original entry created: {fmtFull((incident as any).original_created_at || incident.created_at)}
+              </p>
+              {(() => {
+                const orig = (incident as any).original_created_at || incident.created_at;
+                const last = (incident as any).last_modified_at || incident.updated_at;
+                const changed = orig && last && new Date(last).getTime() - new Date(orig).getTime() > 1000;
+                return (
+                  <p className="text-[10px] text-muted-foreground/60">
+                    {changed ? `Last modified: ${fmtFull(last)}` : 'No later modifications recorded'}
+                  </p>
+                );
+              })()}
               <p className="text-[10px] text-muted-foreground/60">Original content preserved · Updates appended without overwriting</p>
               {incident.category_source === 'user' && (
                 <p className="text-[10px] text-muted-foreground/60">Classification reviewed before save</p>
+              )}
+              {(incident as any).transcription_source_attachment_id && (
+                <p className="text-[10px] text-muted-foreground/60">
+                  Transcript source: audio attachment {String((incident as any).transcription_source_attachment_id).slice(0, 8)}
+                </p>
               )}
             </div>
 
