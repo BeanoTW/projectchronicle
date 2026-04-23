@@ -27,13 +27,11 @@ const RecordAgeChip = ({ incidentDate, createdAt }: RecordAgeChipProps) => {
   }
 
   const isMeaningfulDelay = daysGap >= 1; // ≥24h
-  const colorClass = daysGap <= 2
-    ? 'text-severity-low bg-severity-low/10'
-    : daysGap <= 7
-      ? 'text-severity-serious bg-severity-serious/10'
-      : 'text-muted-foreground bg-muted';
 
-  // Slight prominence bump for meaningful delays only
+  // Neutral, non-severity styling. Recording-time gap is informational, not a severity signal.
+  const colorClass = 'text-muted-foreground bg-muted';
+
+  // Slight prominence bump for meaningful delays only (size + weight, no colour change)
   const sizeClass = isMeaningfulDelay
     ? 'text-[12px] px-3 py-1.5 font-semibold'
     : 'text-[11px] px-2.5 py-1 font-medium';
