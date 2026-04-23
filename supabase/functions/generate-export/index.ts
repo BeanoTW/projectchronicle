@@ -112,7 +112,23 @@ function categoryDisplay(cat: string | null | undefined): string {
   return cat;
 }
 
-// Index summary: short, scannable phrase (~4–8 words) ending on a word boundary.
+// Compact category display used only inside the Chronological Index (purely visual,
+// matches the reference ledger style — never alters underlying category data).
+function categoryIndexDisplay(cat: string | null | undefined): string {
+  const v = categoryDisplay(cat);
+  const map: Record<string, string> = {
+    "Working Conditions": "Working Cond.",
+    "Observed Behaviour": "Obs. Behaviour",
+    "Action / Change": "Action / Change",
+    "Process Event": "Process Event",
+    "Pay / Benefits": "Pay / Benefits",
+    "Record Issued": "Record Issued",
+    "Communication": "Communication",
+    "Daily": "Daily",
+    "Unclassified": "Unclassified",
+  };
+  return map[v] || v;
+}
 // Never mid-word truncation like "Manag…". Always end after a meaningful chunk.
 function indexSummary(inc: any, eventDate: Date | null): string {
   const source =
