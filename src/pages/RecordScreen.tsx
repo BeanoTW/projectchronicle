@@ -271,6 +271,7 @@ const RecordScreen = () => {
             recordMethod: mode,
             recordType: 'daily_record',
             interactions,
+            transcriptProvenance,
           },
         },
       });
@@ -328,6 +329,7 @@ const RecordScreen = () => {
           recordMethod: mode,
           recordType: 'incident',
           interactions: [],
+          transcriptProvenance,
         },
       },
     });
@@ -355,6 +357,7 @@ const RecordScreen = () => {
           recordMethod: mode,
           recordType,
           interactions: recordType === 'daily_record' ? interactions : [],
+          transcriptProvenance,
         },
       },
     });
