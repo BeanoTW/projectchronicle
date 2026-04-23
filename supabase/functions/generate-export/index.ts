@@ -271,7 +271,7 @@ serve(async (req) => {
       }
       const dateCell = ed ? formatShortDate(ed) : "—";
       const timeCell = inc.incident_time && String(inc.incident_time).trim() ? String(inc.incident_time).trim() : "—";
-      const catCell = categoryDisplay(inc.category);
+      const catCell = categoryIndexDisplay(inc.category);
       const summaryCell = indexSummary(inc, ed);
       const idCell = shortId(inc.id);
       flatIndex.push({
