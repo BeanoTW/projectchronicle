@@ -48,6 +48,12 @@ function fmtDateShort(d: string): string {
   return v ? format(v, 'dd MMM yyyy') : d;
 }
 
+/** Compact index date format: DD/MM/YY (always 2-digit). */
+function fmtDateIndex(d: string): string {
+  const v = safeParse(d);
+  return v ? format(v, 'dd/MM/yy') : d;
+}
+
 function fmtDateLong(d: string): string {
   const v = safeParse(d);
   return v ? format(v, 'd MMMM yyyy') : d;
