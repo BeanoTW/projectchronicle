@@ -17,6 +17,7 @@ const MIN_FILE_SIZE = 256; // bytes — silence/empty guard
 
 type ErrorCode =
   | 'unauthorized'
+  | 'auth_verification_failed'
   | 'method_not_allowed'
   | 'invalid_form'
   | 'no_audio_file'
@@ -29,11 +30,192 @@ type ErrorCode =
   | 'provider_payment_required'
   | 'unknown_error';
 
+const AUTH_METHOD = 'getUser';
+
 function jsonError(code: ErrorCode, message: string, status: number, details?: unknown) {
   return new Response(
     JSON.stringify({ error: message, code, details: details ?? null }),
     { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
+}
+
+function logEvent(level: 'info' | 'warn' | 'error', event: string, details: Record<string, unknown> = {}) {
+  const message = `[transcribe-audio] ${event}`;
+  if (level === 'error') {
+    console.error(message, details);
+    return;
+  }
+  if (level === 'warn') {
+    console.warn(message, details);
+    return;
+  }
+  console.info(message, details);
+}
+
+function getHost(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).host;
+  } catch {
+    return 'invalid-url';
+  }
+}
+
+function previewText(value: string, max = 120): string {
+  return value.replace(/\s+/g, ' ').slice(0, max);
+}
+
+async function probeUserVerification(url: string, anon: string, token: string) {
+  const verifyUrl = new URL('/auth/v1/user', url).toString();
+  const response = await fetch(verifyUrl, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: anon,
+    },
+  });
+
+  const contentType = response.headers.get('content-type') ?? 'unknown';
+  const bodyText = await response.text();
+  let userId: string | null = null;
+
+  if (contentType.toLowerCase().includes('application/json') && bodyText) {
+    try {
+      const parsed = JSON.parse(bodyText);
+      userId = parsed?.id ?? parsed?.user?.id ?? null;
+    } catch (e) {
+      logEvent('warn', 'auth probe JSON parse failed', {
+        authMethod: AUTH_METHOD,
+        status: response.status,
+        contentType,
+        bodyPreview: previewText(bodyText),
+        reason: (e as Error)?.message ?? 'unknown',
+      });
+    }
+  }
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    contentType,
+    bodyPreview: bodyText ? previewText(bodyText) : null,
+    userId,
+  };
+}
+
+async function authenticateRequest(req: Request): Promise<{ userId: string } | Response> {
+  const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : '';
+  const url = Deno.env.get('SUPABASE_URL');
+  const anon = Deno.env.get('SUPABASE_ANON_KEY');
+  const authHost = getHost(url);
+
+  logEvent('info', 'auth context', {
+    hasSupabaseUrl: !!url,
+    hasSupabaseAnonKey: !!anon,
+    authHost,
+    hasAuthorizationHeader: !!authHeader,
+    bearerTokenLength: token.length,
+    authMethod: AUTH_METHOD,
+  });
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    logEvent('warn', 'auth missing bearer header', { authMethod: AUTH_METHOD });
+    return jsonError('unauthorized', 'Unauthorized', 401);
+  }
+  if (!url || !anon) {
+    logEvent('error', 'auth environment missing', {
+      hasSupabaseUrl: !!url,
+      hasSupabaseAnonKey: !!anon,
+      authHost,
+      authMethod: AUTH_METHOD,
+    });
+    return jsonError('service_not_configured', 'Auth service not configured', 500);
+  }
+  if (token.length < 20) {
+    logEvent('warn', 'auth token too short', {
+      bearerTokenLength: token.length,
+      authMethod: AUTH_METHOD,
+    });
+    return jsonError('unauthorized', 'Unauthorized', 401);
+  }
+
+  try {
+    const supabase = createClient(url, anon, {
+      global: { headers: { authorization: authHeader } },
+    });
+
+    logEvent('info', 'auth verification started', {
+      authMethod: AUTH_METHOD,
+      authHost,
+    });
+
+    const { data, error } = await supabase.auth.getUser(token);
+    const userId = data?.user?.id;
+
+    if (!error && userId) {
+      logEvent('info', 'auth verification succeeded', {
+        authMethod: AUTH_METHOD,
+        authHost,
+      });
+      return { userId };
+    }
+
+    const reason = error?.message ?? 'No user returned from auth verification';
+    logEvent('warn', 'auth verification rejected', {
+      authMethod: AUTH_METHOD,
+      authHost,
+      reason,
+    });
+
+    if (reason.includes("Unexpected token '<'")) {
+      try {
+        const probe = await probeUserVerification(url, anon, token);
+        logEvent(probe.ok ? 'info' : 'warn', 'auth verification probe response', {
+          authMethod: AUTH_METHOD,
+          authHost,
+          status: probe.status,
+          contentType: probe.contentType,
+          bodyPreview: probe.bodyPreview,
+        });
+
+        if (probe.ok && probe.userId) {
+          logEvent('info', 'auth verification recovered via direct probe', {
+            authMethod: AUTH_METHOD,
+            authHost,
+          });
+          return { userId: probe.userId };
+        }
+
+        if (probe.status === 401) {
+          return jsonError('unauthorized', 'Unauthorized', 401);
+        }
+
+        return jsonError('auth_verification_failed', 'Authentication verification failed', 502, {
+          authMethod: AUTH_METHOD,
+          authHost,
+          status: probe.status,
+          contentType: probe.contentType,
+        });
+      } catch (probeError) {
+        logEvent('error', 'auth verification probe failed', {
+          authMethod: AUTH_METHOD,
+          authHost,
+          reason: (probeError as Error)?.message ?? 'unknown',
+        });
+        return jsonError('auth_verification_failed', 'Authentication verification failed', 502);
+      }
+    }
+
+    return jsonError('unauthorized', 'Unauthorized', 401);
+  } catch (e) {
+    logEvent('error', 'auth unexpected error', {
+      authMethod: AUTH_METHOD,
+      authHost,
+      reason: (e as Error)?.message ?? 'unknown',
+    });
+    return jsonError('auth_verification_failed', 'Authentication verification failed', 502);
+  }
 }
 
 function pickAudioFormat(mime: string): string {
@@ -46,39 +228,8 @@ function pickAudioFormat(mime: string): string {
   return 'wav';
 }
 
-async function authenticateRequest(req: Request): Promise<{ userId: string } | Response> {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    console.warn('[transcribe-audio] auth: missing bearer header');
-    return jsonError('unauthorized', 'Unauthorized', 401);
-  }
-  const url = Deno.env.get("SUPABASE_URL");
-  const anon = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!url || !anon) {
-    console.error('[transcribe-audio] auth: SUPABASE_URL or SUPABASE_ANON_KEY missing');
-    return jsonError('service_not_configured', 'Auth service not configured', 500);
-  }
-  try {
-    const supabase = createClient(url, anon, {
-      global: { headers: { authorization: authHeader } },
-    });
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error } = await supabase.auth.getUser(token);
-    const userId = data?.user?.id;
-    if (error || !userId) {
-      console.warn('[transcribe-audio] auth: token rejected', { reason: error?.message });
-      return jsonError('unauthorized', 'Unauthorized', 401);
-    }
-    return { userId };
-  } catch (e) {
-    console.error('[transcribe-audio] auth: unexpected error', { message: (e as Error)?.message });
-    return jsonError('unauthorized', 'Unauthorized', 401);
-  }
-}
-
 function bufferToBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
-  // chunked to avoid call stack overflow on large arrays
   let binary = '';
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
