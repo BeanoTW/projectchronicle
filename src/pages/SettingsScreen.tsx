@@ -10,6 +10,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { useBackup } from '@/contexts/BackupContext';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { format } from 'date-fns';
+import SyncStatusPill from '@/components/chronicle/SyncStatusPill';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -71,9 +72,22 @@ const SettingsScreen = () => {
     ? incidents.reduce((latest, i) => (i.updated_at > latest ? i.updated_at : latest), incidents[0].updated_at)
     : null;
 
+  // Derive a single, calm sync state for the header pill.
+  const syncPillState: 'local_only' | 'backed_up' | 'conflict' =
+    conflictCount > 0 ? 'conflict' : (backupEnabled && lastBackupAt ? 'backed_up' : 'local_only');
+
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Settings" hideSettings />
+
+      {/* Sync status pill — single, calm summary */}
+      <div className="mx-5 mb-4 flex justify-end">
+        <SyncStatusPill
+          state={syncPillState}
+          lastBackupAt={lastBackupAt}
+          conflictCount={conflictCount}
+        />
+      </div>
 
       {/* Hero — Your Record */}
       <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
@@ -450,6 +464,27 @@ const SettingsScreen = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          </div>
+        </div>
+      </div>
+
+      {/* About your data — read-only integrity model */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">About your data</p>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-2.5 text-[13px]">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Storage</span>
+            <span className="text-foreground text-right">Local-first, optional encrypted backup</span>
+          </div>
+          <div className="border-t border-border/60" />
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Audit logging</span>
+            <span className="text-foreground text-right">Database-enforced</span>
+          </div>
+          <div className="border-t border-border/60" />
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Sync conflicts</span>
+            <span className="text-foreground text-right">Detected and surfaced</span>
           </div>
         </div>
       </div>
