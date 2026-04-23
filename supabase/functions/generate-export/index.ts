@@ -448,9 +448,10 @@ serve(async (req) => {
   .index-table colgroup .cg-cat  { width: 24%; }
   .index-table colgroup .cg-sum  { width: 33%; }
   .index-table colgroup .cg-id   { width: 12%; }
-  .index-table th, .index-table td { padding: 7px 6px !important; line-height: 1.35; vertical-align: middle; }
+  .index-table th, .index-table td { padding: 7px 6px !important; line-height: 1.35; vertical-align: middle; overflow: hidden; }
   .index-table .c-id, .c-id .index-id, .index-table th:last-child { text-align: right; }
-  .index-table .c-sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .index-table .c-sum { text-overflow: ellipsis; white-space: nowrap; }
+  .index-table .c-date, .index-table .c-time, .index-table .c-cat { white-space: nowrap; text-overflow: ellipsis; }
   .cover { padding: 64px 56px 48px; border-bottom: 2px solid var(--ink); position: relative; }
   .cover-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; }
   .cover h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 36px; font-weight: 600; line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 32px; }
