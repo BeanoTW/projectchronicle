@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink } from 'lucide-react';
+import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink, Share2 } from 'lucide-react';
+import { shareExportFile } from '@/lib/shareExport';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
