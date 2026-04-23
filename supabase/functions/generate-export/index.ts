@@ -112,21 +112,36 @@ function categoryDisplay(cat: string | null | undefined): string {
   return cat;
 }
 
-// Title fallback chain: user title → first sentence (≤80 chars) → category + date
-function indexTitle(inc: any, eventDate: Date | null): string {
-  if (inc.title && String(inc.title).trim()) return String(inc.title).trim();
-  const narrative = (inc.raw_narrative || "").trim();
-  if (narrative) {
-    // First sentence
-    const firstSentence = narrative.split(/(?<=[.!?])\s+/)[0] || narrative;
+// Index summary: short, scannable phrase (~4–8 words) ending on a word boundary.
+// Never mid-word truncation like "Manag…". Always end after a meaningful chunk.
+function indexSummary(inc: any, eventDate: Date | null): string {
+  const source =
+    (inc.title && String(inc.title).trim()) ||
+    (inc.raw_narrative && String(inc.raw_narrative).trim()) ||
+    "";
+  if (source) {
+    const firstSentence = source.split(/(?<=[.!?])\s+/)[0] || source;
     const oneLine = firstSentence.replace(/\s+/g, " ").trim();
-    if (oneLine.length <= 80) return oneLine;
-    return oneLine.slice(0, 77).trimEnd() + "…";
+    const words = oneLine.split(" ");
+    const TARGET_WORDS = 8;
+    const MAX_CHARS = 52;
+    if (words.length <= TARGET_WORDS && oneLine.length <= MAX_CHARS) return oneLine;
+    // Take up to TARGET_WORDS but stay within MAX_CHARS at a word boundary.
+    let acc = "";
+    for (let i = 0; i < Math.min(words.length, TARGET_WORDS); i++) {
+      const next = acc ? acc + " " + words[i] : words[i];
+      if (next.length > MAX_CHARS) break;
+      acc = next;
+    }
+    if (!acc) acc = words[0].slice(0, MAX_CHARS); // single very long word fallback
+    return acc + "…";
   }
   const dateStr = eventDate ? formatShortDate(eventDate) : "";
   const cat = inc.category && String(inc.category).trim() ? inc.category : "Unclassified";
   return dateStr ? `${cat} — ${dateStr}` : cat;
 }
+// Backwards alias (used elsewhere if any)
+const indexTitle = indexSummary;
 
 // Classification line: "Category → Subtype · Location"
 function classificationLine(inc: any): string {
