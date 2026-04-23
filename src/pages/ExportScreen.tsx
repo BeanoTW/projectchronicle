@@ -306,11 +306,13 @@ const ExportScreen = () => {
   const handleSendExport = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
-    const result = await shareExportFile(lastExportHtml, filename, 'Export from Chronicle');
-    if (result === 'shared' || result === 'downloaded') {
-      toast({ title: 'Ready to send', description: 'Choose an app to share this export.' });
+    const result = await shareExportFile(lastExportHtml, filename, 'Record export');
+    if (result === 'shared') {
+      toast({ title: 'Export sent', description: 'Sent via your chosen app.' });
+    } else if (result === 'downloaded') {
+      toast({ title: 'Sharing not supported', description: 'File saved to Downloads instead.' });
     } else if (result === 'failed') {
-      toast({ title: 'Could not prepare export', description: 'Please try again.', variant: 'destructive' });
+      toast({ title: 'Could not share export', description: 'Please try again.', variant: 'destructive' });
     }
   }, [lastExportHtml, toast]);
 
