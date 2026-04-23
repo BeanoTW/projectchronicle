@@ -464,7 +464,7 @@ serve(async (req) => {
   .section-header { padding: 20px 56px 12px; border-bottom: 1px solid var(--rule); margin-top: 48px; display: flex; align-items: baseline; gap: 16px; }
   .section-header h2 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600; color: var(--ink); }
   .section-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.1em; }
-  .index-container { padding: 0 56px; margin-top: 8px; }
+  .index-container { padding: 0 32px; margin-top: 8px; }
   .index-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
   .index-table thead tr { border-bottom: 1px solid var(--rule); }
   .index-table th { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 8px 12px 8px 0; text-align: left; }
