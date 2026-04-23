@@ -65,6 +65,23 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
     }
   };
 
+  const requestDelete = async (ev: EvidenceFile) => {
+    const isSource = await isTranscriptSource(ev.id);
+    setPendingDelete({ evidence: ev, isSource });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { evidence } = pendingDelete;
+    setPendingDelete(null);
+    try {
+      await deleteEvidence.mutateAsync({ evidence });
+      toast({ title: 'Attachment deleted' });
+    } catch {
+      toast({ title: 'Could not delete attachment. Please try again.', variant: 'destructive' });
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
