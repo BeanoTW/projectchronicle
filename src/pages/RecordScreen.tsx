@@ -454,7 +454,7 @@ const RecordScreen = () => {
           className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
           aria-label="Attachments"
         >
-          <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />
+          <Paperclip className="h-[18px] w-[18px] text-warm-accent/70" strokeWidth={1.5} />
           {allEvidence.length > 0 && (
             <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
               {allEvidence.length}
@@ -674,12 +674,6 @@ const RecordScreen = () => {
                   />
                 </div>
               )}
-
-              {/* Attachment row */}
-              <AttachmentRow
-                count={allEvidence.length}
-                onViewAttachments={() => setShowLibrary(true)}
-              />
 
               {/* Reassurance text */}
               {hasText && (

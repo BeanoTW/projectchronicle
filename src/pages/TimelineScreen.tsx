@@ -267,15 +267,8 @@ const TimelineScreen = () => {
     <div className="min-h-screen bg-background pb-24 page-enter">
       <PageHeader title="Timeline" subtitle="Your record over time">
         <button
-          onClick={() => setShowSummaryBuilder(true)}
-          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors"
-          aria-label="Build a summary"
-        >
-          <FileText className="h-[18px] w-[18px]" strokeWidth={1.5} />
-        </button>
-        <button
           onClick={() => setShowLibrary(true)}
-          className="p-2 rounded-lg hover:bg-muted/40 text-muted-foreground/60 hover:text-foreground transition-colors relative"
+          className="p-2 rounded-lg hover:bg-muted/40 text-warm-accent/70 hover:text-warm-accent transition-colors relative"
           aria-label="Attachments"
         >
           <Paperclip className="h-[18px] w-[18px]" strokeWidth={1.5} />
