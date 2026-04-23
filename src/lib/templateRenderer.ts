@@ -104,6 +104,22 @@ function buildShortTitle(inc: Incident): string {
   return firstSentence.length > 110 ? firstSentence.slice(0, 107) + '…' : firstSentence;
 }
 
+/**
+ * Two-column index summary: target ~4–8 words / ≤52 chars, truncate ONLY at a
+ * word boundary so the row remains scannable ("Manager remarked about
+ * absences…" instead of "Manag…").
+ */
+function indexSummary(inc: Incident): string {
+  const full = buildShortTitle(inc);
+  const MAX = 52;
+  if (full.length <= MAX) return full;
+  // Cut at last whitespace before MAX.
+  const slice = full.slice(0, MAX);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > 20 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s,;:.\-—]+$/, '') + '…';
+}
+
 function isDaily(inc: Incident): boolean {
   return (inc as any).record_type === 'daily_record';
 }
