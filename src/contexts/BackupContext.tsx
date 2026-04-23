@@ -217,6 +217,19 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     return res;
   }, [user, refreshDiagnostics, refreshCloudCount]);
 
+  const resolveConflictKeepLocal = useCallback(async (incidentId: string) => {
+    await engineKeepLocal(incidentId);
+    if (user) await syncNow(user.id);
+    await refreshDiagnostics();
+    await refreshCloudCount();
+  }, [user, refreshDiagnostics, refreshCloudCount]);
+
+  const resolveConflictKeepCloud = useCallback(async (incidentId: string) => {
+    await engineKeepCloud(incidentId);
+    await refreshDiagnostics();
+    await refreshCloudCount();
+  }, [refreshDiagnostics, refreshCloudCount]);
+
   // Derived sync status. Uses incident counts and the most recent updated_at on
   // each side as a coarse "newer than" signal. No automatic sync is implied —
   // this is purely a label so users can decide whether to Backup or Restore.
@@ -249,6 +262,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       backupEnabled,
       online,
       pendingCount,
+      conflictCount,
       lastSyncAttemptAt,
       lastSyncResult,
       localCount,
@@ -264,6 +278,8 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       deleteCloudData,
       refreshDiagnostics,
       refreshCloudCount,
+      resolveConflictKeepLocal,
+      resolveConflictKeepCloud,
     }}>
       {children}
     </BackupContext.Provider>
