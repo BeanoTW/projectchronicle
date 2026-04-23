@@ -468,6 +468,27 @@ const SettingsScreen = () => {
         </div>
       </div>
 
+      {/* About your data — read-only integrity model */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">About your data</p>
+        <div className="bg-card border border-border rounded-xl p-4 space-y-2.5 text-[13px]">
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Storage</span>
+            <span className="text-foreground text-right">Local-first, optional encrypted backup</span>
+          </div>
+          <div className="border-t border-border/60" />
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Audit logging</span>
+            <span className="text-foreground text-right">Database-enforced</span>
+          </div>
+          <div className="border-t border-border/60" />
+          <div className="flex justify-between gap-3">
+            <span className="text-muted-foreground">Sync conflicts</span>
+            <span className="text-foreground text-right">Detected and surfaced</span>
+          </div>
+        </div>
+      </div>
+
       {/* About */}
       <div className="mx-5 mb-8">
         <p className="section-group-title">About</p>
