@@ -197,6 +197,50 @@ export const demoteQueuedToLocalOnly = async (userId: string): Promise<number> =
   return incidents.length + notes.length;
 };
 
+// ---------- Conflict helpers ----------
+
+// Number of local incidents currently in `conflict` state for this user.
+export const getConflictCount = async (userId: string): Promise<number> => {
+  return await localDB.incidents
+    .where('owner_user_id').equals(userId)
+    .filter(r => r.sync_state === 'conflict')
+    .count();
+};
+
+// Resolve a conflict by keeping the local copy and overwriting cloud.
+// We re-arm the row at the server's current version so the next push wins.
+export const resolveConflictKeepLocal = async (incidentId: string): Promise<void> => {
+  const row = await localDB.incidents.get(incidentId);
+  if (!row) return;
+  await localDB.incidents.update(incidentId, {
+    sync_state: 'queued',
+    last_sync_error: null,
+    conflict_detected_at: null,
+    // Adopt the server version so the next push is no longer "stale".
+    version: row.cloud_version ?? row.version,
+  });
+};
+
+// Resolve a conflict by discarding local edits and pulling cloud version.
+export const resolveConflictKeepCloud = async (incidentId: string): Promise<void> => {
+  const row = await localDB.incidents.get(incidentId);
+  if (!row) return;
+  const { data, error } = await supabase.from('incidents').select('*').eq('id', incidentId).maybeSingle();
+  if (error || !data) return;
+  const ts = new Date().toISOString();
+  await localDB.incidents.put({
+    ...(data as LocalIncident),
+    owner_user_id: row.owner_user_id,
+    sync_state: 'backed_up',
+    last_sync_attempt_at: ts,
+    last_sync_error: null,
+    local_updated_at: ts,
+    conflict_detected_at: null,
+    cloud_last_modified_at: null,
+    cloud_version: (data as { version?: number }).version ?? null,
+  });
+};
+
 // User-initiated remote wipe (PART 9 / "Delete cloud copy"). Local data is untouched.
 // Returns count of cloud rows deleted (best-effort, scoped by RLS to current user).
 export const deleteCloudCopy = async (userId: string): Promise<{ incidents: number; notes: number }> => {
