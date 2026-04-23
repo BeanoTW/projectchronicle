@@ -137,6 +137,28 @@ const IncidentDetailScreen = () => {
     }
   };
 
+  const requestDeleteEvidence = async (ev: EvidenceFile) => {
+    const isSource = await isTranscriptSource(ev.id);
+    setPendingDelete({ evidence: ev, isSource });
+  };
+
+  const confirmDeleteEvidence = async () => {
+    if (!pendingDelete) return;
+    const { evidence: ev } = pendingDelete;
+    setPendingDelete(null);
+    try {
+      await deleteEvidence.mutateAsync({ evidence: ev });
+      await createEditHistory.mutateAsync({
+        incident_id: incident.id,
+        field_changed: 'evidence_deleted',
+        old_value: ev.file_name,
+      });
+      toast({ title: 'Attachment deleted' });
+    } catch {
+      toast({ title: 'Could not delete attachment. Please try again.', variant: 'destructive' });
+    }
+  };
+
   const handleCategoryUpdate = async (newCategory: string) => {
     const cat = newCategory === '__none__' ? null : newCategory;
     // Reset subtype if category changed and subtype is incompatible
