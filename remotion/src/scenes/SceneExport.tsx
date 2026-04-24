@@ -88,7 +88,7 @@ export const SceneExport: React.FC = () => {
         </div>
       </div>
 
-      <Caption text="Export when you need it" inAt={10} outAt={88} />
+      <Caption text="Ready when you need it" inAt={10} outAt={92} />
       <BottomNav active="my" />
     </AbsoluteFill>
   );

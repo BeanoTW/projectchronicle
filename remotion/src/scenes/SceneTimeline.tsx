@@ -51,11 +51,11 @@ const Card: React.FC<CardProps & { highlight?: number }> = ({ title, preview, me
 export const SceneTimeline: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // New card slides in at f10
-  const newCardSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
-  const newTy = interpolate(newCardSpring, [0, 1], [-12, 0]);
+  // New card slides down from above + fades in immediately as scene begins
+  const newCardSpring = spring({ frame: frame - 2, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const newTy = interpolate(newCardSpring, [0, 1], [-24, 0]);
   // Soft highlight pulse fades down across the scene
-  const highlight = interpolate(frame, [10, 40, 75], [0, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const highlight = interpolate(frame, [4, 30, 80], [0, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: COLOR.bg }}>
@@ -116,7 +116,7 @@ export const SceneTimeline: React.FC = () => {
           faded
         />
       </div>
-      <Caption text="Organised in chronological order" inAt={14} />
+      <Caption text="Organised instantly" inAt={14} />
       <BottomNav active="timeline" />
     </AbsoluteFill>
   );
