@@ -487,7 +487,9 @@ const RecordScreen = () => {
           <button
             onClick={() => setRecordType('daily_record')}
             className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-colors ${
-              recordType === 'daily_record' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              recordType === 'daily_record' 
+                ? 'bg-card text-warm-accent shadow-sm ring-1 ring-warm-accent/30' 
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Daily record
