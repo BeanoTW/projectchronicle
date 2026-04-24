@@ -46,8 +46,8 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
   return (
     <AbsoluteFill
       style={{
-        // Subtle background depth — faint vertical gradient (avoids pure flat white)
-        background: `linear-gradient(180deg, ${COLOR.bg} 0%, ${COLOR.surface} 100%)`,
+        // Atmospheric backdrop: warm surface with subtle pear-green bloom for depth
+        background: `radial-gradient(ellipse 90% 70% at 50% 35%, ${COLOR.primarySoft} 0%, ${COLOR.surface} 45%, ${COLOR.bg} 100%)`,
         justifyContent: 'center',
         alignItems: 'center',
         fontFamily: FONT.ui,
@@ -59,9 +59,9 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
           width: canvasW,
           height: canvasH,
           background: COLOR.bg,
-          borderRadius: 28,
+          borderRadius: 32,
           border: `1px solid ${COLOR.border}`,
-          boxShadow: `0 24px 60px -28px ${COLOR.shadow}, 0 6px 16px -10px ${COLOR.shadow}`,
+          boxShadow: `0 50px 100px -40px ${COLOR.shadow}, 0 18px 40px -22px ${COLOR.shadow}, 0 0 0 1px rgba(255,255,255,0.6) inset`,
           overflow: 'hidden',
           position: 'relative',
           transform: `scale(${drift})`,
