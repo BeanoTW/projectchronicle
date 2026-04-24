@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { COLOR, FONT } from '../theme';
 import { StatusBar, ScreenHeader, BottomNav } from '../components/ScreenChrome';
+import { Caption } from '../components/Caption';
 
 const DocLine: React.FC<{ width: number; opacity: number }> = ({ width, opacity }) => (
   <div style={{ height: 6, width, background: COLOR.border, borderRadius: 3, opacity }} />
@@ -42,10 +43,15 @@ export const SceneExport: React.FC = () => {
         </div>
       </div>
 
-      {/* Share button */}
-      <div style={{ margin: '22px 28px 0', padding: '15px 0', textAlign: 'center', background: COLOR.primary, color: '#fff', fontWeight: 600, fontSize: 16, borderRadius: 14, opacity: docOpacity, letterSpacing: '0.01em' }}>
-        Share
-      </div>
+      {/* Share button — slight press at f36 */}
+      {(() => {
+        const press = interpolate(frame, [34, 38, 42], [1, 0.97, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+        return (
+          <div style={{ margin: '22px 28px 0', padding: '15px 0', textAlign: 'center', background: COLOR.primary, color: '#fff', fontWeight: 600, fontSize: 16, borderRadius: 14, opacity: docOpacity, letterSpacing: '0.01em', transform: `scale(${press})` }}>
+            Share
+          </div>
+        );
+      })()}
 
       {/* Generic share sheet (no real app branding) — overlays bottom nav */}
       <div
@@ -68,15 +74,21 @@ export const SceneExport: React.FC = () => {
         <div style={{ width: 44, height: 4, background: COLOR.border, borderRadius: 2, margin: '0 auto 18px' }} />
         <div style={{ fontSize: 14, color: COLOR.textMuted, fontWeight: 600, marginBottom: 16 }}>Share via</div>
         <div style={{ display: 'flex', gap: 16 }}>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: COLOR.surface, border: `1px solid ${COLOR.border}` }} />
-              <div style={{ width: 40, height: 7, background: COLOR.border, borderRadius: 3 }} />
-            </div>
-          ))}
+          {[0, 1, 2, 3].map((i) => {
+            // Quick subtle stagger after sheet starts settling
+            const iconSpring = spring({ frame: frame - (52 + i * 4), fps, config: { damping: 200 }, durationInFrames: 16 });
+            const iconTy = interpolate(iconSpring, [0, 1], [10, 0]);
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, opacity: iconSpring, transform: `translateY(${iconTy}px)` }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: COLOR.surface, border: `1px solid ${COLOR.border}` }} />
+                <div style={{ width: 40, height: 7, background: COLOR.border, borderRadius: 3 }} />
+              </div>
+            );
+          })}
         </div>
       </div>
 
+      <Caption text="Export when you need it" inAt={10} outAt={88} />
       <BottomNav active="my" />
     </AbsoluteFill>
   );
