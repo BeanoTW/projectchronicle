@@ -18,8 +18,20 @@ interface CardProps {
   opacity?: number;
 }
 
-const Card: React.FC<CardProps> = ({ title, preview, meta, chip, chipBg, chipFg, chipBorder, freshChip, faded, ty = 0, opacity = 1 }) => (
-  <div style={{ margin: '0 28px 14px', padding: '20px 22px', background: COLOR.bg, border: `1px solid ${COLOR.border}`, borderRadius: 18, boxShadow: `0 2px 10px -6px ${COLOR.shadow}`, opacity: faded ? 0.72 * opacity : opacity, transform: `translateY(${ty}px)` }}>
+const Card: React.FC<CardProps & { highlight?: number }> = ({ title, preview, meta, chip, chipBg, chipFg, chipBorder, freshChip, faded, ty = 0, opacity = 1, highlight = 0 }) => (
+  <div style={{
+    margin: '0 28px 14px',
+    padding: '20px 22px',
+    background: COLOR.bg,
+    border: `1px solid ${highlight > 0 ? COLOR.primary : COLOR.border}`,
+    borderRadius: 18,
+    boxShadow: highlight > 0
+      ? `0 0 0 ${highlight * 3}px ${COLOR.primary}22, 0 4px 14px -8px ${COLOR.shadow}`
+      : `0 2px 10px -6px ${COLOR.shadow}`,
+    opacity: faded ? 0.7 * opacity : opacity,
+    transform: `translateY(${ty}px)`,
+    transition: 'none',
+  }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: chipBg, border: `1px solid ${chipBorder}`, color: chipFg, fontSize: 13, fontWeight: 600 }}>
         {chip}
@@ -39,9 +51,11 @@ const Card: React.FC<CardProps> = ({ title, preview, meta, chip, chipBg, chipFg,
 export const SceneTimeline: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // New card slides in at f15
-  const newCardSpring = spring({ frame: frame - 15, fps, config: { damping: 200 }, durationInFrames: 22 });
+  // New card slides in at f10
+  const newCardSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
   const newTy = interpolate(newCardSpring, [0, 1], [-12, 0]);
+  // Soft highlight pulse fades down across the scene
+  const highlight = interpolate(frame, [10, 40, 75], [0, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: COLOR.bg }}>
@@ -59,6 +73,7 @@ export const SceneTimeline: React.FC = () => {
           freshChip
           ty={newTy}
           opacity={newCardSpring}
+          highlight={highlight}
         />
         <Card
           title="Daily record"
@@ -101,6 +116,7 @@ export const SceneTimeline: React.FC = () => {
           faded
         />
       </div>
+      <Caption text="Organised in chronological order" inAt={14} />
       <BottomNav active="timeline" />
     </AbsoluteFill>
   );
