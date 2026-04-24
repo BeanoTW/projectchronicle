@@ -126,9 +126,13 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
           >
             <button
               onClick={startRecording}
-              className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mb-4 active:scale-[0.95] transition-transform hover:bg-primary/15"
+              className={`w-20 h-20 rounded-full border-2 flex items-center justify-center mb-4 active:scale-[0.95] transition-transform ${
+                isDailyRecord 
+                  ? 'bg-warm-accent/10 border-warm-accent/30 hover:bg-warm-accent/15' 
+                  : 'bg-primary/10 border-primary/30 hover:bg-primary/15'
+              }`}
             >
-              <Mic className="h-8 w-8 text-primary" />
+              <Mic className={`h-8 w-8 ${isDailyRecord ? 'text-warm-accent' : 'text-primary'}`} />
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
             <p className="text-[12px] text-muted-foreground">
