@@ -18,20 +18,20 @@ interface CardProps {
 }
 
 const Card: React.FC<CardProps> = ({ title, preview, meta, chip, chipBg, chipFg, chipBorder, freshChip, faded, ty = 0, opacity = 1 }) => (
-  <div style={{ margin: '0 28px 12px', padding: '16px 18px', background: COLOR.bg, border: `1px solid ${COLOR.border}`, borderRadius: 16, boxShadow: `0 2px 10px -6px ${COLOR.shadow}`, opacity: faded ? 0.7 * opacity : opacity, transform: `translateY(${ty}px)` }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: chipBg, border: `1px solid ${chipBorder}`, color: chipFg, fontSize: 12, fontWeight: 600 }}>
+  <div style={{ margin: '0 28px 14px', padding: '20px 22px', background: COLOR.bg, border: `1px solid ${COLOR.border}`, borderRadius: 18, boxShadow: `0 2px 10px -6px ${COLOR.shadow}`, opacity: faded ? 0.72 * opacity : opacity, transform: `translateY(${ty}px)` }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: chipBg, border: `1px solid ${chipBorder}`, color: chipFg, fontSize: 13, fontWeight: 600 }}>
         {chip}
       </div>
       {freshChip && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: COLOR.primarySoft, color: COLOR.primaryDark, fontSize: 11, fontWeight: 600 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: COLOR.primarySoft, color: COLOR.primaryDark, fontSize: 12, fontWeight: 600 }}>
           Recorded just now
         </div>
       )}
     </div>
-    <div style={{ fontSize: 16, color: COLOR.text, fontWeight: 700, marginBottom: 4, letterSpacing: '-0.005em' }}>{title}</div>
-    <div style={{ fontSize: 13.5, color: COLOR.textMuted, lineHeight: 1.45, marginBottom: 8 }}>{preview}</div>
-    <div style={{ fontSize: 11.5, color: COLOR.textSubtle, fontWeight: 500, letterSpacing: '0.02em' }}>{meta}</div>
+    <div style={{ fontSize: 18, color: COLOR.text, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.005em' }}>{title}</div>
+    <div style={{ fontSize: 15, color: COLOR.textMuted, lineHeight: 1.45, marginBottom: 10 }}>{preview}</div>
+    <div style={{ fontSize: 12.5, color: COLOR.textSubtle, fontWeight: 500, letterSpacing: '0.02em' }}>{meta}</div>
   </div>
 );
 
