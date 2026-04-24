@@ -47,30 +47,31 @@ export const SceneExport: React.FC = () => {
         Share
       </div>
 
-      {/* Generic share sheet (no real app branding) */}
+      {/* Generic share sheet (no real app branding) — overlays bottom nav */}
       <div
         style={{
           position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
-          padding: '20px 24px 36px',
+          padding: '22px 26px 40px',
           background: '#fff',
           borderTop: `1px solid ${COLOR.border}`,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          borderTopLeftRadius: 26,
+          borderTopRightRadius: 26,
           boxShadow: `0 -10px 30px -12px ${COLOR.shadow}`,
           transform: `translateY(${sheetTy}px)`,
           opacity: sheet,
+          zIndex: 10,
         }}
       >
-        <div style={{ width: 40, height: 4, background: COLOR.border, borderRadius: 2, margin: '0 auto 16px' }} />
-        <div style={{ fontSize: 13, color: COLOR.textMuted, fontWeight: 600, marginBottom: 14 }}>Share via</div>
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ width: 44, height: 4, background: COLOR.border, borderRadius: 2, margin: '0 auto 18px' }} />
+        <div style={{ fontSize: 14, color: COLOR.textMuted, fontWeight: 600, marginBottom: 16 }}>Share via</div>
+        <div style={{ display: 'flex', gap: 16 }}>
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 14, background: COLOR.surface, border: `1px solid ${COLOR.border}` }} />
-              <div style={{ width: 36, height: 6, background: COLOR.border, borderRadius: 3 }} />
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: COLOR.surface, border: `1px solid ${COLOR.border}` }} />
+              <div style={{ width: 40, height: 7, background: COLOR.border, borderRadius: 3 }} />
             </div>
           ))}
         </div>
