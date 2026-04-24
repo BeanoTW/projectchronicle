@@ -530,6 +530,7 @@ const RecordScreen = () => {
             transition={{ duration: 0.25 }}
           >
             <VoiceRecorder
+              recordType={recordType}
               onAudioCaptured={async (blob, duration) => {
                 if (!user) return;
                 try {
