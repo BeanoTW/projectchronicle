@@ -89,6 +89,16 @@ export const SceneTimeline: React.FC = () => {
           chipBorder={COLOR.border}
           faded
         />
+        <Card
+          title="Daily record"
+          preview="Calm afternoon. Brief catch-up with team about next week."
+          meta="7 Mar · 18:05"
+          chip="Daily"
+          chipBg={COLOR.goldSoft}
+          chipFg="#7A6420"
+          chipBorder={`${COLOR.gold}66`}
+          faded
+        />
       </div>
       <BottomNav active="timeline" />
     </AbsoluteFill>
