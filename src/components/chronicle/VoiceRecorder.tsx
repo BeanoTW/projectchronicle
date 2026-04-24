@@ -11,11 +11,13 @@ interface VoiceRecorderProps {
   recordType?: 'incident' | 'daily_record';
 }
 
-const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) => {
+const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident' }: VoiceRecorderProps) => {
   const [state, setState] = useState<RecordingState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const isDailyRecord = recordType === 'daily_record';
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
