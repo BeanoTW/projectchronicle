@@ -19,32 +19,68 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
   orientation,
 }) => {
   const { width, height } = useVideoConfig();
+  const frame = useCurrentFrame();
+  // Very subtle drift 1 → 1.02 over ~3s loop to avoid a static feel
+  const drift = 1 + (Math.sin(frame / 90) + 1) / 2 * 0.02;
+
+  // Focused canvas — ~4:5 aspect, ~75% of vertical frame, balanced padding
+  let canvasW: number;
+  let canvasH: number;
   if (orientation === 'vertical') {
-    // Fill the full vertical canvas with the screen
-    return (
-      <AbsoluteFill style={{ background: COLOR.bg, fontFamily: FONT.ui, color: COLOR.text }}>
-        {children}
-      </AbsoluteFill>
-    );
+    // 1080x1920: target ~75% height, 4:5 aspect
+    canvasH = Math.round(height * 0.76);
+    canvasW = Math.min(Math.round(canvasH * (4 / 5)), width - 80);
+  } else {
+    // 1920x1080: leave breathing room top/bottom, 4:5 aspect
+    canvasH = Math.round(height * 0.84);
+    canvasW = Math.round(canvasH * (4 / 5));
   }
-  // Landscape: render a centered phone frame at 9:19.5 aspect, leaving subtle white margin
-  const frameH = Math.min(height - 120, 980);
-  const frameW = Math.round(frameH * (9 / 19.5));
+
+  // Internal UI is designed at 1080x1920 phone proportions; scale to fit canvas width
+  const designW = 1080;
+  const designH = 1920;
+  const scale = canvasW / designW;
+  const innerH = designH * scale;
+  // Vertical offset so the UI is anchored from top inside the canvas, but if it overflows, allow clip
+  const innerOffsetY = Math.min(0, (canvasH - innerH) / 2);
+
   return (
-    <AbsoluteFill style={{ background: COLOR.bg, justifyContent: 'center', alignItems: 'center', fontFamily: FONT.ui, color: COLOR.text }}>
+    <AbsoluteFill
+      style={{
+        background: COLOR.bg,
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: FONT.ui,
+        color: COLOR.text,
+      }}
+    >
       <div
         style={{
-          width: frameW,
-          height: frameH,
+          width: canvasW,
+          height: canvasH,
           background: COLOR.bg,
-          borderRadius: 56,
-          border: `2px solid ${COLOR.border}`,
-          boxShadow: `0 30px 80px -30px ${COLOR.shadow}`,
+          borderRadius: 28,
+          border: `1px solid ${COLOR.border}`,
+          boxShadow: `0 8px 28px -14px ${COLOR.shadow}, 0 2px 6px -2px ${COLOR.shadow}`,
           overflow: 'hidden',
           position: 'relative',
+          transform: `scale(${drift})`,
+          transformOrigin: 'center center',
         }}
       >
-        {children}
+        <div
+          style={{
+            position: 'absolute',
+            top: innerOffsetY,
+            left: 0,
+            width: designW,
+            height: designH,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          }}
+        >
+          <div style={{ position: 'absolute', inset: 0, color: COLOR.text }}>{children}</div>
+        </div>
       </div>
     </AbsoluteFill>
   );
