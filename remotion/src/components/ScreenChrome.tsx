@@ -3,7 +3,7 @@ import { COLOR, FONT } from '../theme';
 
 /** App status bar mock — neutral, no real time/operator branding. */
 export const StatusBar: React.FC = () => (
-  <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', fontSize: 14, color: COLOR.text, fontFamily: FONT.ui, fontWeight: 600 }}>
+  <div style={{ height: 44, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', fontSize: 14, color: COLOR.text, fontFamily: FONT.ui, fontWeight: 600 }}>
     <span>9:41</span>
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
       <div style={{ width: 16, height: 10, borderRadius: 2, background: COLOR.text }} />
@@ -12,9 +12,25 @@ export const StatusBar: React.FC = () => (
   </div>
 );
 
-export const ScreenHeader: React.FC<{ title: string; right?: React.ReactNode }> = ({ title, right }) => (
-  <div style={{ padding: '12px 28px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-    <div style={{ fontSize: 28, fontWeight: 700, color: COLOR.text, letterSpacing: '-0.01em' }}>{title}</div>
+/**
+ * Bold screen header with optional eyebrow label and pear-green accent bar.
+ * Designed to "pop" — large display weight, clear hierarchy.
+ */
+export const ScreenHeader: React.FC<{
+  title: string;
+  eyebrow?: string;
+  right?: React.ReactNode;
+}> = ({ title, eyebrow, right }) => (
+  <div style={{ padding: '14px 32px 22px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {eyebrow && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 22, height: 3, background: COLOR.primary, borderRadius: 2 }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: COLOR.primaryDark, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{eyebrow}</div>
+        </div>
+      )}
+      <div style={{ fontSize: 44, fontWeight: 800, color: COLOR.text, letterSpacing: '-0.02em', lineHeight: 1.05 }}>{title}</div>
+    </div>
     {right}
   </div>
 );
@@ -33,7 +49,7 @@ export const BottomNav: React.FC<{ active?: 'timeline' | 'calendar' | 'record' |
         const isActive = it.key === active;
         if ((it as any).primary) {
           return (
-            <div key={it.key} style={{ width: 64, height: 64, borderRadius: 999, background: COLOR.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 8px 20px -8px ${COLOR.primary}80`, marginTop: -28 }}>
+            <div key={it.key} style={{ width: 64, height: 64, borderRadius: 999, background: COLOR.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 10px 24px -8px ${COLOR.primary}aa`, marginTop: -28 }}>
               <div style={{ width: 22, height: 22, borderRadius: 999, background: '#fff' }} />
             </div>
           );
