@@ -44,7 +44,7 @@ const RecordScreen = () => {
     model: string;
   } | null>(null);
 
-  const [mode, setMode] = useState<'voice' | 'text'>('text');
+  const [mode, setMode] = useState<'voice' | 'text'>('voice');
   // Daily Record extension — second record type within the same system.
   const [recordType, setRecordType] = useState<RecordType>('incident');
   const [interactions, setInteractions] = useState<Interaction[]>([]);
