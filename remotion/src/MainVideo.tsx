@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useVideoConfig, useCurrentFrame } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
+import { slide } from '@remotion/transitions/slide';
 import { COLOR, FONT, SCENE_FRAMES } from './theme';
 import { SceneWordmark } from './scenes/SceneWordmark';
 import { SceneRecordVoice } from './scenes/SceneRecordVoice';
@@ -46,7 +47,8 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
   return (
     <AbsoluteFill
       style={{
-        background: COLOR.bg,
+        // Subtle background depth — faint vertical gradient (avoids pure flat white)
+        background: `linear-gradient(180deg, ${COLOR.bg} 0%, ${COLOR.surface} 100%)`,
         justifyContent: 'center',
         alignItems: 'center',
         fontFamily: FONT.ui,
@@ -60,7 +62,7 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
           background: COLOR.bg,
           borderRadius: 28,
           border: `1px solid ${COLOR.border}`,
-          boxShadow: `0 8px 28px -14px ${COLOR.shadow}, 0 2px 6px -2px ${COLOR.shadow}`,
+          boxShadow: `0 24px 60px -28px ${COLOR.shadow}, 0 6px 16px -10px ${COLOR.shadow}`,
           overflow: 'hidden',
           position: 'relative',
           transform: `scale(${drift})`,
@@ -86,10 +88,15 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
 };
 
 export const MainVideo: React.FC<{ orientation: Orientation }> = ({ orientation }) => {
-  // 8-frame crossfade between scenes (subtle, calm)
-  const t = () => ({
+  // Default crossfade between scenes (subtle, calm)
+  const fadeT = () => ({
     presentation: fade(),
     timing: linearTiming({ durationInFrames: 8 }),
+  });
+  // Slight directional slide — used to imply the record moving through the system
+  const slideT = () => ({
+    presentation: slide({ direction: 'from-right' }),
+    timing: linearTiming({ durationInFrames: 14 }),
   });
 
   return (
@@ -98,31 +105,33 @@ export const MainVideo: React.FC<{ orientation: Orientation }> = ({ orientation 
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.wordmark}>
           <PhoneFrame orientation={orientation}><SceneWordmark /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        <TransitionSeries.Transition {...fadeT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.recordVoice}>
           <PhoneFrame orientation={orientation}><SceneRecordVoice /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        <TransitionSeries.Transition {...fadeT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.recording}>
           <PhoneFrame orientation={orientation}><SceneRecording /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        {/* Record → Review: directional slide, the record "moves forward" */}
+        <TransitionSeries.Transition {...slideT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.structured}>
           <PhoneFrame orientation={orientation}><SceneStructured /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        <TransitionSeries.Transition {...fadeT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.daily}>
           <PhoneFrame orientation={orientation}><SceneDailyRecord /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        {/* Review/Daily → Timeline: directional slide, "into the system" */}
+        <TransitionSeries.Transition {...slideT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.timeline}>
           <PhoneFrame orientation={orientation}><SceneTimeline /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        <TransitionSeries.Transition {...fadeT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.exportShare}>
           <PhoneFrame orientation={orientation}><SceneExport /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...t()} />
+        <TransitionSeries.Transition {...fadeT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.closing}>
           <PhoneFrame orientation={orientation}><SceneClosing /></PhoneFrame>
         </TransitionSeries.Sequence>

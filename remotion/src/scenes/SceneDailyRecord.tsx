@@ -4,6 +4,7 @@ import { COLOR } from '../theme';
 import { StatusBar, ScreenHeader, BottomNav } from '../components/ScreenChrome';
 import { ModeToggle } from '../components/ModeToggle';
 import { MicButton } from '../components/MicButton';
+import { Caption } from '../components/Caption';
 
 export const SceneDailyRecord: React.FC = () => {
   const frame = useCurrentFrame();
@@ -28,6 +29,7 @@ export const SceneDailyRecord: React.FC = () => {
         </div>
       </div>
 
+      <Caption text="Add context when needed" inAt={10} />
       <BottomNav active="record" />
     </AbsoluteFill>
   );
