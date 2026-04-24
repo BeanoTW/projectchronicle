@@ -4,16 +4,18 @@ import { COLOR } from '../theme';
 import { StatusBar, ScreenHeader, BottomNav } from '../components/ScreenChrome';
 import { ModeToggle } from '../components/ModeToggle';
 import { MicButton } from '../components/MicButton';
+import { Caption } from '../components/Caption';
+import { TouchIndicator } from '../components/TouchIndicator';
 
 export const SceneRecordVoice: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 20 });
-  // Cursor moves from upper-right to mic button between f30 and f60, then taps (scale 0.97) at f65
-  const cursorX = interpolate(frame, [25, 60], [620, 540], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const cursorY = interpolate(frame, [25, 60], [560, 880], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const tap = interpolate(frame, [62, 68, 74], [1, 0.97, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const cursorOpacity = interpolate(frame, [22, 30, 70, 75], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  // Cursor moves from upper area to mic button between f25 and f55, then taps at f60
+  const cursorX = interpolate(frame, [25, 55], [620, 540], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const cursorY = interpolate(frame, [25, 55], [560, 880], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const tap = interpolate(frame, [58, 64, 70], [1, 0.97, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const cursorOpacity = interpolate(frame, [22, 30, 64, 68], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: COLOR.bg, opacity: enter }}>
@@ -28,6 +30,9 @@ export const SceneRecordVoice: React.FC = () => {
         </div>
         <div style={{ fontSize: 13, color: COLOR.textSubtle }}>Voice</div>
       </div>
+
+      {/* Soft touch indicator at the mic centre as the tap happens */}
+      <TouchIndicator x={540} y={770} at={60} />
 
       {/* Cursor dot */}
       <div
@@ -45,6 +50,7 @@ export const SceneRecordVoice: React.FC = () => {
         }}
       />
 
+      <Caption text="Capture what happened" inAt={8} />
       <BottomNav active="record" />
     </AbsoluteFill>
   );

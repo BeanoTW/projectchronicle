@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { COLOR } from '../theme';
 import { StatusBar, ScreenHeader, BottomNav } from '../components/ScreenChrome';
+import { Caption } from '../components/Caption';
 
 interface CardProps {
   title: string;

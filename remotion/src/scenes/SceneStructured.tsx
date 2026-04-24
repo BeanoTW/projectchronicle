@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from 'remotion';
 import { COLOR, FONT } from '../theme';
 import { StatusBar, ScreenHeader, BottomNav } from '../components/ScreenChrome';
+import { Caption } from '../components/Caption';
 
 const Field: React.FC<{ label: string; value: React.ReactNode; delay: number }> = ({ label, value, delay }) => {
   const frame = useCurrentFrame();
@@ -49,6 +50,7 @@ export const SceneStructured: React.FC = () => {
           }
         />
       </div>
+      <Caption text="Structured into a clear record" inAt={10} />
       <BottomNav active="record" />
     </AbsoluteFill>
   );
