@@ -8,6 +8,7 @@ type RecordingState = "idle" | "requesting" | "recording" | "processing" | "done
 interface VoiceRecorderProps {
   onAudioCaptured: (blob: Blob, duration: number) => void;
   onSwitchToText: () => void;
+  recordType?: 'incident' | 'daily_record';
 }
 
 const VoiceRecorder = ({ onAudioCaptured, onSwitchToText }: VoiceRecorderProps) => {
