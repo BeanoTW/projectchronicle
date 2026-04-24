@@ -23,23 +23,23 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
   // Very subtle drift 1 → 1.02 over ~3s loop to avoid a static feel
   const drift = 1 + (Math.sin(frame / 90) + 1) / 2 * 0.02;
 
-  // Focused canvas — ~4:5 aspect, ~75% of vertical frame, balanced padding
+  // Focused canvas — denser, dominates the frame (~82% of vertical height).
+  // Slightly taller-than-4:5 (≈ 5:6) to fit a richer UI without feeling phone-shaped.
   let canvasW: number;
   let canvasH: number;
   if (orientation === 'vertical') {
-    // 1080x1920: target ~75% height, 4:5 aspect
-    canvasH = Math.round(height * 0.76);
-    canvasW = Math.min(Math.round(canvasH * (4 / 5)), width - 80);
+    // 1080x1920: ~82% height, ~92% width — UI dominates, small calm margins
+    canvasH = Math.round(height * 0.82);
+    canvasW = Math.min(Math.round(canvasH * (5 / 6)), Math.round(width * 0.94));
   } else {
-    // 1920x1080: leave breathing room top/bottom, 4:5 aspect
-    canvasH = Math.round(height * 0.84);
-    canvasW = Math.round(canvasH * (4 / 5));
+    // 1920x1080: tall canvas centred horizontally
+    canvasH = Math.round(height * 0.92);
+    canvasW = Math.round(canvasH * (5 / 6));
   }
 
-  // Internal UI is designed at canvas aspect (4:5) so all chrome (status bar, header,
-  // bottom nav) fits cleanly without clipping.
+  // Internal UI designed at 5:6 — denser layout, less vertical dead space.
   const designW = 1080;
-  const designH = 1350;
+  const designH = 1296;
   const scale = canvasW / designW;
   const innerOffsetY = 0;
 
