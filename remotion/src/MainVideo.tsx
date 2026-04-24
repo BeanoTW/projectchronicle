@@ -8,7 +8,6 @@ import { SceneWordmark } from './scenes/SceneWordmark';
 import { SceneRecordVoice } from './scenes/SceneRecordVoice';
 import { SceneRecording } from './scenes/SceneRecording';
 import { SceneStructured } from './scenes/SceneStructured';
-import { SceneDailyRecord } from './scenes/SceneDailyRecord';
 import { SceneTimeline } from './scenes/SceneTimeline';
 import { SceneExport } from './scenes/SceneExport';
 import { SceneClosing } from './scenes/SceneClosing';
@@ -118,11 +117,7 @@ export const MainVideo: React.FC<{ orientation: Orientation }> = ({ orientation 
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.structured}>
           <PhoneFrame orientation={orientation}><SceneStructured /></PhoneFrame>
         </TransitionSeries.Sequence>
-        <TransitionSeries.Transition {...fadeT()} />
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.daily}>
-          <PhoneFrame orientation={orientation}><SceneDailyRecord /></PhoneFrame>
-        </TransitionSeries.Sequence>
-        {/* Review/Daily → Timeline: directional slide, "into the system" */}
+        {/* Review → Timeline: immediate slide, the new record drops into place */}
         <TransitionSeries.Transition {...slideT()} />
         <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.timeline}>
           <PhoneFrame orientation={orientation}><SceneTimeline /></PhoneFrame>
