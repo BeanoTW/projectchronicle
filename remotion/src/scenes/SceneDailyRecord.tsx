@@ -19,10 +19,13 @@ export const SceneDailyRecord: React.FC = () => {
       <ScreenHeader title="Record" />
       <ModeToggle mode="daily" />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, marginTop: -40 }}>
-        <div style={{ fontSize: 15, color: COLOR.textMuted, fontWeight: 500 }}>Daily record</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, marginTop: 80 }}>
+        <div style={{ fontSize: 16, color: COLOR.textMuted, fontWeight: 500 }}>Daily record</div>
         <MicButton tint={COLOR.gold} ringScale={0.15} />
-        <div style={{ fontSize: 13, color: COLOR.textSubtle }}>One entry per day</div>
+        <div style={{ fontSize: 14, color: COLOR.textSubtle }}>One entry per day</div>
+        <div style={{ marginTop: 18, padding: '12px 20px', background: COLOR.goldSoft, border: `1px solid ${COLOR.gold}55`, borderRadius: 12, fontSize: 13, color: '#7A6420', fontWeight: 500, maxWidth: 380, textAlign: 'center', lineHeight: 1.45 }}>
+          A short entry to capture the day, even when nothing notable happened.
+        </div>
       </div>
 
       <BottomNav active="record" />
