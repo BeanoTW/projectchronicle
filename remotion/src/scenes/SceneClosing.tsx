@@ -7,44 +7,44 @@ export const SceneClosing: React.FC = () => {
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 24 });
 
-  // Primary line fades in early
   const primaryOpacity = interpolate(frame, [6, 18, 78, 88], [0, 1, 1, 0.85], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // Secondary trust line appears ~0.5s (15 frames) after primary
   const secondaryOpacity = interpolate(frame, [22, 34, 78, 88], [0, 1, 1, 0.85], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  // Wordmark settles in last
   const wordmarkOpacity = interpolate(frame, [40, 56, 80, 88], [0, 1, 1, 0.85], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const accentWidth = interpolate(frame, [10, 30], [0, 80], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill
       style={{
-        background: COLOR.bg,
+        background: `radial-gradient(ellipse at center, ${COLOR.bg} 0%, ${COLOR.surface} 100%)`,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
-        gap: 22,
+        gap: 24,
         opacity: enter,
         padding: '0 80px',
       }}
     >
+      {/* Top accent line */}
+      <div style={{ width: accentWidth, height: 3, background: COLOR.primary, borderRadius: 2, opacity: primaryOpacity, marginBottom: 8 }} />
       <div
         style={{
           fontFamily: FONT.ui,
-          fontSize: 36,
-          fontWeight: 500,
+          fontSize: 48,
+          fontWeight: 700,
           color: COLOR.text,
           textAlign: 'center',
-          letterSpacing: '-0.01em',
+          letterSpacing: '-0.02em',
           opacity: primaryOpacity,
-          lineHeight: 1.3,
+          lineHeight: 1.15,
         }}
       >
         Your record stays yours
@@ -52,14 +52,15 @@ export const SceneClosing: React.FC = () => {
       <div
         style={{
           fontFamily: FONT.ui,
-          fontSize: 22,
+          fontSize: 24,
           fontWeight: 500,
           color: COLOR.textMuted,
           textAlign: 'center',
           letterSpacing: '-0.005em',
-          lineHeight: 1.45,
+          lineHeight: 1.5,
           whiteSpace: 'pre-line',
           opacity: secondaryOpacity,
+          maxWidth: 720,
         }}
       >
         {'Stored locally by default\nEncrypted when synced'}
@@ -70,15 +71,15 @@ export const SceneClosing: React.FC = () => {
           height: 1,
           background: COLOR.primary,
           opacity: 0.5 * wordmarkOpacity,
-          marginTop: 10,
+          marginTop: 14,
         }}
       />
       <div
         style={{
           fontFamily: FONT.display,
           fontWeight: 500,
-          fontSize: 18,
-          letterSpacing: '0.18em',
+          fontSize: 20,
+          letterSpacing: '0.22em',
           color: COLOR.textMuted,
           opacity: wordmarkOpacity,
         }}
