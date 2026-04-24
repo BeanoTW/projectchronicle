@@ -28,16 +28,17 @@ export const COLOR = {
 };
 
 // Total composition duration (frames @ 30fps)
-export const TOTAL_FRAMES = 630; // 21s
+// 50 + 70 + 105 + 90 + 60 + 95 + 105 + 55 = 630 frames = 21s
+export const TOTAL_FRAMES = 630;
 export const FPS = 30;
 
 export const SCENE_FRAMES = {
-  wordmark: 60,
-  recordVoice: 75,
-  recording: 90,
-  structured: 105,
+  wordmark: 50,
+  recordVoice: 70,
+  recording: 105,   // slightly slower (was 90)
+  structured: 90,   // slightly faster (was 105)
   daily: 60,
-  timeline: 90,
-  exportShare: 90,
-  closing: 60,
+  timeline: 95,     // steady (was 90)
+  exportShare: 105, // slightly slower (was 90)
+  closing: 55,
 };
