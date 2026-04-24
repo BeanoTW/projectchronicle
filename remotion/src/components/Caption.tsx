@@ -4,19 +4,15 @@ import { COLOR, FONT } from '../theme';
 
 interface Props {
   text: string;
-  /** Optional secondary line, appears slightly later. */
   secondary?: string;
-  /** Frame to start fade-in (relative to scene). Default 8. */
   inAt?: number;
-  /** Frame to start fade-out (relative to scene). If undefined, holds to end-8. */
   outAt?: number;
-  /** Bottom offset (px in design space). Default 200 — sits above bottom nav. */
   bottom?: number;
 }
 
 /**
- * Subtitle-style caption. Large, centred, immediately readable.
- * No box, no pill — clean text with a subtle gradient backdrop for legibility.
+ * Subtitle-style caption — large, centred, with a small pear-green accent
+ * underline to give it presence without feeling like a marketing pop-up.
  */
 export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bottom = 200 }) => {
   const frame = useCurrentFrame();
@@ -27,6 +23,14 @@ export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bot
     frame,
     [inAt, inAt + 8, fadeOutStart, fadeOutStart + 8],
     [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
+
+  // Underline draws in just after the text
+  const underline = interpolate(
+    frame,
+    [inAt + 4, inAt + 18],
+    [0, 1],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
 
@@ -45,7 +49,7 @@ export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bot
         left: 0,
         right: 0,
         bottom: 0,
-        height: 360,
+        height: 380,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
@@ -55,12 +59,11 @@ export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bot
         zIndex: 10,
       }}
     >
-      {/* Subtle bottom gradient to lift captions off whatever sits behind */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: `linear-gradient(180deg, transparent 0%, transparent 30%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.85) 100%)`,
+          background: `linear-gradient(180deg, transparent 0%, transparent 28%, rgba(255,255,255,0.65) 65%, rgba(255,255,255,0.92) 100%)`,
           pointerEvents: 'none',
         }}
       />
@@ -68,27 +71,39 @@ export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bot
         style={{
           position: 'relative',
           fontFamily: FONT.ui,
-          fontSize: 32,
-          fontWeight: 500,
+          fontSize: 38,
+          fontWeight: 600,
           color: COLOR.text,
-          letterSpacing: '-0.01em',
-          lineHeight: 1.35,
+          letterSpacing: '-0.015em',
+          lineHeight: 1.25,
           textAlign: 'center',
-          maxWidth: '80%',
+          maxWidth: '84%',
           opacity,
           zIndex: 11,
-          textShadow: '0 1px 0 rgba(255,255,255,0.6)',
         }}
       >
         {text}
       </div>
+      {/* Accent underline */}
+      <div
+        style={{
+          position: 'relative',
+          marginTop: 14,
+          width: 56 * underline,
+          height: 3,
+          background: COLOR.primary,
+          borderRadius: 2,
+          opacity: opacity * 0.9,
+          zIndex: 11,
+        }}
+      />
       {secondary && (
         <div
           style={{
             position: 'relative',
             marginTop: 14,
             fontFamily: FONT.ui,
-            fontSize: 22,
+            fontSize: 24,
             fontWeight: 500,
             color: COLOR.textMuted,
             letterSpacing: '-0.005em',

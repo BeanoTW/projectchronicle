@@ -18,49 +18,48 @@ interface CardProps {
   opacity?: number;
 }
 
-const Card: React.FC<CardProps & { highlight?: number }> = ({ title, preview, meta, chip, chipBg, chipFg, chipBorder, freshChip, faded, ty = 0, opacity = 1, highlight = 0 }) => (
+const Card: React.FC<CardProps & { highlight?: number; isNew?: boolean }> = ({ title, preview, meta, chip, chipBg, chipFg, chipBorder, freshChip, faded, ty = 0, opacity = 1, highlight = 0, isNew = false }) => (
   <div style={{
     margin: '0 28px 14px',
-    padding: '20px 22px',
-    background: COLOR.bg,
+    padding: '22px 24px',
+    background: '#fff',
     border: `1px solid ${highlight > 0 ? COLOR.primary : COLOR.border}`,
-    borderRadius: 18,
+    borderLeft: isNew ? `4px solid ${COLOR.primary}` : `1px solid ${COLOR.border}`,
+    borderRadius: 20,
     boxShadow: highlight > 0
-      ? `0 0 0 ${highlight * 3}px ${COLOR.primary}22, 0 4px 14px -8px ${COLOR.shadow}`
-      : `0 2px 10px -6px ${COLOR.shadow}`,
-    opacity: faded ? 0.7 * opacity : opacity,
+      ? `0 0 0 ${highlight * 4}px ${COLOR.primary}1f, 0 10px 26px -16px ${COLOR.shadow}`
+      : `0 4px 14px -10px ${COLOR.shadow}`,
+    opacity: faded ? 0.62 * opacity : opacity,
     transform: `translateY(${ty}px)`,
-    transition: 'none',
   }}>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: chipBg, border: `1px solid ${chipBorder}`, color: chipFg, fontSize: 13, fontWeight: 600 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, background: chipBg, border: `1px solid ${chipBorder}`, color: chipFg, fontSize: 13, fontWeight: 700, letterSpacing: '0.01em' }}>
         {chip}
       </div>
       {freshChip && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: COLOR.primarySoft, color: COLOR.primaryDark, fontSize: 12, fontWeight: 600 }}>
-          Recorded just now
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: COLOR.primary, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: '0.02em', boxShadow: `0 4px 10px -6px ${COLOR.primary}aa` }}>
+          <div style={{ width: 6, height: 6, borderRadius: 999, background: '#fff' }} />
+          NEW
         </div>
       )}
     </div>
-    <div style={{ fontSize: 18, color: COLOR.text, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.005em' }}>{title}</div>
-    <div style={{ fontSize: 15, color: COLOR.textMuted, lineHeight: 1.45, marginBottom: 10 }}>{preview}</div>
-    <div style={{ fontSize: 12.5, color: COLOR.textSubtle, fontWeight: 500, letterSpacing: '0.02em' }}>{meta}</div>
+    <div style={{ fontSize: 22, color: COLOR.text, fontWeight: 700, marginBottom: 8, letterSpacing: '-0.012em', lineHeight: 1.2 }}>{title}</div>
+    <div style={{ fontSize: 16, color: COLOR.textMuted, lineHeight: 1.45, marginBottom: 12 }}>{preview}</div>
+    <div style={{ fontSize: 13, color: COLOR.textSubtle, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{meta}</div>
   </div>
 );
 
 export const SceneTimeline: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  // New card slides down from above + fades in immediately as scene begins
   const newCardSpring = spring({ frame: frame - 2, fps, config: { damping: 200 }, durationInFrames: 22 });
-  const newTy = interpolate(newCardSpring, [0, 1], [-24, 0]);
-  // Soft highlight pulse fades down across the scene
+  const newTy = interpolate(newCardSpring, [0, 1], [-28, 0]);
   const highlight = interpolate(frame, [4, 30, 80], [0, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: COLOR.bg }}>
       <StatusBar />
-      <ScreenHeader title="Timeline" />
+      <ScreenHeader title="Timeline" eyebrow="Step 04 · Your records" />
       <div style={{ marginTop: 2 }}>
         <Card
           title="Workplace — Conduct concern"
@@ -69,8 +68,9 @@ export const SceneTimeline: React.FC = () => {
           chip="Workplace"
           chipBg={COLOR.primarySoft}
           chipFg={COLOR.primaryDark}
-          chipBorder={`${COLOR.primary}55`}
+          chipBorder={`${COLOR.primary}66`}
           freshChip
+          isNew
           ty={newTy}
           opacity={newCardSpring}
           highlight={highlight}
@@ -103,16 +103,6 @@ export const SceneTimeline: React.FC = () => {
           chipBg="#EEF2EE"
           chipFg={COLOR.text}
           chipBorder={COLOR.border}
-          faded
-        />
-        <Card
-          title="Daily record"
-          preview="Calm afternoon. Brief catch-up with team about next week."
-          meta="7 Mar · 18:05"
-          chip="Daily"
-          chipBg={COLOR.goldSoft}
-          chipFg="#7A6420"
-          chipBorder={`${COLOR.gold}66`}
           faded
         />
       </div>

@@ -11,30 +11,27 @@ export const SceneRecordVoice: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 20 });
-  // Cursor moves from upper area to mic button between f25 and f55, then taps at f60
   const cursorX = interpolate(frame, [25, 55], [620, 540], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const cursorY = interpolate(frame, [25, 55], [560, 880], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const tap = interpolate(frame, [58, 64, 70], [1, 0.97, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const tap = interpolate(frame, [58, 64, 70], [1, 0.96, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const cursorOpacity = interpolate(frame, [22, 30, 64, 68], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ background: COLOR.bg, opacity: enter }}>
       <StatusBar />
-      <ScreenHeader title="Record" />
+      <ScreenHeader title="Record" eyebrow="Step 02 · Capture" />
       <ModeToggle mode="voice" />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, marginTop: -40 }}>
-        <div style={{ fontSize: 15, color: COLOR.textMuted, fontWeight: 500 }}>Tap to record</div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, marginTop: -30 }}>
+        <div style={{ fontSize: 17, color: COLOR.textMuted, fontWeight: 600, letterSpacing: '0.02em' }}>Tap to record</div>
         <div style={{ transform: `scale(${tap})` }}>
-          <MicButton tint={COLOR.primary} ringScale={0} />
+          <MicButton tint={COLOR.primary} ringScale={0} size={210} />
         </div>
-        <div style={{ fontSize: 13, color: COLOR.textSubtle }}>Voice</div>
+        <div style={{ fontSize: 14, color: COLOR.textSubtle, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase' }}>Voice</div>
       </div>
 
-      {/* Soft touch indicator at the mic centre as the tap happens */}
       <TouchIndicator x={540} y={770} at={60} />
 
-      {/* Cursor dot */}
       <div
         style={{
           position: 'absolute',
