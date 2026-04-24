@@ -116,7 +116,7 @@ export const SceneTimeline: React.FC = () => {
           faded
         />
       </div>
-      <Caption text="Organised in chronological order" inAt={14} />
+      <Caption text="Organised instantly" inAt={14} />
       <BottomNav active="timeline" />
     </AbsoluteFill>
   );

@@ -4,31 +4,39 @@ import { COLOR, FONT } from '../theme';
 
 interface Props {
   text: string;
-  /** Frame to start fade-in (relative to scene). Default 12. */
+  /** Optional secondary line, appears slightly later. */
+  secondary?: string;
+  /** Frame to start fade-in (relative to scene). Default 8. */
   inAt?: number;
-  /** Frame to start fade-out (relative to scene). If undefined, holds to end. */
+  /** Frame to start fade-out (relative to scene). If undefined, holds to end-8. */
   outAt?: number;
+  /** Bottom offset (px in design space). Default 200 — sits above bottom nav. */
+  bottom?: number;
 }
 
 /**
- * Subtitle-style caption. Large, prominent, and instantly readable.
- * Sits in the lower third with subtle background support for clarity.
+ * Subtitle-style caption. Large, centred, immediately readable.
+ * No box, no pill — clean text with a subtle gradient backdrop for legibility.
  */
-export const Caption: React.FC<Props> = ({ text, inAt = 12, outAt }) => {
+export const Caption: React.FC<Props> = ({ text, secondary, inAt = 8, outAt, bottom = 200 }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
-  const fadeOutStart = outAt ?? durationInFrames - 18;
+  const fadeOutStart = outAt ?? durationInFrames - 10;
 
   const opacity = interpolate(
     frame,
-    [inAt, inAt + 16, fadeOutStart, fadeOutStart + 14],
+    [inAt, inAt + 8, fadeOutStart, fadeOutStart + 8],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
-  const ty = interpolate(frame, [inAt, inAt + 16], [10, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+
+  const secondaryDelay = inAt + 15;
+  const secondaryOpacity = interpolate(
+    frame,
+    [secondaryDelay, secondaryDelay + 8, fadeOutStart, fadeOutStart + 8],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  );
 
   return (
     <div
@@ -37,22 +45,22 @@ export const Caption: React.FC<Props> = ({ text, inAt = 12, outAt }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        height: 180,
+        height: 360,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
         alignItems: 'center',
         pointerEvents: 'none',
-        paddingBottom: 40,
+        paddingBottom: bottom,
         zIndex: 10,
       }}
     >
-      {/* Subtle gradient background for caption readability */}
+      {/* Subtle bottom gradient to lift captions off whatever sits behind */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: `linear-gradient(180deg, transparent 0%, transparent 20%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0.95) 100%)`,
+          background: `linear-gradient(180deg, transparent 0%, transparent 30%, rgba(255,255,255,0.55) 70%, rgba(255,255,255,0.85) 100%)`,
           pointerEvents: 'none',
         }}
       />
@@ -60,22 +68,41 @@ export const Caption: React.FC<Props> = ({ text, inAt = 12, outAt }) => {
         style={{
           position: 'relative',
           fontFamily: FONT.ui,
-          fontSize: 24,
-          fontWeight: 600,
+          fontSize: 32,
+          fontWeight: 500,
           color: COLOR.text,
           letterSpacing: '-0.01em',
-          padding: '14px 28px',
-          background: 'rgba(255,255,255,0.92)',
-          borderRadius: 999,
-          border: `1.5px solid ${COLOR.borderStrong}`,
-          boxShadow: `0 4px 20px -8px ${COLOR.shadow}`,
+          lineHeight: 1.35,
+          textAlign: 'center',
+          maxWidth: '80%',
           opacity,
-          transform: `translateY(${ty}px)`,
           zIndex: 11,
+          textShadow: '0 1px 0 rgba(255,255,255,0.6)',
         }}
       >
         {text}
       </div>
+      {secondary && (
+        <div
+          style={{
+            position: 'relative',
+            marginTop: 14,
+            fontFamily: FONT.ui,
+            fontSize: 22,
+            fontWeight: 500,
+            color: COLOR.textMuted,
+            letterSpacing: '-0.005em',
+            lineHeight: 1.4,
+            textAlign: 'center',
+            maxWidth: '78%',
+            whiteSpace: 'pre-line',
+            opacity: secondaryOpacity,
+            zIndex: 11,
+          }}
+        >
+          {secondary}
+        </div>
+      )}
     </div>
   );
 };
