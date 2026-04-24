@@ -39,7 +39,7 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
 
   // Internal UI design height = canvas aspect; UI is built to fill it densely.
   const designW = 1080;
-  const designH = 1296;
+  const designH = 1200;
   const scale = canvasW / designW;
   const innerOffsetY = 0;
 
