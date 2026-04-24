@@ -28,8 +28,10 @@ export const COLOR = {
 };
 
 // Total composition duration (frames @ 30fps)
-// 50 + 70 + 105 + 90 + 60 + 95 + 105 + 55 = 630 frames = 21s
-export const TOTAL_FRAMES = 630;
+// Scenes: 50+70+105+90+60+95+105+55 = 630
+// Transitions overlap: 6 fades × 8 + 2 slides × 14 = 76 frames
+// Effective: 630 - 76 = 554 frames ≈ 18.5s
+export const TOTAL_FRAMES = 554;
 export const FPS = 30;
 
 export const SCENE_FRAMES = {
