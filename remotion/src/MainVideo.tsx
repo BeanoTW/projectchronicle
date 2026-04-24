@@ -36,13 +36,12 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
     canvasW = Math.round(canvasH * (4 / 5));
   }
 
-  // Internal UI is designed at 1080x1920 phone proportions; scale to fit canvas width
+  // Internal UI is designed at canvas aspect (4:5) so all chrome (status bar, header,
+  // bottom nav) fits cleanly without clipping.
   const designW = 1080;
-  const designH = 1920;
+  const designH = 1350;
   const scale = canvasW / designW;
-  const innerH = designH * scale;
-  // Vertical offset so the UI is anchored from top inside the canvas, but if it overflows, allow clip
-  const innerOffsetY = Math.min(0, (canvasH - innerH) / 2);
+  const innerOffsetY = 0;
 
   return (
     <AbsoluteFill
