@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import TutorialModal from '@/components/chronicle/TutorialModal';
+import DemoVideo from '@/components/chronicle/DemoVideo';
 import heroImage from '@/assets/auth-hero-sunrise.jpg';
 
 const TUTORIAL_KEY = 'chronicle-tutorial-shown';
@@ -11,21 +12,6 @@ const fade = (delay: number) => ({
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.5, delay },
 });
-
-const VALUE_CARDS = [
-  {
-    title: 'Record what happened',
-    desc: "Write it down while it's fresh. Small details matter later.",
-  },
-  {
-    title: 'See the bigger picture',
-    desc: 'Your events, organised in order.',
-  },
-  {
-    title: 'Know your position',
-    desc: 'Understand where you stand with structured, reliable records.',
-  },
-];
 
 const HomeScreen = () => {
   const [showTutorial, setShowTutorial] = useState(false);
@@ -102,22 +88,9 @@ const HomeScreen = () => {
         </div>
       </div>
 
-      {/* Value cards */}
-      <motion.div className="px-5 pt-8 mb-10 space-y-2.5" {...fade(0.1)}>
-        {VALUE_CARDS.map((card, i) => (
-          <motion.div
-            key={i}
-            className="px-5 py-4 rounded-2xl bg-card border border-border shadow-[0_2px_10px_-4px_hsl(var(--foreground)/0.05)]"
-            {...fade(0.18 + i * 0.06)}
-          >
-            <h3 className="text-[15px] font-semibold text-foreground mb-0.5 leading-snug tracking-[-0.005em]">
-              {card.title}
-            </h3>
-            <p className="text-[13px] text-muted-foreground leading-relaxed">
-              {card.desc}
-            </p>
-          </motion.div>
-        ))}
+      {/* Demonstration video */}
+      <motion.div className="px-5 pt-8 mb-10" {...fade(0.15)}>
+        <DemoVideo />
       </motion.div>
 
       {/* Footer */}
