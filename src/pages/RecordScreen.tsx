@@ -427,7 +427,7 @@ const RecordScreen = () => {
   );
 
   return (
-    <div className="min-h-screen pb-24 page-enter relative overflow-hidden">
+    <div className="min-h-screen pb-20 page-enter relative overflow-hidden">
       {/* Subtle background pattern */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/20" />
@@ -474,7 +474,7 @@ const RecordScreen = () => {
       </PageHeader>
 
       {/* Record-type toggle (Daily Record extension) */}
-      <div className="px-5 mb-3">
+      <div className="px-5 -mt-1 mb-2">
         <div className="flex bg-muted/40 rounded-lg p-0.5 gap-0.5">
           <button
             onClick={() => setRecordType('incident')}
@@ -498,7 +498,7 @@ const RecordScreen = () => {
       </div>
 
       {/* Mode Toggle (Voice / Text) */}
-      <div className="px-5 mb-5">
+      <div className="px-5 mb-2">
         <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
           <button
             onClick={() => setMode('voice')}
