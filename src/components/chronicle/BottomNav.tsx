@@ -31,7 +31,7 @@ const BottomNav = () => {
         key={path}
         onClick={() => navigate(path)}
         className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-200 ${
-          active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+          active ? 'text-primary' : 'text-muted-foreground/90 hover:text-foreground'
         }`}
         style={{ paddingTop: 4, paddingBottom: 4 }}
         aria-label={label}
@@ -55,22 +55,22 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[50px] rounded-[18px]"
+        className="relative h-[48px] rounded-[16px]"
         style={{
           background: 'linear-gradient(180deg, #ffffff 0%, #f5f6f5 100%)',
           border: '1px solid rgba(20, 30, 40, 0.06)',
           boxShadow:
-            '0 10px 20px -6px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
-          WebkitMaskImage: `radial-gradient(circle 36px at 50% 0%, transparent 98%, black 100%)`,
-          maskImage: `radial-gradient(circle 36px at 50% 0%, transparent 98%, black 100%)`,
+            '0 8px 16px -4px rgba(15, 23, 42, 0.05), 0 3px 6px -2px rgba(15, 23, 42, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
+          WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
+          maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
         {/* Side icons - symmetrical halves around the centre */}
         <div className="grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="flex h-full items-center pr-7">
+          <div className="flex h-full items-center pr-6">
             {leftItems.map(renderItem)}
           </div>
-          <div className="flex h-full items-center pl-5">
+          <div className="flex h-full items-center pl-4">
             {rightItems.map(renderItem)}
           </div>
         </div>
@@ -81,7 +81,7 @@ const BottomNav = () => {
         onClick={() => navigate('/record')}
         aria-label="Record"
         className="absolute left-1/2 -translate-x-1/2 group"
-        style={{ top: -16 }}
+        style={{ top: -14 }}
       >
         <span
           className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
@@ -92,7 +92,7 @@ const BottomNav = () => {
             background:
               'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
             boxShadow:
-              '0 8px 16px -4px hsl(var(--primary) / 0.28), 0 3px 6px -2px hsl(220 25% 12% / 0.06), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -3px 6px hsl(100 50% 22% / 0.22)',
+              '0 6px 12px -3px hsl(var(--primary) / 0.22), 0 2px 4px -1px hsl(220 25% 12% / 0.05), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -3px 6px hsl(100 50% 22% / 0.22)',
           }}
         >
           <RecordIcon />
