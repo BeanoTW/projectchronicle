@@ -126,13 +126,17 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
           >
             <button
               onClick={startRecording}
-              className={`w-20 h-20 rounded-full border-2 flex items-center justify-center mb-4 active:scale-[0.95] transition-transform ${
-                isDailyRecord 
-                  ? 'bg-warm-accent/10 border-warm-accent/30 hover:bg-warm-accent/15' 
-                  : 'bg-primary/10 border-primary/30 hover:bg-primary/15'
-              }`}
+              className="w-20 h-20 rounded-full flex items-center justify-center mb-4 active:scale-[0.96] transition-transform"
+              style={{
+                background: isDailyRecord
+                  ? 'linear-gradient(180deg, hsl(38 70% 56%) 0%, hsl(var(--warm-accent)) 50%, hsl(28 65% 38%) 100%)'
+                  : 'linear-gradient(180deg, hsl(100 46% 62%) 0%, hsl(var(--primary)) 50%, hsl(100 42% 46%) 100%)',
+                boxShadow: isDailyRecord
+                  ? '0 14px 28px -6px hsl(220 25% 12% / 0.22), 0 4px 10px -2px hsl(220 25% 12% / 0.12), inset 0 2px 2.5px hsl(0 0% 100% / 0.45), inset 0 -3px 6px hsl(28 70% 22% / 0.22)'
+                  : '0 14px 28px -6px hsl(220 25% 12% / 0.22), 0 4px 10px -2px hsl(220 25% 12% / 0.12), inset 0 2px 2.5px hsl(0 0% 100% / 0.45), inset 0 -3px 6px hsl(100 50% 20% / 0.22)',
+              }}
             >
-              <Mic className={`h-8 w-8 ${isDailyRecord ? 'text-warm-accent' : 'text-primary'}`} />
+              <Mic className="h-8 w-8 text-white" strokeWidth={2.25} />
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
             <p className="text-[12px] text-muted-foreground">
