@@ -65,26 +65,23 @@ const BottomNav = () => {
           maskImage: `radial-gradient(circle 40px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
-        {/* Side icons container - positioned to avoid the cutout */}
-        <div
-          className="grid h-full items-center"
-          style={{ gridTemplateColumns: '1fr 1fr' }}
-        >
-          <div className="flex items-center justify-around h-full">
+        {/* Side icons - symmetrical halves around the centre */}
+        <div className="grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <div className="flex h-full items-center pr-10">
             {leftItems.map(renderItem)}
           </div>
-          <div className="flex items-center justify-around h-full">
+          <div className="flex h-full items-center pl-10">
             {rightItems.map(renderItem)}
           </div>
         </div>
       </nav>
 
-      {/* Elevated Record button - positioned above the cutout */}
+      {/* Elevated Record button — anchored, ~30% above nav */}
       <button
         onClick={() => navigate('/record')}
         aria-label="Record"
         className="absolute left-1/2 -translate-x-1/2 group"
-        style={{ top: -32 }}
+        style={{ top: -20 }}
       >
         <span
           className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
