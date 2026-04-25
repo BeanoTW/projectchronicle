@@ -67,10 +67,10 @@ const BottomNav = () => {
       >
         {/* Side icons - symmetrical halves around the centre */}
         <div className="grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="flex h-full items-center pr-6">
+          <div className="flex h-full items-center pl-1 pr-8">
             {leftItems.map(renderItem)}
           </div>
-          <div className="flex h-full items-center pl-5">
+          <div className="flex h-full items-center pl-8 pr-1">
             {rightItems.map(renderItem)}
           </div>
         </div>
@@ -90,9 +90,9 @@ const BottomNav = () => {
             height: 60,
             border: '3px solid #ffffff',
             background:
-              'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
+              'linear-gradient(180deg, hsl(100 44% 60%) 0%, hsl(var(--primary)) 50%, hsl(100 42% 50%) 100%)',
             boxShadow:
-              '0 5px 10px -2px hsl(var(--primary) / 0.18), 0 2px 4px -1px hsl(220 25% 12% / 0.05), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -3px 6px hsl(100 50% 22% / 0.20)',
+              '0 10px 20px -4px hsl(220 25% 12% / 0.16), 0 3px 8px -2px hsl(220 25% 12% / 0.10), inset 0 1px 1.5px hsl(0 0% 100% / 0.40), inset 0 -2px 4px hsl(100 50% 22% / 0.18)',
           }}
         >
           <RecordIcon />
