@@ -31,7 +31,7 @@ const BottomNav = () => {
         key={path}
         onClick={() => navigate(path)}
         className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-200 ${
-          active ? 'text-primary' : 'text-muted-foreground/90 hover:text-foreground'
+          active ? 'text-primary' : 'text-muted-foreground/80 hover:text-foreground'
         }`}
         style={{ paddingTop: 4, paddingBottom: 4 }}
         aria-label={label}
@@ -55,7 +55,7 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[48px] rounded-[16px]"
+        className="relative h-[48px] rounded-[18px]"
         style={{
           background: 'linear-gradient(180deg, #ffffff 0%, #f5f6f5 100%)',
           border: '1px solid rgba(20, 30, 40, 0.06)',
@@ -70,7 +70,7 @@ const BottomNav = () => {
           <div className="flex h-full items-center pr-6">
             {leftItems.map(renderItem)}
           </div>
-          <div className="flex h-full items-center pl-4">
+          <div className="flex h-full items-center pl-5">
             {rightItems.map(renderItem)}
           </div>
         </div>
@@ -92,7 +92,7 @@ const BottomNav = () => {
             background:
               'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
             boxShadow:
-              '0 6px 12px -3px hsl(var(--primary) / 0.22), 0 2px 4px -1px hsl(220 25% 12% / 0.05), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -3px 6px hsl(100 50% 22% / 0.22)',
+              '0 5px 10px -2px hsl(var(--primary) / 0.18), 0 2px 4px -1px hsl(220 25% 12% / 0.05), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -3px 6px hsl(100 50% 22% / 0.20)',
           }}
         >
           <RecordIcon />
