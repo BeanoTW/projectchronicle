@@ -54,15 +54,17 @@ export const CalendarIcon = ({ active, ...p }: Props) => (
 
 /** Record — mic inside a defined capture boundary. Center action. */
 export const RecordIcon = ({ active, ...p }: Props) => (
-  <svg {...base(active)} {...p} strokeWidth={active ? 2 : 1.8}>
+  <svg {...base(active)} {...p}>
     {/* Capture boundary */}
-    <circle cx="12" cy="12" r="9" opacity="0.9" />
+    <circle cx="12" cy="12" r="9" />
     {/* Mic capsule */}
     <rect x="9.75" y="6.75" width="4.5" height="8" rx="2.25" fill="currentColor" stroke="none" />
     {/* Mic stand arc */}
     <path d="M7.5 12.25 a4.5 4.5 0 0 0 9 0" />
     {/* Stand */}
-    <line x1="12" y1="16.75" x2="12" y2="18.5" />
+    <line x1="12" y1="16.75" x2="12" y2="18.25" />
+    {/* Signature node — base dot motif */}
+    <circle cx="12" cy="19.5" r="0.6" fill="currentColor" stroke="none" opacity="0.7" />
   </svg>
 );
 
