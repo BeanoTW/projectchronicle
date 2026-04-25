@@ -30,9 +30,10 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-col items-center justify-center gap-[2px] px-3 transition-colors duration-200 ${
+        className={`flex flex-1 flex-col items-center justify-center gap-[3px] transition-colors duration-200 ${
           active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground/85'
         }`}
+        style={{ paddingTop: 2, paddingBottom: 2 }}
         aria-label={label}
       >
         <Icon active={active} />
