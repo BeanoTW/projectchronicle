@@ -13,25 +13,25 @@ const MountainBackdrop = () => {
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden"
-      style={{ height: 240 }}
+      style={{ height: 280 }}
     >
-      {/* Realistic layered valley photo */}
+      {/* Simplified layered valley illustration */}
       <img
         src={valleyImg}
         alt=""
         width={1920}
-        height={1080}
+        height={1088}
         loading="lazy"
         draggable={false}
         className="absolute inset-x-0 top-0 w-full h-full object-cover object-bottom"
-        style={{ opacity: 0.55 }}
+        style={{ opacity: 0.9 }}
       />
-      {/* Light wash for UI legibility */}
+      {/* Soft atmospheric fade into UI */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, hsl(var(--background) / 0.35) 0%, hsl(var(--background) / 0.15) 35%, hsl(var(--background) / 0.55) 75%, hsl(var(--background)) 100%)",
+            "linear-gradient(180deg, hsl(var(--background) / 0.15) 0%, hsl(var(--background) / 0) 30%, hsl(var(--background) / 0.4) 70%, hsl(var(--background)) 100%)",
         }}
       />
     </div>
