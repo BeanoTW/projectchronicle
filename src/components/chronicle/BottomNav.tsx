@@ -30,13 +30,13 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-col items-center justify-center gap-1 px-2 py-1 transition-colors duration-200 ${
+        className={`flex flex-col items-center justify-center gap-[2px] px-3 transition-colors duration-200 ${
           active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground/85'
         }`}
         aria-label={label}
       >
         <Icon active={active} />
-        <span className={`text-[10px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}>
+        <span className={`text-[10px] leading-tight ${active ? 'font-semibold' : 'font-medium'}`}>
           {label}
         </span>
       </button>
@@ -45,53 +45,61 @@ const BottomNav = () => {
 
   return (
     <div
-      className="fixed left-1/2 z-50 w-[calc(100%-24px)] max-w-[560px] -translate-x-1/2"
-      style={{ bottom: `calc(12px + env(safe-area-inset-bottom, 0px))` }}
+      className="fixed left-1/2 z-50 -translate-x-1/2"
+      style={{
+        bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
+        width: 'calc(100% - 32px)',
+        maxWidth: '720px',
+      }}
     >
+      {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[68px] rounded-[28px] border border-border/60"
+        className="relative h-[56px] rounded-[24px]"
         style={{
-          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(210 12% 97%) 100%)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #f5f6f5 100%)',
+          border: '1px solid rgba(20, 30, 40, 0.05)',
           boxShadow:
-            '0 18px 36px -12px hsl(220 25% 12% / 0.18), 0 6px 14px -4px hsl(220 25% 12% / 0.10), inset 0 1px 0 hsl(0 0% 100% / 0.9)',
+            '0 16px 32px -10px rgba(15, 23, 42, 0.10), 0 6px 12px -4px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
+          WebkitMaskImage: `radial-gradient(circle 40px at 50% 0%, transparent 98%, black 100%)`,
+          maskImage: `radial-gradient(circle 40px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
+        {/* Side icons container - positioned to avoid the cutout */}
         <div
           className="grid h-full items-center"
-          style={{ gridTemplateColumns: '1fr 96px 1fr' }}
+          style={{ gridTemplateColumns: '1fr 1fr' }}
         >
-          <div className="flex items-center justify-around">
+          <div className="flex items-center justify-around h-full">
             {leftItems.map(renderItem)}
           </div>
-          <div aria-hidden />
-          <div className="flex items-center justify-around">
+          <div className="flex items-center justify-around h-full">
             {rightItems.map(renderItem)}
           </div>
         </div>
-
-        {/* Elevated Record button — viewport-centred via parent, overlaps nav bar */}
-        <button
-          onClick={() => navigate('/record')}
-          aria-label="Record"
-          className="absolute left-1/2 -translate-x-1/2 group"
-          style={{ top: -26 }}
-        >
-          <span
-            className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
-            style={{
-              width: 68,
-              height: 68,
-              border: '5px solid hsl(var(--background))',
-              background:
-                'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
-              boxShadow:
-                '0 14px 26px -6px hsl(var(--primary) / 0.50), 0 5px 12px -2px hsl(220 25% 12% / 0.20), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -4px 8px hsl(100 50% 22% / 0.30)',
-            }}
-          >
-            <RecordIcon />
-          </span>
-        </button>
       </nav>
+
+      {/* Elevated Record button - positioned above the cutout */}
+      <button
+        onClick={() => navigate('/record')}
+        aria-label="Record"
+        className="absolute left-1/2 -translate-x-1/2 group"
+        style={{ top: -32 }}
+      >
+        <span
+          className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
+          style={{
+            width: 64,
+            height: 64,
+            border: '3px solid #ffffff',
+            background:
+              'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
+            boxShadow:
+              '0 14px 28px -6px hsl(var(--primary) / 0.40), 0 6px 12px -2px hsl(220 25% 12% / 0.10), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -4px 8px hsl(100 50% 22% / 0.30)',
+          }}
+        >
+          <RecordIcon />
+        </span>
+      </button>
     </div>
   );
 };
