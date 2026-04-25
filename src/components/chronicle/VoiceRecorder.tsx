@@ -113,7 +113,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
   }, [audioUrl]);
 
   return (
-    <div className="px-5 mb-6 flex flex-col items-center">
+    <div className="px-5 pt-10 mb-4 flex flex-col items-center">
       <AnimatePresence mode="wait">
         {/* IDLE — Ready to record */}
         {state === "idle" && (
