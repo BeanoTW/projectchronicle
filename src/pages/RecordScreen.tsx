@@ -930,6 +930,7 @@ const RecordScreen = () => {
         </AlertDialogContent>
       </AlertDialog>
       <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
+      <SystemStatusStrip />
     </div>
   );
 };
