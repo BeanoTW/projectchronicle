@@ -18,6 +18,7 @@ import VoiceRecorder from '@/components/chronicle/VoiceRecorder';
 import { useUploadEvidence, useEvidence } from '@/hooks/useEvidence';
 import AttachmentRow from '@/components/chronicle/AttachmentRow';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
+import SystemStatusStrip from '@/components/chronicle/SystemStatusStrip';
 import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
 import type { Interaction, RecordType } from '@/types/dailyRecord';
 import {
