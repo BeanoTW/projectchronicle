@@ -17,8 +17,6 @@ const rightItems = [
   { path: '/support', label: 'Support', Icon: SupportIcon },
 ];
 
-const NOTCH_DIAMETER = 76; // diameter of cutout, slightly larger than button
-
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,13 +30,13 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-col items-center justify-center flex-1 h-full transition-colors duration-200 ${
-          active ? 'text-primary' : 'text-muted-foreground/60 hover:text-muted-foreground/85'
+        className={`flex flex-col items-center justify-center gap-1 px-2 py-1 transition-colors duration-200 ${
+          active ? 'text-primary' : 'text-muted-foreground/70 hover:text-foreground/85'
         }`}
         aria-label={label}
       >
         <Icon active={active} />
-        <span className={`text-[10px] mt-0.5 ${active ? 'font-semibold' : 'font-medium'}`}>
+        <span className={`text-[10px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}>
           {label}
         </span>
       </button>
@@ -46,56 +44,55 @@ const BottomNav = () => {
   };
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    <div
+      className="fixed left-1/2 z-50 w-[calc(100%-24px)] max-w-[560px] -translate-x-1/2"
+      style={{ bottom: `calc(12px + env(safe-area-inset-bottom, 0px))` }}
     >
-      <div className="relative mx-3 mb-3 max-w-lg lg:mx-auto">
-        {/* Nav bar with SVG-defined circular notch */}
+      <nav
+        className="relative h-[68px] rounded-[28px] border border-border/60"
+        style={{
+          background: 'linear-gradient(180deg, hsl(var(--card)) 0%, hsl(210 12% 97%) 100%)',
+          boxShadow:
+            '0 18px 36px -12px hsl(220 25% 12% / 0.18), 0 6px 14px -4px hsl(220 25% 12% / 0.10), inset 0 1px 0 hsl(0 0% 100% / 0.9)',
+        }}
+      >
         <div
-          className="relative h-[60px]"
-          style={{
-            // Mask cuts a circular notch in the top centre of the bar
-            WebkitMaskImage: `radial-gradient(circle ${NOTCH_DIAMETER / 2}px at 50% 0%, transparent 99%, black 100%)`,
-            maskImage: `radial-gradient(circle ${NOTCH_DIAMETER / 2}px at 50% 0%, transparent 99%, black 100%)`,
-          }}
+          className="grid h-full items-center"
+          style={{ gridTemplateColumns: '1fr 96px 1fr' }}
         >
-          <div className="absolute inset-0 rounded-2xl glass-nav border border-border shadow-[var(--shadow-elevated)]" />
-          <div className="relative flex items-center h-full">
-            {/* Left items */}
-            <div className="flex h-full" style={{ width: `calc(50% - ${NOTCH_DIAMETER / 2}px)` }}>
-              {leftItems.map(renderItem)}
-            </div>
-            {/* Centre gap reserved for record button */}
-            <div style={{ width: NOTCH_DIAMETER }} aria-hidden />
-            {/* Right items */}
-            <div className="flex h-full" style={{ width: `calc(50% - ${NOTCH_DIAMETER / 2}px)` }}>
-              {rightItems.map(renderItem)}
-            </div>
+          <div className="flex items-center justify-around">
+            {leftItems.map(renderItem)}
+          </div>
+          <div aria-hidden />
+          <div className="flex items-center justify-around">
+            {rightItems.map(renderItem)}
           </div>
         </div>
 
-        {/* Elevated Record button — absolutely centred, overlaps nav bar */}
+        {/* Elevated Record button — viewport-centred via parent, overlaps nav bar */}
         <button
           onClick={() => navigate('/record')}
           aria-label="Record"
-          className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center group"
+          className="absolute left-1/2 -translate-x-1/2 group"
           style={{ top: -26 }}
         >
           <span
-            className="w-[64px] h-[64px] rounded-full flex items-center justify-center text-white transition-transform duration-150 group-active:scale-95"
+            className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
             style={{
+              width: 68,
+              height: 68,
+              border: '5px solid hsl(var(--background))',
               background:
-                'radial-gradient(circle at 30% 25%, hsl(var(--primary) / 0.95), hsl(var(--primary)) 55%, hsl(var(--primary) / 0.88) 100%)',
+                'radial-gradient(circle at 30% 25%, hsl(100 45% 62%), hsl(var(--primary)) 55%, hsl(100 42% 46%) 100%)',
               boxShadow:
-                '0 12px 24px -8px hsl(var(--primary) / 0.55), 0 2px 6px hsl(var(--primary) / 0.25), inset 0 1px 0 hsl(0 0% 100% / 0.4), inset 0 -2px 4px hsl(var(--primary) / 0.4)',
+                '0 14px 26px -6px hsl(var(--primary) / 0.50), 0 5px 12px -2px hsl(220 25% 12% / 0.20), inset 0 2px 3px hsl(0 0% 100% / 0.35), inset 0 -4px 8px hsl(100 50% 22% / 0.30)',
             }}
           >
             <RecordIcon />
           </span>
         </button>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 };
 
