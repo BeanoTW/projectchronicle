@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2 } from 'lucide-react';
+import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2, Lock } from 'lucide-react';
+import { useLock } from '@/contexts/LockContext';
+import { isValidPinFormat } from '@/lib/lock/pinCrypto';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +35,45 @@ const SettingsScreen = () => {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+
+  // App Lock
+  const lock = useLock();
+  const [pinSetupOpen, setPinSetupOpen] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinBusy, setPinBusy] = useState(false);
+
+  const handleSetPin = async () => {
+    if (!isValidPinFormat(pinValue)) { setPinError('PIN must be 4–6 digits.'); return; }
+    if (pinValue !== pinConfirm) { setPinError('PINs do not match.'); return; }
+    setPinBusy(true);
+    setPinError(null);
+    try {
+      await lock.setPin(pinValue);
+      setPinSetupOpen(false);
+      setPinValue(''); setPinConfirm('');
+      toast({ title: 'App lock enabled' });
+    } catch (e) {
+      setPinError(e instanceof Error ? e.message : 'Could not set PIN.');
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  const handleRemoveLock = () => {
+    lock.removeLock();
+    toast({ title: 'App lock removed' });
+  };
+
+  const handleToggleBiometric = async (on: boolean) => {
+    try {
+      if (on) { await lock.enableBiometric(); toast({ title: 'Biometric unlock enabled' }); }
+      else { lock.disableBiometric(); }
+    } catch (e) {
+      toast({ title: 'Could not enable biometric', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -357,6 +398,112 @@ const SettingsScreen = () => {
               </AlertDialogContent>
             </AlertDialog>
           </div>
+
+      {/* App lock */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">App lock</p>
+        <div className="bg-card border border-border rounded-xl divide-y divide-border">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-[13px] font-medium text-foreground">Require PIN to open Chronicle</p>
+                <p className="text-[12px] text-muted-foreground">PIN is stored only on this device.</p>
+              </div>
+            </div>
+            <Switch
+              checked={lock.isLockConfigured}
+              onCheckedChange={(v) => v ? setPinSetupOpen(true) : handleRemoveLock()}
+            />
+          </div>
+
+          {lock.isLockConfigured && (
+            <>
+              <button
+                onClick={() => setPinSetupOpen(true)}
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-muted/30 transition"
+              >
+                <span className="text-[13px] text-foreground">Change PIN</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+              </button>
+
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <Fingerprint className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">Biometric unlock</p>
+                    <p className="text-[12px] text-muted-foreground">
+                      {lock.biometricSupported ? 'Use Face ID / Touch ID where available.' : 'Not supported on this device.'}
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={lock.biometricEnabled}
+                  disabled={!lock.biometricSupported}
+                  onCheckedChange={handleToggleBiometric}
+                />
+              </div>
+
+              <div className="p-4 space-y-2">
+                <p className="text-[13px] text-foreground">Auto-lock after</p>
+                <div className="flex gap-2">
+                  {[
+                    { ms: 60_000, label: '1 min' },
+                    { ms: 5 * 60_000, label: '5 min' },
+                    { ms: 15 * 60_000, label: '15 min' },
+                  ].map(opt => (
+                    <button
+                      key={opt.ms}
+                      onClick={() => lock.setTimeout(opt.ms)}
+                      className={`flex-1 text-[12px] py-2 rounded-lg border transition ${
+                        lock.lockTimeoutMs === opt.ms
+                          ? 'bg-primary/10 border-primary/40 text-primary'
+                          : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => { lock.lockNow(); }}
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-muted/30 transition"
+              >
+                <span className="text-[13px] text-foreground">Lock now</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <AlertDialog open={pinSetupOpen} onOpenChange={(v) => { if (!v) { setPinSetupOpen(false); setPinValue(''); setPinConfirm(''); setPinError(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{lock.isLockConfigured ? 'Change PIN' : 'Set a PIN'}</AlertDialogTitle>
+            <AlertDialogDescription>Choose a 4–6 digit PIN. It is stored only on this device.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3">
+            <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+              value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
+              placeholder="New PIN" disabled={pinBusy}
+              className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-[14px]" />
+            <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
+              value={pinConfirm} onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+              placeholder="Confirm PIN" disabled={pinBusy}
+              className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-[14px]" />
+            {pinError && <p className="text-[12px] text-destructive">{pinError}</p>}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pinBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); void handleSetPin(); }} disabled={pinBusy || !pinValue || !pinConfirm}>
+              {pinBusy ? 'Saving…' : 'Save PIN'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
           <div className="border-t border-border" />

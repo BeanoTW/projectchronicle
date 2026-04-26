@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
+import { LockProvider, useLock } from "@/contexts/LockContext";
+import LockGate from "@/components/chronicle/LockGate";
 import BottomNav from "@/components/chronicle/BottomNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
@@ -42,8 +44,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const { isLocked, isLockConfigured } = useLock();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   if (!user) return <Navigate to="/" replace />;
+  if (isLockConfigured && isLocked) return <LockGate />;
   return <>{children}</>;
 };
 
@@ -57,6 +61,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <LockProvider>
       <BackupProvider>
       <PrivacyProvider>
       <DevModeProvider>
@@ -96,6 +101,7 @@ const App = () => (
       </DevModeProvider>
       </PrivacyProvider>
       </BackupProvider>
+      </LockProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
