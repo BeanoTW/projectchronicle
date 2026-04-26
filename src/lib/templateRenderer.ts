@@ -342,6 +342,40 @@ body {
   color: var(--ink-mid);
   display: block;
 }
+.attachment-integrity {
+  display: block;
+  padding-left: 12px;
+  margin: 2px 0 4px;
+  border-left: 1px solid var(--rule-light);
+}
+.attachment-meta {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.attachment-hash {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-light);
+  word-break: break-all;
+  margin-top: 1px;
+}
+.attachment-hash-value { color: var(--ink-mid); font-weight: 500; }
+.attachment-hash-missing { font-style: italic; color: var(--ink-faint); }
+.attachment-integrity-note {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--bg-tint);
+  border-left: 2px solid var(--rule);
+  font-size: 10px;
+  font-style: italic;
+  color: var(--ink-light);
+  line-height: 1.5;
+}
 .record-foot {
   display: flex;
   justify-content: space-between;
