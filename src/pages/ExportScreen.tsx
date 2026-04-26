@@ -326,8 +326,9 @@ const ExportScreen = () => {
       } finally {
         setTribunalLoading(false);
       }
-    });
-  }, [activeIncidents, followUpNotes, evidence, toast, requirePrivacyConfirm]);
+    };
+    await runExport();
+  }, [activeIncidents, followUpNotes, evidence, toast]);
 
   /**
    * Print / Save as PDF.
