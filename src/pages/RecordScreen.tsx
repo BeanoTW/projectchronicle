@@ -74,6 +74,9 @@ const RecordScreen = () => {
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetting, setResetting] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  // Dev mode: sanitised real-case demo dataset
+  const [showDemoSeedDialog, setShowDemoSeedDialog] = useState(false);
+  const [seedingDemo, setSeedingDemo] = useState(false);
 
   // Long press for dev mode
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
