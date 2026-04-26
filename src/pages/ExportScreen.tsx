@@ -595,3 +595,8 @@ const ExportScreen = () => {
         Provided by useExportGate so other screens can reuse the same flow.
       */}
       {gateDialogs}
+    </div>
+  );
+};
+
+export default ExportScreen;
