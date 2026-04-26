@@ -16,7 +16,12 @@ import {
 } from '@/lib/summaryPipeline';
 import { renderTemplateHtml, getTemplateFilename } from '@/lib/templateRenderer';
 import ExportBuilderModal from '@/components/chronicle/ExportBuilderModal';
+import ExportTimestampPanel from '@/components/chronicle/ExportTimestampPanel';
 import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
+import {
+  createExportTimestampRecord,
+  type ExportTimestampRecord,
+} from '@/lib/exportTimestamp';
 
 async function deliverHtmlFile(html: string, filename: string): Promise<string> {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -92,6 +97,8 @@ const ExportScreen = () => {
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [timestampRecord, setTimestampRecord] = useState<ExportTimestampRecord | null>(null);
+  const [timestampLoading, setTimestampLoading] = useState(false);
 
   // Backwards-compatible alias for existing call sites in this file.
   const requirePrivacyConfirm = requireGated;
