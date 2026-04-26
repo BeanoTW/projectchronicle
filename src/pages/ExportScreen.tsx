@@ -53,15 +53,16 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
 <section class="export-integrity" style="margin: 32px 56px 24px; padding: 16px; border: 1px solid #d4d4d4; background: #fafafa; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #444; line-height: 1.6;">
   <div style="font-family: inherit; font-weight: 600; font-size: 11px; color: #222; margin-bottom: 8px; letter-spacing: 0.04em; text-transform: uppercase;">Export integrity</div>
   <div>Export ID: ${esc(record.exportId)}</div>
-  <div style="word-break: break-all;">SHA-256 fingerprint (covers the export body above this section): ${esc(record.exportHash)}</div>
+  <div style="word-break: break-all;">SHA-256 fingerprint: ${esc(record.exportHash)}</div>
   <div>Status: ${esc(statusLabel)}</div>
   <div>${tsLine}</div>
   <div>Generated locally: ${esc(record.createdAt)}</div>
+  <div style="margin-top: 10px;">The fingerprint covers the export content above this section. The fingerprint was calculated before this integrity section was added.</div>
   <div style="margin-top: 10px; font-style: italic; color: #666;">
     ${esc(describeTimestampStatus(record))}
   </div>
   <div style="margin-top: 6px; font-style: italic; color: #888;">
-    A fingerprint helps detect if this file changes later. It does not prove who wrote the records, where they came from, or that the contents are true. It is not a forensic chain of custody.
+    A fingerprint helps detect if this file changes later. This does not prove who created the record or that the contents are true.
   </div>
 </section>
 `;
