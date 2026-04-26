@@ -614,45 +614,78 @@ const ExportScreen = () => {
         </div>
       )}
 
-      {/* Case Summary */}
+      {/* Case Summary — collapsible to keep export actions above the fold for larger sets. */}
       <div
         ref={summaryRef}
-        className={`mx-5 mb-5 bg-card border rounded-xl p-5 transition-shadow duration-500 ${
+        className={`mx-5 mb-5 bg-card border rounded-xl transition-shadow duration-500 overflow-hidden ${
           summaryHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
         }`}
       >
-        <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => setSummaryCollapsed((v) => !v)}
+          aria-expanded={!summaryCollapsed}
+          aria-controls="structured-record-body"
+          className="w-full flex items-start gap-3 p-5 text-left hover:bg-muted/30 transition-colors"
+        >
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-[15px] font-semibold text-foreground">Structured Record</h3>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A complete structured record of your saved entries.</p>
-            <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">Includes chronological entries, categories, people referenced, timestamps, follow-ups, and record integrity information.</p>
-
-            {summaryResult ? (
-              <div className="mt-3 space-y-3">
-                {summaryResult.sections.map((section) => (
-                  <div key={section.key}>
-                    {section.title && (
-                      <p className="text-[12px] font-semibold text-foreground mb-1">{section.title}</p>
-                    )}
-                    <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{section.content}</p>
-                  </div>
-                ))}
-                <button onClick={() => setSummaryResult(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
-              </div>
+            {summaryCollapsed ? (
+              <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
+                {activeIncidents.length} record{activeIncidents.length !== 1 ? 's' : ''}
+                {recordDateRange ? ` · ${recordDateRange}` : ''}
+              </p>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
-                onClick={handleCaseNarrative}
-                disabled={narrativeLoading || activeIncidents.length < 2}
-              >
-                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Preparing…</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
-              </Button>
+              <>
+                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A complete structured record of your saved entries.</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">Includes chronological entries, categories, people referenced, timestamps, follow-ups, and record integrity information.</p>
+              </>
             )}
           </div>
-        </div>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground flex-shrink-0 mt-1 transition-transform duration-300 ${summaryCollapsed ? '' : 'rotate-180'}`}
+          />
+        </button>
+        <AnimatePresence initial={false}>
+          {!summaryCollapsed && (
+            <motion.div
+              id="structured-record-body"
+              key="body"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 pl-[52px]">
+                {summaryResult ? (
+                  <div className="space-y-3">
+                    {summaryResult.sections.map((section) => (
+                      <div key={section.key}>
+                        {section.title && (
+                          <p className="text-[12px] font-semibold text-foreground mb-1">{section.title}</p>
+                        )}
+                        <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{section.content}</p>
+                      </div>
+                    ))}
+                    <button onClick={() => setSummaryResult(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
+                    onClick={handleCaseNarrative}
+                    disabled={narrativeLoading || activeIncidents.length < 2}
+                  >
+                    {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Preparing…</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="mx-5">
