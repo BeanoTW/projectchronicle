@@ -39,15 +39,19 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
     record.status === 'success' ? 'Fingerprint recorded by Chronicle · independently timestamped'
     : record.status === 'failed' ? 'Fingerprint recorded by Chronicle · independent timestamp failed'
     : record.status === 'pending' ? 'Fingerprint recorded by Chronicle · independent timestamp pending'
-    : 'Fingerprint recorded by Chronicle · independent trusted timestamping not yet enabled';
+    : 'Fingerprint recorded by Chronicle · independent timestamping not currently available';
 
   const tsLine = record.status === 'success' && record.timestampAt && record.authority
     ? `Independent trusted timestamp: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
     : record.status === 'unavailable'
-      ? 'Independent trusted timestamp: not yet enabled in this build — no external timestamp authority was contacted'
+      ? 'Independent trusted timestamp: not currently available — no external timestamp authority was contacted'
       : record.status === 'failed'
         ? 'Independent trusted timestamp: not obtained — the request did not complete'
         : 'Independent trusted timestamp: pending';
+
+  const tokenLine = record.status === 'success' && record.token
+    ? `<div style="word-break: break-all;">Token (RFC 3161, base64, truncated): ${esc(record.token.slice(0, 64))}…</div>`
+    : '';
 
   const block = `
 <section class="export-integrity" style="margin: 32px 56px 24px; padding: 16px; border: 1px solid #d4d4d4; background: #fafafa; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #444; line-height: 1.6;">
