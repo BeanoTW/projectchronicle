@@ -2,15 +2,23 @@ import { useState, useEffect } from 'react';
 import { X, Download, Loader2, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import AttachmentIntegrityPanel from './AttachmentIntegrityPanel';
 
 interface EvidencePreviewProps {
   filePath: string;
   fileName: string;
   mimeType: string | null;
   onClose: () => void;
+  fileHash?: string | null;
+  captureDate?: string | null;
+  uploadDate?: string | null;
+  incidentId?: string | null;
 }
 
-const EvidencePreview = ({ filePath, fileName, mimeType, onClose }: EvidencePreviewProps) => {
+const EvidencePreview = ({
+  filePath, fileName, mimeType, onClose,
+  fileHash = null, captureDate = null, uploadDate = null, incidentId = null,
+}: EvidencePreviewProps) => {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
