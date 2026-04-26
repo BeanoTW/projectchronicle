@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { useExportGate } from '@/hooks/useExportGate';
 import ObscuredBlock from '@/components/chronicle/ObscuredBlock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
