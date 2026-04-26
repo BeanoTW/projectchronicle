@@ -202,6 +202,25 @@ const SettingsScreen = () => {
               Your records are stored on this device. Cloud backup is optional and uploads them to your account so they can be restored on another device.
             </p>
 
+            {/* How your records are stored — plain-language local-first explainer */}
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 text-[12px] leading-relaxed">
+              <p className="text-[12px] font-semibold text-foreground">How your records are stored</p>
+              <p className="text-muted-foreground">
+                Chronicle stores your records on this device first. Cloud backup is optional. If backup is off,
+                your records may be lost if this device is lost, damaged, reset, or the browser data is cleared.
+              </p>
+              <p className="text-muted-foreground">
+                When backup is on, Chronicle keeps a cloud copy linked to your account so records can be
+                restored on another device. You can turn backup off or delete the cloud copy from Settings.
+              </p>
+              <ul className="space-y-1 text-muted-foreground pt-1">
+                <li><span className="text-foreground font-medium">Local only</span> — stored on this device only.</li>
+                <li><span className="text-foreground font-medium">Queued</span> — waiting to back up.</li>
+                <li><span className="text-foreground font-medium">Backed up</span> — cloud copy saved.</li>
+                <li><span className="text-foreground font-medium">Conflict</span> — this device and cloud copy differ and need review.</li>
+              </ul>
+            </div>
+
             {conflictCount > 0 && (
               <div
                 id="settings-cloud-conflicts"
