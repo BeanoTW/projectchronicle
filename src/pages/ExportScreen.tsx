@@ -755,6 +755,7 @@ const ExportScreen = () => {
         evidence={evidence}
         onExport={handleBuilderExport}
         loading={tribunalLoading}
+        privacyDisabled={privacyEnabled}
       />
 
       {/*
