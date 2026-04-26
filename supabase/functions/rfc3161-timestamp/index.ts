@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const genTime = findFirstAsn1Time(tokenBytes);
+    const genTime = findGenTime(tokenBytes);
     const timestampAt = genTime ?? new Date().toISOString();
 
     return new Response(JSON.stringify({
