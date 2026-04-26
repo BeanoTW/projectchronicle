@@ -82,8 +82,7 @@ const ExportScreen = () => {
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
   const { enabled: privacyEnabled } = usePrivacy();
-  const { isLocked: appIsLocked } = useLock();
-  const { user } = useAuth();
+  const { requireGated, dialogs: gateDialogs } = useExportGate();
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
@@ -94,68 +93,8 @@ const ExportScreen = () => {
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
 
-  // Privacy Shield export gating.
-  //
-  // When Privacy Shield is ON, every export action must pass through:
-  //   1. App Lock re-authentication (biometric or PIN)
-  //   2. Export disclosure confirmation
-  //
-  // `pendingAction` holds the action to run after both gates pass.
-  // `authGateOpen` controls the auth dialog visibility.
-  // `disclosureOpen` controls the post-auth confirmation dialog.
-  // `exportUnlocked` is a temporary, in-memory grant that lets multiple
-  // export actions in a single session reuse one authentication, BUT it
-  // must expire on app lock, app background, Privacy Shield toggle, or
-  // sign-out. It is NEVER persisted.
-  const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
-  const [authGateOpen, setAuthGateOpen] = useState(false);
-  const [disclosureOpen, setDisclosureOpen] = useState(false);
-  const [exportUnlocked, setExportUnlocked] = useState(false);
-
-  // Invalidate the temporary unlock when any trust boundary changes.
-  useEffect(() => { setExportUnlocked(false); }, [privacyEnabled]);
-  useEffect(() => { if (appIsLocked) setExportUnlocked(false); }, [appIsLocked]);
-  useEffect(() => { setExportUnlocked(false); }, [user?.id]);
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') setExportUnlocked(false);
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, []);
-
-  const cancelPending = useCallback(() => {
-    setPendingAction(null);
-    setAuthGateOpen(false);
-    setDisclosureOpen(false);
-  }, []);
-
-  const requirePrivacyConfirm = useCallback((action: () => void) => {
-    if (!privacyEnabled) {
-      action();
-      return;
-    }
-    setPendingAction(() => action);
-    if (exportUnlocked) {
-      // Already authenticated this session — go straight to disclosure.
-      setDisclosureOpen(true);
-    } else {
-      setAuthGateOpen(true);
-    }
-  }, [privacyEnabled, exportUnlocked]);
-
-  const onAuthSuccess = useCallback(() => {
-    setAuthGateOpen(false);
-    setExportUnlocked(true);
-    setDisclosureOpen(true);
-  }, []);
-
-  const onDisclosureConfirm = useCallback(() => {
-    const action = pendingAction;
-    setDisclosureOpen(false);
-    setPendingAction(null);
-    if (action) action();
-  }, [pendingAction]);
+  // Backwards-compatible alias for existing call sites in this file.
+  const requirePrivacyConfirm = requireGated;
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
