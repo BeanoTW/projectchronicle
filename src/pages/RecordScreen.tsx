@@ -301,9 +301,12 @@ const RecordScreen = () => {
       if (res.data?.error) throw new Error(res.data.error);
       data = res.data;
     } catch (e) {
-      // Silent fallback — do NOT show a destructive or failure toast.
-      // The user can still review and save; UI must reflect that.
+      // Calm fallback — never destructive. The user can still review and save.
       console.warn('analyse-incident unavailable, continuing without AI structuring:', e);
+      toast({
+        title: 'AI assist is unavailable',
+        description: 'You can continue and save your record manually.',
+      });
     } finally {
       setAnalysing(false);
     }
