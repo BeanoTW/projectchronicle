@@ -9,15 +9,14 @@ interface PageHeaderProps {
   hideHome?: boolean;
   hideSettings?: boolean;
   hideMountain?: boolean;
-  mountainHeight?: number;
 }
 
-const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMountain, mountainHeight }: PageHeaderProps) => {
+const PageHeader = ({ title, subtitle, children, hideHome, hideSettings, hideMountain }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
     <div className="relative px-5 pt-8 pb-4">
-      {!hideMountain && <MountainBackdrop height={mountainHeight} />}
+      {!hideMountain && <MountainBackdrop />}
       <div className="relative z-10 flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
           {!hideHome && (
