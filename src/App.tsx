@@ -8,7 +8,9 @@ import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
 import { LockProvider, useLock } from "@/contexts/LockContext";
+import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
+import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
 import BottomNav from "@/components/chronicle/BottomNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
@@ -65,10 +67,12 @@ const App = () => (
       <BackupProvider>
       <PrivacyProvider>
       <DevModeProvider>
+      <AttachmentRevealProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <UpdateBanner />
+        <AttachmentUnlockDialog />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
@@ -98,6 +102,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </AttachmentRevealProvider>
       </DevModeProvider>
       </PrivacyProvider>
       </BackupProvider>

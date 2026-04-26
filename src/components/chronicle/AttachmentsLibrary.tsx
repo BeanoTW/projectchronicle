@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import EvidencePreview from './EvidencePreview';
 import DeleteAttachmentDialog from './DeleteAttachmentDialog';
 import { displayTitle } from '@/lib/displayTitle';
+import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 
 const typeIcons: Record<string, typeof FileText> = {
   Photo: Image, Screenshot: Image, Document: FileText, Audio: Music, Email: Mail, Other: FileText,
@@ -26,6 +27,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const uploadEvidence = useUploadEvidence();
   const deleteEvidence = useDeleteEvidence();
   const isTranscriptSource = useIsTranscriptSource();
+  const { gateActive, requestReveal } = useAttachmentReveal();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
@@ -33,6 +35,15 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
+
+  // If the reveal gate becomes active while a preview is open, close it and
+  // forget any cached thumbnail URLs so file bytes leave the DOM.
+  useEffect(() => {
+    if (gateActive) {
+      setPreviewFile(null);
+      setThumbnails({});
+    }
+  }, [gateActive]);
 
   // Generate signed URLs for image thumbnails
   const getThumbnail = async (filePath: string, id: string) => {
@@ -127,10 +138,18 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                 const linked = incidents.find(inc => inc.id === ev.incident_id);
                 const isLinking = linkingId === ev.id;
 
-                // Lazy load thumbnails for images
-                if (isImage && !thumbnails[ev.id]) {
+                // Lazy load thumbnails for images — but only when not gated.
+                if (!gateActive && isImage && !thumbnails[ev.id]) {
                   getThumbnail(ev.file_path, ev.id);
                 }
+
+                const openPreview = async () => {
+                  if (gateActive) {
+                    const ok = await requestReveal();
+                    if (!ok) return;
+                  }
+                  setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
+                };
 
                 return (
                   <div
@@ -138,12 +157,16 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                     className="w-full flex items-center gap-2 p-3 rounded-xl border border-border bg-card hover:shadow-[var(--shadow-card-hover)] transition-all"
                   >
                     <button
-                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
+                      onClick={openPreview}
                       className="flex-1 min-w-0 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
                     >
                       {/* Thumbnail / Icon */}
                       <div className="w-11 h-11 rounded-lg bg-muted/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {isImage && thumbnails[ev.id] ? (
+                        {gateActive ? (
+                          <div className="w-full h-full flex items-center justify-center bg-muted/60 border border-dashed border-border rounded-lg">
+                            <FileLock2 className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        ) : isImage && thumbnails[ev.id] ? (
                           <img src={thumbnails[ev.id]} alt="" className="w-full h-full object-cover rounded-lg" />
                         ) : (
                           <Icon className="h-4.5 w-4.5 text-muted-foreground/60" />

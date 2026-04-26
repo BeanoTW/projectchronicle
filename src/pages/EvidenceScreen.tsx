@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
 import { displayTitle } from '@/lib/displayTitle';
+import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -56,6 +57,18 @@ const EvidenceScreen = () => {
   const uploadEvidence = useUploadEvidence();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { gateActive, requestReveal } = useAttachmentReveal();
+
+  // Close any open preview if the reveal gate becomes active mid-session.
+  useEffect(() => { if (gateActive) setPreviewFile(null); }, [gateActive]);
+
+  const openPreview = async (ev: { file_path: string; file_name: string; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
+    if (gateActive) {
+      const ok = await requestReveal();
+      if (!ok) return;
+    }
+    setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
+  };
 
   const filtered = activeFilter === 'all' ? allEvidence : allEvidence.filter(e => e.file_type === activeFilter);
   const unlinkedCount = allEvidence.filter(e => !e.incident_id).length;
@@ -168,7 +181,7 @@ const EvidenceScreen = () => {
             <div
               key={ev.id}
               className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer ${accentClass}`}
-              onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
+              onClick={() => openPreview(ev)}
             >
               <div className="flex gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tintBg || 'bg-muted/50'}`}>
@@ -235,10 +248,11 @@ const EvidenceScreen = () => {
                   {/* Actions row */}
                   <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
                     <button
-                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
+                      onClick={() => openPreview(ev)}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 active:scale-[0.97] transition-all"
                     >
-                      <Eye className="h-3 w-3" /> View
+                      {gateActive ? <Lock className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      {gateActive ? 'Unlock to view' : 'View'}
                     </button>
                     <button
                       onClick={() => handleRemoveEvidence(ev.id, ev.file_path)}
