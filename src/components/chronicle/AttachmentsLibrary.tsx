@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
