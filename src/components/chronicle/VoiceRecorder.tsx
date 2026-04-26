@@ -238,6 +238,9 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
                 </div>
               </div>
               <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="hidden" />
+              <p className="text-[11px] text-muted-foreground/80 leading-relaxed mt-2">
+                Voice recordings are saved as attachments and remain available unless deleted.
+              </p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="text-[13px]" onClick={resetRecording}>
