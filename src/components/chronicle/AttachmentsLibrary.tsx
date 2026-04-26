@@ -27,6 +27,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const uploadEvidence = useUploadEvidence();
   const deleteEvidence = useDeleteEvidence();
   const isTranscriptSource = useIsTranscriptSource();
+  const { gateActive, requestReveal } = useAttachmentReveal();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
