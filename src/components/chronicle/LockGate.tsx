@@ -48,9 +48,8 @@ const LockGate = () => {
     setBusy(false);
     setPin('');
     if (res.ok) return;
-    const reason: 'wrong' | 'locked_out' | 'no_pin' = res.reason;
-    if (reason === 'locked_out') setError('Too many attempts. Try again shortly.');
-    else if (reason === 'no_pin') setError('No PIN configured.');
+    if (res.reason === 'locked_out') setError('Too many attempts. Try again shortly.');
+    else if (res.reason === 'no_pin') setError('No PIN configured.');
     else setError('Incorrect PIN.');
   };
 
@@ -61,8 +60,7 @@ const LockGate = () => {
     const res = await unlockWithBiometric();
     setBiometricBusy(false);
     if (res.ok) return;
-    const reason: 'cancelled' | 'unavailable' | 'no_credential' = res.reason;
-    if (reason !== 'cancelled' && reason !== 'no_credential') {
+    if (res.reason !== 'cancelled' && res.reason !== 'no_credential') {
       setError('Biometric unavailable.');
     }
   };

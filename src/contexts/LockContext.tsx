@@ -31,8 +31,8 @@ interface LockContextValue {
   lockTimeoutMs: number;
   attemptsRemaining: number; // attempts before next cooldown kicks in (5 then doubled)
   lockoutUntil: number | null;
-  unlockWithPin: (pin: string) => Promise<{ ok: true } | { ok: false; reason: 'wrong' | 'locked_out' | 'no_pin' }>;
-  unlockWithBiometric: () => Promise<{ ok: true } | { ok: false; reason: 'cancelled' | 'unavailable' | 'no_credential' }>;
+  unlockWithPin: (pin: string) => Promise<{ ok: boolean; reason: 'wrong' | 'locked_out' | 'no_pin' | null }>;
+  unlockWithBiometric: () => Promise<{ ok: boolean; reason: 'cancelled' | 'unavailable' | 'no_credential' | null }>;
   lockNow: () => void;
   setPin: (pin: string) => Promise<void>;
   removeLock: () => void;
@@ -154,7 +154,7 @@ export const LockProvider = ({ children }: { children: React.ReactNode }) => {
     const ok = await verifyPin(pin, record);
     if (ok) {
       recordSuccess();
-      return { ok: true };
+      return { ok: true, reason: null };
     }
     recordFailure();
     return { ok: false, reason: 'wrong' };
@@ -169,7 +169,7 @@ export const LockProvider = ({ children }: { children: React.ReactNode }) => {
       const ok = await verifyBiometric(credId);
       if (ok) {
         recordSuccess();
-        return { ok: true };
+        return { ok: true, reason: null };
       }
       return { ok: false, reason: 'cancelled' };
     } catch {
