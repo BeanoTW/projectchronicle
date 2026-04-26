@@ -173,6 +173,32 @@ const ExportScreen = () => {
     [incidents],
   );
 
+  // Date range across active records, used in the collapsed Structured Record header.
+  const recordDateRange = useMemo(() => {
+    const dates = activeIncidents
+      .map(i => parseISO(i.incident_date))
+      .filter(d => isValid(d))
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (dates.length === 0) return null;
+    const oldest = dates[0];
+    const newest = dates[dates.length - 1];
+    const fmt = (d: Date) => format(d, 'd MMMM yyyy');
+    return oldest.getTime() === newest.getTime()
+      ? fmt(oldest)
+      : `${fmt(oldest)} to ${fmt(newest)}`;
+  }, [activeIncidents]);
+
+  // Collapsible Structured Record card. Default expanded for small sets,
+  // collapsed for ≥10 records so the export action stays above the fold.
+  const [summaryCollapsed, setSummaryCollapsed] = useState<boolean>(activeIncidents.length >= 10);
+  const summaryCollapseInitialised = useRef(false);
+  useEffect(() => {
+    if (summaryCollapseInitialised.current) return;
+    if (activeIncidents.length === 0) return;
+    setSummaryCollapsed(activeIncidents.length >= 10);
+    summaryCollapseInitialised.current = true;
+  }, [activeIncidents.length]);
+
   const handleCaseNarrative = () => {
     if (activeIncidents.length < 2) {
       toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
