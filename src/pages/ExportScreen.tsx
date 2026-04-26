@@ -60,6 +60,7 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
   <div style="word-break: break-all;">SHA-256 fingerprint: ${esc(record.exportHash)}</div>
   <div>Status: ${esc(statusLabel)}</div>
   <div>${tsLine}</div>
+  ${tokenLine}
   <div>Generated locally: ${esc(record.createdAt)}</div>
   <div style="margin-top: 10px;">The fingerprint covers the export content above this section. The fingerprint was calculated before this integrity section was added.</div>
   <div style="margin-top: 10px; font-style: italic; color: #666;">
