@@ -7,10 +7,7 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useToast } from '@/hooks/use-toast';
 import { usePrivacy } from '@/contexts/PrivacyContext';
-import { useLock } from '@/contexts/LockContext';
-import { useAuth } from '@/contexts/AuthContext';
-import ConfirmDialog from '@/components/chronicle/ConfirmDialog';
-import ExportAuthGate from '@/components/chronicle/ExportAuthGate';
+import { useExportGate } from '@/hooks/useExportGate';
 import {
   generateSummary,
   buildTribunalExportPayload,
@@ -85,8 +82,7 @@ const ExportScreen = () => {
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
   const { enabled: privacyEnabled } = usePrivacy();
-  const { isLocked: appIsLocked } = useLock();
-  const { user } = useAuth();
+  const { requireGated, dialogs: gateDialogs } = useExportGate();
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
@@ -97,68 +93,8 @@ const ExportScreen = () => {
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
 
-  // Privacy Shield export gating.
-  //
-  // When Privacy Shield is ON, every export action must pass through:
-  //   1. App Lock re-authentication (biometric or PIN)
-  //   2. Export disclosure confirmation
-  //
-  // `pendingAction` holds the action to run after both gates pass.
-  // `authGateOpen` controls the auth dialog visibility.
-  // `disclosureOpen` controls the post-auth confirmation dialog.
-  // `exportUnlocked` is a temporary, in-memory grant that lets multiple
-  // export actions in a single session reuse one authentication, BUT it
-  // must expire on app lock, app background, Privacy Shield toggle, or
-  // sign-out. It is NEVER persisted.
-  const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
-  const [authGateOpen, setAuthGateOpen] = useState(false);
-  const [disclosureOpen, setDisclosureOpen] = useState(false);
-  const [exportUnlocked, setExportUnlocked] = useState(false);
-
-  // Invalidate the temporary unlock when any trust boundary changes.
-  useEffect(() => { setExportUnlocked(false); }, [privacyEnabled]);
-  useEffect(() => { if (appIsLocked) setExportUnlocked(false); }, [appIsLocked]);
-  useEffect(() => { setExportUnlocked(false); }, [user?.id]);
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') setExportUnlocked(false);
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, []);
-
-  const cancelPending = useCallback(() => {
-    setPendingAction(null);
-    setAuthGateOpen(false);
-    setDisclosureOpen(false);
-  }, []);
-
-  const requirePrivacyConfirm = useCallback((action: () => void) => {
-    if (!privacyEnabled) {
-      action();
-      return;
-    }
-    setPendingAction(() => action);
-    if (exportUnlocked) {
-      // Already authenticated this session — go straight to disclosure.
-      setDisclosureOpen(true);
-    } else {
-      setAuthGateOpen(true);
-    }
-  }, [privacyEnabled, exportUnlocked]);
-
-  const onAuthSuccess = useCallback(() => {
-    setAuthGateOpen(false);
-    setExportUnlocked(true);
-    setDisclosureOpen(true);
-  }, []);
-
-  const onDisclosureConfirm = useCallback(() => {
-    const action = pendingAction;
-    setDisclosureOpen(false);
-    setPendingAction(null);
-    if (action) action();
-  }, [pendingAction]);
+  // Backwards-compatible alias for existing call sites in this file.
+  const requirePrivacyConfirm = requireGated;
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
@@ -170,26 +106,28 @@ const ExportScreen = () => {
       toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
       return;
     }
-    setNarrativeLoading(true);
-    toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
-    try {
-      const allIds = activeIncidents.map(i => i.id);
-      const result = generateSummary({
-        incidents: activeIncidents,
-        selectedIds: allIds,
-        allIncidentCount: allIds.length,
-        mode: 'general' as SummaryMode,
-        customPurpose: '',
-        options: { includePatterns: true, includeNames: true },
-        followUpNotes,
-        evidenceFiles: evidence,
-      });
-      setSummaryResult(result);
-    } catch (e) {
-      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      setNarrativeLoading(false);
-    }
+    requirePrivacyConfirm(() => {
+      setNarrativeLoading(true);
+      toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
+      try {
+        const allIds = activeIncidents.map(i => i.id);
+        const result = generateSummary({
+          incidents: activeIncidents,
+          selectedIds: allIds,
+          allIncidentCount: allIds.length,
+          mode: 'general' as SummaryMode,
+          customPurpose: '',
+          options: { includePatterns: true, includeNames: true },
+          followUpNotes,
+          evidenceFiles: evidence,
+        });
+        setSummaryResult(result);
+      } catch (e) {
+        toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      } finally {
+        setNarrativeLoading(false);
+      }
+    });
   };
 
   // Once the structured record is mounted, scroll to it and briefly highlight.
@@ -244,55 +182,59 @@ const ExportScreen = () => {
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
-    setTribunalLoading(true);
-    // Immediate feedback the moment the user taps export.
-    toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
-    try {
-      if (activeIncidents.length === 0) {
-        toast({ title: 'No records', description: 'Record at least one entry to generate an export.', variant: 'destructive' });
-        return;
-      }
-
-      // 1. Render the locked-template HTML for download.
-      const html = renderTemplateHtml({
-        incidents: activeIncidents,
-        followUps: followUpNotes,
-        evidence,
-      });
-      const filename = getTemplateFilename();
-      setLastExportHtml(html);
-
-      // 2. Also generate the on-screen structured record so the user sees
-      //    a mounted output to scroll to (UX requirement).
+    // Defensive re-gate: the builder open was already gated, but the
+    // temporary unlock may have expired (lock, background, shield toggle)
+    // while the user was inside the modal. We MUST NOT generate any HTML
+    // before the gate resolves.
+    requirePrivacyConfirm(() => {
+      setTribunalLoading(true);
+      toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
       try {
-        const allIds = activeIncidents.map(i => i.id);
-        const result = generateSummary({
-          incidents: activeIncidents,
-          selectedIds: allIds,
-          allIncidentCount: allIds.length,
-          mode: 'general' as SummaryMode,
-          customPurpose: '',
-          options: { includePatterns: false, includeNames: true },
-          followUpNotes,
-          evidenceFiles: evidence,
-        });
-        setSummaryResult(result);
-      } catch {
-        // Non-fatal: download still proceeds.
-      }
+        if (activeIncidents.length === 0) {
+          toast({ title: 'No records', description: 'Record at least one entry to generate an export.', variant: 'destructive' });
+          return;
+        }
 
-      // 3. Close the builder. Do NOT auto-deliver — surface both output
-      //    actions (Download HTML + Print / Save as PDF) in the result block
-      //    so the user sees them as parallel options.
-      setBuilderOpen(false);
-      toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
-    } catch (e) {
-      console.error('[Export] Unexpected error:', e);
-      toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      setTribunalLoading(false);
-    }
-  }, [activeIncidents, followUpNotes, evidence, toast]);
+        // 1. Render the locked-template HTML for download.
+        const html = renderTemplateHtml({
+          incidents: activeIncidents,
+          followUps: followUpNotes,
+          evidence,
+        });
+        setLastExportHtml(html);
+
+        // 2. Also generate the on-screen structured record so the user sees
+        //    a mounted output to scroll to (UX requirement).
+        try {
+          const allIds = activeIncidents.map(i => i.id);
+          const result = generateSummary({
+            incidents: activeIncidents,
+            selectedIds: allIds,
+            allIncidentCount: allIds.length,
+            mode: 'general' as SummaryMode,
+            customPurpose: '',
+            options: { includePatterns: false, includeNames: true },
+            followUpNotes,
+            evidenceFiles: evidence,
+          });
+          setSummaryResult(result);
+        } catch {
+          // Non-fatal: download still proceeds.
+        }
+
+        // 3. Close the builder. Do NOT auto-deliver — surface both output
+        //    actions (Download HTML + Print / Save as PDF) in the result block
+        //    so the user sees them as parallel options.
+        setBuilderOpen(false);
+        toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
+      } catch (e) {
+        console.error('[Export] Unexpected error:', e);
+        toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      } finally {
+        setTribunalLoading(false);
+      }
+    });
+  }, [activeIncidents, followUpNotes, evidence, toast, requirePrivacyConfirm]);
 
   /**
    * Print / Save as PDF.
@@ -646,39 +588,13 @@ const ExportScreen = () => {
 
       {/*
         Privacy Shield export gate.
-        Step 1: Re-authenticate with App Lock (biometric or PIN).
+        Step 1: Re-authenticate with App Lock (biometric or PIN, or
+                explicit "continue without App Lock" if not configured).
         Step 2: Show export disclosure and require explicit confirmation.
         Cancellation or auth failure aborts the pending export action.
+        Provided by useExportGate so other screens can reuse the same flow.
       */}
-      <ExportAuthGate
-        open={authGateOpen}
-        onAuthenticated={onAuthSuccess}
-        onCancel={cancelPending}
-      />
-
-      <ConfirmDialog
-        open={disclosureOpen}
-        title="Before you export"
-        description={
-          <>
-            Exported files leave Chronicle's protected app environment.
-            <br /><br />
-            This file may contain names, locations, quotes, attachments, and
-            other sensitive details from your records. Once exported, it can
-            be copied, forwarded, printed, or viewed by anyone who has access
-            to the file.
-            <br /><br />
-            Privacy Shield only masks information inside the app. It does not
-            protect exported files.
-            <br /><br />
-            Only export or share this document if you are comfortable with that.
-          </>
-        }
-        cancelLabel="Cancel"
-        confirmLabel="I understand this export may contain sensitive information"
-        onCancel={cancelPending}
-        onConfirm={onDisclosureConfirm}
-      />
+      {gateDialogs}
     </div>
   );
 };
