@@ -252,11 +252,12 @@ const ExportScreen = () => {
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
-    // Defensive re-gate: the builder open was already gated, but the
-    // temporary unlock may have expired (lock, background, shield toggle)
-    // while the user was inside the modal. We MUST NOT generate any HTML
-    // before the gate resolves.
-    requirePrivacyConfirm(async () => {
+    // The user has already passed the export disclosure gate to open the
+    // builder. The builder is part of the same export flow and the actual
+    // output is only generated after explicit confirmation here. Do not
+    // re-gate — that would either silently deadlock behind the modal or
+    // require duplicate confirmation.
+    const runExport = async () => {
       setTribunalLoading(true);
       toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
       try {
@@ -325,8 +326,9 @@ const ExportScreen = () => {
       } finally {
         setTribunalLoading(false);
       }
-    });
-  }, [activeIncidents, followUpNotes, evidence, toast, requirePrivacyConfirm]);
+    };
+    await runExport();
+  }, [activeIncidents, followUpNotes, evidence, toast]);
 
   /**
    * Print / Save as PDF.
