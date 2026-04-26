@@ -74,10 +74,22 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
           <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
             {describeTimestampStatus(record)}
           </p>
-          <p className="text-[10.5px] text-muted-foreground/70 leading-relaxed mt-1.5 italic">
-            A fingerprint helps detect if the file changes later. This does not prove who created the record or that the contents are true.
-          </p>
         </div>
+      </div>
+
+      <div className="pt-2 border-t border-border/60 space-y-1.5">
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          This export includes a SHA-256 fingerprint and a structured record of when information was recorded and how it has changed over time.
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">This can help show:</p>
+        <ul className="text-[11px] text-muted-foreground leading-relaxed list-disc pl-4 space-y-0.5">
+          <li>when a record was created</li>
+          <li>whether the content has changed since export</li>
+          <li>how the record has been updated over time</li>
+        </ul>
+        <p className="text-[10.5px] text-muted-foreground/70 leading-relaxed italic">
+          It does not prove who created the record or that the contents are true.
+        </p>
       </div>
     </div>
   );
