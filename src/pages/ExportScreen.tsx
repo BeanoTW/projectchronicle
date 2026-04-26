@@ -281,7 +281,7 @@ const ExportScreen = () => {
     return 'opened';
   }, [lastExportHtml]);
 
-  const handlePrintExport = useCallback(() => {
+  const doPrintExport = useCallback(() => {
     if (!lastExportHtml) return;
     setPrinting(true);
     const result = openExportInNewTab(true);
@@ -295,8 +295,12 @@ const ExportScreen = () => {
     }
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, openExportInNewTab, toast]);
+  const handlePrintExport = useCallback(
+    () => requirePrivacyConfirm(doPrintExport),
+    [requirePrivacyConfirm, doPrintExport],
+  );
 
-  const handleOpenDocument = useCallback(() => {
+  const doOpenDocument = useCallback(() => {
     if (!lastExportHtml) return;
     const result = openExportInNewTab(false);
     if (result === 'blocked') {
@@ -306,8 +310,12 @@ const ExportScreen = () => {
       });
     }
   }, [lastExportHtml, openExportInNewTab, toast]);
+  const handleOpenDocument = useCallback(
+    () => requirePrivacyConfirm(doOpenDocument),
+    [requirePrivacyConfirm, doOpenDocument],
+  );
 
-  const handleDownloadHtml = useCallback(async () => {
+  const doDownloadHtml = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
@@ -319,8 +327,12 @@ const ExportScreen = () => {
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
     }
   }, [lastExportHtml, toast]);
+  const handleDownloadHtml = useCallback(
+    () => requirePrivacyConfirm(() => { void doDownloadHtml(); }),
+    [requirePrivacyConfirm, doDownloadHtml],
+  );
 
-  const handleSendExport = useCallback(async () => {
+  const doSendExport = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await shareExportFile(lastExportHtml, filename, 'Record export');
@@ -332,6 +344,10 @@ const ExportScreen = () => {
       toast({ title: 'Could not share export', description: 'Please try again.', variant: 'destructive' });
     }
   }, [lastExportHtml, toast]);
+  const handleSendExport = useCallback(
+    () => requirePrivacyConfirm(() => { void doSendExport(); }),
+    [requirePrivacyConfirm, doSendExport],
+  );
 
   const exportTypes = [
     {
