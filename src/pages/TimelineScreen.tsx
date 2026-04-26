@@ -224,7 +224,7 @@ const TimelineScreen = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Timeline" subtitle="Your record over time" />
+        <PageHeader title="Timeline" subtitle="Your record over time" mountainHeight={96} />
         <TimelineSkeleton />
       </div>
     );
@@ -233,7 +233,7 @@ const TimelineScreen = () => {
   if (allIncidents.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Timeline" subtitle="Your record over time" />
+        <PageHeader title="Timeline" subtitle="Your record over time" mountainHeight={96} />
         <div className="px-5 mt-2">
           <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
             Your first entries might look like this
@@ -267,7 +267,7 @@ const TimelineScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Timeline" subtitle="Your record over time">
+      <PageHeader title="Timeline" subtitle="Your record over time" mountainHeight={96}>
         <button
           onClick={() => setShowLibrary(true)}
           className="p-2 rounded-lg text-warm-accent/65 hover:text-warm-accent/90 active:text-warm-accent/50 hover:bg-warm-accent/5 active:bg-warm-accent/10 transition-colors duration-150 relative"
