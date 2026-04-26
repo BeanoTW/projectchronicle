@@ -124,7 +124,7 @@ export function useExportGate() {
           </>
         }
         cancelLabel="Cancel"
-        confirmLabel="I understand this export may contain sensitive information"
+        confirmLabel="I understand — continue"
         onCancel={cancelPending}
         onConfirm={onDisclosureConfirm}
       />
