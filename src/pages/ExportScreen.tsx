@@ -81,6 +81,7 @@ const ExportScreen = () => {
   const { data: evidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
+  const { enabled: privacyEnabled } = usePrivacy();
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
@@ -90,6 +91,18 @@ const ExportScreen = () => {
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
+  // Privacy Shield confirmation: holds the pending action to run after the
+  // user explicitly confirms that the export will include the original
+  // stored record (Privacy Shield is display-only).
+  const [pendingPrivacyAction, setPendingPrivacyAction] = useState<null | (() => void)>(null);
+
+  const requirePrivacyConfirm = useCallback((action: () => void) => {
+    if (privacyEnabled) {
+      setPendingPrivacyAction(() => action);
+    } else {
+      action();
+    }
+  }, [privacyEnabled]);
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
