@@ -479,7 +479,7 @@ const RecordScreen = () => {
         <div className="flex bg-muted/40 rounded-lg p-0.5 gap-0.5">
           <button
             onClick={() => setRecordType('incident')}
-            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-colors ${
+            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-all duration-150 ease-out active:scale-[0.98] ${
               recordType === 'incident' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -487,9 +487,9 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setRecordType('daily_record')}
-            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-colors ${
-              recordType === 'daily_record' 
-                ? 'bg-card text-warm-accent shadow-sm ring-1 ring-warm-accent/30' 
+            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-all duration-150 ease-out active:scale-[0.98] ${
+              recordType === 'daily_record'
+                ? 'bg-card text-warm-accent shadow-sm ring-1 ring-warm-accent/30'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -503,7 +503,7 @@ const RecordScreen = () => {
         <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
           <button
             onClick={() => setMode('voice')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
               mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -511,7 +511,7 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
               mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
