@@ -74,6 +74,9 @@ const RecordScreen = () => {
   const [resetConfirmText, setResetConfirmText] = useState('');
   const [resetting, setResetting] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  // Dev mode: sanitised real-case demo dataset
+  const [showDemoSeedDialog, setShowDemoSeedDialog] = useState(false);
+  const [seedingDemo, setSeedingDemo] = useState(false);
 
   // Long press for dev mode
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -884,6 +887,22 @@ const RecordScreen = () => {
             50–70 entry dataset spanning Oct 2025 → today, distributed across all
             categories for visual testing.
           </p>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={seedingDemo || !user}
+            className="w-full text-[13px] border-primary/30 text-primary"
+            onClick={() => setShowDemoSeedDialog(true)}
+          >
+            {seedingDemo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+            Wipe + seed sanitised real-case demo dataset
+          </Button>
+          <p className="text-[10px] text-muted-foreground/70 leading-snug">
+            Replaces every local + cloud record for this account with a fixed
+            17-record demonstration dataset based on a sanitised real workplace
+            dispute. For demo and testing only.
+          </p>
         </motion.div>
       )}
 
@@ -940,7 +959,51 @@ const RecordScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AttachmentsLibrary open={showLibrary} onClose={() => setShowLibrary(false)} />
+
+      {/* Sanitised real-case demo dataset confirm dialog */}
+      <AlertDialog open={showDemoSeedDialog} onOpenChange={setShowDemoSeedDialog}>
+        <AlertDialogContent className="rounded-2xl mx-4">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[16px]">Seed sanitised real-case demo dataset?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[13px] leading-relaxed">
+              This will replace every local and cloud record for this account with a sanitised demonstration dataset based on a real workplace dispute. This is for demo and testing only.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[13px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={seedingDemo || !user}
+              onClick={async () => {
+                if (!user) return;
+                setSeedingDemo(true);
+                try {
+                  const { wipeAndSeedRealCaseDataset } = await import('@/local/devSeedRealCase');
+                  const res = await wipeAndSeedRealCaseDataset(user.id);
+                  toast({
+                    title: 'Demo dataset seeded',
+                    description: `${res.totalCreated} records (${res.incidents} incidents, ${res.dailyRecords} daily).`,
+                  });
+                  setShowDemoSeedDialog(false);
+                  navigate('/timeline');
+                } catch (e) {
+                  toast({
+                    title: 'Seed failed',
+                    description: e instanceof Error ? e.message : 'Try again',
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setSeedingDemo(false);
+                }
+              }}
+              className="text-[13px]"
+            >
+              {seedingDemo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+              Wipe + seed demo dataset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <SystemStatusStrip />
     </div>
   );
