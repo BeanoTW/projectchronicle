@@ -182,55 +182,59 @@ const ExportScreen = () => {
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
-    setTribunalLoading(true);
-    // Immediate feedback the moment the user taps export.
-    toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
-    try {
-      if (activeIncidents.length === 0) {
-        toast({ title: 'No records', description: 'Record at least one entry to generate an export.', variant: 'destructive' });
-        return;
-      }
-
-      // 1. Render the locked-template HTML for download.
-      const html = renderTemplateHtml({
-        incidents: activeIncidents,
-        followUps: followUpNotes,
-        evidence,
-      });
-      const filename = getTemplateFilename();
-      setLastExportHtml(html);
-
-      // 2. Also generate the on-screen structured record so the user sees
-      //    a mounted output to scroll to (UX requirement).
+    // Defensive re-gate: the builder open was already gated, but the
+    // temporary unlock may have expired (lock, background, shield toggle)
+    // while the user was inside the modal. We MUST NOT generate any HTML
+    // before the gate resolves.
+    requirePrivacyConfirm(() => {
+      setTribunalLoading(true);
+      toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
       try {
-        const allIds = activeIncidents.map(i => i.id);
-        const result = generateSummary({
-          incidents: activeIncidents,
-          selectedIds: allIds,
-          allIncidentCount: allIds.length,
-          mode: 'general' as SummaryMode,
-          customPurpose: '',
-          options: { includePatterns: false, includeNames: true },
-          followUpNotes,
-          evidenceFiles: evidence,
-        });
-        setSummaryResult(result);
-      } catch {
-        // Non-fatal: download still proceeds.
-      }
+        if (activeIncidents.length === 0) {
+          toast({ title: 'No records', description: 'Record at least one entry to generate an export.', variant: 'destructive' });
+          return;
+        }
 
-      // 3. Close the builder. Do NOT auto-deliver — surface both output
-      //    actions (Download HTML + Print / Save as PDF) in the result block
-      //    so the user sees them as parallel options.
-      setBuilderOpen(false);
-      toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
-    } catch (e) {
-      console.error('[Export] Unexpected error:', e);
-      toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      setTribunalLoading(false);
-    }
-  }, [activeIncidents, followUpNotes, evidence, toast]);
+        // 1. Render the locked-template HTML for download.
+        const html = renderTemplateHtml({
+          incidents: activeIncidents,
+          followUps: followUpNotes,
+          evidence,
+        });
+        setLastExportHtml(html);
+
+        // 2. Also generate the on-screen structured record so the user sees
+        //    a mounted output to scroll to (UX requirement).
+        try {
+          const allIds = activeIncidents.map(i => i.id);
+          const result = generateSummary({
+            incidents: activeIncidents,
+            selectedIds: allIds,
+            allIncidentCount: allIds.length,
+            mode: 'general' as SummaryMode,
+            customPurpose: '',
+            options: { includePatterns: false, includeNames: true },
+            followUpNotes,
+            evidenceFiles: evidence,
+          });
+          setSummaryResult(result);
+        } catch {
+          // Non-fatal: download still proceeds.
+        }
+
+        // 3. Close the builder. Do NOT auto-deliver — surface both output
+        //    actions (Download HTML + Print / Save as PDF) in the result block
+        //    so the user sees them as parallel options.
+        setBuilderOpen(false);
+        toast({ title: 'Export ready', description: 'Choose Download HTML or Print / Save as PDF.' });
+      } catch (e) {
+        console.error('[Export] Unexpected error:', e);
+        toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      } finally {
+        setTribunalLoading(false);
+      }
+    });
+  }, [activeIncidents, followUpNotes, evidence, toast, requirePrivacyConfirm]);
 
   /**
    * Print / Save as PDF.
