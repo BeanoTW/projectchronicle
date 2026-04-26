@@ -41,6 +41,7 @@ interface ExportBuilderModalProps {
   evidence: EvidenceFile[];
   onExport: (items: ExportItem[], config: SequenceConfig) => void;
   loading?: boolean;
+  privacyDisabled?: boolean;
 }
 
 const ExportBuilderModal = ({
@@ -51,6 +52,7 @@ const ExportBuilderModal = ({
   evidence,
   onExport,
   loading,
+  privacyDisabled = false,
 }: ExportBuilderModalProps) => {
   const [config, setConfig] = useState<SequenceConfig>(() => {
     const loaded = loadSequenceConfig();
@@ -490,12 +492,18 @@ const ExportBuilderModal = ({
         {/* Footer */}
         <div className="absolute bottom-24 left-0 right-0 px-5 py-4 border-t border-border bg-card z-[110]">
           <Button
-            className="w-full h-12 text-[14px] font-semibold"
-            onClick={handleExport}
-            disabled={loading || activeIncidents.length === 0}
+            className={`w-full h-12 text-[14px] font-semibold ${privacyDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={privacyDisabled ? undefined : handleExport}
+            disabled={privacyDisabled || loading || activeIncidents.length === 0}
+            aria-disabled={privacyDisabled || loading || activeIncidents.length === 0}
           >
             {loading ? "Generating..." : `Generate Export (${activeIncidents.length} record${activeIncidents.length !== 1 ? 's' : ''})`}
           </Button>
+          {privacyDisabled && (
+            <p className="text-[11px] text-muted-foreground/80 mt-2 leading-relaxed text-center">
+              Turn off Privacy Shield to generate exports. Exports include the original, unmasked record.
+            </p>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

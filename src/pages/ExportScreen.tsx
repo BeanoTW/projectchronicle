@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink, Share2, EyeOff } from 'lucide-react';
+import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink, Share2, EyeOff, ChevronDown } from 'lucide-react';
+import { format, parseISO, isValid } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import { shareExportFile } from '@/lib/shareExport';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -171,6 +173,32 @@ const ExportScreen = () => {
     [incidents],
   );
 
+  // Date range across active records, used in the collapsed Structured Record header.
+  const recordDateRange = useMemo(() => {
+    const dates = activeIncidents
+      .map(i => parseISO(i.incident_date))
+      .filter(d => isValid(d))
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (dates.length === 0) return null;
+    const oldest = dates[0];
+    const newest = dates[dates.length - 1];
+    const fmt = (d: Date) => format(d, 'd MMMM yyyy');
+    return oldest.getTime() === newest.getTime()
+      ? fmt(oldest)
+      : `${fmt(oldest)} to ${fmt(newest)}`;
+  }, [activeIncidents]);
+
+  // Collapsible Structured Record card. Default expanded for small sets,
+  // collapsed for ≥10 records so the export action stays above the fold.
+  const [summaryCollapsed, setSummaryCollapsed] = useState<boolean>(activeIncidents.length >= 10);
+  const summaryCollapseInitialised = useRef(false);
+  useEffect(() => {
+    if (summaryCollapseInitialised.current) return;
+    if (activeIncidents.length === 0) return;
+    setSummaryCollapsed(activeIncidents.length >= 10);
+    summaryCollapseInitialised.current = true;
+  }, [activeIncidents.length]);
+
   const handleCaseNarrative = () => {
     if (activeIncidents.length < 2) {
       toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
@@ -206,6 +234,7 @@ const ExportScreen = () => {
   // "scrolled before content existed" failure mode.
   useEffect(() => {
     if (!summaryResult) return;
+    setSummaryCollapsed(false); // Always reveal newly-generated structured record.
     let cancelled = false;
     const tryScroll = () => {
       if (cancelled) return;
@@ -240,15 +269,14 @@ const ExportScreen = () => {
   }, [lastExportHtml]);
 
   const handleOpenBuilder = () => {
+    if (privacyEnabled) return; // Disabled affordance — never trigger gate.
     if (activeIncidents.length === 0) {
       toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
       return;
     }
-    requirePrivacyConfirm(() => {
-      // FIRST Generate: navigation + focus only. Does NOT generate or download.
-      toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
-      setBuilderOpen(true);
-    });
+    // Privacy Shield is OFF — open builder directly with no gate.
+    toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
+    setBuilderOpen(true);
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
@@ -587,51 +615,86 @@ const ExportScreen = () => {
         </div>
       )}
 
-      {/* Case Summary */}
+      {/* Case Summary — collapsible to keep export actions above the fold for larger sets. */}
       <div
         ref={summaryRef}
-        className={`mx-5 mb-5 bg-card border rounded-xl p-5 transition-shadow duration-500 ${
+        className={`mx-5 mb-5 bg-card border rounded-xl transition-shadow duration-500 overflow-hidden ${
           summaryHighlight ? 'border-primary ring-2 ring-primary/30 shadow-lg' : 'border-border'
         }`}
       >
-        <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => setSummaryCollapsed((v) => !v)}
+          aria-expanded={!summaryCollapsed}
+          aria-controls="structured-record-body"
+          className="w-full flex items-start gap-3 p-5 text-left hover:bg-muted/30 transition-colors"
+        >
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-[15px] font-semibold text-foreground">Structured Record</h3>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A complete structured record of your saved entries.</p>
-            <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">Includes chronological entries, categories, people referenced, timestamps, follow-ups, and record integrity information.</p>
-
-            {summaryResult ? (
-              <div className="mt-3 space-y-3">
-                {summaryResult.sections.map((section) => (
-                  <div key={section.key}>
-                    {section.title && (
-                      <p className="text-[12px] font-semibold text-foreground mb-1">{section.title}</p>
-                    )}
-                    <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{section.content}</p>
-                  </div>
-                ))}
-                <button onClick={() => setSummaryResult(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
-              </div>
+            {summaryCollapsed ? (
+              <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
+                {activeIncidents.length} record{activeIncidents.length !== 1 ? 's' : ''}
+                {recordDateRange ? ` · ${recordDateRange}` : ''}
+              </p>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
-                onClick={handleCaseNarrative}
-                disabled={narrativeLoading || activeIncidents.length < 2}
-              >
-                {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Preparing…</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
-              </Button>
+              <>
+                <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A complete structured record of your saved entries.</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">Includes chronological entries, categories, people referenced, timestamps, follow-ups, and record integrity information.</p>
+              </>
             )}
           </div>
-        </div>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground flex-shrink-0 mt-1 transition-transform duration-300 ${summaryCollapsed ? '' : 'rotate-180'}`}
+          />
+        </button>
+        <AnimatePresence initial={false}>
+          {!summaryCollapsed && (
+            <motion.div
+              id="structured-record-body"
+              key="body"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <div className="px-5 pb-5 pl-[52px]">
+                {summaryResult ? (
+                  <div className="space-y-3">
+                    {summaryResult.sections.map((section) => (
+                      <div key={section.key}>
+                        {section.title && (
+                          <p className="text-[12px] font-semibold text-foreground mb-1">{section.title}</p>
+                        )}
+                        <p className="text-[13px] text-body whitespace-pre-line leading-relaxed">{section.content}</p>
+                      </div>
+                    ))}
+                    <button onClick={() => setSummaryResult(null)} className="text-[13px] text-primary font-medium">Regenerate</button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[13px] border-primary/20 text-primary h-10 rounded-lg hover:bg-primary/4"
+                    onClick={handleCaseNarrative}
+                    disabled={narrativeLoading || activeIncidents.length < 2}
+                  >
+                    {narrativeLoading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Preparing…</> : <><BookOpen className="h-3 w-3 mr-1.5" /> Generate structured record</>}
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes, buttonLabel }, i) => (
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes, buttonLabel }, i) => {
+            const privacyDisabled = !comingSoon && privacyEnabled && key === 'issue-based-record';
+            return (
             <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -648,20 +711,29 @@ const ExportScreen = () => {
                       </span>
                     </div>
                   ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
-                      disabled={!!loading}
-                      onClick={onExport}
-                    >
-                      {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> {buttonLabel || 'Generate'}</>}
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-disabled={privacyDisabled || !!loading}
+                        className={`mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4 ${privacyDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                        disabled={privacyDisabled || !!loading}
+                        onClick={privacyDisabled ? undefined : onExport}
+                      >
+                        {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> {buttonLabel || 'Generate'}</>}
+                      </Button>
+                      {privacyDisabled && (
+                        <p className="text-[11px] text-muted-foreground/80 mt-2 leading-relaxed">
+                          Turn off Privacy Shield to generate exports. Exports include the original, unmasked record.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -683,6 +755,7 @@ const ExportScreen = () => {
         evidence={evidence}
         onExport={handleBuilderExport}
         loading={tribunalLoading}
+        privacyDisabled={privacyEnabled}
       />
 
       {/*
