@@ -7,7 +7,10 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useToast } from '@/hooks/use-toast';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { useLock } from '@/contexts/LockContext';
+import { useAuth } from '@/contexts/AuthContext';
 import ConfirmDialog from '@/components/chronicle/ConfirmDialog';
+import ExportAuthGate from '@/components/chronicle/ExportAuthGate';
 import {
   generateSummary,
   buildTribunalExportPayload,
