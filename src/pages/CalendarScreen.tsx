@@ -176,13 +176,13 @@ const CalendarScreen = () => {
   const currentMonthRef = useRef<HTMLDivElement | null>(null);
   const { maskEntities } = usePrivacy();
 
-  /* Index incidents by date string (using incident_date, not created_at) */
+  /* Index incidents by effective date string (incident_date for incidents, record_date for daily records) */
   const incidentsByDate = useMemo(() => {
     const map = new Map<string, Incident[]>();
     incidents
       .filter(i => !i.voided_at)
       .forEach(i => {
-        const key = i.incident_date.slice(0, 10);
+        const key = effectiveDateStr(i);
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(i);
       });
