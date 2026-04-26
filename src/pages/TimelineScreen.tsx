@@ -224,7 +224,7 @@ const TimelineScreen = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Timeline" subtitle="Your record over time" mountainHeight={96} />
+        <PageHeader title="Timeline" subtitle="Your record over time" />
         <TimelineSkeleton />
       </div>
     );
