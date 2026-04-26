@@ -1,21 +1,20 @@
 import valleyImg from "@/assets/valley-backdrop.jpg";
 
 /**
- * Soft, realistic layered-valley backdrop used behind page headers.
- * - Anchored to the top (header area only)
- * - Low contrast / low opacity — must not compete with UI
- * - Smooth vertical fade into the page background colour at the bottom
- * - Pointer-events: none (never blocks taps)
- * - Parent must be `relative`
+ * Global decorative header backdrop.
+ * - Fixed height (140px) — sits behind title/subtitle only
+ * - Never overlaps interactive UI (buttons, cards, grids)
+ * - Smooth vertical fade completes before content begins
+ * - Single instance per screen, rendered via PageHeader
+ * - Pointer-events: none
  */
 const MountainBackdrop = () => {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden"
-      style={{ height: 280 }}
+      style={{ height: 140 }}
     >
-      {/* Simplified layered valley illustration */}
       <img
         src={valleyImg}
         alt=""
@@ -24,14 +23,14 @@ const MountainBackdrop = () => {
         loading="lazy"
         draggable={false}
         className="absolute inset-x-0 top-0 w-full h-full object-cover object-bottom"
-        style={{ opacity: 0.9 }}
+        style={{ opacity: 0.55 }}
       />
-      {/* Soft atmospheric fade into UI */}
+      {/* Fade fully into background before UI begins */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, hsl(var(--background) / 0.15) 0%, hsl(var(--background) / 0) 30%, hsl(var(--background) / 0.4) 70%, hsl(var(--background)) 100%)",
+            "linear-gradient(180deg, hsl(var(--background) / 0.1) 0%, hsl(var(--background) / 0.3) 55%, hsl(var(--background) / 0.85) 85%, hsl(var(--background)) 100%)",
         }}
       />
     </div>
