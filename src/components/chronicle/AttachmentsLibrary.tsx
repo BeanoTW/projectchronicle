@@ -36,6 +36,15 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
+  // If the reveal gate becomes active while a preview is open, close it and
+  // forget any cached thumbnail URLs so file bytes leave the DOM.
+  useEffect(() => {
+    if (gateActive) {
+      setPreviewFile(null);
+      setThumbnails({});
+    }
+  }, [gateActive]);
+
   // Generate signed URLs for image thumbnails
   const getThumbnail = async (filePath: string, id: string) => {
     if (thumbnails[id]) return;
