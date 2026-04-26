@@ -588,41 +588,10 @@ const ExportScreen = () => {
 
       {/*
         Privacy Shield export gate.
-        Step 1: Re-authenticate with App Lock (biometric or PIN).
+        Step 1: Re-authenticate with App Lock (biometric or PIN, or
+                explicit "continue without App Lock" if not configured).
         Step 2: Show export disclosure and require explicit confirmation.
         Cancellation or auth failure aborts the pending export action.
+        Provided by useExportGate so other screens can reuse the same flow.
       */}
-      <ExportAuthGate
-        open={authGateOpen}
-        onAuthenticated={onAuthSuccess}
-        onCancel={cancelPending}
-      />
-
-      <ConfirmDialog
-        open={disclosureOpen}
-        title="Before you export"
-        description={
-          <>
-            Exported files leave Chronicle's protected app environment.
-            <br /><br />
-            This file may contain names, locations, quotes, attachments, and
-            other sensitive details from your records. Once exported, it can
-            be copied, forwarded, printed, or viewed by anyone who has access
-            to the file.
-            <br /><br />
-            Privacy Shield only masks information inside the app. It does not
-            protect exported files.
-            <br /><br />
-            Only export or share this document if you are comfortable with that.
-          </>
-        }
-        cancelLabel="Cancel"
-        confirmLabel="I understand this export may contain sensitive information"
-        onCancel={cancelPending}
-        onConfirm={onDisclosureConfirm}
-      />
-    </div>
-  );
-};
-
-export default ExportScreen;
+      {gateDialogs}
