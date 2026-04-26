@@ -78,13 +78,13 @@ const EvidencePreview = ({
             {isImage && url && (
               <>
                 <button
-                  onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
+                  onClick={() => transformRef.current?.zoomOut()}
                   className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground active:scale-[0.95] transition-transform"
                 >
                   <ZoomOut className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+                  onClick={() => transformRef.current?.zoomIn()}
                   className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground active:scale-[0.95] transition-transform"
                 >
                   <ZoomIn className="h-4 w-4" />
