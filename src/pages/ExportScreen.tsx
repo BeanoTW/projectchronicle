@@ -268,15 +268,14 @@ const ExportScreen = () => {
   }, [lastExportHtml]);
 
   const handleOpenBuilder = () => {
+    if (privacyEnabled) return; // Disabled affordance — never trigger gate.
     if (activeIncidents.length === 0) {
       toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
       return;
     }
-    requirePrivacyConfirm(() => {
-      // FIRST Generate: navigation + focus only. Does NOT generate or download.
-      toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
-      setBuilderOpen(true);
-    });
+    // Privacy Shield is OFF — open builder directly with no gate.
+    toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
+    setBuilderOpen(true);
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
