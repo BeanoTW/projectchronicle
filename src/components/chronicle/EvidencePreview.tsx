@@ -170,21 +170,14 @@ const EvidencePreview = ({
                         if (!ref) return;
                         e.preventDefault();
                         e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const tapX = e.clientX - rect.left;
-                        const tapY = e.clientY - rect.top;
-                        const { scale, positionX, positionY } = ref.state;
-                        const imageX = (tapX - positionX) / scale;
-                        const imageY = (tapY - positionY) / scale;
+                        const scale = ref.state.scale;
                         const steps = [1, 2, 3, 4];
                         const nextScale = steps.find((s) => s > scale + 0.05);
                         if (nextScale === undefined) {
                           ref.resetTransform();
-                          return;
+                        } else {
+                          ref.zoomIn(nextScale - scale);
                         }
-                        const nextX = tapX - imageX * nextScale;
-                        const nextY = tapY - imageY * nextScale;
-                        ref.setTransform(nextX, nextY, nextScale, 200);
                       }}
                       className="w-full h-full flex items-center justify-center"
                     >
