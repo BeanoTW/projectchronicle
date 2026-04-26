@@ -188,13 +188,6 @@ const SettingsScreen = () => {
                 aria-label="Toggle Privacy Shield"
               />
             </div>
-            <div className="flex items-center justify-between opacity-40">
-              <div className="flex items-center gap-2.5">
-                <Fingerprint className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[14px] text-foreground">Require PIN or biometric</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
-            </div>
           </div>
 
           <div className="border-t border-border" />
