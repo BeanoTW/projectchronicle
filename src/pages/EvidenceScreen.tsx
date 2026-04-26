@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
 import { useIncidents } from '@/hooks/useIncidents';
@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
 import { displayTitle } from '@/lib/displayTitle';
+import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
