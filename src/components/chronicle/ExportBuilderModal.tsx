@@ -52,6 +52,7 @@ const ExportBuilderModal = ({
   evidence,
   onExport,
   loading,
+  privacyDisabled = false,
 }: ExportBuilderModalProps) => {
   const [config, setConfig] = useState<SequenceConfig>(() => {
     const loaded = loadSequenceConfig();
