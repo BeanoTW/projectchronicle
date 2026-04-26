@@ -47,7 +47,7 @@ const typeTintBg: Record<string, string> = {
 };
 
 const EvidenceScreen = () => {
-  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
