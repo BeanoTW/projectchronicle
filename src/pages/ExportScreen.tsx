@@ -587,6 +587,28 @@ const ExportScreen = () => {
         onExport={handleBuilderExport}
         loading={tribunalLoading}
       />
+
+      {/* Privacy Shield confirmation — required before each export action. */}
+      <ConfirmDialog
+        open={!!pendingPrivacyAction}
+        title="Privacy Shield is on"
+        description={
+          <>
+            Privacy Shield only masks information on screen. This export will include the original stored record.
+            <br />
+            <br />
+            Continue with this export?
+          </>
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Continue with export"
+        onCancel={() => setPendingPrivacyAction(null)}
+        onConfirm={() => {
+          const action = pendingPrivacyAction;
+          setPendingPrivacyAction(null);
+          if (action) action();
+        }}
+      />
     </div>
   );
 };
