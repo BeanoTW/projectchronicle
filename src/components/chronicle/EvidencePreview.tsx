@@ -164,9 +164,7 @@ const EvidencePreview = ({
                     wrapperClass="!w-full !h-full !max-w-full !max-h-full"
                     contentClass="!w-full !h-full flex items-center justify-center"
                   >
-                    <img
-                      src={url}
-                      alt={fileName}
+                    <div
                       onDoubleClick={() => {
                         const ref = transformRef.current;
                         if (!ref) return;
@@ -179,9 +177,15 @@ const EvidencePreview = ({
                           ref.setTransform(ref.state.positionX, ref.state.positionY, next);
                         }
                       }}
-                      className="max-w-full max-h-[70vh] object-contain rounded-lg select-none"
-                      draggable={false}
-                    />
+                      className="w-full h-full flex items-center justify-center"
+                    >
+                      <img
+                        src={url}
+                        alt={fileName}
+                        className="max-w-full max-h-[70vh] object-contain rounded-lg select-none pointer-events-none"
+                        draggable={false}
+                      />
+                    </div>
                   </TransformComponent>
                 </TransformWrapper>
               )}
