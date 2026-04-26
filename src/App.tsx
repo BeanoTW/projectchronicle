@@ -67,10 +67,12 @@ const App = () => (
       <BackupProvider>
       <PrivacyProvider>
       <DevModeProvider>
+      <AttachmentRevealProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <UpdateBanner />
+        <AttachmentUnlockDialog />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
