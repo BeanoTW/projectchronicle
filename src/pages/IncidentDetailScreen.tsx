@@ -729,6 +729,8 @@ const IncidentDetailScreen = () => {
           onOpenChange={setShowHistory}
           entries={editHistory}
         />
+        {/* Privacy Shield export gate (re-auth + disclosure). */}
+        {exportGateDialogs}
       </div>
     </div>
   );
