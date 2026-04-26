@@ -188,6 +188,16 @@ const EvidencePreview = ({
               )}
             </>
           )}
+          </div>
+
+          <div className="w-full max-w-2xl">
+            <AttachmentIntegrityPanel
+              fileHash={fileHash}
+              captureDate={captureDate}
+              uploadDate={uploadDate}
+              incidentId={incidentId}
+            />
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
