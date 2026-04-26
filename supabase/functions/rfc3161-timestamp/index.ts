@@ -143,8 +143,10 @@ function parseLength(buf: Uint8Array, off: number): { len: number; next: number 
   return { len, next: off + 1 + n };
 }
 
-function findFirstGeneralizedTime(buf: Uint8Array): string | null {
-  // Recursive walk of constructed types looking for tag 0x18 (GeneralizedTime).
+function findFirstAsn1Time(buf: Uint8Array): string | null {
+  // Recursive walk looking for the first ASN.1 time value:
+  //   tag 0x18 = GeneralizedTime (RFC 3161 TSTInfo.genTime)
+  //   tag 0x17 = UTCTime          (CMS signingTime attribute, common in TSRs)
   let off = 0;
   while (off < buf.length) {
     if (off + 2 > buf.length) return null;
@@ -154,11 +156,16 @@ function findFirstGeneralizedTime(buf: Uint8Array): string | null {
     if (end > buf.length) return null;
     if (tag === 0x18) {
       const s = new TextDecoder().decode(buf.slice(next, end));
-      return generalizedTimeToIso(s);
+      const iso = generalizedTimeToIso(s);
+      if (iso) return iso;
+    } else if (tag === 0x17) {
+      const s = new TextDecoder().decode(buf.slice(next, end));
+      const iso = utcTimeToIso(s);
+      if (iso) return iso;
     }
     // Constructed (bit 0x20) — recurse
     if ((tag & 0x20) !== 0 || (tag & 0xc0) !== 0) {
-      const inner = findFirstGeneralizedTime(buf.slice(next, end));
+      const inner = findFirstAsn1Time(buf.slice(next, end));
       if (inner) return inner;
     }
     off = end;
@@ -172,6 +179,15 @@ function generalizedTimeToIso(s: string): string | null {
   if (!m) return null;
   const [, y, mo, d, h, mi, se, frac] = m;
   return `${y}-${mo}-${d}T${h}:${mi}:${se}${frac ?? ''}Z`;
+}
+
+function utcTimeToIso(s: string): string | null {
+  // Form: YYMMDDHHMMSSZ (RFC 5280: YY < 50 → 20YY, else 19YY)
+  const m = s.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})Z$/);
+  if (!m) return null;
+  const [, yy, mo, d, h, mi, se] = m;
+  const year = parseInt(yy, 10) < 50 ? `20${yy}` : `19${yy}`;
+  return `${year}-${mo}-${d}T${h}:${mi}:${se}Z`;
 }
 
 // Extract the TimeStampToken (ContentInfo) from the TimeStampResp.
