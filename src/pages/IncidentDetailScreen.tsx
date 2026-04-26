@@ -642,24 +642,28 @@ const IncidentDetailScreen = () => {
             <Button
               variant="outline"
               className="w-full text-foreground border-border h-11 rounded-xl text-[13px]"
-              onClick={async () => {
-                try {
-                  const html = renderTemplateHtml({
-                    incidents: [incident],
-                    followUps: notes,
-                    evidence,
-                  });
-                  const datePart = (incident.incident_date || '').replace(/-/g, '');
-                  const filename = `chronicle-record-${datePart || 'export'}.html`;
-                  const result = await shareExportFile(html, filename, 'Record from Chronicle');
-                  if (result === 'shared' || result === 'downloaded') {
-                    toast({ title: 'Ready to send', description: 'Choose an app to share this record.' });
-                  } else if (result === 'failed') {
-                    toast({ title: 'Could not prepare record', description: 'Please try again.', variant: 'destructive' });
+              onClick={() => {
+                // Privacy Shield gate: re-auth + disclosure must complete
+                // BEFORE we render any HTML or invoke navigator.share.
+                requireExportGate(async () => {
+                  try {
+                    const html = renderTemplateHtml({
+                      incidents: [incident],
+                      followUps: notes,
+                      evidence,
+                    });
+                    const datePart = (incident.incident_date || '').replace(/-/g, '');
+                    const filename = `chronicle-record-${datePart || 'export'}.html`;
+                    const result = await shareExportFile(html, filename, 'Record from Chronicle');
+                    if (result === 'shared' || result === 'downloaded') {
+                      toast({ title: 'Ready to send', description: 'Choose an app to share this record.' });
+                    } else if (result === 'failed') {
+                      toast({ title: 'Could not prepare record', description: 'Please try again.', variant: 'destructive' });
+                    }
+                  } catch (e) {
+                    toast({ title: 'Could not prepare record', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
                   }
-                } catch (e) {
-                  toast({ title: 'Could not prepare record', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-                }
+                });
               }}
             >
               <Share2 className="h-4 w-4 mr-2" /> Send record
