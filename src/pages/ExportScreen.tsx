@@ -20,8 +20,9 @@ import ExportTimestampPanel from '@/components/chronicle/ExportTimestampPanel';
 import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
 import {
   createExportTimestampRecord,
+  describeTimestampStatus,
   type ExportTimestampRecord,
-import { describeTimestampStatus } from '@/lib/exportTimestamp';
+} from '@/lib/exportTimestamp';
 
 /**
  * Injects an "Export integrity" footer into the rendered export HTML.
