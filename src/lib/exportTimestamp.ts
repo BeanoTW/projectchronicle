@@ -166,12 +166,12 @@ export function describeTimestampStatus(record: ExportTimestampRecord): string {
       }
       return 'This export fingerprint was independently timestamped. It does not verify the truth of the contents.';
     case 'pending':
-      return 'A trusted timestamp for this export fingerprint is being requested.';
+      return 'The export fingerprint has been recorded by Chronicle. An independent trusted timestamp is being requested.';
     case 'failed':
-      return 'Independent timestamping was attempted but did not complete. The export fingerprint is still recorded locally.';
+      return 'The export fingerprint has been recorded by Chronicle. An independent trusted timestamp was attempted but did not complete.';
     case 'unavailable':
     default:
-      return 'Timestamping not yet enabled. The export fingerprint is recorded locally for future verification.';
+      return 'The export fingerprint has been recorded by Chronicle. Independent trusted timestamping is not yet enabled.';
   }
 }
 
