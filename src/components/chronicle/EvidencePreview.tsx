@@ -165,17 +165,26 @@ const EvidencePreview = ({
                     contentClass="!w-full !h-full flex items-center justify-center"
                   >
                     <div
-                      onDoubleClick={() => {
+                      onDoubleClick={(e) => {
                         const ref = transformRef.current;
                         if (!ref) return;
-                        const currentScale = ref.state.scale;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const tapX = e.clientX - rect.left;
+                        const tapY = e.clientY - rect.top;
+                        const { scale, positionX, positionY } = ref.state;
+                        const imageX = (tapX - positionX) / scale;
+                        const imageY = (tapY - positionY) / scale;
                         const steps = [1, 2, 3, 4];
-                        const next = steps.find((s) => s > currentScale + 0.05);
-                        if (next === undefined) {
+                        const nextScale = steps.find((s) => s > scale + 0.05);
+                        if (nextScale === undefined) {
                           ref.resetTransform();
-                        } else {
-                          ref.setTransform(ref.state.positionX, ref.state.positionY, next);
+                          return;
                         }
+                        const nextX = tapX - imageX * nextScale;
+                        const nextY = tapY - imageY * nextScale;
+                        ref.setTransform(nextX, nextY, nextScale, 200);
                       }}
                       className="w-full h-full flex items-center justify-center"
                     >
