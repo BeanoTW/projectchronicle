@@ -500,6 +500,11 @@ const ExportScreen = () => {
           <p className="text-[15px] font-semibold text-foreground">✓ Your export is ready</p>
           <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to use it. Both options use the same document.</p>
 
+          {/* Export integrity surface — fingerprint + trusted-timestamp status. */}
+          <div className="mt-3">
+            <ExportTimestampPanel record={timestampRecord} loading={timestampLoading} />
+          </div>
+
           {/* PRIMARY: Print / Save as PDF */}
           <div className="mt-4">
             <Button
