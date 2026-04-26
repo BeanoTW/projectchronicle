@@ -42,7 +42,7 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
       case 'failed': return 'Fingerprint recorded · independent timestamp failed';
       case 'pending': return 'Fingerprint recorded · independent timestamp pending';
       case 'unavailable':
-      default: return 'Fingerprint recorded · independent timestamping not yet enabled';
+      default: return 'Fingerprint recorded · independent timestamping not currently available';
     }
   })();
 
