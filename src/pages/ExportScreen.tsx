@@ -465,7 +465,7 @@ const ExportScreen = () => {
           <div className="flex-1">
             <p className="text-[12px] font-semibold text-foreground">Privacy Shield is on</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-              Privacy Shield only masks information on screen. This export will include the original stored record. You'll be asked to confirm before each export action.
+              Privacy Shield only masks information on screen. Exports still include the original stored record. You'll be asked to re-authenticate before each export action.
             </p>
           </div>
         </div>
