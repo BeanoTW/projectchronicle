@@ -154,7 +154,7 @@ const EvidencePreview = ({
                   initialScale={1}
                   minScale={1}
                   maxScale={4}
-                  doubleClick={{ mode: 'toggle', step: 2 }}
+                  doubleClick={{ disabled: true }}
                   pinch={{ step: 5 }}
                   wheel={{ step: 0.2 }}
                   centerOnInit
@@ -167,6 +167,18 @@ const EvidencePreview = ({
                     <img
                       src={url}
                       alt={fileName}
+                      onDoubleClick={() => {
+                        const ref = transformRef.current;
+                        if (!ref) return;
+                        const currentScale = ref.state.scale;
+                        const steps = [1, 2, 3, 4];
+                        const next = steps.find((s) => s > currentScale + 0.05);
+                        if (next === undefined) {
+                          ref.resetTransform();
+                        } else {
+                          ref.setTransform(ref.state.positionX, ref.state.positionY, next);
+                        }
+                      }}
                       className="max-w-full max-h-[70vh] object-contain rounded-lg select-none"
                       draggable={false}
                     />
