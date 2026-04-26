@@ -671,6 +671,11 @@ const SettingsScreen = () => {
           <p className="text-[12px] text-muted-foreground/60">Project Chronicle · v0.1.0</p>
         </div>
       </div>
+      <PrivacyShieldDisableGate
+        open={privacyDisableOpen}
+        onConfirmed={() => { setPrivacyDisableOpen(false); setPrivacyEnabled(false); }}
+        onCancel={() => setPrivacyDisableOpen(false)}
+      />
     </div>
   );
 };
