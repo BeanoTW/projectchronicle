@@ -63,37 +63,49 @@ function newExportId(): string {
 }
 
 /**
- * Request a trusted timestamp for the given export fingerprint.
- *
- * In this pass the function intentionally returns status `unavailable` —
- * RFC 3161 integration is not yet enabled. To enable it later, replace the
- * body with a call to an Edge Function that:
- *   1. accepts ONLY the hex hash,
- *   2. builds a TimeStampReq (RFC 3161),
- *   3. POSTs it to a TSA,
- *   4. returns the TimeStampToken bytes (base64) and asserted time.
+ * Request a trusted timestamp for the given export fingerprint by invoking
+ * the `rfc3161-timestamp` Edge Function. ONLY the hex hash is transmitted.
  *
  * Failure is non-blocking by design: callers must continue with the export
  * regardless of the returned status.
  */
-export async function requestTimestamp(_hash: string): Promise<{
+export async function requestTimestamp(hash: string): Promise<{
   status: TimestampStatus;
   authority: string | null;
   token: string | null;
   timestampAt: string | null;
   note: string | null;
 }> {
-  // Future implementation:
-  //   const { data, error } = await supabase.functions.invoke('rfc3161-timestamp', { body: { hash } });
-  //   if (error || !data?.token) return { status: 'failed', authority: null, token: null, timestampAt: null, note: error?.message ?? 'TSA call failed' };
-  //   return { status: 'success', authority: data.authority, token: data.token, timestampAt: data.timestampAt, note: null };
-  return {
-    status: 'unavailable',
-    authority: null,
-    token: null,
-    timestampAt: null,
-    note: 'Timestamping not yet enabled',
-  };
+  try {
+    const { data, error } = await supabase.functions.invoke('rfc3161-timestamp', {
+      body: { hash },
+    });
+    if (error) {
+      return {
+        status: 'failed',
+        authority: null,
+        token: null,
+        timestampAt: null,
+        note: error.message ?? 'Timestamp request failed',
+      };
+    }
+    const status = (data?.status as TimestampStatus) ?? 'failed';
+    return {
+      status,
+      authority: data?.authority ?? null,
+      token: data?.token ?? null,
+      timestampAt: data?.timestampAt ?? null,
+      note: data?.note ?? null,
+    };
+  } catch (e) {
+    return {
+      status: 'failed',
+      authority: null,
+      token: null,
+      timestampAt: null,
+      note: e instanceof Error ? e.message : 'Timestamp request error',
+    };
+  }
 }
 
 /**
