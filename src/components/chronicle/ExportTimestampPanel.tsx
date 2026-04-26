@@ -58,6 +58,12 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
           <p className="text-[10.5px] text-muted-foreground/80 mt-1">
             Export ID: <span className="font-mono">{record.exportId.slice(0, 8).toUpperCase()}</span>
           </p>
+          <p className="text-[10.5px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            The fingerprint covers the export content above the integrity section.
+          </p>
+          <p className="text-[10.5px] text-muted-foreground/70 mt-0.5 leading-relaxed">
+            The fingerprint was calculated before this integrity section was added.
+          </p>
         </div>
       </div>
 
