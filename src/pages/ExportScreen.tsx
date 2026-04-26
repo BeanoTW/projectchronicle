@@ -658,7 +658,9 @@ const ExportScreen = () => {
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes, buttonLabel }, i) => (
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes, buttonLabel }, i) => {
+            const privacyDisabled = !comingSoon && privacyEnabled && key === 'issue-based-record';
+            return (
             <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -675,20 +677,29 @@ const ExportScreen = () => {
                       </span>
                     </div>
                   ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4"
-                      disabled={!!loading}
-                      onClick={onExport}
-                    >
-                      {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> {buttonLabel || 'Generate'}</>}
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-disabled={privacyDisabled || !!loading}
+                        className={`mt-3 text-[13px] border-primary/20 text-primary h-9 rounded-lg hover:bg-primary/4 ${privacyDisabled ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                        disabled={privacyDisabled || !!loading}
+                        onClick={privacyDisabled ? undefined : onExport}
+                      >
+                        {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> {buttonLabel || 'Generate'}</>}
+                      </Button>
+                      {privacyDisabled && (
+                        <p className="text-[11px] text-muted-foreground/80 mt-2 leading-relaxed">
+                          Turn off Privacy Shield to generate exports. Exports include the original, unmasked record.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
