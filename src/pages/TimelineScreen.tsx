@@ -233,7 +233,7 @@ const TimelineScreen = () => {
   if (allIncidents.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Timeline" subtitle="Your record over time" />
+        <PageHeader title="Timeline" subtitle="Your record over time" mountainHeight={96} />
         <div className="px-5 mt-2">
           <p className="text-[11px] font-medium text-muted-foreground/50 uppercase tracking-wider mb-3">
             Your first entries might look like this
