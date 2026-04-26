@@ -1,13 +1,21 @@
 /**
  * Attachment integrity panel.
  *
- * Surfaces the hash + timestamps that Chronicle records when an attachment is
- * uploaded. Intentionally neutral — this is not legal verification, just a
- * visible audit trail the user can reference later.
+ * Surfaces the SHA-256 fingerprint and timestamps Chronicle records when an
+ * attachment is added. Wording is intentionally neutral: this is NOT a
+ * forensic chain of custody, NOT independent legal verification, and NOT
+ * proof of authenticity — it is a visible audit reference the user can
+ * compare against later.
+ *
+ * Includes a local "Verify file integrity" action: the user picks a file
+ * from their device, the file is hashed in-browser via the same utility
+ * used at upload time, and the result is compared to the stored hash.
+ * The selected verification file is NEVER uploaded.
  */
-import { useState } from 'react';
-import { Copy, ShieldCheck, ShieldOff } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Copy, ShieldCheck, ShieldOff, FileCheck2, Loader2, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { computeSha256 } from '@/lib/attachments/integrity';
 
 interface AttachmentIntegrityPanelProps {
   fileHash: string | null;
@@ -15,6 +23,14 @@ interface AttachmentIntegrityPanelProps {
   uploadDate: string | null;
   incidentId: string | null;
 }
+
+type VerifyState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'match'; computed: string }
+  | { status: 'mismatch'; computed: string }
+  | { status: 'unavailable' }
+  | { status: 'error'; message: string };
 
 function formatTs(ts: string | null): string {
   if (!ts) return '—';
@@ -28,6 +44,8 @@ const AttachmentIntegrityPanel = ({
   incidentId,
 }: AttachmentIntegrityPanelProps) => {
   const [copied, setCopied] = useState(false);
+  const [verify, setVerify] = useState<VerifyState>({ status: 'idle' });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const hasHash = !!fileHash;
 
   const copyHash = async () => {
@@ -39,23 +57,55 @@ const AttachmentIntegrityPanel = ({
     } catch { /* noop */ }
   };
 
+  const startVerify = () => {
+    if (!hasHash) {
+      setVerify({ status: 'unavailable' });
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleVerifyFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset value so the same file can be re-selected if needed.
+    e.target.value = '';
+    if (!file) return;
+    if (!fileHash) {
+      setVerify({ status: 'unavailable' });
+      return;
+    }
+    setVerify({ status: 'checking' });
+    try {
+      const computed = await computeSha256(file);
+      const match = computed.toLowerCase() === fileHash.toLowerCase();
+      setVerify(match ? { status: 'match', computed } : { status: 'mismatch', computed });
+    } catch (err) {
+      setVerify({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Could not read the selected file.',
+      });
+    }
+  };
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3 text-left">
       <div className="flex items-center justify-between">
         <p className="text-[13px] font-semibold text-foreground">Attachment integrity</p>
         {hasHash ? (
           <span className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/[0.08] border border-primary/20 px-2 py-0.5 rounded-full">
-            <ShieldCheck className="h-3 w-3" /> Integrity stamp available
+            <ShieldCheck className="h-3 w-3" /> Fingerprint recorded
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/50 border border-border px-2 py-0.5 rounded-full">
-            <ShieldOff className="h-3 w-3" /> Integrity stamp unavailable
+            <ShieldOff className="h-3 w-3" /> No fingerprint recorded
           </span>
         )}
       </div>
 
       <p className="text-[11px] text-muted-foreground leading-relaxed">
-        This information helps show when the attachment was added and whether the file has changed since it was recorded.
+        Chronicle records a SHA-256 fingerprint when an attachment is added. This can help
+        compare a file later, but it does not prove where the file came from or create a
+        formal chain of custody.
       </p>
 
       <dl className="space-y-2 text-[12px]">
@@ -96,6 +146,62 @@ const AttachmentIntegrityPanel = ({
           </dd>
         </div>
       </dl>
+
+      {/* Verify file integrity */}
+      <div className="pt-2 border-t border-border space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[12px] font-medium text-foreground">Verify file integrity</p>
+          <button
+            type="button"
+            onClick={startVerify}
+            disabled={verify.status === 'checking'}
+            className="inline-flex items-center gap-1.5 text-[11px] text-primary border border-primary/30 bg-primary/[0.05] hover:bg-primary/10 rounded-md px-2.5 py-1.5 active:scale-[0.97] transition-transform disabled:opacity-50"
+          >
+            {verify.status === 'checking' ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Checking…</>
+            ) : (
+              <><FileCheck2 className="h-3 w-3" /> Choose file to verify</>
+            )}
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Pick a copy of this file from your device. Chronicle will calculate its SHA-256
+          fingerprint locally and compare it to the stored fingerprint. The selected file is
+          not uploaded.
+        </p>
+
+        {verify.status === 'match' && (
+          <div className="flex items-start gap-2 text-[11px] text-foreground bg-primary/[0.06] border border-primary/20 rounded-md p-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+            <span>The selected file matches the stored SHA-256 fingerprint.</span>
+          </div>
+        )}
+        {verify.status === 'mismatch' && (
+          <div className="flex items-start gap-2 text-[11px] text-foreground bg-muted border border-border rounded-md p-2">
+            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <span>The selected file does not match the stored SHA-256 fingerprint.</span>
+          </div>
+        )}
+        {verify.status === 'unavailable' && (
+          <div className="flex items-start gap-2 text-[11px] text-foreground bg-muted border border-border rounded-md p-2">
+            <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <span>This attachment does not have a stored SHA-256 fingerprint, so it cannot be verified.</span>
+          </div>
+        )}
+        {verify.status === 'error' && (
+          <div className="flex items-start gap-2 text-[11px] text-foreground bg-muted border border-border rounded-md p-2">
+            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <span>Could not check the file. {verify.message}</span>
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleVerifyFile}
+        />
+      </div>
     </div>
   );
 };

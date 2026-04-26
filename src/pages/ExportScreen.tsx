@@ -1,11 +1,13 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink, Share2 } from 'lucide-react';
+import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Briefcase, Printer, ExternalLink, Share2, EyeOff } from 'lucide-react';
 import { shareExportFile } from '@/lib/shareExport';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useToast } from '@/hooks/use-toast';
+import { usePrivacy } from '@/contexts/PrivacyContext';
+import ConfirmDialog from '@/components/chronicle/ConfirmDialog';
 import {
   generateSummary,
   buildTribunalExportPayload,
@@ -79,6 +81,7 @@ const ExportScreen = () => {
   const { data: evidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
+  const { enabled: privacyEnabled } = usePrivacy();
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
@@ -88,6 +91,18 @@ const ExportScreen = () => {
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
+  // Privacy Shield confirmation: holds the pending action to run after the
+  // user explicitly confirms that the export will include the original
+  // stored record (Privacy Shield is display-only).
+  const [pendingPrivacyAction, setPendingPrivacyAction] = useState<null | (() => void)>(null);
+
+  const requirePrivacyConfirm = useCallback((action: () => void) => {
+    if (privacyEnabled) {
+      setPendingPrivacyAction(() => action);
+    } else {
+      action();
+    }
+  }, [privacyEnabled]);
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
@@ -165,9 +180,11 @@ const ExportScreen = () => {
       toast({ title: 'No records', description: 'Record at least one entry to prepare an export.', variant: 'destructive' });
       return;
     }
-    // FIRST Generate: navigation + focus only. Does NOT generate or download.
-    toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
-    setBuilderOpen(true);
+    requirePrivacyConfirm(() => {
+      // FIRST Generate: navigation + focus only. Does NOT generate or download.
+      toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
+      setBuilderOpen(true);
+    });
   };
 
   const handleBuilderExport = useCallback(async (_items: ExportItem[], _config: SequenceConfig) => {
@@ -264,7 +281,7 @@ const ExportScreen = () => {
     return 'opened';
   }, [lastExportHtml]);
 
-  const handlePrintExport = useCallback(() => {
+  const doPrintExport = useCallback(() => {
     if (!lastExportHtml) return;
     setPrinting(true);
     const result = openExportInNewTab(true);
@@ -278,8 +295,12 @@ const ExportScreen = () => {
     }
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, openExportInNewTab, toast]);
+  const handlePrintExport = useCallback(
+    () => requirePrivacyConfirm(doPrintExport),
+    [requirePrivacyConfirm, doPrintExport],
+  );
 
-  const handleOpenDocument = useCallback(() => {
+  const doOpenDocument = useCallback(() => {
     if (!lastExportHtml) return;
     const result = openExportInNewTab(false);
     if (result === 'blocked') {
@@ -289,8 +310,12 @@ const ExportScreen = () => {
       });
     }
   }, [lastExportHtml, openExportInNewTab, toast]);
+  const handleOpenDocument = useCallback(
+    () => requirePrivacyConfirm(doOpenDocument),
+    [requirePrivacyConfirm, doOpenDocument],
+  );
 
-  const handleDownloadHtml = useCallback(async () => {
+  const doDownloadHtml = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
@@ -302,8 +327,12 @@ const ExportScreen = () => {
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
     }
   }, [lastExportHtml, toast]);
+  const handleDownloadHtml = useCallback(
+    () => requirePrivacyConfirm(() => { void doDownloadHtml(); }),
+    [requirePrivacyConfirm, doDownloadHtml],
+  );
 
-  const handleSendExport = useCallback(async () => {
+  const doSendExport = useCallback(async () => {
     if (!lastExportHtml) return;
     const filename = getTemplateFilename();
     const result = await shareExportFile(lastExportHtml, filename, 'Record export');
@@ -315,6 +344,10 @@ const ExportScreen = () => {
       toast({ title: 'Could not share export', description: 'Please try again.', variant: 'destructive' });
     }
   }, [lastExportHtml, toast]);
+  const handleSendExport = useCallback(
+    () => requirePrivacyConfirm(() => { void doSendExport(); }),
+    [requirePrivacyConfirm, doSendExport],
+  );
 
   const exportTypes = [
     {
@@ -368,6 +401,19 @@ const ExportScreen = () => {
         <h1>Export</h1>
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
+
+      {/* Privacy Shield notice — calm, persistent, not blocking. */}
+      {privacyEnabled && (
+        <div className="mx-5 mb-4 bg-muted/40 border border-border rounded-xl p-3 flex items-start gap-2.5">
+          <EyeOff className="h-4 w-4 text-foreground/70 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-[12px] font-semibold text-foreground">Privacy Shield is on</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+              Privacy Shield only masks information on screen. This export will include the original stored record. You'll be asked to confirm before each export action.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Export ready — visible immediately at the top so the user cannot miss it */}
       {lastExportHtml && (
@@ -540,6 +586,28 @@ const ExportScreen = () => {
         evidence={evidence}
         onExport={handleBuilderExport}
         loading={tribunalLoading}
+      />
+
+      {/* Privacy Shield confirmation — required before each export action. */}
+      <ConfirmDialog
+        open={!!pendingPrivacyAction}
+        title="Privacy Shield is on"
+        description={
+          <>
+            Privacy Shield only masks information on screen. This export will include the original stored record.
+            <br />
+            <br />
+            Continue with this export?
+          </>
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Continue with export"
+        onCancel={() => setPendingPrivacyAction(null)}
+        onConfirm={() => {
+          const action = pendingPrivacyAction;
+          setPendingPrivacyAction(null);
+          if (action) action();
+        }}
       />
     </div>
   );

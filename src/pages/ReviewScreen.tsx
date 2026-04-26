@@ -461,7 +461,11 @@ const ReviewScreen = () => {
       setActiveDraft(0);
       setIsSplitMode(true);
     } catch (e) {
-      toast({ title: 'Split unavailable', description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' });
+      console.warn('[detect-multi-incident] unavailable:', e);
+      toast({
+        title: 'Automatic split detection is unavailable',
+        description: 'You can still create and save records normally.',
+      });
     } finally {
       setSplitting(false);
     }

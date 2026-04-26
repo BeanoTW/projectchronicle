@@ -342,6 +342,40 @@ body {
   color: var(--ink-mid);
   display: block;
 }
+.attachment-integrity {
+  display: block;
+  padding-left: 12px;
+  margin: 2px 0 4px;
+  border-left: 1px solid var(--rule-light);
+}
+.attachment-meta {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+.attachment-hash {
+  display: block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-light);
+  word-break: break-all;
+  margin-top: 1px;
+}
+.attachment-hash-value { color: var(--ink-mid); font-weight: 500; }
+.attachment-hash-missing { font-style: italic; color: var(--ink-faint); }
+.attachment-integrity-note {
+  display: block;
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--bg-tint);
+  border-left: 2px solid var(--rule);
+  font-size: 10px;
+  font-style: italic;
+  color: var(--ink-light);
+  line-height: 1.5;
+}
 .record-foot {
   display: flex;
   justify-content: space-between;
@@ -622,14 +656,24 @@ function renderRecordFlat(inc: Incident, allFollowUps: FollowUpNote[], allEviden
     html += `</div>`;
   }
 
-  // Evidence (inline)
+  // Evidence (inline) — includes integrity metadata for each attachment.
   const evs = allEvidence.filter(e => e.incident_id === inc.id);
   if (evs.length > 0) {
     html += `<div class="record-extra"><span class="label">Attachments:</span>`;
     evs.forEach(ev => {
       const ref = ev.evidence_ref_number != null ? `E${String(ev.evidence_ref_number).padStart(2, '0')}` : 'E—';
+      const captured = ev.capture_date ? esc(fmtRecorded(ev.capture_date)) : '—';
+      const uploaded = ev.upload_date ? esc(fmtRecorded(ev.upload_date)) : '—';
+      const hashLine = ev.file_hash
+        ? `<span class="attachment-hash">SHA-256: <span class="attachment-hash-value">${esc(ev.file_hash)}</span></span>`
+        : `<span class="attachment-hash attachment-hash-missing">SHA-256: not recorded for this attachment</span>`;
       html += `<span class="evidence-inline">${esc(ref)} — ${esc(ev.file_name)}</span>`;
+      html += `<span class="attachment-integrity">`;
+      html += `<span class="attachment-meta">Captured / added: ${captured} · Uploaded: ${uploaded} · Linked record: ${esc(inc.id.slice(0, 8).toUpperCase())}</span>`;
+      html += hashLine;
+      html += `</span>`;
     });
+    html += `<span class="attachment-integrity-note">Attachment integrity information — SHA-256 fingerprints are included to help identify whether a file matches the version recorded by Chronicle. They do not provide independent legal verification or chain of custody.</span>`;
     html += `</div>`;
   }
 
