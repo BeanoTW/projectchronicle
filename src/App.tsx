@@ -102,6 +102,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </AttachmentRevealProvider>
       </DevModeProvider>
       </PrivacyProvider>
       </BackupProvider>
