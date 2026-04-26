@@ -23,7 +23,7 @@ const EvidencePreview = ({
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   useEffect(() => {
     const getUrl = async () => {
