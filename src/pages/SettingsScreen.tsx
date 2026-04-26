@@ -17,6 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
 
 const SettingsScreen = () => {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ const SettingsScreen = () => {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [privacyDisableOpen, setPrivacyDisableOpen] = useState(false);
 
   // App Lock
   const lock = useLock();
@@ -184,7 +186,13 @@ const SettingsScreen = () => {
               </div>
               <Switch
                 checked={privacyEnabled}
-                onCheckedChange={setPrivacyEnabled}
+                onCheckedChange={(v) => {
+                  if (v) {
+                    setPrivacyEnabled(true);
+                  } else {
+                    setPrivacyDisableOpen(true);
+                  }
+                }}
                 aria-label="Toggle Privacy Shield"
               />
             </div>
@@ -663,6 +671,11 @@ const SettingsScreen = () => {
           <p className="text-[12px] text-muted-foreground/60">Project Chronicle · v0.1.0</p>
         </div>
       </div>
+      <PrivacyShieldDisableGate
+        open={privacyDisableOpen}
+        onConfirmed={() => { setPrivacyDisableOpen(false); setPrivacyEnabled(false); }}
+        onCancel={() => setPrivacyDisableOpen(false)}
+      />
     </div>
   );
 };
