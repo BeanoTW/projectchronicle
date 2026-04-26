@@ -208,6 +208,10 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
               filePath={previewFile.filePath}
               fileName={previewFile.fileName}
               mimeType={previewFile.mimeType}
+              fileHash={previewFile.fileHash}
+              captureDate={previewFile.captureDate}
+              uploadDate={previewFile.uploadDate}
+              incidentId={previewFile.incidentId}
               onClose={() => setPreviewFile(null)}
             />
           )}
