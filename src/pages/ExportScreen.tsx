@@ -234,6 +234,7 @@ const ExportScreen = () => {
   // "scrolled before content existed" failure mode.
   useEffect(() => {
     if (!summaryResult) return;
+    setSummaryCollapsed(false); // Always reveal newly-generated structured record.
     let cancelled = false;
     const tryScroll = () => {
       if (cancelled) return;
