@@ -61,8 +61,17 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
   <div style="margin-top: 10px; font-style: italic; color: #666;">
     ${esc(describeTimestampStatus(record))}
   </div>
-  <div style="margin-top: 6px; font-style: italic; color: #888;">
-    A fingerprint helps detect if this file changes later. This does not prove who created the record or that the contents are true.
+  <div style="margin-top: 12px; color: #444;">
+    This export includes a SHA-256 fingerprint and a structured record of when information was recorded and how it has changed over time.
+  </div>
+  <div style="margin-top: 8px; color: #444;">This can help show:</div>
+  <ul style="margin: 4px 0 0 18px; padding: 0; color: #444;">
+    <li>when a record was created</li>
+    <li>whether the content has changed since export</li>
+    <li>how the record has been updated over time</li>
+  </ul>
+  <div style="margin-top: 8px; font-style: italic; color: #666;">
+    It does not prove who created the record or that the contents are true.
   </div>
 </section>
 `;
@@ -486,7 +495,7 @@ const ExportScreen = () => {
           <div className="flex-1">
             <p className="text-[12px] font-semibold text-foreground">Privacy Shield is on</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-              Privacy Shield hides information on screen only. Exports still include the original record. You will be asked to confirm before exporting.
+              Privacy Shield hides sensitive information on screen. This helps reduce accidental exposure when viewing records. Exports still include the original record. You will be asked to confirm before exporting.
             </p>
           </div>
         </div>

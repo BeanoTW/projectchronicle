@@ -34,13 +34,25 @@ const IntegrityPanel = ({ narrative, savedAt }: IntegrityPanelProps) => {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4">
-          <p className="text-[11px] text-integrity-foreground/60 mb-2">
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-[11px] text-integrity-foreground/60">
             This is the original content as you first wrote it. This record keeps an audit history of changes — later edits are saved as updates rather than overwriting the original.
           </p>
           <div className="bg-white/70 rounded-xl p-4">
             <p className="text-[14px] text-integrity-foreground leading-relaxed whitespace-pre-wrap">
               {narrative}
+            </p>
+          </div>
+          <div className="text-[11px] text-integrity-foreground/70 leading-relaxed space-y-1">
+            <p>This record preserves your original entry and keeps a history of updates.</p>
+            <p>This can help show:</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li>what was recorded at the time</li>
+              <li>when it was recorded</li>
+              <li>how it has changed over time</li>
+            </ul>
+            <p className="italic text-integrity-foreground/60 pt-1">
+              It does not prove who created the record or that the contents are true.
             </p>
           </div>
         </div>
