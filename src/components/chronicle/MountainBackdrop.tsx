@@ -2,18 +2,20 @@ import valleyImg from "@/assets/valley-backdrop.jpg";
 
 /**
  * Global decorative header backdrop.
- * - Fixed height (140px) — sits behind title/subtitle only
+ * - Default height 140px — sits behind title/subtitle only
  * - Never overlaps interactive UI (buttons, cards, grids)
  * - Smooth vertical fade completes before content begins
  * - Single instance per screen, rendered via PageHeader
  * - Pointer-events: none
+ * - `height` may be overridden per-screen when the header has extra controls
+ *   (e.g. Timeline) so the backdrop remains constrained to title only.
  */
-const MountainBackdrop = () => {
+const MountainBackdrop = ({ height = 140 }: { height?: number }) => {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden"
-      style={{ height: 140 }}
+      style={{ height }}
     >
       <img
         src={valleyImg}
