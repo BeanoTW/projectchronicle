@@ -259,6 +259,10 @@ const EvidenceScreen = () => {
           filePath={previewFile.filePath}
           fileName={previewFile.fileName}
           mimeType={previewFile.mimeType}
+          fileHash={previewFile.fileHash}
+          captureDate={previewFile.captureDate}
+          uploadDate={previewFile.uploadDate}
+          incidentId={previewFile.incidentId}
           onClose={() => setPreviewFile(null)}
         />
       )}
