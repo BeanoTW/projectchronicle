@@ -319,18 +319,47 @@ const ExportScreen = () => {
   const exportTypes = [
     {
       key: 'issue-based-record',
-      title: 'Issue-based record',
-      description: 'Structured chronological record prepared for formal review or sharing.',
+      title: 'Issue-Based Record',
+      description: 'A formal chronological record prepared around a selected issue or set of records.',
       icon: Briefcase,
       comingSoon: false,
       onExport: handleOpenBuilder,
       loading: false,
-      includes: 'Includes: records in chronological order, category labels, people referenced, recorded timestamps, append-only updates',
+      includes: 'Useful when sharing records with a union rep, adviser, solicitor, HR, or tribunal.',
+      buttonLabel: 'Generate issue-based record',
     },
-    { key: 'incident', title: 'Incident Report', description: 'Individual incident with narrative, evidence, and individuals present.', icon: FileText, comingSoon: true, includes: 'Includes: narrative, people involved, attachments, timestamps' },
-    { key: 'chronology', title: 'What happened over time', description: 'All records in date order, clearly grouped.', icon: Clock, comingSoon: true, includes: 'Includes: records in chronological order, category labels, dates' },
-    { key: 'evidence-index', title: 'Attachment Index', description: 'All attachments with reference numbers and linked records.', icon: Paperclip, comingSoon: true, includes: 'Includes: attachment names, reference numbers, linked records' },
-    { key: 'full-bundle', title: 'Full Case Bundle', description: 'Everything combined: cover page, chronology, structured record, attachment index, and all records.', icon: Package, comingSoon: true, includes: 'Includes: cover page, chronology, structured record, attachment index, all records' },
+    {
+      key: 'incident',
+      title: 'Single Incident Report',
+      description: 'A focused report for one selected incident.',
+      icon: FileText,
+      comingSoon: true,
+      includes: 'Includes the original narrative, people involved, evidence references, timestamps, follow-ups, and integrity details.',
+    },
+    {
+      key: 'chronology',
+      title: 'Chronology',
+      description: 'A clear date-ordered timeline of selected records.',
+      icon: Clock,
+      comingSoon: true,
+      includes: 'Useful for quickly showing what happened, when it happened, and when each entry was recorded.',
+    },
+    {
+      key: 'evidence-index',
+      title: 'Attachment Index',
+      description: 'A list of attachments and evidence references linked to saved records.',
+      icon: Paperclip,
+      comingSoon: true,
+      includes: 'Includes attachment names, linked record IDs, upload/reference dates where available, and notes.',
+    },
+    {
+      key: 'full-bundle',
+      title: 'Full Case Bundle',
+      description: 'A complete export package combining records, chronology, attachments, and reference information.',
+      icon: Package,
+      comingSoon: true,
+      includes: 'Designed for later-stage review where a full structured pack is needed.',
+    },
   ];
 
   return (
@@ -425,8 +454,9 @@ const ExportScreen = () => {
         <div className="flex items-start gap-3">
           <BookOpen className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="text-[15px] font-semibold text-foreground">Structured record</h3>
-            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A structured overview of all your records.</p>
+            <h3 className="text-[15px] font-semibold text-foreground">Structured Record</h3>
+            <p className="text-[13px] text-muted-foreground mt-0.5 leading-relaxed">A complete structured record of your saved entries.</p>
+            <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">Includes chronological entries, categories, people referenced, timestamps, follow-ups, and record integrity information.</p>
 
             {summaryResult ? (
               <div className="mt-3 space-y-3">
@@ -458,7 +488,7 @@ const ExportScreen = () => {
       <div className="mx-5">
         <p className="section-group-title">Export options</p>
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes }, i) => (
+        {exportTypes.map(({ key, title, description, icon: Icon, comingSoon, onExport, loading, includes, buttonLabel }, i) => (
             <div key={key} className={`p-4 ${i > 0 ? 'border-t border-border' : ''} ${comingSoon ? 'opacity-60' : ''}`}>
               <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
@@ -473,7 +503,6 @@ const ExportScreen = () => {
                       <span className="inline-flex items-center text-[12px] text-muted-foreground font-medium bg-muted px-3 py-1.5 rounded-lg">
                         Coming soon
                       </span>
-                      <p className="text-[11px] text-muted-foreground/50 mt-1.5">This feature is still being built</p>
                     </div>
                   ) : (
                     <Button
@@ -483,7 +512,7 @@ const ExportScreen = () => {
                       disabled={!!loading}
                       onClick={onExport}
                     >
-                      {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> Generate</>}
+                      {loading ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Generating...</> : <><Download className="h-3 w-3 mr-1.5" /> {buttonLabel || 'Generate'}</>}
                     </Button>
                   )}
                 </div>
@@ -495,10 +524,10 @@ const ExportScreen = () => {
 
       <div className="mx-5 mt-6 mb-4 px-1 space-y-2">
         <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-          This record reflects incidents as recorded by the user. Each entry includes an incident date and a recorded timestamp. Updates are appended and do not overwrite original records.
+          This export reflects records as entered and saved by the user. Each record may include an incident date, recorded timestamp, category, people referenced, attachments, and appended follow-ups.
         </p>
         <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
-          This tool supports record-keeping and organisation. It does not provide legal advice.
+          Chronicle supports structured record-keeping and organisation. It does not provide legal advice.
         </p>
       </div>
 
