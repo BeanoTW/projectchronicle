@@ -102,6 +102,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Clear any in-memory unlock session so a re-login starts locked.
+    try {
+      // Lazy import to avoid a circular module dep with LockContext.
+      const { clearLastUnlockedAt } = await import('@/lib/lock/lockStorage');
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (uid) clearLastUnlockedAt(uid);
+    } catch { /* noop */ }
     await supabase.auth.signOut();
   };
 

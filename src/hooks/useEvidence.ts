@@ -31,6 +31,11 @@ export const useUploadEvidence = () => {
       const ext = file.name.split('.').pop() || 'bin';
       const filePath = `${user!.id}/${uniqueId}.${ext}`;
 
+      // Compute SHA-256 BEFORE uploading so a failed hash blocks the insert
+      // and we never end up with a stored file lacking integrity metadata.
+      const fileHash = await computeSha256(file);
+      const captureDate = deriveCaptureDate(file);
+
       const { error: uploadError } = await supabase.storage
         .from('evidence')
         .upload(filePath, file, { upsert: false });
@@ -46,6 +51,8 @@ export const useUploadEvidence = () => {
           file_path: filePath,
           mime_type: file.type,
           file_size: file.size,
+          file_hash: fileHash,
+          capture_date: captureDate,
           description,
         })
         .select()
