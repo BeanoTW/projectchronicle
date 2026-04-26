@@ -32,7 +32,7 @@ const MountainBackdrop = ({ height = 140 }: { height?: number }) => {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, hsl(var(--background) / 0.1) 0%, hsl(var(--background) / 0.3) 55%, hsl(var(--background) / 0.85) 85%, hsl(var(--background)) 100%)",
+            "linear-gradient(180deg, hsl(var(--background) / 0.1) 0%, hsl(var(--background) / 0.35) 50%, hsl(var(--background) / 0.9) 80%, hsl(var(--background)) 95%)",
         }}
       />
     </div>
