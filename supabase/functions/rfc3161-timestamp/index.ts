@@ -143,10 +143,45 @@ function parseLength(buf: Uint8Array, off: number): { len: number; next: number 
   return { len, next: off + 1 + n };
 }
 
+// id-ct-TSTInfo OID: 1.2.840.113549.1.9.16.1.4
+// DER OID encoding: 06 0B 2A 86 48 86 F7 0D 01 09 10 01 04
+const TSTINFO_OID_DER = new Uint8Array([
+  0x06, 0x0b, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x09, 0x10, 0x01, 0x04,
+]);
+
+function indexOfBytes(hay: Uint8Array, needle: Uint8Array): number {
+  outer: for (let i = 0; i + needle.length <= hay.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (hay[i + j] !== needle[j]) continue outer;
+    }
+    return i;
+  }
+  return -1;
+}
+
+function findGenTime(token: Uint8Array): string | null {
+  // Anchor on the TSTInfo OID, then scan forward for the OCTET STRING that
+  // wraps TSTInfo. The first GeneralizedTime (0x18) inside that wrapper is
+  // genTime per RFC 3161 §2.4.2.
+  const oidAt = indexOfBytes(token, TSTINFO_OID_DER);
+  if (oidAt < 0) return findFirstAsn1Time(token); // fallback
+  // After the OID comes [0] EXPLICIT OCTET STRING (eContent in EncapsulatedContentInfo).
+  // Walk forward looking for an OCTET STRING (0x04) and parse TSTInfo from it.
+  let off = oidAt + TSTINFO_OID_DER.length;
+  while (off < token.length - 2) {
+    if (token[off] === 0x04) {
+      const { len, next } = parseLength(token, off + 1);
+      const inner = token.slice(next, next + len);
+      const t = findFirstAsn1Time(inner);
+      if (t) return t;
+    }
+    off++;
+  }
+  return findFirstAsn1Time(token);
+}
+
 function findFirstAsn1Time(buf: Uint8Array): string | null {
-  // Recursive walk looking for the first ASN.1 time value:
-  //   tag 0x18 = GeneralizedTime (RFC 3161 TSTInfo.genTime)
-  //   tag 0x17 = UTCTime          (CMS signingTime attribute, common in TSRs)
+  // Recursive walk; prefers GeneralizedTime (0x18), falls back to UTCTime (0x17).
   let off = 0;
   while (off < buf.length) {
     if (off + 2 > buf.length) return null;
@@ -163,7 +198,6 @@ function findFirstAsn1Time(buf: Uint8Array): string | null {
       const iso = utcTimeToIso(s);
       if (iso) return iso;
     }
-    // Constructed (bit 0x20) — recurse
     if ((tag & 0x20) !== 0 || (tag & 0xc0) !== 0) {
       const inner = findFirstAsn1Time(buf.slice(next, end));
       if (inner) return inner;
