@@ -36,18 +36,18 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const statusLabel =
-    record.status === 'success' ? 'Independently timestamped'
-    : record.status === 'failed' ? 'Timestamping failed'
-    : record.status === 'pending' ? 'Timestamping in progress'
-    : 'Timestamping not yet enabled';
+    record.status === 'success' ? 'Fingerprint recorded by Chronicle · independently timestamped'
+    : record.status === 'failed' ? 'Fingerprint recorded by Chronicle · independent timestamp failed'
+    : record.status === 'pending' ? 'Fingerprint recorded by Chronicle · independent timestamp pending'
+    : 'Fingerprint recorded by Chronicle · independent trusted timestamping not yet enabled';
 
   const tsLine = record.status === 'success' && record.timestampAt && record.authority
-    ? `Trusted time: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
+    ? `Independent trusted timestamp: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
     : record.status === 'unavailable'
-      ? 'Trusted time: not available — RFC 3161 timestamping is not yet enabled in this build'
+      ? 'Independent trusted timestamp: not yet enabled in this build — no external timestamp authority was contacted'
       : record.status === 'failed'
-        ? 'Trusted time: not available — the timestamp request did not complete'
-        : 'Trusted time: pending';
+        ? 'Independent trusted timestamp: not obtained — the request did not complete'
+        : 'Independent trusted timestamp: pending';
 
   const block = `
 <section class="export-integrity" style="margin: 32px 56px 24px; padding: 16px; border: 1px solid #d4d4d4; background: #fafafa; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #444; line-height: 1.6;">
