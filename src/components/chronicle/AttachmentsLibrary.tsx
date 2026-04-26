@@ -28,7 +28,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const isTranscriptSource = useIsTranscriptSource();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
