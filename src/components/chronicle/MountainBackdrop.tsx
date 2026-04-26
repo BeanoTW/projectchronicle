@@ -1,21 +1,22 @@
 import valleyImg from "@/assets/valley-backdrop.jpg";
 
 /**
- * Global decorative header backdrop.
- * - Default height 140px — sits behind title/subtitle only
- * - Never overlaps interactive UI (buttons, cards, grids)
- * - Smooth vertical fade completes before content begins
- * - Single instance per screen, rendered via PageHeader
- * - Pointer-events: none
- * - `height` may be overridden per-screen when the header has extra controls
- *   (e.g. Timeline) so the backdrop remains constrained to title only.
+ * Global decorative header backdrop — single shared implementation.
+ *
+ * Used identically across every screen via PageHeader. There are NO
+ * per-screen overrides: the same height, opacity, fade and placement
+ * apply everywhere so the app shell reads as one coherent identity layer.
+ *
+ * - Fixed height (130px) — sits behind title/subtitle only
+ * - Fades fully into the page background well before the first content block
+ * - Pointer-events: none, aria-hidden
  */
-const MountainBackdrop = ({ height = 140 }: { height?: number }) => {
+const MountainBackdrop = () => {
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-x-0 top-0 z-0 overflow-hidden"
-      style={{ height }}
+      style={{ height: 130 }}
     >
       <img
         src={valleyImg}
@@ -25,14 +26,15 @@ const MountainBackdrop = ({ height = 140 }: { height?: number }) => {
         loading="lazy"
         draggable={false}
         className="absolute inset-x-0 top-0 w-full h-full object-cover object-bottom"
-        style={{ opacity: 0.55 }}
+        style={{ opacity: 0.6 }}
       />
-      {/* Fade fully into background before UI begins */}
+      {/* Vertical fade — completes before the bottom of the layer so
+          content beneath always sits on a clean background. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, hsl(var(--background) / 0.1) 0%, hsl(var(--background) / 0.35) 50%, hsl(var(--background) / 0.9) 80%, hsl(var(--background)) 95%)",
+            "linear-gradient(180deg, hsl(var(--background) / 0.05) 0%, hsl(var(--background) / 0.35) 55%, hsl(var(--background) / 0.95) 85%, hsl(var(--background)) 100%)",
         }}
       />
     </div>
