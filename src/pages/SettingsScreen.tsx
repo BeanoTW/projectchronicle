@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2 } from 'lucide-react';
+import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2, Lock } from 'lucide-react';
+import { useLock } from '@/contexts/LockContext';
+import { isValidPinFormat } from '@/lib/lock/pinCrypto';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
