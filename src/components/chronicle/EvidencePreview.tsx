@@ -149,13 +149,29 @@ const EvidencePreview = ({
           {!loading && !error && url && (
             <>
               {isImage && (
-                <img
-                  src={url}
-                  alt={fileName}
-                  className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-200"
-                  style={{ transform: `scale(${zoom})` }}
-                  draggable={false}
-                />
+                <TransformWrapper
+                  ref={transformRef}
+                  initialScale={1}
+                  minScale={1}
+                  maxScale={4}
+                  doubleClick={{ mode: 'toggle', step: 2 }}
+                  pinch={{ step: 5 }}
+                  wheel={{ step: 0.2 }}
+                  centerOnInit
+                  limitToBounds
+                >
+                  <TransformComponent
+                    wrapperClass="!w-full !h-full !max-w-full !max-h-full"
+                    contentClass="!w-full !h-full flex items-center justify-center"
+                  >
+                    <img
+                      src={url}
+                      alt={fileName}
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg select-none"
+                      draggable={false}
+                    />
+                  </TransformComponent>
+                </TransformWrapper>
               )}
 
               {isAudio && (
