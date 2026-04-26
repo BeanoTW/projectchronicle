@@ -174,9 +174,9 @@ export function describeTimestampStatus(record: ExportTimestampRecord): string {
   switch (record.status) {
     case 'success':
       if (record.timestampAt && record.authority) {
-        return `This export fingerprint was independently timestamped on ${formatDate(record.timestampAt)} by ${record.authority}. This confirms the fingerprint existed at or before that time. It does not prove who created the record or that the contents are true.`;
+        return `This export fingerprint was independently timestamped on ${formatDate(record.timestampAt)} by ${record.authority}. This confirms the fingerprint existed at or before that time.`;
       }
-      return 'This export fingerprint was independently timestamped. It does not prove who created the record or that the contents are true.';
+      return 'This export fingerprint was independently timestamped. This confirms the fingerprint existed at or before that time.';
     case 'pending':
       return 'The export fingerprint has been recorded by Chronicle. An independent trusted timestamp is being requested.';
     case 'failed':
@@ -187,11 +187,26 @@ export function describeTimestampStatus(record: ExportTimestampRecord): string {
   }
 }
 
-function formatDate(iso: string): string {
+/**
+ * Standardised human-readable timestamp format used across the export
+ * footer, the integrity panel, and the status description sentence.
+ * Example: "26 April 2026, 17:02" (local time, 24-hour clock).
+ */
+export function formatTimestampReadable(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString();
+    if (isNaN(d.getTime())) return iso;
+    const day = d.getDate();
+    const month = d.toLocaleString('en-GB', { month: 'long' });
+    const year = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${day} ${month} ${year}, ${hh}:${mm}`;
   } catch {
     return iso;
   }
+}
+
+function formatDate(iso: string): string {
+  return formatTimestampReadable(iso);
 }

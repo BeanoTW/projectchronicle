@@ -21,6 +21,7 @@ import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
 import {
   createExportTimestampRecord,
   describeTimestampStatus,
+  formatTimestampReadable,
   type ExportTimestampRecord,
 } from '@/lib/exportTimestamp';
 
@@ -42,15 +43,17 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
     : 'Fingerprint recorded by Chronicle · independent timestamping not currently available';
 
   const tsLine = record.status === 'success' && record.timestampAt && record.authority
-    ? `Independent trusted timestamp: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
+    ? `Independent trusted timestamp: ${esc(formatTimestampReadable(record.timestampAt))} (ISO: ${esc(record.timestampAt)}) — authority: ${esc(record.authority)}`
     : record.status === 'unavailable'
       ? 'Independent trusted timestamp: not currently available — no external timestamp authority was contacted'
       : record.status === 'failed'
         ? 'Independent trusted timestamp: not obtained — the request did not complete'
         : 'Independent trusted timestamp: pending';
 
-  const tokenLine = record.status === 'success' && record.token
-    ? `<div style="word-break: break-all;">Token (RFC 3161, base64, truncated): ${esc(record.token.slice(0, 64))}…</div>`
+  const tokenBlock = record.status === 'success' && record.token
+    ? `
+  <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #d4d4d4; word-break: break-all;">Token (RFC 3161, base64, truncated): ${esc(record.token.slice(0, 64))}…</div>
+  <div style="margin-top: 4px; color: #555;">This timestamp token can be independently verified using standard RFC 3161 verification tools.</div>`
     : '';
 
   const block = `
@@ -59,13 +62,9 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
   <div>Export ID: ${esc(record.exportId)}</div>
   <div style="word-break: break-all;">SHA-256 fingerprint: ${esc(record.exportHash)}</div>
   <div>Status: ${esc(statusLabel)}</div>
-  <div>${tsLine}</div>
-  ${tokenLine}
-  <div>Generated locally: ${esc(record.createdAt)}</div>
+  <div>${tsLine}</div>${tokenBlock}
+  <div style="margin-top: 10px;">Generated locally: ${esc(formatTimestampReadable(record.createdAt))} (ISO: ${esc(record.createdAt)})</div>
   <div style="margin-top: 10px;">The fingerprint covers the export content above this section. The fingerprint was calculated before this integrity section was added.</div>
-  <div style="margin-top: 10px; font-style: italic; color: #666;">
-    ${esc(describeTimestampStatus(record))}
-  </div>
   <div style="margin-top: 12px; color: #444;">
     This export includes a SHA-256 fingerprint and a structured record of when information was recorded and how it has changed over time.
   </div>
@@ -75,7 +74,7 @@ function injectIntegrityFooter(html: string, record: ExportTimestampRecord): str
     <li>whether the content has changed since export</li>
     <li>how the record has been updated over time</li>
   </ul>
-  <div style="margin-top: 8px; font-style: italic; color: #666;">
+  <div style="margin-top: 10px; font-style: italic; color: #666;">
     It does not prove who created the record or that the contents are true.
   </div>
 </section>
