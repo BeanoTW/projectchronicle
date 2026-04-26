@@ -644,26 +644,40 @@ const ExportScreen = () => {
         loading={tribunalLoading}
       />
 
-      {/* Privacy Shield confirmation — required before each export action. */}
+      {/*
+        Privacy Shield export gate.
+        Step 1: Re-authenticate with App Lock (biometric or PIN).
+        Step 2: Show export disclosure and require explicit confirmation.
+        Cancellation or auth failure aborts the pending export action.
+      */}
+      <ExportAuthGate
+        open={authGateOpen}
+        onAuthenticated={onAuthSuccess}
+        onCancel={cancelPending}
+      />
+
       <ConfirmDialog
-        open={!!pendingPrivacyAction}
-        title="Privacy Shield is on"
+        open={disclosureOpen}
+        title="Before you export"
         description={
           <>
-            Privacy Shield only masks information on screen. This export will include the original stored record.
-            <br />
-            <br />
-            Continue with this export?
+            Exported files leave Chronicle's protected app environment.
+            <br /><br />
+            This file may contain names, locations, quotes, attachments, and
+            other sensitive details from your records. Once exported, it can
+            be copied, forwarded, printed, or viewed by anyone who has access
+            to the file.
+            <br /><br />
+            Privacy Shield only masks information inside the app. It does not
+            protect exported files.
+            <br /><br />
+            Only export or share this document if you are comfortable with that.
           </>
         }
         cancelLabel="Cancel"
-        confirmLabel="Continue with export"
-        onCancel={() => setPendingPrivacyAction(null)}
-        onConfirm={() => {
-          const action = pendingPrivacyAction;
-          setPendingPrivacyAction(null);
-          if (action) action();
-        }}
+        confirmLabel="I understand this export may contain sensitive information"
+        onCancel={cancelPending}
+        onConfirm={onDisclosureConfirm}
       />
     </div>
   );
