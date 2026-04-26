@@ -106,26 +106,28 @@ const ExportScreen = () => {
       toast({ title: 'Need more records', description: 'Record at least 2 entries to generate a structured record.', variant: 'destructive' });
       return;
     }
-    setNarrativeLoading(true);
-    toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
-    try {
-      const allIds = activeIncidents.map(i => i.id);
-      const result = generateSummary({
-        incidents: activeIncidents,
-        selectedIds: allIds,
-        allIncidentCount: allIds.length,
-        mode: 'general' as SummaryMode,
-        customPurpose: '',
-        options: { includePatterns: true, includeNames: true },
-        followUpNotes,
-        evidenceFiles: evidence,
-      });
-      setSummaryResult(result);
-    } catch (e) {
-      toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      setNarrativeLoading(false);
-    }
+    requirePrivacyConfirm(() => {
+      setNarrativeLoading(true);
+      toast({ title: 'Preparing structured record…', description: 'This will only take a moment.' });
+      try {
+        const allIds = activeIncidents.map(i => i.id);
+        const result = generateSummary({
+          incidents: activeIncidents,
+          selectedIds: allIds,
+          allIncidentCount: allIds.length,
+          mode: 'general' as SummaryMode,
+          customPurpose: '',
+          options: { includePatterns: true, includeNames: true },
+          followUpNotes,
+          evidenceFiles: evidence,
+        });
+        setSummaryResult(result);
+      } catch (e) {
+        toast({ title: 'Summary failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+      } finally {
+        setNarrativeLoading(false);
+      }
+    });
   };
 
   // Once the structured record is mounted, scroll to it and briefly highlight.
