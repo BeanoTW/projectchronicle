@@ -637,8 +637,8 @@ const RecordScreen = () => {
                 </div>
                 <p className="text-[11px] text-muted-foreground/50 leading-relaxed text-center">
                   {recordType === 'daily_record'
-                    ? 'Your input is preserved exactly as written'
-                    : 'Your input is preserved and organised into a structured record'}
+                    ? 'Your original content is preserved. Changes are recorded as updates.'
+                    : 'Your original content is preserved and organised into a structured record. Changes are recorded as updates.'}
                 </p>
               </div>
             )}
