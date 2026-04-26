@@ -54,6 +54,7 @@ const IncidentDetailScreen = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { maskText, maskName, maskFilename } = usePrivacy();
+  const { requireGated: requireExportGate, dialogs: exportGateDialogs } = useExportGate();
   const { devMode } = useDevMode();
   const { data: incident, isLoading } = useIncident(id);
   const { data: allIncidents = [] } = useIncidents();
