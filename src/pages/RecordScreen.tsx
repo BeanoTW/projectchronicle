@@ -562,10 +562,17 @@ const RecordScreen = () => {
                       setMode('text');
                       toast({ title: 'Transcript added', description: 'Your words have been added as editable text.' });
                     } else {
-                      toast({ title: 'Audio saved', description: 'Transcription was not possible — you can add text notes manually.' });
+                      toast({
+                        title: 'Transcription could not be completed',
+                        description: 'Your audio has been saved, and you can continue by typing your record manually.',
+                      });
                     }
-                  } catch {
-                    toast({ title: 'Audio saved', description: 'Transcription unavailable — voice note stored as an attachment.' });
+                  } catch (err) {
+                    console.warn('[transcribe-audio] failed:', err);
+                    toast({
+                      title: 'Transcription could not be completed',
+                      description: 'Your audio has been saved, and you can continue by typing your record manually.',
+                    });
                   } finally {
                     setTranscribing(false);
                   }
