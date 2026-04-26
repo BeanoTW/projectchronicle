@@ -58,6 +58,12 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
           <p className="text-[10.5px] text-muted-foreground/80 mt-1">
             Export ID: <span className="font-mono">{record.exportId.slice(0, 8).toUpperCase()}</span>
           </p>
+          <p className="text-[10.5px] text-muted-foreground/80 mt-1.5 leading-relaxed">
+            The fingerprint covers the export content above the integrity section.
+          </p>
+          <p className="text-[10.5px] text-muted-foreground/70 mt-0.5 leading-relaxed">
+            The fingerprint was calculated before this integrity section was added.
+          </p>
         </div>
       </div>
 
@@ -69,7 +75,7 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
             {describeTimestampStatus(record)}
           </p>
           <p className="text-[10.5px] text-muted-foreground/70 leading-relaxed mt-1.5 italic">
-            A fingerprint helps detect if the file changes later. It does not prove who wrote the records, where they came from, or that the contents are true.
+            A fingerprint helps detect if the file changes later. This does not prove who created the record or that the contents are true.
           </p>
         </div>
       </div>

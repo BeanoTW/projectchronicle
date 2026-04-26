@@ -23,10 +23,10 @@ const IntegrityPanel = ({ narrative, savedAt }: IntegrityPanelProps) => {
           </div>
           <div>
             <p className="text-sm font-semibold text-integrity-foreground leading-snug">
-              Original record preserved
+              Original content is preserved
             </p>
             <p className="text-[11px] text-integrity-foreground/70">
-              Recorded on {format(date, 'dd MMMM yyyy')} at {format(date, 'HH:mm')}
+              Recorded on {format(date, 'dd MMMM yyyy')} at {format(date, 'HH:mm')} · Changes are recorded as updates
             </p>
           </div>
         </div>
@@ -36,7 +36,7 @@ const IntegrityPanel = ({ narrative, savedAt }: IntegrityPanelProps) => {
       {expanded && (
         <div className="px-4 pb-4">
           <p className="text-[11px] text-integrity-foreground/60 mb-2">
-            This record is preserved exactly as you originally wrote it.
+            This is the original content as you first wrote it. This record keeps an audit history of changes — later edits are saved as updates rather than overwriting the original.
           </p>
           <div className="bg-white/70 rounded-xl p-4">
             <p className="text-[14px] text-integrity-foreground leading-relaxed whitespace-pre-wrap">
