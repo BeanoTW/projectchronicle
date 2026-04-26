@@ -39,10 +39,10 @@ const ExportTimestampPanel = ({ record, loading }: Props) => {
   const statusLabel = (() => {
     switch (record.status) {
       case 'success': return 'Independently timestamped';
-      case 'failed': return 'Timestamping failed';
-      case 'pending': return 'Timestamping in progress';
+      case 'failed': return 'Fingerprint recorded · independent timestamp failed';
+      case 'pending': return 'Fingerprint recorded · independent timestamp pending';
       case 'unavailable':
-      default: return 'Timestamping not yet enabled';
+      default: return 'Fingerprint recorded · independent timestamping not yet enabled';
     }
   })();
 
