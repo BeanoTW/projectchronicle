@@ -193,7 +193,7 @@ const ExportScreen = () => {
     // temporary unlock may have expired (lock, background, shield toggle)
     // while the user was inside the modal. We MUST NOT generate any HTML
     // before the gate resolves.
-    requirePrivacyConfirm(() => {
+    requirePrivacyConfirm(async () => {
       setTribunalLoading(true);
       toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
       try {
@@ -203,14 +203,36 @@ const ExportScreen = () => {
         }
 
         // 1. Render the locked-template HTML for download.
-        const html = renderTemplateHtml({
+        const baseHtml = renderTemplateHtml({
           incidents: activeIncidents,
           followUps: followUpNotes,
           evidence,
         });
+
+        // 2. Compute the export fingerprint on the BASE html (before the
+        //    integrity footer is injected). This way the footer can honestly
+        //    state which bytes the fingerprint covers without circularity.
+        //    Timestamping is best-effort and never blocks the export.
+        setTimestampLoading(true);
+        let tsRecord: ExportTimestampRecord | null = null;
+        try {
+          tsRecord = await createExportTimestampRecord(baseHtml);
+        } catch (e) {
+          console.warn('[Export] Fingerprint/timestamp step failed:', e);
+        } finally {
+          setTimestampLoading(false);
+        }
+        setTimestampRecord(tsRecord);
+
+        // 3. Inject an integrity footer into the export HTML (declaring the
+        //    fingerprint of the body above). If timestamping ever succeeds,
+        //    the same footer surfaces the trusted-time assertion.
+        const html = tsRecord
+          ? injectIntegrityFooter(baseHtml, tsRecord)
+          : baseHtml;
         setLastExportHtml(html);
 
-        // 2. Also generate the on-screen structured record so the user sees
+        // 4. Also generate the on-screen structured record so the user sees
         //    a mounted output to scroll to (UX requirement).
         try {
           const allIds = activeIncidents.map(i => i.id);
@@ -229,7 +251,7 @@ const ExportScreen = () => {
           // Non-fatal: download still proceeds.
         }
 
-        // 3. Close the builder. Do NOT auto-deliver — surface both output
+        // 5. Close the builder. Do NOT auto-deliver — surface both output
         //    actions (Download HTML + Print / Save as PDF) in the result block
         //    so the user sees them as parallel options.
         setBuilderOpen(false);
