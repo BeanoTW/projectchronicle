@@ -887,6 +887,22 @@ const RecordScreen = () => {
             50–70 entry dataset spanning Oct 2025 → today, distributed across all
             categories for visual testing.
           </p>
+
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={seedingDemo || !user}
+            className="w-full text-[13px] border-primary/30 text-primary"
+            onClick={() => setShowDemoSeedDialog(true)}
+          >
+            {seedingDemo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5 mr-1.5" />}
+            Wipe + seed sanitised real-case demo dataset
+          </Button>
+          <p className="text-[10px] text-muted-foreground/70 leading-snug">
+            Replaces every local + cloud record for this account with a fixed
+            17-record demonstration dataset based on a sanitised real workplace
+            dispute. For demo and testing only.
+          </p>
         </motion.div>
       )}
 
