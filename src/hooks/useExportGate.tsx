@@ -28,7 +28,7 @@
  * Render <ExportGateDialogs/> from the hook return inside the consuming
  * component so the dialogs mount in-tree.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useLock } from '@/contexts/LockContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,10 +40,19 @@ export function useExportGate() {
   const { isLocked: appIsLocked } = useLock();
   const { user } = useAuth();
 
-  const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
+  // Use ref so the pending action survives re-renders and is never invoked
+  // by React's functional state setter.
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
   const [authGateOpen, setAuthGateOpen] = useState(false);
   const [disclosureOpen, setDisclosureOpen] = useState(false);
   const [exportUnlocked, setExportUnlocked] = useState(false);
+
+  const clearPending = useCallback(() => {
+    pendingActionRef.current = null;
+    setAuthGateOpen(false);
+    setDisclosureOpen(false);
+  }, []);
 
   // Invalidate temporary unlock on every trust-boundary change.
   useEffect(() => { setExportUnlocked(false); }, [privacyEnabled]);
@@ -60,24 +69,18 @@ export function useExportGate() {
   // If Privacy Shield is toggled off mid-flow, abort any pending dialog.
   useEffect(() => {
     if (!privacyEnabled) {
+      pendingActionRef.current = null;
       setAuthGateOpen(false);
       setDisclosureOpen(false);
-      setPendingAction(null);
     }
   }, [privacyEnabled]);
-
-  const cancelPending = useCallback(() => {
-    setPendingAction(null);
-    setAuthGateOpen(false);
-    setDisclosureOpen(false);
-  }, []);
 
   const requireGated = useCallback((action: () => void) => {
     if (!privacyEnabled) {
       action();
       return;
     }
-    setPendingAction(() => action);
+    pendingActionRef.current = action;
     if (exportUnlocked) {
       setDisclosureOpen(true);
     } else {
@@ -92,18 +95,18 @@ export function useExportGate() {
   }, []);
 
   const onDisclosureConfirm = useCallback(() => {
-    const action = pendingAction;
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
     setDisclosureOpen(false);
-    setPendingAction(null);
     if (action) action();
-  }, [pendingAction]);
+  }, []);
 
   const dialogs = (
     <>
       <ExportAuthGate
         open={authGateOpen}
         onAuthenticated={onAuthSuccess}
-        onCancel={cancelPending}
+        onCancel={clearPending}
       />
       <ConfirmDialog
         open={disclosureOpen}
@@ -125,7 +128,7 @@ export function useExportGate() {
         }
         cancelLabel="Cancel"
         confirmLabel="I understand — continue"
-        onCancel={cancelPending}
+        onCancel={clearPending}
         onConfirm={onDisclosureConfirm}
       />
     </>
