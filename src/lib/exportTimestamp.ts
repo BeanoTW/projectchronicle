@@ -174,16 +174,16 @@ export function describeTimestampStatus(record: ExportTimestampRecord): string {
   switch (record.status) {
     case 'success':
       if (record.timestampAt && record.authority) {
-        return `This export fingerprint was independently timestamped on ${formatDate(record.timestampAt)} by ${record.authority}. This confirms the fingerprint existed at or before that time. It does not verify the truth of the contents.`;
+        return `This export fingerprint was independently timestamped on ${formatDate(record.timestampAt)} by ${record.authority}. This confirms the fingerprint existed at or before that time. It does not prove who created the record or that the contents are true.`;
       }
-      return 'This export fingerprint was independently timestamped. It does not verify the truth of the contents.';
+      return 'This export fingerprint was independently timestamped. It does not prove who created the record or that the contents are true.';
     case 'pending':
       return 'The export fingerprint has been recorded by Chronicle. An independent trusted timestamp is being requested.';
     case 'failed':
-      return 'The export fingerprint has been recorded by Chronicle. An independent trusted timestamp was attempted but did not complete.';
+      return 'Independent timestamping was attempted but did not complete. The fingerprint is still recorded by Chronicle.';
     case 'unavailable':
     default:
-      return 'The export fingerprint has been recorded by Chronicle. Independent trusted timestamping is not yet enabled.';
+      return 'Fingerprint recorded by Chronicle; independent timestamping not currently available.';
   }
 }
 
