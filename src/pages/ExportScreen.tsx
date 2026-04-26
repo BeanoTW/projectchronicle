@@ -21,7 +21,55 @@ import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
 import {
   createExportTimestampRecord,
   type ExportTimestampRecord,
-} from '@/lib/exportTimestamp';
+import { describeTimestampStatus } from '@/lib/exportTimestamp';
+
+/**
+ * Injects an "Export integrity" footer into the rendered export HTML.
+ * The footer declares the SHA-256 fingerprint of the export body above it
+ * and the current trusted-timestamp status. The fingerprint is computed
+ * BEFORE this footer is injected, so the assertion is non-circular: the
+ * fingerprint covers the bytes shown above the footer.
+ */
+function injectIntegrityFooter(html: string, record: ExportTimestampRecord): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const statusLabel =
+    record.status === 'success' ? 'Independently timestamped'
+    : record.status === 'failed' ? 'Timestamping failed'
+    : record.status === 'pending' ? 'Timestamping in progress'
+    : 'Timestamping not yet enabled';
+
+  const tsLine = record.status === 'success' && record.timestampAt && record.authority
+    ? `Trusted time: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
+    : record.status === 'unavailable'
+      ? 'Trusted time: not available — RFC 3161 timestamping is not yet enabled in this build'
+      : record.status === 'failed'
+        ? 'Trusted time: not available — the timestamp request did not complete'
+        : 'Trusted time: pending';
+
+  const block = `
+<section class="export-integrity" style="margin: 32px 56px 24px; padding: 16px; border: 1px solid #d4d4d4; background: #fafafa; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #444; line-height: 1.6;">
+  <div style="font-family: inherit; font-weight: 600; font-size: 11px; color: #222; margin-bottom: 8px; letter-spacing: 0.04em; text-transform: uppercase;">Export integrity</div>
+  <div>Export ID: ${esc(record.exportId)}</div>
+  <div style="word-break: break-all;">SHA-256 fingerprint (covers the export body above this section): ${esc(record.exportHash)}</div>
+  <div>Status: ${esc(statusLabel)}</div>
+  <div>${tsLine}</div>
+  <div>Generated locally: ${esc(record.createdAt)}</div>
+  <div style="margin-top: 10px; font-style: italic; color: #666;">
+    ${esc(describeTimestampStatus(record))}
+  </div>
+  <div style="margin-top: 6px; font-style: italic; color: #888;">
+    A fingerprint helps detect if this file changes later. It does not prove who wrote the records, where they came from, or that the contents are true. It is not a forensic chain of custody.
+  </div>
+</section>
+`;
+
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${block}</body>`);
+  }
+  return html + block;
+}
 
 async function deliverHtmlFile(html: string, filename: string): Promise<string> {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
