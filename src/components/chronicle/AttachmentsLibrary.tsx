@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2 } from 'lucide-react';
+import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import EvidencePreview from './EvidencePreview';
 import DeleteAttachmentDialog from './DeleteAttachmentDialog';
 import { displayTitle } from '@/lib/displayTitle';
+import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 
 const typeIcons: Record<string, typeof FileText> = {
   Photo: Image, Screenshot: Image, Document: FileText, Audio: Music, Email: Mail, Other: FileText,
