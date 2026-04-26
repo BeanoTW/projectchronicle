@@ -61,6 +61,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <LockProvider>
       <BackupProvider>
       <PrivacyProvider>
       <DevModeProvider>
@@ -100,6 +101,7 @@ const App = () => (
       </DevModeProvider>
       </PrivacyProvider>
       </BackupProvider>
+      </LockProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
