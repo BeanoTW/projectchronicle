@@ -402,6 +402,19 @@ const ExportScreen = () => {
         <p className="text-[13px] text-muted-foreground mt-1">Create structured records ready to share.</p>
       </div>
 
+      {/* Privacy Shield notice — calm, persistent, not blocking. */}
+      {privacyEnabled && (
+        <div className="mx-5 mb-4 bg-muted/40 border border-border rounded-xl p-3 flex items-start gap-2.5">
+          <EyeOff className="h-4 w-4 text-foreground/70 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-[12px] font-semibold text-foreground">Privacy Shield is on</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+              Privacy Shield only masks information on screen. This export will include the original stored record. You'll be asked to confirm before each export action.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Export ready — visible immediately at the top so the user cannot miss it */}
       {lastExportHtml && (
         <div
