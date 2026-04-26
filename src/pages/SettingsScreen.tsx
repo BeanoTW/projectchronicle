@@ -36,6 +36,45 @@ const SettingsScreen = () => {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
 
+  // App Lock
+  const lock = useLock();
+  const [pinSetupOpen, setPinSetupOpen] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinBusy, setPinBusy] = useState(false);
+
+  const handleSetPin = async () => {
+    if (!isValidPinFormat(pinValue)) { setPinError('PIN must be 4–6 digits.'); return; }
+    if (pinValue !== pinConfirm) { setPinError('PINs do not match.'); return; }
+    setPinBusy(true);
+    setPinError(null);
+    try {
+      await lock.setPin(pinValue);
+      setPinSetupOpen(false);
+      setPinValue(''); setPinConfirm('');
+      toast({ title: 'App lock enabled' });
+    } catch (e) {
+      setPinError(e instanceof Error ? e.message : 'Could not set PIN.');
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  const handleRemoveLock = () => {
+    lock.removeLock();
+    toast({ title: 'App lock removed' });
+  };
+
+  const handleToggleBiometric = async (on: boolean) => {
+    try {
+      if (on) { await lock.enableBiometric(); toast({ title: 'Biometric unlock enabled' }); }
+      else { lock.disableBiometric(); }
+    } catch (e) {
+      toast({ title: 'Could not enable biometric', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
     try {
