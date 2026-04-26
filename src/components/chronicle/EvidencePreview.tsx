@@ -109,9 +109,10 @@ const EvidencePreview = ({
 
         {/* Content */}
         <div
-          className="flex-1 flex items-center justify-center overflow-auto p-4"
+          className="flex-1 overflow-auto p-4 flex flex-col items-center gap-4"
           onClick={e => e.stopPropagation()}
         >
+          <div className="flex-1 w-full flex items-center justify-center min-h-[40vh]">
           {loading && (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
