@@ -89,7 +89,7 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
+          className="flex items-center justify-center rounded-full text-white transition-all duration-100 ease-out group-active:scale-[0.96]"
           style={{
             width: 60,
             height: 60,
