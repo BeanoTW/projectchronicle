@@ -7,7 +7,10 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useToast } from '@/hooks/use-toast';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { useLock } from '@/contexts/LockContext';
+import { useAuth } from '@/contexts/AuthContext';
 import ConfirmDialog from '@/components/chronicle/ConfirmDialog';
+import ExportAuthGate from '@/components/chronicle/ExportAuthGate';
 import {
   generateSummary,
   buildTribunalExportPayload,
@@ -82,6 +85,8 @@ const ExportScreen = () => {
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
   const { toast } = useToast();
   const { enabled: privacyEnabled } = usePrivacy();
+  const { isLocked: appIsLocked } = useLock();
+  const { user } = useAuth();
   const [summaryResult, setSummaryResult] = useState<SummaryResult | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const [tribunalLoading, setTribunalLoading] = useState(false);
@@ -91,18 +96,69 @@ const ExportScreen = () => {
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
-  // Privacy Shield confirmation: holds the pending action to run after the
-  // user explicitly confirms that the export will include the original
-  // stored record (Privacy Shield is display-only).
-  const [pendingPrivacyAction, setPendingPrivacyAction] = useState<null | (() => void)>(null);
+
+  // Privacy Shield export gating.
+  //
+  // When Privacy Shield is ON, every export action must pass through:
+  //   1. App Lock re-authentication (biometric or PIN)
+  //   2. Export disclosure confirmation
+  //
+  // `pendingAction` holds the action to run after both gates pass.
+  // `authGateOpen` controls the auth dialog visibility.
+  // `disclosureOpen` controls the post-auth confirmation dialog.
+  // `exportUnlocked` is a temporary, in-memory grant that lets multiple
+  // export actions in a single session reuse one authentication, BUT it
+  // must expire on app lock, app background, Privacy Shield toggle, or
+  // sign-out. It is NEVER persisted.
+  const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
+  const [authGateOpen, setAuthGateOpen] = useState(false);
+  const [disclosureOpen, setDisclosureOpen] = useState(false);
+  const [exportUnlocked, setExportUnlocked] = useState(false);
+
+  // Invalidate the temporary unlock when any trust boundary changes.
+  useEffect(() => { setExportUnlocked(false); }, [privacyEnabled]);
+  useEffect(() => { if (appIsLocked) setExportUnlocked(false); }, [appIsLocked]);
+  useEffect(() => { setExportUnlocked(false); }, [user?.id]);
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') setExportUnlocked(false);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
+  const cancelPending = useCallback(() => {
+    setPendingAction(null);
+    setAuthGateOpen(false);
+    setDisclosureOpen(false);
+  }, []);
 
   const requirePrivacyConfirm = useCallback((action: () => void) => {
-    if (privacyEnabled) {
-      setPendingPrivacyAction(() => action);
-    } else {
+    if (!privacyEnabled) {
       action();
+      return;
     }
-  }, [privacyEnabled]);
+    setPendingAction(() => action);
+    if (exportUnlocked) {
+      // Already authenticated this session — go straight to disclosure.
+      setDisclosureOpen(true);
+    } else {
+      setAuthGateOpen(true);
+    }
+  }, [privacyEnabled, exportUnlocked]);
+
+  const onAuthSuccess = useCallback(() => {
+    setAuthGateOpen(false);
+    setExportUnlocked(true);
+    setDisclosureOpen(true);
+  }, []);
+
+  const onDisclosureConfirm = useCallback(() => {
+    const action = pendingAction;
+    setDisclosureOpen(false);
+    setPendingAction(null);
+    if (action) action();
+  }, [pendingAction]);
 
   const activeIncidents = useMemo(
     () => incidents.filter(i => !i.voided_at),
@@ -409,7 +465,7 @@ const ExportScreen = () => {
           <div className="flex-1">
             <p className="text-[12px] font-semibold text-foreground">Privacy Shield is on</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-              Privacy Shield only masks information on screen. This export will include the original stored record. You'll be asked to confirm before each export action.
+              Privacy Shield only masks information on screen. Exports still include the original stored record. You'll be asked to re-authenticate before each export action.
             </p>
           </div>
         </div>
@@ -588,26 +644,40 @@ const ExportScreen = () => {
         loading={tribunalLoading}
       />
 
-      {/* Privacy Shield confirmation — required before each export action. */}
+      {/*
+        Privacy Shield export gate.
+        Step 1: Re-authenticate with App Lock (biometric or PIN).
+        Step 2: Show export disclosure and require explicit confirmation.
+        Cancellation or auth failure aborts the pending export action.
+      */}
+      <ExportAuthGate
+        open={authGateOpen}
+        onAuthenticated={onAuthSuccess}
+        onCancel={cancelPending}
+      />
+
       <ConfirmDialog
-        open={!!pendingPrivacyAction}
-        title="Privacy Shield is on"
+        open={disclosureOpen}
+        title="Before you export"
         description={
           <>
-            Privacy Shield only masks information on screen. This export will include the original stored record.
-            <br />
-            <br />
-            Continue with this export?
+            Exported files leave Chronicle's protected app environment.
+            <br /><br />
+            This file may contain names, locations, quotes, attachments, and
+            other sensitive details from your records. Once exported, it can
+            be copied, forwarded, printed, or viewed by anyone who has access
+            to the file.
+            <br /><br />
+            Privacy Shield only masks information inside the app. It does not
+            protect exported files.
+            <br /><br />
+            Only export or share this document if you are comfortable with that.
           </>
         }
         cancelLabel="Cancel"
-        confirmLabel="Continue with export"
-        onCancel={() => setPendingPrivacyAction(null)}
-        onConfirm={() => {
-          const action = pendingPrivacyAction;
-          setPendingPrivacyAction(null);
-          if (action) action();
-        }}
+        confirmLabel="I understand this export may contain sensitive information"
+        onCancel={cancelPending}
+        onConfirm={onDisclosureConfirm}
       />
     </div>
   );
