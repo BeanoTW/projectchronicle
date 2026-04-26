@@ -103,9 +103,7 @@ const AttachmentIntegrityPanel = ({
       </div>
 
       <p className="text-[11px] text-muted-foreground leading-relaxed">
-        Chronicle records a SHA-256 fingerprint when an attachment is added. This can help
-        compare a file later, but it does not prove where the file came from or create a
-        formal chain of custody.
+        Chronicle records a SHA-256 fingerprint when an attachment is added. This fingerprint can help confirm whether a file matches the version recorded by Chronicle. It does not prove where the file came from or establish a chain of custody.
       </p>
 
       <dl className="space-y-2 text-[12px]">
