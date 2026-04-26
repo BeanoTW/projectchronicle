@@ -188,13 +188,6 @@ const SettingsScreen = () => {
                 aria-label="Toggle Privacy Shield"
               />
             </div>
-            <div className="flex items-center justify-between opacity-40">
-              <div className="flex items-center gap-2.5">
-                <Fingerprint className="h-4 w-4 text-muted-foreground" />
-                <span className="text-[14px] text-foreground">Require PIN or biometric</span>
-              </div>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Soon</span>
-            </div>
           </div>
 
           <div className="border-t border-border" />
@@ -399,6 +392,29 @@ const SettingsScreen = () => {
             </AlertDialog>
           </div>
 
+          <div className="border-t border-border" />
+
+          {/* Export */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Download className="h-4 w-4 text-primary" />
+              <span className="text-[14px] font-semibold text-foreground">Export & backup</span>
+            </div>
+            <p className="text-[12px] text-muted-foreground mb-2">Your data belongs to you.</p>
+            {['Export full record', 'Export timeline', 'Export individual incidents'].map((label) => (
+              <button
+                key={label}
+                onClick={() => navigate('/export')}
+                className="w-full flex items-center justify-between py-2.5 text-[14px] text-foreground hover:bg-muted/30 rounded-lg px-1 transition-colors"
+              >
+                {label}
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* App lock */}
       <div className="mx-5 mb-6">
         <p className="section-group-title">App lock</p>
@@ -504,30 +520,6 @@ const SettingsScreen = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-
-          <div className="border-t border-border" />
-
-          {/* Export */}
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Download className="h-4 w-4 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">Export & backup</span>
-            </div>
-            <p className="text-[12px] text-muted-foreground mb-2">Your data belongs to you.</p>
-            {['Export full record', 'Export timeline', 'Export individual incidents'].map((label) => (
-              <button
-                key={label}
-                onClick={() => navigate('/export')}
-                className="w-full flex items-center justify-between py-2.5 text-[14px] text-foreground hover:bg-muted/30 rounded-lg px-1 transition-colors"
-              >
-                {label}
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Support */}
       <div className="mx-5 mb-6">
