@@ -57,6 +57,18 @@ const EvidenceScreen = () => {
   const uploadEvidence = useUploadEvidence();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { gateActive, requestReveal } = useAttachmentReveal();
+
+  // Close any open preview if the reveal gate becomes active mid-session.
+  useEffect(() => { if (gateActive) setPreviewFile(null); }, [gateActive]);
+
+  const openPreview = async (ev: { file_path: string; file_name: string; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
+    if (gateActive) {
+      const ok = await requestReveal();
+      if (!ok) return;
+    }
+    setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
+  };
 
   const filtered = activeFilter === 'all' ? allEvidence : allEvidence.filter(e => e.file_type === activeFilter);
   const unlinkedCount = allEvidence.filter(e => !e.incident_id).length;
