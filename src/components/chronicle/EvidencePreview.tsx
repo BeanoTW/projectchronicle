@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Download, Loader2, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import AttachmentIntegrityPanel from './AttachmentIntegrityPanel';
 
 interface EvidencePreviewProps {
