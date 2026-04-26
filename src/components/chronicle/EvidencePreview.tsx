@@ -2,15 +2,23 @@ import { useState, useEffect } from 'react';
 import { X, Download, Loader2, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import AttachmentIntegrityPanel from './AttachmentIntegrityPanel';
 
 interface EvidencePreviewProps {
   filePath: string;
   fileName: string;
   mimeType: string | null;
   onClose: () => void;
+  fileHash?: string | null;
+  captureDate?: string | null;
+  uploadDate?: string | null;
+  incidentId?: string | null;
 }
 
-const EvidencePreview = ({ filePath, fileName, mimeType, onClose }: EvidencePreviewProps) => {
+const EvidencePreview = ({
+  filePath, fileName, mimeType, onClose,
+  fileHash = null, captureDate = null, uploadDate = null, incidentId = null,
+}: EvidencePreviewProps) => {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,9 +109,10 @@ const EvidencePreview = ({ filePath, fileName, mimeType, onClose }: EvidencePrev
 
         {/* Content */}
         <div
-          className="flex-1 flex items-center justify-center overflow-auto p-4"
+          className="flex-1 overflow-auto p-4 flex flex-col items-center gap-4"
           onClick={e => e.stopPropagation()}
         >
+          <div className="flex-1 w-full flex items-center justify-center min-h-[40vh]">
           {loading && (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
@@ -179,6 +188,16 @@ const EvidencePreview = ({ filePath, fileName, mimeType, onClose }: EvidencePrev
               )}
             </>
           )}
+          </div>
+
+          <div className="w-full max-w-2xl">
+            <AttachmentIntegrityPanel
+              fileHash={fileHash}
+              captureDate={captureDate}
+              uploadDate={uploadDate}
+              incidentId={incidentId}
+            />
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>

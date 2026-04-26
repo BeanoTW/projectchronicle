@@ -28,7 +28,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const isTranscriptSource = useIsTranscriptSource();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
@@ -138,7 +138,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                     className="w-full flex items-center gap-2 p-3 rounded-xl border border-border bg-card hover:shadow-[var(--shadow-card-hover)] transition-all"
                   >
                     <button
-                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
                       className="flex-1 min-w-0 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
                     >
                       {/* Thumbnail / Icon */}
@@ -208,6 +208,10 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
               filePath={previewFile.filePath}
               fileName={previewFile.fileName}
               mimeType={previewFile.mimeType}
+              fileHash={previewFile.fileHash}
+              captureDate={previewFile.captureDate}
+              uploadDate={previewFile.uploadDate}
+              incidentId={previewFile.incidentId}
               onClose={() => setPreviewFile(null)}
             />
           )}

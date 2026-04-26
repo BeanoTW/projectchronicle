@@ -47,7 +47,7 @@ const typeTintBg: Record<string, string> = {
 };
 
 const EvidenceScreen = () => {
-  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
@@ -168,7 +168,7 @@ const EvidenceScreen = () => {
             <div
               key={ev.id}
               className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer ${accentClass}`}
-              onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+              onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
             >
               <div className="flex gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tintBg || 'bg-muted/50'}`}>
@@ -235,7 +235,7 @@ const EvidenceScreen = () => {
                   {/* Actions row */}
                   <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
                     <button
-                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type })}
+                      onClick={() => setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id })}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 active:scale-[0.97] transition-all"
                     >
                       <Eye className="h-3 w-3" /> View
@@ -259,6 +259,10 @@ const EvidenceScreen = () => {
           filePath={previewFile.filePath}
           fileName={previewFile.fileName}
           mimeType={previewFile.mimeType}
+          fileHash={previewFile.fileHash}
+          captureDate={previewFile.captureDate}
+          uploadDate={previewFile.uploadDate}
+          incidentId={previewFile.incidentId}
           onClose={() => setPreviewFile(null)}
         />
       )}
