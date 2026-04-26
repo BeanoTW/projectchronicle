@@ -30,14 +30,19 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-200 ${
+        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-120 ease-out active:scale-[0.97] ${
           active ? 'text-primary' : 'text-muted-foreground/80 hover:text-foreground'
         }`}
         style={{ paddingTop: 4, paddingBottom: 4 }}
         aria-label={label}
       >
-        <Icon active={active} />
-        <span className={`text-[10px] leading-tight ${active ? 'font-semibold' : 'font-medium'}`}>
+        <span
+          className="transition-transform duration-120 ease-out"
+          style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
+        >
+          <Icon active={active} />
+        </span>
+        <span className={`text-[10px] leading-tight transition-all duration-120 ease-out ${active ? 'font-semibold' : 'font-medium'}`}>
           {label}
         </span>
       </button>
@@ -84,7 +89,7 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="flex items-center justify-center rounded-full text-white transition-transform duration-150 group-active:scale-95"
+          className="flex items-center justify-center rounded-full text-white transition-all duration-100 ease-out group-active:scale-[0.96]"
           style={{
             width: 60,
             height: 60,

@@ -126,7 +126,7 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
           >
             <button
               onClick={startRecording}
-              className="w-20 h-20 rounded-full flex items-center justify-center mb-4 active:scale-[0.96] transition-transform"
+              className="w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all duration-150 ease-out active:scale-[0.96] active:duration-100"
               style={{
                 background: isDailyRecord
                   ? 'linear-gradient(180deg, hsl(38 70% 56%) 0%, hsl(var(--warm-accent)) 50%, hsl(28 65% 38%) 100%)'
