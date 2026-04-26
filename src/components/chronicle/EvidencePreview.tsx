@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Download, Loader2, AlertTriangle, ZoomIn, ZoomOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TransformWrapper, TransformComponent, type ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import AttachmentIntegrityPanel from './AttachmentIntegrityPanel';
 
 interface EvidencePreviewProps {
@@ -22,7 +23,7 @@ const EvidencePreview = ({
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   useEffect(() => {
     const getUrl = async () => {
@@ -77,13 +78,13 @@ const EvidencePreview = ({
             {isImage && url && (
               <>
                 <button
-                  onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}
+                  onClick={() => transformRef.current?.zoomOut()}
                   className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground active:scale-[0.95] transition-transform"
                 >
                   <ZoomOut className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setZoom(z => Math.min(3, z + 0.25))}
+                  onClick={() => transformRef.current?.zoomIn()}
                   className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground active:scale-[0.95] transition-transform"
                 >
                   <ZoomIn className="h-4 w-4" />
@@ -148,13 +149,29 @@ const EvidencePreview = ({
           {!loading && !error && url && (
             <>
               {isImage && (
-                <img
-                  src={url}
-                  alt={fileName}
-                  className="max-w-full max-h-full object-contain rounded-lg transition-transform duration-200"
-                  style={{ transform: `scale(${zoom})` }}
-                  draggable={false}
-                />
+                <TransformWrapper
+                  ref={transformRef}
+                  initialScale={1}
+                  minScale={1}
+                  maxScale={4}
+                  doubleClick={{ mode: 'toggle', step: 2 }}
+                  pinch={{ step: 5 }}
+                  wheel={{ step: 0.2 }}
+                  centerOnInit
+                  limitToBounds
+                >
+                  <TransformComponent
+                    wrapperClass="!w-full !h-full !max-w-full !max-h-full"
+                    contentClass="!w-full !h-full flex items-center justify-center"
+                  >
+                    <img
+                      src={url}
+                      alt={fileName}
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg select-none"
+                      draggable={false}
+                    />
+                  </TransformComponent>
+                </TransformWrapper>
               )}
 
               {isAudio && (
