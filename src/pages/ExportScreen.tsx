@@ -16,7 +16,61 @@ import {
 } from '@/lib/summaryPipeline';
 import { renderTemplateHtml, getTemplateFilename } from '@/lib/templateRenderer';
 import ExportBuilderModal from '@/components/chronicle/ExportBuilderModal';
+import ExportTimestampPanel from '@/components/chronicle/ExportTimestampPanel';
 import type { ExportItem, SequenceConfig } from '@/lib/sequenceEngine';
+import {
+  createExportTimestampRecord,
+  describeTimestampStatus,
+  type ExportTimestampRecord,
+} from '@/lib/exportTimestamp';
+
+/**
+ * Injects an "Export integrity" footer into the rendered export HTML.
+ * The footer declares the SHA-256 fingerprint of the export body above it
+ * and the current trusted-timestamp status. The fingerprint is computed
+ * BEFORE this footer is injected, so the assertion is non-circular: the
+ * fingerprint covers the bytes shown above the footer.
+ */
+function injectIntegrityFooter(html: string, record: ExportTimestampRecord): string {
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  const statusLabel =
+    record.status === 'success' ? 'Independently timestamped'
+    : record.status === 'failed' ? 'Timestamping failed'
+    : record.status === 'pending' ? 'Timestamping in progress'
+    : 'Timestamping not yet enabled';
+
+  const tsLine = record.status === 'success' && record.timestampAt && record.authority
+    ? `Trusted time: ${esc(record.timestampAt)} (authority: ${esc(record.authority)})`
+    : record.status === 'unavailable'
+      ? 'Trusted time: not available — RFC 3161 timestamping is not yet enabled in this build'
+      : record.status === 'failed'
+        ? 'Trusted time: not available — the timestamp request did not complete'
+        : 'Trusted time: pending';
+
+  const block = `
+<section class="export-integrity" style="margin: 32px 56px 24px; padding: 16px; border: 1px solid #d4d4d4; background: #fafafa; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #444; line-height: 1.6;">
+  <div style="font-family: inherit; font-weight: 600; font-size: 11px; color: #222; margin-bottom: 8px; letter-spacing: 0.04em; text-transform: uppercase;">Export integrity</div>
+  <div>Export ID: ${esc(record.exportId)}</div>
+  <div style="word-break: break-all;">SHA-256 fingerprint (covers the export body above this section): ${esc(record.exportHash)}</div>
+  <div>Status: ${esc(statusLabel)}</div>
+  <div>${tsLine}</div>
+  <div>Generated locally: ${esc(record.createdAt)}</div>
+  <div style="margin-top: 10px; font-style: italic; color: #666;">
+    ${esc(describeTimestampStatus(record))}
+  </div>
+  <div style="margin-top: 6px; font-style: italic; color: #888;">
+    A fingerprint helps detect if this file changes later. It does not prove who wrote the records, where they came from, or that the contents are true. It is not a forensic chain of custody.
+  </div>
+</section>
+`;
+
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${block}</body>`);
+  }
+  return html + block;
+}
 
 async function deliverHtmlFile(html: string, filename: string): Promise<string> {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -92,6 +146,8 @@ const ExportScreen = () => {
   const [summaryHighlight, setSummaryHighlight] = useState(false);
   const [lastExportHtml, setLastExportHtml] = useState<string | null>(null);
   const [printing, setPrinting] = useState(false);
+  const [timestampRecord, setTimestampRecord] = useState<ExportTimestampRecord | null>(null);
+  const [timestampLoading, setTimestampLoading] = useState(false);
 
   // Backwards-compatible alias for existing call sites in this file.
   const requirePrivacyConfirm = requireGated;
@@ -186,7 +242,7 @@ const ExportScreen = () => {
     // temporary unlock may have expired (lock, background, shield toggle)
     // while the user was inside the modal. We MUST NOT generate any HTML
     // before the gate resolves.
-    requirePrivacyConfirm(() => {
+    requirePrivacyConfirm(async () => {
       setTribunalLoading(true);
       toast({ title: 'Preparing structured record…', description: 'Generating your export.' });
       try {
@@ -196,14 +252,36 @@ const ExportScreen = () => {
         }
 
         // 1. Render the locked-template HTML for download.
-        const html = renderTemplateHtml({
+        const baseHtml = renderTemplateHtml({
           incidents: activeIncidents,
           followUps: followUpNotes,
           evidence,
         });
+
+        // 2. Compute the export fingerprint on the BASE html (before the
+        //    integrity footer is injected). This way the footer can honestly
+        //    state which bytes the fingerprint covers without circularity.
+        //    Timestamping is best-effort and never blocks the export.
+        setTimestampLoading(true);
+        let tsRecord: ExportTimestampRecord | null = null;
+        try {
+          tsRecord = await createExportTimestampRecord(baseHtml);
+        } catch (e) {
+          console.warn('[Export] Fingerprint/timestamp step failed:', e);
+        } finally {
+          setTimestampLoading(false);
+        }
+        setTimestampRecord(tsRecord);
+
+        // 3. Inject an integrity footer into the export HTML (declaring the
+        //    fingerprint of the body above). If timestamping ever succeeds,
+        //    the same footer surfaces the trusted-time assertion.
+        const html = tsRecord
+          ? injectIntegrityFooter(baseHtml, tsRecord)
+          : baseHtml;
         setLastExportHtml(html);
 
-        // 2. Also generate the on-screen structured record so the user sees
+        // 4. Also generate the on-screen structured record so the user sees
         //    a mounted output to scroll to (UX requirement).
         try {
           const allIds = activeIncidents.map(i => i.id);
@@ -222,7 +300,7 @@ const ExportScreen = () => {
           // Non-fatal: download still proceeds.
         }
 
-        // 3. Close the builder. Do NOT auto-deliver — surface both output
+        // 5. Close the builder. Do NOT auto-deliver — surface both output
         //    actions (Download HTML + Print / Save as PDF) in the result block
         //    so the user sees them as parallel options.
         setBuilderOpen(false);
@@ -421,6 +499,11 @@ const ExportScreen = () => {
         >
           <p className="text-[15px] font-semibold text-foreground">✓ Your export is ready</p>
           <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">Choose how you want to use it. Both options use the same document.</p>
+
+          {/* Export integrity surface — fingerprint + trusted-timestamp status. */}
+          <div className="mt-3">
+            <ExportTimestampPanel record={timestampRecord} loading={timestampLoading} />
+          </div>
 
           {/* PRIMARY: Print / Save as PDF */}
           <div className="mt-4">

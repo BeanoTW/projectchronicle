@@ -111,6 +111,45 @@ export type Database = {
           },
         ]
       }
+      export_timestamps: {
+        Row: {
+          created_at: string
+          export_hash: string
+          export_id: string
+          id: string
+          note: string | null
+          status: string
+          timestamp_at: string | null
+          timestamp_authority: string | null
+          timestamp_token: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          export_hash: string
+          export_id: string
+          id?: string
+          note?: string | null
+          status?: string
+          timestamp_at?: string | null
+          timestamp_authority?: string | null
+          timestamp_token?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          export_hash?: string
+          export_id?: string
+          id?: string
+          note?: string | null
+          status?: string
+          timestamp_at?: string | null
+          timestamp_authority?: string | null
+          timestamp_token?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       follow_up_notes: {
         Row: {
           created_at: string
