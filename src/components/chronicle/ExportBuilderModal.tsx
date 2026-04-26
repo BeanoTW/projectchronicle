@@ -41,6 +41,7 @@ interface ExportBuilderModalProps {
   evidence: EvidenceFile[];
   onExport: (items: ExportItem[], config: SequenceConfig) => void;
   loading?: boolean;
+  privacyDisabled?: boolean;
 }
 
 const ExportBuilderModal = ({
