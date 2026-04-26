@@ -32,21 +32,30 @@ const dotClassFor = (inc: Incident): string => {
   return borderClass.replace('border-l-', 'bg-');
 };
 
+/* Resolve the effective date for a record:
+   - incident → incident_date
+   - daily_record → record_date (fallback to incident_date if null) */
+const effectiveDateStr = (inc: Incident): string => {
+  const isDaily = inc.record_type === 'daily_record';
+  const raw = isDaily ? ((inc as any).record_date || inc.incident_date) : inc.incident_date;
+  return raw.slice(0, 10);
+};
+
 /* Build the list of months to render (vertical scroll).
-   Range: from the earliest record month to the current month + 1, inclusive.
-   Falls back to 6 months around today if there are no records yet. */
+   Data-driven range: earliest record month → latest record month, inclusive.
+   All months in between are rendered (even if empty).
+   Falls back to current month if there are no records yet. */
 const buildMonthList = (incidents: Incident[]): Date[] => {
   const today = new Date();
   let start = startOfMonth(today);
-  let end = startOfMonth(addMonths(today, 1));
-  if (incidents.length > 0) {
-    const dates = incidents
-      .filter(i => !i.voided_at)
-      .map(i => parseISO(i.incident_date.slice(0, 10)));
-    if (dates.length > 0) {
-      const min = dates.reduce((a, b) => (a < b ? a : b));
-      start = startOfMonth(min);
-    }
+  let end = startOfMonth(today);
+  const active = incidents.filter(i => !i.voided_at);
+  if (active.length > 0) {
+    const dates = active.map(i => parseISO(effectiveDateStr(i)));
+    const min = dates.reduce((a, b) => (a < b ? a : b));
+    const max = dates.reduce((a, b) => (a > b ? a : b));
+    start = startOfMonth(min);
+    end = startOfMonth(max);
   }
   const months: Date[] = [];
   let cur = start;
@@ -167,13 +176,13 @@ const CalendarScreen = () => {
   const currentMonthRef = useRef<HTMLDivElement | null>(null);
   const { maskEntities } = usePrivacy();
 
-  /* Index incidents by date string (using incident_date, not created_at) */
+  /* Index incidents by effective date string (incident_date for incidents, record_date for daily records) */
   const incidentsByDate = useMemo(() => {
     const map = new Map<string, Incident[]>();
     incidents
       .filter(i => !i.voided_at)
       .forEach(i => {
-        const key = i.incident_date.slice(0, 10);
+        const key = effectiveDateStr(i);
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(i);
       });
