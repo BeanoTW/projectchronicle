@@ -86,16 +86,16 @@ const SupportScreen = () => {
         <p className="text-[13px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
           Security & Privacy
         </p>
-        <div className="space-y-2">
+        <div className="space-y-3 pl-1">
           {[
-            { title: 'App lock', body: 'You can protect access to Chronicle using a PIN or device biometric. This is required to open the app when enabled.' },
-            { title: 'Auto-lock', body: 'The app can automatically lock after a short period of inactivity or when returning from the background.' },
-            { title: 'Privacy Shield', body: 'When enabled, sensitive details such as names, locations, and attachments are masked on screen. This helps when showing your record to others.' },
-            { title: 'Attachment visibility', body: 'Attachments may be hidden while Privacy Shield is active. You can unlock them using your PIN.' },
-            { title: 'Attachment integrity', body: 'Files added to your record can include a fingerprint and timestamps to help identify them later.' },
+            { title: 'App lock', body: 'Requires a PIN or biometric to open the app. Locks automatically after inactivity or when returning from the background.' },
+            { title: 'Privacy Shield', body: 'Masks names, locations, and attachments.' },
+            { title: 'Attachment visibility', body: 'Attachments may be hidden while Privacy Shield is active. Unlock with your PIN to view.' },
+            { title: 'Attachment integrity', body: 'Files can include a fingerprint and timestamps to help identify them later.' },
+            { title: 'Scope', body: 'These features control how information is displayed and accessed. They do not alter or remove saved records or exported data.' },
           ].map(item => (
-            <div key={item.title} className="bg-card border border-border rounded-xl px-4 py-3">
-              <h3 className="text-[14px] font-semibold text-foreground leading-snug">{item.title}</h3>
+            <div key={item.title}>
+              <h3 className="text-[13px] font-semibold text-foreground leading-snug">{item.title}</h3>
               <p className="text-[13px] text-muted-foreground leading-relaxed">{item.body}</p>
             </div>
           ))}
