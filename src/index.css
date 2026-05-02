@@ -202,6 +202,10 @@
     }
   }
 }
+
+@layer base {
+  * {
+    @apply border-border;
   }
 
   /* Final-line defence against accidental horizontal overflow on mobile.
