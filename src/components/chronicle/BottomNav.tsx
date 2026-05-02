@@ -60,12 +60,8 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[48px] rounded-[18px]"
+        className="relative h-[48px] rounded-[18px] backdrop-blur-md backdrop-saturate-150 bg-[rgba(255,255,255,0.78)] dark:bg-[rgba(15,15,17,0.7)] border border-[rgba(20,30,40,0.06)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_8px_16px_-4px_rgba(15,23,42,0.05),0_3px_6px_-2px_rgba(15,23,42,0.02)] dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.45),0_3px_6px_-2px_rgba(0,0,0,0.3)]"
         style={{
-          background: 'linear-gradient(180deg, #ffffff 0%, #f5f6f5 100%)',
-          border: '1px solid rgba(20, 30, 40, 0.06)',
-          boxShadow:
-            '0 8px 16px -4px rgba(15, 23, 42, 0.05), 0 3px 6px -2px rgba(15, 23, 42, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.95)',
           WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
           maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
         }}
@@ -89,15 +85,12 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="flex items-center justify-center rounded-full text-white transition-all duration-100 ease-out group-active:scale-[0.96]"
+          className="flex items-center justify-center rounded-full text-white transition-all duration-100 ease-out group-active:scale-[0.96] border-[3px] border-white dark:border-[hsl(220_18%_14%)] shadow-[0_10px_20px_-4px_hsl(220_25%_12%/0.16),0_3px_8px_-2px_hsl(220_25%_12%/0.10),inset_0_1px_1.5px_hsl(0_0%_100%/0.40),inset_0_-2px_4px_hsl(100_50%_22%/0.18)] dark:shadow-[0_8px_18px_-6px_hsl(0_0%_0%/0.55),0_2px_6px_-2px_hsl(0_0%_0%/0.4),inset_0_1px_1px_hsl(0_0%_100%/0.18)]"
           style={{
             width: 60,
             height: 60,
-            border: '3px solid #ffffff',
             background:
               'linear-gradient(180deg, hsl(100 44% 60%) 0%, hsl(var(--primary)) 50%, hsl(100 42% 50%) 100%)',
-            boxShadow:
-              '0 10px 20px -4px hsl(220 25% 12% / 0.16), 0 3px 8px -2px hsl(220 25% 12% / 0.10), inset 0 1px 1.5px hsl(0 0% 100% / 0.40), inset 0 -2px 4px hsl(100 50% 22% / 0.18)',
           }}
         >
           <RecordIcon />
