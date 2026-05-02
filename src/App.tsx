@@ -109,6 +109,7 @@ const App = () => (
       </PrivacyProvider>
       </BackupProvider>
       </LockProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
