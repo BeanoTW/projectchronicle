@@ -23,17 +23,17 @@ export const PhoneFrame: React.FC<{ children: React.ReactNode; orientation: Orie
   // Very subtle drift 1 → 1.02 over ~3s loop to avoid a static feel
   const drift = 1 + (Math.sin(frame / 90) + 1) / 2 * 0.02;
 
-  // Focused canvas — denser, dominates the frame (~80% of vertical height).
-  // ~5:6 aspect makes UI scale large and eliminates dead vertical space.
+  // Focused canvas — denser, dominates the frame.
+  // Scaled up ~25% for better readability on mobile; minimal whitespace.
   let canvasW: number;
   let canvasH: number;
   if (orientation === 'vertical') {
-    // 1080x1920: ~80% height, ~94% width
-    canvasH = Math.round(height * 0.80);
-    canvasW = Math.min(Math.round(canvasH * (5 / 6)), Math.round(width * 0.94));
+    // 1080x1920: ~96% height, full width budget
+    canvasH = Math.round(height * 0.96);
+    canvasW = Math.min(Math.round(canvasH * (5 / 6)), Math.round(width * 0.98));
   } else {
-    // 1920x1080: tall canvas centred horizontally
-    canvasH = Math.round(height * 0.92);
+    // 1920x1080: tall canvas centred horizontally, near full height
+    canvasH = Math.round(height * 0.98);
     canvasW = Math.round(canvasH * (5 / 6));
   }
 
