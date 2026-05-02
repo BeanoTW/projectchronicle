@@ -18,6 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const SettingsScreen = () => {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ const SettingsScreen = () => {
     setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
   } = useBackup();
   const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
+  const { mode: themeMode, setMode: setThemeMode } = useTheme();
   const [busy, setBusy] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -156,6 +158,37 @@ const SettingsScreen = () => {
               <span className="text-[14px] font-medium text-foreground">{format(new Date(lastUpdated), 'd MMM yyyy')}</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="mx-5 mb-6">
+        <p className="section-group-title">Appearance</p>
+        <div className="bg-card border border-border rounded-xl p-4">
+          <p className="text-[14px] font-semibold text-foreground mb-1">Theme</p>
+          <p className="text-[12px] text-muted-foreground mb-3">
+            System follows your device theme. Choose Light or Dark to override.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {(['system', 'light', 'dark'] as const).map((opt) => {
+              const active = themeMode === opt;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => setThemeMode(opt)}
+                  className={`px-3 py-2 rounded-lg text-[13px] font-medium border transition-colors ${
+                    active
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-foreground border-border hover:bg-muted/40'
+                  }`}
+                  aria-pressed={active}
+                >
+                  {opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
