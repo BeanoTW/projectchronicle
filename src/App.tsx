@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LockProvider, useLock } from "@/contexts/LockContext";
 import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
@@ -63,6 +64,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <ThemeProvider>
       <LockProvider>
       <BackupProvider>
       <PrivacyProvider>
@@ -107,6 +109,7 @@ const App = () => (
       </PrivacyProvider>
       </BackupProvider>
       </LockProvider>
+      </ThemeProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
