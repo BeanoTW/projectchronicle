@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { DevModeProvider } from "@/contexts/DevModeContext";
 import { BackupProvider } from "@/contexts/BackupContext";
 import { PrivacyProvider } from "@/contexts/PrivacyContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { LockProvider, useLock } from "@/contexts/LockContext";
 import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
