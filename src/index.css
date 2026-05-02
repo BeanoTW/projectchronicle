@@ -128,6 +128,79 @@
     --sidebar-border: 220 18% 18%;
     --sidebar-ring: 100 35% 48%;
   }
+
+  /* Follow system preference automatically (no manual toggle). */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 220 18% 7%;
+      --foreground: 210 10% 92%;
+
+      --card: 220 18% 10%;
+      --card-foreground: 210 10% 92%;
+
+      --popover: 220 18% 10%;
+      --popover-foreground: 210 10% 92%;
+
+      --primary: 100 38% 52%;
+      --primary-foreground: 0 0% 100%;
+      --primary-dark: 220 18% 5%;
+      --primary-light: 105 25% 16%;
+
+      --warm-accent: 38 55% 52%;
+      --warm-accent-light: 40 30% 15%;
+      --warm-accent-foreground: 38 40% 75%;
+
+      --secondary: 220 18% 14%;
+      --secondary-foreground: 210 10% 92%;
+
+      --muted: 220 18% 14%;
+      --muted-foreground: 215 12% 65%;
+
+      --accent: 220 18% 16%;
+      --accent-foreground: 105 35% 70%;
+
+      --destructive: 0 55% 50%;
+      --destructive-foreground: 0 0% 100%;
+
+      --severity-critical: 0 60% 58%;
+      --severity-serious: 32 70% 58%;
+      --severity-moderate: 28 55% 55%;
+      --severity-low: 100 38% 58%;
+
+      --integrity: 105 25% 16%;
+      --integrity-foreground: 100 40% 65%;
+      --integrity-border: 105 25% 24%;
+
+      --rep: 214 30% 18%;
+      --rep-foreground: 214 50% 75%;
+
+      --ai-label: 46 25% 16%;
+      --ai-label-foreground: 38 50% 70%;
+
+      --info: 210 50% 60%;
+      --info-light: 210 30% 16%;
+
+      --body: 210 10% 80%;
+
+      --border: 220 18% 20%;
+      --input: 220 18% 20%;
+      --ring: 100 38% 52%;
+
+      --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.25);
+      --shadow-card-hover: 0 2px 8px -2px hsl(0 0% 0% / 0.35);
+      --shadow-nav: 0 -1px 8px 0 hsl(0 0% 0% / 0.35);
+      --shadow-elevated: 0 4px 16px -4px hsl(0 0% 0% / 0.45);
+
+      --sidebar-background: 220 18% 9%;
+      --sidebar-foreground: 210 10% 92%;
+      --sidebar-primary: 100 38% 52%;
+      --sidebar-primary-foreground: 0 0% 100%;
+      --sidebar-accent: 220 18% 14%;
+      --sidebar-accent-foreground: 210 10% 92%;
+      --sidebar-border: 220 18% 20%;
+      --sidebar-ring: 100 38% 52%;
+    }
+  }
 }
 
 @layer base {
