@@ -60,14 +60,20 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[48px] rounded-[18px] backdrop-blur-md backdrop-saturate-150 bg-[rgba(255,255,255,0.78)] dark:bg-[rgba(15,15,17,0.7)] border border-[rgba(20,30,40,0.06)] dark:border-[rgba(255,255,255,0.06)] shadow-[0_8px_16px_-4px_rgba(15,23,42,0.05),0_3px_6px_-2px_rgba(15,23,42,0.02)] dark:shadow-[0_8px_16px_-4px_rgba(0,0,0,0.45),0_3px_6px_-2px_rgba(0,0,0,0.3)]"
+        className="relative h-[48px] rounded-[18px] overflow-hidden backdrop-blur-xl backdrop-saturate-150 bg-[rgba(255,255,255,0.7)] dark:bg-[rgba(10,12,16,0.6)] border-t border-[rgba(20,30,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[0_8px_20px_-6px_rgba(15,23,42,0.08),0_2px_6px_-2px_rgba(15,23,42,0.04)] dark:shadow-[0_10px_24px_-6px_rgba(0,0,0,0.55),0_2px_8px_-2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]"
         style={{
           WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
           maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
+        {/* Smokey gradient overlay */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/40 to-black/5 dark:from-white/[0.03] dark:to-black/30"
+        />
+
         {/* Side icons - symmetrical halves around the centre */}
-        <div className="grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="relative grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="flex h-full items-center pl-1 pr-8">
             {leftItems.map(renderItem)}
           </div>
@@ -81,7 +87,7 @@ const BottomNav = () => {
       <button
         onClick={() => navigate('/record')}
         aria-label="Record"
-        className="absolute left-1/2 -translate-x-1/2 group"
+        className="absolute left-1/2 -translate-x-1/2 z-10 group"
         style={{ top: -14 }}
       >
         <span
