@@ -83,7 +83,7 @@ const BottomNav = () => {
         </div>
       </nav>
 
-      {/* Elevated Record button — anchored, ~30% above nav */}
+      {/* Elevated Record button — dark glass iridescent orb */}
       <button
         onClick={() => navigate('/record')}
         aria-label="Record"
@@ -91,12 +91,15 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="flex items-center justify-center rounded-full text-white transition-all duration-100 ease-out group-active:scale-[0.96] border-[3px] border-white dark:border-[hsl(220_18%_14%)] shadow-[0_10px_20px_-4px_hsl(220_25%_12%/0.16),0_3px_8px_-2px_hsl(220_25%_12%/0.10),inset_0_1px_1.5px_hsl(0_0%_100%/0.40),inset_0_-2px_4px_hsl(100_50%_22%/0.18)] dark:shadow-[0_8px_18px_-6px_hsl(0_0%_0%/0.55),0_2px_6px_-2px_hsl(0_0%_0%/0.4),inset_0_1px_1px_hsl(0_0%_100%/0.18)]"
+          className="relative flex items-center justify-center rounded-full text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
           style={{
             width: 60,
             height: 60,
             background:
-              'linear-gradient(180deg, hsl(100 44% 60%) 0%, hsl(var(--primary)) 50%, hsl(100 42% 50%) 100%)',
+              'radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%), radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%), radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%), linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%)',
+            border: '1.25px solid hsl(var(--primary) / 0.6)',
+            boxShadow:
+              '0 0 22px -2px hsl(var(--primary) / 0.28), 0 8px 18px -6px hsl(0 0% 0% / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -6px 14px hsl(0 0% 0% / 0.45)',
           }}
         >
           <RecordIcon />
