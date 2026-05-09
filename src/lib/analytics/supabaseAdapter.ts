@@ -63,12 +63,12 @@ export async function recordSupabaseEvent(
 ): Promise<void> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('analytics_events').insert({
+    await supabase.from('analytics_events').insert([{
       event_name: event,
-      user_id: user?.id ?? null,
+      user_id: user?.id ?? undefined,
       session_id: getSessionId(),
-      props: sanitize(props),
-    });
+      props: sanitize(props) as never,
+    }]);
   } catch {
     /* swallow — analytics must never break the app */
   }
