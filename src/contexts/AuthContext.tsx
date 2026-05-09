@@ -103,6 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       reason,
       errorMessage: error?.message,
     });
+    if (!error && data?.session) analytics.track('login_completed');
     return { error: error as Error | null, reason };
   };
 
