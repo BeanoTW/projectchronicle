@@ -172,6 +172,7 @@ const MonthBlock = ({
 
 const CalendarScreen = () => {
   const navigate = useNavigate();
+  useTrackScreenView('calendar_viewed');
   const { data: incidents = [], isLoading } = useIncidents();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const currentMonthRef = useRef<HTMLDivElement | null>(null);
