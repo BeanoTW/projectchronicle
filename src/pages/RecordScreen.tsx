@@ -481,25 +481,25 @@ const RecordScreen = () => {
         </button>
       </PageHeader>
 
-      {/* Record-type toggle (Daily Record extension) — outlined glass segments with ambient glow */}
+      {/* Record-type toggle — refined frosted segmented control. Glow lives on the orb, not here. */}
       <div className="px-5 -mt-1 mb-2">
-        <div className="flex gap-2">
+        <div className="flex gap-2 p-1 rounded-2xl border border-border/70 dark:border-white/10 bg-card/70 dark:bg-white/[0.03] backdrop-blur-md shadow-[inset_0_1px_0_hsl(0_0%_100%/0.6),0_1px_2px_-1px_hsl(220_25%_20%/0.06)]">
           <button
             onClick={() => setRecordType('incident')}
-            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-300 ease-out active:scale-[0.98] border ${
+            className={`flex-1 py-2 rounded-xl text-[12.5px] font-semibold transition-all duration-200 ease-out active:scale-[0.98] border ${
               recordType === 'incident'
-                ? 'bg-primary/[0.06] dark:bg-primary/[0.08] border-primary/55 text-primary shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.25),0_0_24px_-4px_hsl(var(--primary)/0.45)]'
-                : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
+                ? 'bg-card dark:bg-white/[0.06] border-primary/45 text-primary shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.25),0_1px_2px_-1px_hsl(var(--primary)/0.2)]'
+                : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             Incident
           </button>
           <button
             onClick={() => setRecordType('daily_record')}
-            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-300 ease-out active:scale-[0.98] border ${
+            className={`flex-1 py-2 rounded-xl text-[12.5px] font-semibold transition-all duration-200 ease-out active:scale-[0.98] border ${
               recordType === 'daily_record'
-                ? 'bg-warm-accent/[0.06] dark:bg-warm-accent/[0.08] border-warm-accent/55 text-warm-accent shadow-[inset_0_0_0_0.5px_hsl(var(--warm-accent)/0.25),0_0_24px_-4px_hsl(var(--warm-accent)/0.45)]'
-                : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
+                ? 'bg-card dark:bg-white/[0.06] border-warm-accent/45 text-warm-accent shadow-[inset_0_0_0_0.5px_hsl(var(--warm-accent)/0.25),0_1px_2px_-1px_hsl(var(--warm-accent)/0.2)]'
+                : 'bg-transparent border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             Daily record
