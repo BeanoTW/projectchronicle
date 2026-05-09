@@ -3,6 +3,7 @@ import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Brief
 import { format, parseISO, isValid } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { shareExportFile } from '@/lib/shareExport';
+import { analytics } from '@/lib/analytics/analytics';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
