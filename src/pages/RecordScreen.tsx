@@ -551,6 +551,7 @@ const RecordScreen = () => {
                   try {
                     const formData = new FormData();
                     formData.append('audio', blob);
+                    analytics.track('ai_assist_used', { feature: 'transcribe_audio' });
                     const { data, error } = await supabase.functions.invoke('transcribe-audio', {
                       body: formData,
                     });
