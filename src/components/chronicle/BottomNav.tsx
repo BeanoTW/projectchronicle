@@ -77,7 +77,7 @@ const BottomNav = () => {
         onClick={() => navigate('/record')}
         aria-label="Record"
         className="absolute left-1/2 -translate-x-1/2 z-10 group"
-        style={{ top: -14 }}
+        style={{ top: -18 }}
       >
         <span
           className="iridescent-orb relative flex items-center justify-center rounded-full text-foreground/75 dark:text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
