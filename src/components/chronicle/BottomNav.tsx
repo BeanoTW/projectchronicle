@@ -30,19 +30,21 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-120 ease-out active:scale-[0.97] ${
-          active ? 'text-primary' : 'text-white/75 hover:text-white'
+        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-150 ease-out active:scale-[0.97] ${
+          active
+            ? 'text-primary dark:text-primary'
+            : 'text-muted-foreground/80 hover:text-foreground dark:text-white/70 dark:hover:text-white'
         }`}
         style={{ paddingTop: 4, paddingBottom: 4 }}
         aria-label={label}
       >
         <span
-          className="transition-transform duration-120 ease-out"
+          className="transition-transform duration-150 ease-out"
           style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
         >
           <Icon active={active} />
         </span>
-        <span className={`text-[10px] leading-tight transition-all duration-120 ease-out ${active ? 'font-semibold' : 'font-medium'}`}>
+        <span className={`text-[10px] leading-tight transition-all duration-150 ease-out ${active ? 'font-semibold' : 'font-medium'}`}>
           {label}
         </span>
       </button>
