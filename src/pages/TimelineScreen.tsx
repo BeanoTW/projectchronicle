@@ -71,6 +71,7 @@ const OverviewMarker = ({
 
 const TimelineScreen = () => {
   const navigate = useNavigate();
+  useTrackScreenView('timeline_viewed');
   const { toast } = useToast();
   const { data: allIncidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
