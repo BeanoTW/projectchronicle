@@ -21,6 +21,7 @@ import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
 import type { Incident } from '@/hooks/useIncidents';
+import { useTrackScreenView } from '@/lib/analytics/useTrackScreenView';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
