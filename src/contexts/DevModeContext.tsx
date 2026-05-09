@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { analytics } from '@/lib/analytics/analytics';
 
 interface DevModeContextType {
   devMode: boolean;
@@ -50,6 +51,19 @@ export const DevModeProvider = ({ children }: { children: React.ReactNode }) => 
   // Defensive: if the active user loses access (e.g. account switch),
   // make sure dev mode does not remain enabled.
   const effectiveDevMode = canAccessDevPanel ? devMode : false;
+
+  // Keep analytics suppression in sync with developer status.
+  // Suppress whenever the current account is a developer account OR Developer
+  // Mode is active OR we're already in a dev/preview environment (auto-detected
+  // inside analytics at module load).
+  useEffect(() => {
+    if (isDevUser || effectiveDevMode) {
+      analytics.setSuppressed(true, isDevUser ? 'dev-account' : 'dev-mode');
+    } else if (!analytics.suppressionReason()?.match(/dev-build|localhost|preview-host/)) {
+      // Only re-enable when no environment-level suppression is in force.
+      analytics.setSuppressed(false);
+    }
+  }, [isDevUser, effectiveDevMode]);
 
   return (
     <DevModeContext.Provider value={{ devMode: effectiveDevMode, toggleDevMode, canAccessDevPanel }}>

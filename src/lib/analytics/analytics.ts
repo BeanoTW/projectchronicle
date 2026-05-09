@@ -51,6 +51,36 @@ let initPromise: Promise<void> | null = null;
 let pendingId: string | null = null;
 const queue: Array<{ event: AnalyticsEvent; props?: Props }> = [];
 
+// ---------- Suppression ----------
+// Analytics are suppressed for developer/testing sessions so internal metrics
+// reflect genuine user behaviour. Suppression sources (any one suffices):
+//   - import.meta.env.DEV (vite dev server / localhost build)
+//   - hostname is localhost / 127.0.0.1
+//   - hostname is a Lovable preview/sandbox subdomain (id-preview--, sandbox--)
+//   - DevModeContext detects a developer account / Developer Mode is enabled
+let suppressed = false;
+let suppressionReason: string | null = null;
+
+function autoDetectSuppression(): { suppressed: boolean; reason: string | null } {
+  try {
+    if (import.meta.env?.DEV === true) return { suppressed: true, reason: 'dev-build' };
+    if (typeof window !== 'undefined') {
+      const h = window.location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local')) {
+        return { suppressed: true, reason: 'localhost' };
+      }
+      if (h.startsWith('id-preview--') || h.startsWith('sandbox--') || h.startsWith('preview--')) {
+        return { suppressed: true, reason: 'preview-host' };
+      }
+    }
+  } catch { /* ignore */ }
+  return { suppressed: false, reason: null };
+}
+
+const initial = autoDetectSuppression();
+suppressed = initial.suppressed;
+suppressionReason = initial.reason;
+
 const consoleAdapter: Adapter = {
   identify: (id) => console.debug('[analytics] identify', id),
   reset: () => console.debug('[analytics] reset'),
@@ -60,7 +90,6 @@ const consoleAdapter: Adapter = {
 async function loadPostHog(): Promise<Adapter | null> {
   if (!POSTHOG_KEY) return null;
   try {
-    // posthog-js is optional; loaded only if installed and key is set.
     const mod = await import(/* @vite-ignore */ ('posthog' + '-js'));
     const ph = (mod as { default?: unknown }).default ?? mod;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,23 +116,37 @@ function ensureInit(): Promise<void> {
   initPromise = (async () => {
     const ph = await loadPostHog();
     adapter = ph ?? consoleAdapter;
-    if (pendingId) adapter.identify(pendingId);
+    if (pendingId && !suppressed) adapter.identify(pendingId);
     while (queue.length) {
       const item = queue.shift()!;
-      adapter.track(item.event, item.props);
+      if (!suppressed) adapter.track(item.event, item.props);
     }
   })();
   return initPromise;
 }
 
-// Dedupe key cache for events that should fire at most once per session/day.
 const sentOnce = new Set<string>();
 
 export const analytics = {
   init(): void {
     void ensureInit();
   },
+  /**
+   * Suppress all tracking for this session. Used by Developer Mode and
+   * dev/preview environments so internal metrics aren't polluted.
+   */
+  setSuppressed(value: boolean, reason?: string): void {
+    suppressed = value;
+    if (value) suppressionReason = reason ?? suppressionReason ?? 'manual';
+  },
+  isSuppressed(): boolean {
+    return suppressed;
+  },
+  suppressionReason(): string | null {
+    return suppressed ? suppressionReason : null;
+  },
   identify(userId: string): void {
+    if (suppressed) return;
     pendingId = userId;
     if (adapter) adapter.identify(userId);
     else void ensureInit();
@@ -111,10 +154,10 @@ export const analytics = {
   reset(): void {
     pendingId = null;
     sentOnce.clear();
-    if (adapter) adapter.reset();
+    if (adapter && !suppressed) adapter.reset();
   },
   track(event: AnalyticsEvent, props?: Props): void {
-    // Always persist to internal Supabase sink (privacy-filtered).
+    if (suppressed) return;
     void import('./supabaseAdapter').then(m => m.recordSupabaseEvent(event, props)).catch(() => {});
     if (!adapter) {
       queue.push({ event, props });
@@ -123,8 +166,8 @@ export const analytics = {
     }
     adapter.track(event, props);
   },
-  /** Fire `event` at most once for the given dedupe key (in-memory). */
   trackOnce(key: string, event: AnalyticsEvent, props?: Props): void {
+    if (suppressed) return;
     if (sentOnce.has(key)) return;
     sentOnce.add(key);
     this.track(event, props);

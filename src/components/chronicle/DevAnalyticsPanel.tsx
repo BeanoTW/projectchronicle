@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { analytics } from '@/lib/analytics/analytics';
 
 type Counts = Record<string, number>;
 type Stats = {
@@ -85,12 +86,18 @@ const DevAnalyticsPanel = () => {
   if (stats.error) return <p className="text-destructive">Error: {stats.error}</p>;
 
   const t = stats.totals;
+  const suppressionReason = analytics.suppressionReason();
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold text-foreground">Internal Analytics</p>
         <button onClick={load} className="text-[10px] text-primary underline">Refresh</button>
       </div>
+      {suppressionReason && (
+        <p className="text-[10px] px-2 py-1 rounded bg-warm-accent/10 text-warm-accent border border-warm-accent/20">
+          Analytics suppressed for this session ({suppressionReason}). Your activity is not counted.
+        </p>
+      )}
       <div className="space-y-0.5">
         <p className="text-[10px] uppercase text-muted-foreground mt-1">Activation</p>
         <Row label="Accounts created" value={t.account_created ?? 0} />
