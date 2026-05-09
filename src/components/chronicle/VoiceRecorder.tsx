@@ -124,13 +124,29 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
             exit={{ opacity: 0, y: -8 }}
             className="flex flex-col items-center"
           >
-            <button
-              onClick={startRecording}
-              aria-label="Tap to record"
-              className="iridescent-orb relative w-[120px] h-[120px] rounded-full flex items-center justify-center mb-5 transition-all duration-200 ease-out active:scale-[0.97] active:duration-100 group"
-            >
-              <Mic className="h-9 w-9 text-foreground/70 dark:text-white relative z-10" strokeWidth={1.75} />
-            </button>
+            <div className="relative flex items-center justify-center mb-5">
+              {/* Ambient mode glow — soft atmospheric halo behind the orb */}
+              <motion.div
+                key={isDailyRecord ? 'glow-daily' : 'glow-incident'}
+                aria-hidden
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="pointer-events-none absolute inset-0 -m-16 rounded-full blur-3xl"
+                style={{
+                  background: isDailyRecord
+                    ? 'radial-gradient(circle, hsl(var(--warm-accent) / 0.32) 0%, hsl(var(--warm-accent) / 0.12) 35%, transparent 70%)'
+                    : 'radial-gradient(circle, hsl(var(--primary) / 0.32) 0%, hsl(var(--primary) / 0.12) 35%, transparent 70%)',
+                }}
+              />
+              <button
+                onClick={startRecording}
+                aria-label="Tap to record"
+                className="iridescent-orb relative w-[120px] h-[120px] rounded-full flex items-center justify-center transition-all duration-200 ease-out active:scale-[0.97] active:duration-100 group"
+              >
+                <Mic className="h-9 w-9 text-foreground/70 dark:text-white relative z-10" strokeWidth={1.75} />
+              </button>
+            </div>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
             <p className="text-[12px] text-muted-foreground">
               Record it in your own words
