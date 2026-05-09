@@ -154,6 +154,8 @@ const AuthDebugPanel = () => {
             Refresh cloud count
           </button>
         </div>
+        <div className="border-t border-border my-2" />
+        <DevAnalyticsPanel />
       </div>
     </div>
   );
