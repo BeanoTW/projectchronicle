@@ -117,6 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (uid) clearLastUnlockedAt(uid);
     } catch { /* noop */ }
     await supabase.auth.signOut();
+    analytics.reset();
   };
 
   return (
