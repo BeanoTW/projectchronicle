@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { analytics } from '@/lib/analytics/analytics';
 
 interface DevModeContextType {
   devMode: boolean;
