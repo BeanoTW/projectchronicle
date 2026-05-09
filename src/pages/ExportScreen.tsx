@@ -419,6 +419,7 @@ const ExportScreen = () => {
       });
       return;
     }
+    analytics.track('export_printed');
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, openExportInNewTab, toast]);
   const handlePrintExport = useCallback(
