@@ -67,6 +67,11 @@ export const PrivacyProvider = ({ children }: { children: React.ReactNode }) => 
     } catch {
       /* ignore */
     }
+    if (v) {
+      void import('@/lib/analytics/analytics').then(({ analytics }) =>
+        analytics.track('privacy_shield_enabled'),
+      );
+    }
   }, []);
 
   // Sync across tabs
