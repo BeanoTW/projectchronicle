@@ -30,19 +30,21 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-120 ease-out active:scale-[0.97] ${
-          active ? 'text-primary' : 'text-white/75 hover:text-white'
+        className={`flex flex-1 flex-col items-center justify-center gap-[2px] transition-colors duration-150 ease-out active:scale-[0.97] ${
+          active
+            ? 'text-primary dark:text-primary'
+            : 'text-muted-foreground/80 hover:text-foreground dark:text-white/70 dark:hover:text-white'
         }`}
         style={{ paddingTop: 4, paddingBottom: 4 }}
         aria-label={label}
       >
         <span
-          className="transition-transform duration-120 ease-out"
+          className="transition-transform duration-150 ease-out"
           style={{ transform: active ? 'scale(1.05)' : 'scale(1)' }}
         >
           <Icon active={active} />
         </span>
-        <span className={`text-[10px] leading-tight transition-all duration-120 ease-out ${active ? 'font-semibold' : 'font-medium'}`}>
+        <span className={`text-[10px] leading-tight transition-all duration-150 ease-out ${active ? 'font-semibold' : 'font-medium'}`}>
           {label}
         </span>
       </button>
@@ -60,18 +62,12 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[48px] rounded-[18px] overflow-hidden backdrop-blur-md backdrop-saturate-150 bg-[rgba(30,34,38,0.34)] dark:bg-[rgba(10,12,16,0.5)] border border-[rgba(255,255,255,0.18)] dark:border-[rgba(255,255,255,0.08)] shadow-[0_8px_20px_-6px_rgba(15,23,42,0.18),0_2px_6px_-2px_rgba(15,23,42,0.10)] dark:shadow-[0_10px_24px_-6px_rgba(0,0,0,0.55),0_2px_8px_-2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]"
+        className="iridescent-nav relative h-[48px] rounded-[22px] overflow-hidden"
         style={{
           WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
           maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
-        {/* Subtle smoked gradient overlay */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.06] to-black/15 dark:from-white/[0.03] dark:to-black/25"
-        />
-
         {/* Side icons - symmetrical halves around the centre */}
         <div className="relative grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="flex h-full items-center pl-1 pr-8">
@@ -91,16 +87,8 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="relative flex items-center justify-center rounded-full text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
-          style={{
-            width: 60,
-            height: 60,
-            background:
-              'radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%), radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%), radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%), linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%)',
-            border: '1.25px solid hsl(var(--primary) / 0.6)',
-            boxShadow:
-              '0 0 22px -2px hsl(var(--primary) / 0.28), 0 8px 18px -6px hsl(0 0% 0% / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -6px 14px hsl(0 0% 0% / 0.45)',
-          }}
+          className="iridescent-orb relative flex items-center justify-center rounded-full text-foreground/75 dark:text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
+          style={{ width: 60, height: 60 }}
         >
           <RecordIcon />
         </span>

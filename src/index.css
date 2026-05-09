@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    --background: 210 10% 97%;
+    --background: 220 30% 98.5%;
     --foreground: 220 20% 10%;
 
     --card: 0 0% 100%;
@@ -386,9 +386,72 @@
   @apply flex items-center justify-between py-3 px-3 rounded-lg hover:bg-muted/40 transition-all duration-150 ease-out cursor-pointer active:scale-[0.98];
 }
 
-/* Input focus glow */
-input:focus, textarea:focus {
-  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.08);
-  border-color: hsl(var(--primary) / 0.3);
+/* ============================================================
+   Iridescent Water — light-mode aesthetic primitives
+   ============================================================ */
+
+/* Page-wide soft pearl ambient backdrop. Subtle radial light spots,
+   barely-there grid in light mode, swapped for dark in dark mode. */
+.iridescent-bg {
+  background:
+    radial-gradient(1100px 700px at 12% -10%, hsl(220 60% 96% / 0.9), transparent 60%),
+    radial-gradient(900px 600px at 95% 8%, hsl(280 55% 97% / 0.65), transparent 60%),
+    radial-gradient(800px 700px at 50% 110%, hsl(170 60% 96% / 0.55), transparent 60%),
+    linear-gradient(180deg, hsl(220 30% 99%) 0%, hsl(210 25% 97%) 100%);
+}
+.dark .iridescent-bg {
+  background:
+    radial-gradient(900px 600px at 10% -5%, hsl(220 30% 12% / 0.9), transparent 60%),
+    radial-gradient(900px 600px at 95% 10%, hsl(260 25% 14% / 0.6), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 20% 5%) 100%);
+}
+
+/* Iridescent water orb — used for the main mic button and the
+   bottom-nav centre Record button. Light = pearl/silver with subtle
+   cyan/violet/green optical wash. Dark = deep glass with same accents. */
+.iridescent-orb {
+  background:
+    radial-gradient(circle at 30% 28%, hsl(280 70% 90% / 0.55) 0%, transparent 55%),
+    radial-gradient(circle at 75% 70%, hsl(190 80% 88% / 0.55) 0%, transparent 55%),
+    radial-gradient(circle at 55% 90%, hsl(140 60% 88% / 0.4) 0%, transparent 60%),
+    linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(220 30% 96%) 60%, hsl(220 25% 92%) 100%);
+  border: 1.25px solid hsl(220 30% 88%);
+  box-shadow:
+    0 0 22px -4px hsl(220 40% 80% / 0.5),
+    0 10px 26px -8px hsl(220 25% 40% / 0.18),
+    inset 0 1.5px 1.5px hsl(0 0% 100% / 0.9),
+    inset 0 -6px 14px hsl(220 30% 80% / 0.25);
+}
+.dark .iridescent-orb {
+  background:
+    radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%),
+    radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%),
+    radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%),
+    linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%);
+  border: 1.25px solid hsl(var(--primary) / 0.6);
+  box-shadow:
+    0 0 22px -2px hsl(var(--primary) / 0.28),
+    0 8px 18px -6px hsl(0 0% 0% / 0.55),
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    inset 0 -6px 14px hsl(0 0% 0% / 0.45);
+}
+
+/* Frosted-glass nav pill — light: pearl white; dark: smoked glass */
+.iridescent-nav {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.85), hsl(220 30% 98% / 0.7));
+  border: 1px solid hsl(220 25% 90% / 0.9);
+  box-shadow:
+    0 10px 28px -10px hsl(220 30% 40% / 0.18),
+    0 2px 6px -2px hsl(220 25% 30% / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.9);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+.dark .iridescent-nav {
+  background: linear-gradient(180deg, hsl(220 22% 12% / 0.55), hsl(220 25% 8% / 0.55));
+  border: 1px solid hsl(0 0% 100% / 0.08);
+  box-shadow:
+    0 10px 24px -6px hsl(0 0% 0% / 0.55),
+    0 2px 8px -2px hsl(0 0% 0% / 0.35),
+    inset 0 1px 0 hsl(0 0% 100% / 0.05);
 }
