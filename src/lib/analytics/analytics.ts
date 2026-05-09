@@ -114,6 +114,8 @@ export const analytics = {
     if (adapter) adapter.reset();
   },
   track(event: AnalyticsEvent, props?: Props): void {
+    // Always persist to internal Supabase sink (privacy-filtered).
+    void import('./supabaseAdapter').then(m => m.recordSupabaseEvent(event, props)).catch(() => {});
     if (!adapter) {
       queue.push({ event, props });
       void ensureInit();
