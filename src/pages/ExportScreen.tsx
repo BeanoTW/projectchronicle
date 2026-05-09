@@ -464,8 +464,10 @@ const ExportScreen = () => {
     const filename = getTemplateFilename();
     const result = await shareExportFile(lastExportHtml, filename, 'Record export');
     if (result === 'shared') {
+      analytics.track('export_shared');
       toast({ title: 'Export sent', description: 'Sent via your chosen app.' });
     } else if (result === 'downloaded') {
+      analytics.track('export_downloaded', { method: 'share_fallback' });
       toast({ title: 'Sharing not supported', description: 'File saved to Downloads instead.' });
     } else if (result === 'failed') {
       toast({ title: 'Could not share export', description: 'Please try again.', variant: 'destructive' });
