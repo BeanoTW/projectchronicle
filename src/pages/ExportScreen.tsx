@@ -447,8 +447,8 @@ const ExportScreen = () => {
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
     switch (result) {
-      case 'shared': toast({ title: 'Export saved', description: filename }); break;
-      case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
+      case 'shared': analytics.track('export_downloaded', { method: 'share' }); toast({ title: 'Export saved', description: filename }); break;
+      case 'downloaded': analytics.track('export_downloaded', { method: 'download' }); toast({ title: 'Export saved', description: filename }); break;
       case 'opened': break;
       case 'cancelled': break;
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
