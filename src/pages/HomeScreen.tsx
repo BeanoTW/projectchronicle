@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Heart } from 'lucide-react';
+import { Heart, Shield, FileText, Lock } from 'lucide-react';
 import TutorialModal from '@/components/chronicle/TutorialModal';
-import DemoVideo from '@/components/chronicle/DemoVideo';
 import heroImage from '@/assets/auth-hero-sunrise.jpg';
 
 const TUTORIAL_KEY = 'chronicle-tutorial-shown';
@@ -11,6 +10,12 @@ const fade = (delay: number) => ({
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.5, delay },
+});
+
+const fadeUp = (delay: number) => ({
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.6, delay },
 });
 
 const HomeScreen = () => {
@@ -88,13 +93,65 @@ const HomeScreen = () => {
         </div>
       </div>
 
-      {/* Demonstration video */}
-      <motion.div className="px-5 pt-8 mb-10" {...fade(0.15)}>
-        <DemoVideo />
-      </motion.div>
+      {/* Trust section — editorial introduction */}
+      <section className="px-5 pt-10 pb-4">
+        {/* Headline */}
+        <motion.h2
+          {...fadeUp(0.1)}
+          className="text-[32px] sm:text-[38px] font-semibold tracking-[-0.02em] text-foreground leading-[1.1]"
+          style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+        >
+          Welcome
+        </motion.h2>
+
+        {/* Primary promise */}
+        <motion.p
+          {...fadeUp(0.2)}
+          className="mt-5 text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg"
+        >
+          Chronicle's first priority is keeping your records safe, secure, and preserved exactly as you entered them.
+        </motion.p>
+
+        {/* Subtle divider */}
+        <motion.div {...fadeUp(0.28)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+        {/* Problem context */}
+        <motion.div {...fadeUp(0.32)} className="space-y-4">
+          <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
+            People are often advised to email important records to themselves so there is a clear timeline if they ever need it later.
+          </p>
+          <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
+            The problem is that over time this becomes difficult to manage: screenshots get lost, messages become scattered, and important details become harder to organise.
+          </p>
+          <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
+            Chronicle is designed to make that process simpler, clearer, more structured, and easier to manage over time.
+          </p>
+        </motion.div>
+
+        {/* Subtle divider */}
+        <motion.div {...fadeUp(0.44)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+        {/* Closing pillars */}
+        <motion.div {...fadeUp(0.48)} className="space-y-3">
+          {[
+            { icon: Shield, text: 'Your words remain yours.' },
+            { icon: Lock, text: 'Original input is preserved.' },
+            { icon: FileText, text: 'Exported when needed.' },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                <item.icon className="h-3.5 w-3.5 text-primary/70" strokeWidth={2} />
+              </span>
+              <span className="text-[14px] sm:text-[15px] font-medium text-foreground/75">
+                {item.text}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+      </section>
 
       {/* Footer */}
-      <motion.div className="px-6" {...fade(0.4)}>
+      <motion.div className="px-6 pt-10" {...fade(0.55)}>
         <div className="text-center py-6 space-y-1">
           <div className="flex items-center justify-center gap-1.5">
             <Heart className="h-3.5 w-3.5 text-primary/50" strokeWidth={1.5} />
