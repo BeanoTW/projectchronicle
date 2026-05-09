@@ -325,6 +325,10 @@ const ExportScreen = () => {
           ? injectIntegrityFooter(baseHtml, tsRecord)
           : baseHtml;
         setLastExportHtml(html);
+        analytics.track('export_generated', {
+          record_count: activeIncidents.length,
+          has_timestamp: !!tsRecord,
+        });
 
         // 4. Also generate the on-screen structured record so the user sees
         //    a mounted output to scroll to (UX requirement).
