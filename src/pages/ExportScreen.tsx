@@ -277,6 +277,7 @@ const ExportScreen = () => {
     }
     // Privacy Shield is OFF — open builder directly with no gate.
     toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
+    analytics.track('export_builder_opened', { record_count: activeIncidents.length });
     setBuilderOpen(true);
   };
 
