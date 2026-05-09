@@ -87,16 +87,8 @@ const BottomNav = () => {
         style={{ top: -14 }}
       >
         <span
-          className="relative flex items-center justify-center rounded-full text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
-          style={{
-            width: 60,
-            height: 60,
-            background:
-              'radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%), radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%), radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%), linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%)',
-            border: '1.25px solid hsl(var(--primary) / 0.6)',
-            boxShadow:
-              '0 0 22px -2px hsl(var(--primary) / 0.28), 0 8px 18px -6px hsl(0 0% 0% / 0.55), inset 0 1px 0 hsl(0 0% 100% / 0.08), inset 0 -6px 14px hsl(0 0% 0% / 0.45)',
-          }}
+          className="iridescent-orb relative flex items-center justify-center rounded-full text-foreground/75 dark:text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
+          style={{ width: 60, height: 60 }}
         >
           <RecordIcon />
         </span>
