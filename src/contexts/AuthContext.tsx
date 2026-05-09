@@ -70,6 +70,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       needsConfirmation,
       errorMessage: error?.message,
     });
+    if (!error && !alreadyExists) {
+      analytics.track('account_created', { needs_confirmation: needsConfirmation });
+    }
     return { error: error as Error | null, alreadyExists, needsConfirmation };
   };
 
