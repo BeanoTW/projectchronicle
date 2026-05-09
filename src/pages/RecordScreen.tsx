@@ -437,10 +437,9 @@ const RecordScreen = () => {
 
   return (
     <div className="min-h-screen pb-20 page-enter relative overflow-hidden">
-      {/* Subtle background pattern */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-muted/20" />
-        <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+      {/* Iridescent ambient backdrop */}
+      <div className="fixed inset-0 pointer-events-none -z-10 iridescent-bg">
+        <svg className="absolute inset-0 w-full h-full opacity-[0.018] dark:opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
               <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-foreground" />
