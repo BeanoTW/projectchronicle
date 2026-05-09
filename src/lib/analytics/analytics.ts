@@ -60,7 +60,8 @@ const consoleAdapter: Adapter = {
 async function loadPostHog(): Promise<Adapter | null> {
   if (!POSTHOG_KEY) return null;
   try {
-    const mod = await import(/* @vite-ignore */ 'posthog-js');
+    // posthog-js is optional; loaded only if installed and key is set.
+    const mod = await import(/* @vite-ignore */ ('posthog' + '-js'));
     const ph = (mod as { default?: unknown }).default ?? mod;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const posthog = ph as any;
