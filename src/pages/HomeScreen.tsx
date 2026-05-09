@@ -124,15 +124,38 @@ const HomeScreen = () => {
             The problem is that over time this becomes difficult to manage: screenshots get lost, messages become scattered, and important details become harder to organise.
           </p>
           <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
-            Chronicle is designed to make that process simpler, clearer, more structured, and easier to manage over time.
+            Chronicle is designed to make that process simpler, clearer, and more structured — while keeping privacy, integrity, and long-term record preservation at the centre of the experience.
           </p>
         </motion.div>
 
         {/* Subtle divider */}
-        <motion.div {...fadeUp(0.44)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <motion.div {...fadeUp(0.4)} className="mt-8 mb-6 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+        {/* Feature block — built around */}
+        <motion.div {...fadeUp(0.44)} className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+            Built around
+          </p>
+          <ul className="space-y-2">
+            {[
+              'Local-first storage',
+              'Encrypted sync',
+              'Preserved original input',
+              'Structured exports when needed',
+            ].map((line) => (
+              <li key={line} className="flex items-baseline gap-3 text-[14px] sm:text-[15px] leading-[1.55] text-foreground/80">
+                <span aria-hidden className="mt-[2px] h-1 w-1 rounded-full bg-primary/60 flex-shrink-0 translate-y-[-3px]" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+
+        {/* Subtle divider */}
+        <motion.div {...fadeUp(0.5)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
         {/* Closing pillars */}
-        <motion.div {...fadeUp(0.48)} className="space-y-3">
+        <motion.div {...fadeUp(0.54)} className="space-y-3">
           {[
             { icon: Shield, text: 'Your words remain yours.' },
             { icon: Lock, text: 'Original input is preserved.' },

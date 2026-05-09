@@ -481,14 +481,14 @@ const RecordScreen = () => {
         </button>
       </PageHeader>
 
-      {/* Record-type toggle (Daily Record extension) — outlined glass segments */}
-      <div className="px-5 -mt-1 mb-2.5">
+      {/* Record-type toggle (Daily Record extension) — outlined glass segments with ambient glow */}
+      <div className="px-5 -mt-1 mb-2">
         <div className="flex gap-2">
           <button
             onClick={() => setRecordType('incident')}
-            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-200 ease-out active:scale-[0.98] border ${
+            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-300 ease-out active:scale-[0.98] border ${
               recordType === 'incident'
-                ? 'bg-primary/[0.06] dark:bg-primary/[0.08] border-primary/55 text-primary shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.25)]'
+                ? 'bg-primary/[0.06] dark:bg-primary/[0.08] border-primary/55 text-primary shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.25),0_0_24px_-4px_hsl(var(--primary)/0.45)]'
                 : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -496,15 +496,30 @@ const RecordScreen = () => {
           </button>
           <button
             onClick={() => setRecordType('daily_record')}
-            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-200 ease-out active:scale-[0.98] border ${
+            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-300 ease-out active:scale-[0.98] border ${
               recordType === 'daily_record'
-                ? 'bg-warm-accent/[0.06] dark:bg-warm-accent/[0.08] border-warm-accent/55 text-warm-accent shadow-[inset_0_0_0_0.5px_hsl(var(--warm-accent)/0.25)]'
+                ? 'bg-warm-accent/[0.06] dark:bg-warm-accent/[0.08] border-warm-accent/55 text-warm-accent shadow-[inset_0_0_0_0.5px_hsl(var(--warm-accent)/0.25),0_0_24px_-4px_hsl(var(--warm-accent)/0.45)]'
                 : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
             }`}
           >
             Daily record
           </button>
         </div>
+        {/* Mode explanation — calm contextual hint */}
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={recordType}
+            initial={{ opacity: 0, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mt-2 px-1 text-[11.5px] leading-[1.5] text-muted-foreground/85"
+          >
+            {recordType === 'incident'
+              ? 'Use Incident for something specific that happened and may need to be recorded clearly.'
+              : 'Use Daily record for a general note about the day, ongoing context, or anything you want to preserve.'}
+          </motion.p>
+        </AnimatePresence>
       </div>
 
       {/* Mode Toggle (Voice / Text) — single outlined glass pill with subtle divider */}

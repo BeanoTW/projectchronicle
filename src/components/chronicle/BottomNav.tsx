@@ -60,20 +60,13 @@ const BottomNav = () => {
         maxWidth: '720px',
       }}
     >
-      {/* Nav bar with center cutout */}
-      <nav
-        className="iridescent-nav relative h-[48px] rounded-[22px] overflow-hidden"
-        style={{
-          WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
-          maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
-        }}
-      >
-        {/* Side icons - symmetrical halves around the centre */}
+      {/* Continuous frosted-glass nav pill — no cut-out, centre orb floats above */}
+      <nav className="iridescent-nav relative h-[56px] rounded-[22px] overflow-hidden">
         <div className="relative grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <div className="flex h-full items-center pl-1 pr-8">
+          <div className="flex h-full items-center pl-1 pr-10">
             {leftItems.map(renderItem)}
           </div>
-          <div className="flex h-full items-center pl-8 pr-1">
+          <div className="flex h-full items-center pl-10 pr-1">
             {rightItems.map(renderItem)}
           </div>
         </div>
@@ -84,7 +77,7 @@ const BottomNav = () => {
         onClick={() => navigate('/record')}
         aria-label="Record"
         className="absolute left-1/2 -translate-x-1/2 z-10 group"
-        style={{ top: -14 }}
+        style={{ top: -18 }}
       >
         <span
           className="iridescent-orb relative flex items-center justify-center rounded-full text-foreground/75 dark:text-white transition-all duration-150 ease-out group-active:scale-[0.96]"
