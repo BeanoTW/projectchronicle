@@ -10,6 +10,7 @@ import PageHeader from '@/components/chronicle/PageHeader';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
 import BoldedTitle from '@/components/chronicle/BoldedTitle';
+import { useTrackScreenView } from '@/lib/analytics/useTrackScreenView';
 
 // ─── Overview generator (deterministic, factual only) ──────
 // No interpretive wording (no "most entries relate to", no "repeated involvement").
