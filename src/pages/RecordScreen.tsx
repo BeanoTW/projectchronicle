@@ -20,6 +20,7 @@ import AttachmentRow from '@/components/chronicle/AttachmentRow';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SystemStatusStrip from '@/components/chronicle/SystemStatusStrip';
 import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
+import { analytics } from '@/lib/analytics/analytics';
 import type { Interaction, RecordType } from '@/types/dailyRecord';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
