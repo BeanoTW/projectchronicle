@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { analytics } from '@/lib/analytics/analytics';
 
 type Counts = Record<string, number>;
 type Stats = {
