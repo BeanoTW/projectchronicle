@@ -5,6 +5,7 @@ import { useDevMode } from '@/contexts/DevModeContext';
 import { useBackup } from '@/contexts/BackupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
+import DevAnalyticsPanel from './DevAnalyticsPanel';
 
 type PanelState = 'expanded' | 'collapsed' | 'closed';
 const STORAGE_KEY = 'chronicle.devPanel.state';
