@@ -55,6 +55,7 @@ function buildPeopleList(
 
 const MyRecordScreen = () => {
   const navigate = useNavigate();
+  useTrackScreenView('my_record_viewed');
   const { data: incidents = [], isLoading } = useIncidents();
   const { data: allEvidence = [] } = useEvidence();
   const { data: followUpNotes = [] } = useAllFollowUpNotes();
