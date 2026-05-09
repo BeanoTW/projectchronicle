@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          props: Json
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          props?: Json
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          props?: Json
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       edit_history: {
         Row: {
           changed_at: string
@@ -344,6 +371,7 @@ export type Database = {
     }
     Functions: {
       current_edit_source: { Args: never; Returns: string }
+      is_analytics_admin: { Args: never; Returns: boolean }
       sync_upsert_incident: {
         Args: { _expected_version: number; _row: Json }
         Returns: Json
