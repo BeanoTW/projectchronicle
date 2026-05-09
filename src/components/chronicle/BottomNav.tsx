@@ -62,18 +62,12 @@ const BottomNav = () => {
     >
       {/* Nav bar with center cutout */}
       <nav
-        className="relative h-[48px] rounded-[18px] overflow-hidden backdrop-blur-md backdrop-saturate-150 bg-[rgba(30,34,38,0.34)] dark:bg-[rgba(10,12,16,0.5)] border border-[rgba(255,255,255,0.18)] dark:border-[rgba(255,255,255,0.08)] shadow-[0_8px_20px_-6px_rgba(15,23,42,0.18),0_2px_6px_-2px_rgba(15,23,42,0.10)] dark:shadow-[0_10px_24px_-6px_rgba(0,0,0,0.55),0_2px_8px_-2px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]"
+        className="iridescent-nav relative h-[48px] rounded-[22px] overflow-hidden"
         style={{
           WebkitMaskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
           maskImage: `radial-gradient(circle 34px at 50% 0%, transparent 98%, black 100%)`,
         }}
       >
-        {/* Subtle smoked gradient overlay */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.06] to-black/15 dark:from-white/[0.03] dark:to-black/25"
-        />
-
         {/* Side icons - symmetrical halves around the centre */}
         <div className="relative grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="flex h-full items-center pl-1 pr-8">
