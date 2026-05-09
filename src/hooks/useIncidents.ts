@@ -6,6 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { localDB, isBackupEnabled, type LocalIncident } from '@/local/db';
 import { syncNow } from '@/local/syncEngine';
+import { analytics } from '@/lib/analytics/analytics';
 import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 
 export type Incident = Tables<'incidents'>;
