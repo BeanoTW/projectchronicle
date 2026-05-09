@@ -20,6 +20,7 @@ import AttachmentRow from '@/components/chronicle/AttachmentRow';
 import AttachmentsLibrary from '@/components/chronicle/AttachmentsLibrary';
 import SystemStatusStrip from '@/components/chronicle/SystemStatusStrip';
 import InteractionsEditor from '@/components/chronicle/InteractionsEditor';
+import { analytics } from '@/lib/analytics/analytics';
 import type { Interaction, RecordType } from '@/types/dailyRecord';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -296,6 +297,7 @@ const RecordScreen = () => {
       const accessToken = sessionRes?.session?.access_token;
       if (!accessToken) throw new Error('not-authenticated');
 
+      analytics.track('ai_assist_used', { feature: 'analyse_incident' });
       const res = await supabase.functions.invoke('analyse-incident', {
         body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -549,6 +551,7 @@ const RecordScreen = () => {
                   try {
                     const formData = new FormData();
                     formData.append('audio', blob);
+                    analytics.track('ai_assist_used', { feature: 'transcribe_audio' });
                     const { data, error } = await supabase.functions.invoke('transcribe-audio', {
                       body: formData,
                     });

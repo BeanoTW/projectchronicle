@@ -3,6 +3,7 @@ import { FileText, Clock, Paperclip, Package, Download, BookOpen, Loader2, Brief
 import { format, parseISO, isValid } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { shareExportFile } from '@/lib/shareExport';
+import { analytics } from '@/lib/analytics/analytics';
 import { Button } from '@/components/ui/button';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useEvidence } from '@/hooks/useEvidence';
@@ -276,6 +277,7 @@ const ExportScreen = () => {
     }
     // Privacy Shield is OFF — open builder directly with no gate.
     toast({ title: 'Opening Export Builder', description: 'Review and confirm before exporting.' });
+    analytics.track('export_builder_opened', { record_count: activeIncidents.length });
     setBuilderOpen(true);
   };
 
@@ -323,6 +325,10 @@ const ExportScreen = () => {
           ? injectIntegrityFooter(baseHtml, tsRecord)
           : baseHtml;
         setLastExportHtml(html);
+        analytics.track('export_generated', {
+          record_count: activeIncidents.length,
+          has_timestamp: !!tsRecord,
+        });
 
         // 4. Also generate the on-screen structured record so the user sees
         //    a mounted output to scroll to (UX requirement).
@@ -413,6 +419,7 @@ const ExportScreen = () => {
       });
       return;
     }
+    analytics.track('export_printed');
     setTimeout(() => setPrinting(false), 800);
   }, [lastExportHtml, openExportInNewTab, toast]);
   const handlePrintExport = useCallback(
@@ -440,8 +447,8 @@ const ExportScreen = () => {
     const filename = getTemplateFilename();
     const result = await deliverHtmlFile(lastExportHtml, filename);
     switch (result) {
-      case 'shared': toast({ title: 'Export saved', description: filename }); break;
-      case 'downloaded': toast({ title: 'Export saved', description: filename }); break;
+      case 'shared': analytics.track('export_downloaded', { method: 'share' }); toast({ title: 'Export saved', description: filename }); break;
+      case 'downloaded': analytics.track('export_downloaded', { method: 'download' }); toast({ title: 'Export saved', description: filename }); break;
       case 'opened': break;
       case 'cancelled': break;
       case 'failed': toast({ title: 'Export could not be saved', description: 'Try again or use a different browser.', variant: 'destructive' }); break;
@@ -457,8 +464,10 @@ const ExportScreen = () => {
     const filename = getTemplateFilename();
     const result = await shareExportFile(lastExportHtml, filename, 'Record export');
     if (result === 'shared') {
+      analytics.track('export_shared');
       toast({ title: 'Export sent', description: 'Sent via your chosen app.' });
     } else if (result === 'downloaded') {
+      analytics.track('export_downloaded', { method: 'share_fallback' });
       toast({ title: 'Sharing not supported', description: 'File saved to Downloads instead.' });
     } else if (result === 'failed') {
       toast({ title: 'Could not share export', description: 'Please try again.', variant: 'destructive' });

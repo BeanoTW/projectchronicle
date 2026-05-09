@@ -6,6 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuth } from '@/contexts/AuthContext';
 import { localDB, isBackupEnabled, type LocalIncident } from '@/local/db';
 import { syncNow } from '@/local/syncEngine';
+import { analytics } from '@/lib/analytics/analytics';
 import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 
 export type Incident = Tables<'incidents'>;
@@ -102,6 +103,18 @@ export const useCreateIncident = () => {
         local_updated_at: ts,
       } as LocalIncident;
       await localDB.incidents.put(row);
+      // Aggregate analytics — no narrative text, no names, no category labels.
+      try {
+        const totalForUser = await localDB.incidents
+          .where('owner_user_id').equals(user.id).count();
+        const isDaily = (row as { record_type?: string }).record_type === 'daily_record';
+        if (totalForUser === 1) analytics.track('first_record_created');
+        analytics.track('record_completed', {
+          record_method: row.record_method ?? null,
+          is_daily: isDaily,
+        });
+        if (isDaily) analytics.track('daily_record_created');
+      } catch { /* analytics must never break writes */ }
       await triggerSync(user.id);
       return row;
     },

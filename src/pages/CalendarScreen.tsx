@@ -21,6 +21,7 @@ import { CATEGORY_BORDER_COLORS, resolveCategory } from '@/lib/categories';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { displayTitle } from '@/lib/displayTitle';
 import type { Incident } from '@/hooks/useIncidents';
+import { useTrackScreenView } from '@/lib/analytics/useTrackScreenView';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -171,6 +172,7 @@ const MonthBlock = ({
 
 const CalendarScreen = () => {
   const navigate = useNavigate();
+  useTrackScreenView('calendar_viewed');
   const { data: incidents = [], isLoading } = useIncidents();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const currentMonthRef = useRef<HTMLDivElement | null>(null);

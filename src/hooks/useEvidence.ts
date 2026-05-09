@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { computeSha256, deriveCaptureDate } from '@/lib/attachments/integrity';
+import { analytics } from '@/lib/analytics/analytics';
 import type { Tables } from '@/integrations/supabase/types';
 
 export type EvidenceFile = Tables<'evidence_files'>;
@@ -58,6 +59,10 @@ export const useUploadEvidence = () => {
         .select()
         .single();
       if (dbError) throw dbError;
+      analytics.track('attachment_added', {
+        file_kind: file.type.startsWith('image/') ? 'image' : file.type === 'application/pdf' ? 'pdf' : 'other',
+        linked_to_incident: !!incidentId,
+      });
       return inserted as EvidenceFile;
     },
     onSuccess: () => {

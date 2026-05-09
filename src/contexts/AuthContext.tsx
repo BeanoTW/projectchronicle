@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { analytics } from '@/lib/analytics/analytics';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
+      if (s?.user?.id) analytics.identify(s.user.id);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -68,6 +70,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       needsConfirmation,
       errorMessage: error?.message,
     });
+    if (!error && !alreadyExists) {
+      analytics.track('account_created', { needs_confirmation: needsConfirmation });
+    }
     return { error: error as Error | null, alreadyExists, needsConfirmation };
   };
 
@@ -98,6 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       reason,
       errorMessage: error?.message,
     });
+    if (!error && data?.session) analytics.track('login_completed');
     return { error: error as Error | null, reason };
   };
 
@@ -111,6 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (uid) clearLastUnlockedAt(uid);
     } catch { /* noop */ }
     await supabase.auth.signOut();
+    analytics.reset();
   };
 
   return (
