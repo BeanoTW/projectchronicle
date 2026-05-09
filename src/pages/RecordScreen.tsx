@@ -297,6 +297,7 @@ const RecordScreen = () => {
       const accessToken = sessionRes?.session?.access_token;
       if (!accessToken) throw new Error('not-authenticated');
 
+      analytics.track('ai_assist_used', { feature: 'analyse_incident' });
       const res = await supabase.functions.invoke('analyse-incident', {
         body: { narrative, existingPatterns: existingPatterns.length > 0 ? existingPatterns : undefined },
         headers: { Authorization: `Bearer ${accessToken}` },
