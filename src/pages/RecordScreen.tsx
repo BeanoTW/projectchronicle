@@ -482,23 +482,25 @@ const RecordScreen = () => {
         </button>
       </PageHeader>
 
-      {/* Record-type toggle (Daily Record extension) */}
-      <div className="px-5 -mt-1 mb-2">
-        <div className="flex bg-muted/40 rounded-lg p-0.5 gap-0.5">
+      {/* Record-type toggle (Daily Record extension) — outlined glass segments */}
+      <div className="px-5 -mt-1 mb-2.5">
+        <div className="flex gap-2">
           <button
             onClick={() => setRecordType('incident')}
-            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-all duration-150 ease-out active:scale-[0.98] ${
-              recordType === 'incident' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-200 ease-out active:scale-[0.98] border ${
+              recordType === 'incident'
+                ? 'bg-primary/[0.06] dark:bg-primary/[0.08] border-primary/55 text-primary shadow-[inset_0_0_0_0.5px_hsl(var(--primary)/0.25)]'
+                : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
             }`}
           >
             Incident
           </button>
           <button
             onClick={() => setRecordType('daily_record')}
-            className={`flex-1 py-2 rounded-md text-[12px] font-semibold transition-all duration-150 ease-out active:scale-[0.98] ${
+            className={`flex-1 py-2.5 rounded-xl text-[12.5px] font-semibold backdrop-blur-md transition-all duration-200 ease-out active:scale-[0.98] border ${
               recordType === 'daily_record'
-                ? 'bg-card text-warm-accent shadow-sm ring-1 ring-warm-accent/30'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-warm-accent/[0.06] dark:bg-warm-accent/[0.08] border-warm-accent/55 text-warm-accent shadow-[inset_0_0_0_0.5px_hsl(var(--warm-accent)/0.25)]'
+                : 'bg-card/40 dark:bg-white/[0.02] border-border/50 dark:border-white/10 text-muted-foreground hover:text-foreground'
             }`}
           >
             Daily record
@@ -506,24 +508,25 @@ const RecordScreen = () => {
         </div>
       </div>
 
-      {/* Mode Toggle (Voice / Text) */}
+      {/* Mode Toggle (Voice / Text) — single outlined glass pill with subtle divider */}
       <div className="px-5 mb-2">
-        <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
+        <div className="relative flex items-stretch rounded-xl border border-border/50 dark:border-white/10 bg-card/40 dark:bg-white/[0.02] backdrop-blur-md overflow-hidden">
           <button
             onClick={() => setMode('voice')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
-              mode === 'voice' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-colors duration-200 ease-out active:scale-[0.98] ${
+              mode === 'voice' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Mic className="h-4 w-4" /> Voice
+            <Mic className="h-4 w-4" strokeWidth={mode === 'voice' ? 2.25 : 1.75} /> Voice
           </button>
+          <div aria-hidden className="w-px my-2 bg-border/60 dark:bg-white/10" />
           <button
             onClick={() => setMode('text')}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-[13px] font-medium transition-all duration-150 ease-out active:scale-[0.98] ${
-              mode === 'text' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-medium transition-colors duration-200 ease-out active:scale-[0.98] ${
+              mode === 'text' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Keyboard className="h-4 w-4" /> Text
+            <Keyboard className="h-4 w-4" strokeWidth={mode === 'text' ? 2.25 : 1.75} /> Text
           </button>
         </div>
       </div>

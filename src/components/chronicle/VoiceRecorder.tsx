@@ -126,17 +126,18 @@ const VoiceRecorder = ({ onAudioCaptured, onSwitchToText, recordType = 'incident
           >
             <button
               onClick={startRecording}
-              className="w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-all duration-150 ease-out active:scale-[0.96] active:duration-100"
+              aria-label="Tap to record"
+              className="relative w-[112px] h-[112px] rounded-full flex items-center justify-center mb-5 transition-all duration-200 ease-out active:scale-[0.97] active:duration-100 group"
               style={{
-                background: isDailyRecord
-                  ? 'linear-gradient(180deg, hsl(38 70% 56%) 0%, hsl(var(--warm-accent)) 50%, hsl(28 65% 38%) 100%)'
-                  : 'linear-gradient(180deg, hsl(100 46% 62%) 0%, hsl(var(--primary)) 50%, hsl(100 42% 46%) 100%)',
+                background:
+                  'radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%), radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%), radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%), linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%)',
+                border: `1.5px solid ${isDailyRecord ? 'hsl(var(--warm-accent) / 0.65)' : 'hsl(var(--primary) / 0.7)'}`,
                 boxShadow: isDailyRecord
-                  ? '0 14px 28px -6px hsl(220 25% 12% / 0.22), 0 4px 10px -2px hsl(220 25% 12% / 0.12), inset 0 2px 2.5px hsl(0 0% 100% / 0.45), inset 0 -3px 6px hsl(28 70% 22% / 0.22)'
-                  : '0 14px 28px -6px hsl(220 25% 12% / 0.22), 0 4px 10px -2px hsl(220 25% 12% / 0.12), inset 0 2px 2.5px hsl(0 0% 100% / 0.45), inset 0 -3px 6px hsl(100 50% 20% / 0.22)',
+                  ? '0 0 28px -2px hsl(var(--warm-accent) / 0.28), 0 14px 32px -10px hsl(220 25% 4% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -10px 24px hsl(0 0% 0% / 0.45)'
+                  : '0 0 28px -2px hsl(var(--primary) / 0.28), 0 14px 32px -10px hsl(220 25% 4% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.06), inset 0 -10px 24px hsl(0 0% 0% / 0.45)',
               }}
             >
-              <Mic className="h-8 w-8 text-white" strokeWidth={2.25} />
+              <Mic className="h-9 w-9 text-white relative z-10" strokeWidth={1.75} />
             </button>
             <p className="text-[14px] font-medium text-foreground mb-1">Tap to record</p>
             <p className="text-[12px] text-muted-foreground">
