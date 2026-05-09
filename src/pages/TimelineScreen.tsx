@@ -24,6 +24,7 @@ import {
   type SequenceConfig,
 } from '@/lib/sequenceEngine';
 import { useToast } from '@/hooks/use-toast';
+import { useTrackScreenView } from '@/lib/analytics/useTrackScreenView';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Incident } from '@/hooks/useIncidents';
 
