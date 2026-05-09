@@ -59,6 +59,10 @@ export const useUploadEvidence = () => {
         .select()
         .single();
       if (dbError) throw dbError;
+      analytics.track('attachment_added', {
+        file_kind: file.type.startsWith('image/') ? 'image' : file.type === 'application/pdf' ? 'pdf' : 'other',
+        linked_to_incident: !!incidentId,
+      });
       return inserted as EvidenceFile;
     },
     onSuccess: () => {
