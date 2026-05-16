@@ -34,6 +34,18 @@ import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
+import GuidesIndex from "./pages/guides/GuidesIndex";
+import {
+  HowToDocument,
+  ProveBullying,
+  PrepareTimeline,
+  TribunalEvidence,
+  WorkDiary,
+  RaiseGrievance,
+} from "./pages/guides/GuidePages";
+import FaqPage from "./pages/FaqPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import AboutPage from "./pages/AboutPage";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +112,19 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
+
+            {/* Public marketing & content surfaces (indexable, no auth) */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/faq" element={<FaqPage />} />
+            <Route path="/guides" element={<GuidesIndex />} />
+            <Route path="/guides/how-to-document-workplace-incidents" element={<HowToDocument />} />
+            <Route path="/guides/how-to-prove-workplace-bullying" element={<ProveBullying />} />
+            <Route path="/guides/preparing-a-timeline-for-a-grievance" element={<PrepareTimeline />} />
+            <Route path="/guides/evidence-for-an-employment-tribunal" element={<TribunalEvidence />} />
+            <Route path="/guides/keeping-a-work-diary" element={<WorkDiary />} />
+            <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

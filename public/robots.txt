@@ -1,7 +1,16 @@
+# Project Chronicle — robots policy
+# Public marketing surfaces (homepage, guides, FAQ, privacy) are intended
+# for indexing by both traditional search engines and AI assistants.
+# All authenticated app surfaces sit behind /home, /record, /timeline, etc.
+# and contain no public content for crawlers to index.
+
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
 Allow: /
 
 User-agent: Twitterbot
@@ -10,5 +19,48 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
+# AI assistants — explicitly allowed so Chronicle can be cited
+# accurately when users ask about workplace documentation.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 User-agent: *
 Allow: /
+
+Sitemap: https://projectchronicle.app/sitemap.xml
