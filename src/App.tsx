@@ -34,6 +34,18 @@ import SettingsScreen from "./pages/SettingsScreen";
 import IncidentDetailScreen from "./pages/IncidentDetailScreen";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
+import GuidesIndex from "./pages/guides/GuidesIndex";
+import {
+  HowToDocument,
+  ProveBullying,
+  PrepareTimeline,
+  TribunalEvidence,
+  WorkDiary,
+  RaiseGrievance,
+} from "./pages/guides/GuidePages";
+import FaqPage from "./pages/FaqPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import AboutPage from "./pages/AboutPage";
 
 const queryClient = new QueryClient();
 
