@@ -43,6 +43,7 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
             PROJECT&nbsp;CHRONICLE
           </Link>
           <nav className="flex items-center gap-5 text-[12.5px] text-muted-foreground">
+            <Link to="/how-it-works" className="hover:text-foreground">How it works</Link>
             <Link to="/guides" className="hover:text-foreground">Guides</Link>
             <Link to="/faq" className="hover:text-foreground">FAQ</Link>
             <Link to="/login" className="hover:text-foreground">Sign in</Link>
@@ -85,13 +86,14 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
         <div className="max-w-3xl mx-auto px-5 py-6 flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-foreground">
           <span>© Project Chronicle</span>
           <div className="flex gap-4">
+            <Link to="/how-it-works" className="hover:text-foreground">How it works</Link>
             <Link to="/about" className="hover:text-foreground">About</Link>
             <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
             <Link to="/faq" className="hover:text-foreground">FAQ</Link>
             <Link to="/guides" className="hover:text-foreground">Guides</Link>
           </div>
-          <span className="basis-full text-[11px] text-muted-foreground/70">
-            General information only — not legal advice.
+          <span className="basis-full text-[11px] text-muted-foreground/70 leading-relaxed">
+            Independently developed and maintained in the UK. General information only — not legal advice.
           </span>
         </div>
       </footer>
