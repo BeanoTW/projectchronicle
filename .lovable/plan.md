@@ -1,123 +1,186 @@
-# Plan — Project Chronicle Product Report
 
-## Goal
-Produce a single, detailed Markdown report at `/mnt/documents/project-chronicle-report.md` written for an external AI assistant or technical reviewer who has never seen this codebase. The report is **descriptive only** — no code changes to the app itself.
+# Chronicle — Brand, Trust & Public Experience Review
 
-## Output
-- **File:** `/mnt/documents/project-chronicle-report.md`
-- **Format:** Markdown, structured by the 11 sections you specified
-- **Delivery:** `<lov-artifact>` tag at the end of the response so you can preview/download
-- **Length target:** ~3,500–5,000 words. Specific, sectioned, with file/component references throughout
-- **Voice:** Neutral and technical. Marks anything not directly evidenced in the codebase as "unclear" rather than guessing
+A strategic critique only. No code changes proposed for execution yet — each recommendation is framed as a refinement direction, not an instruction.
 
-## What I'll cover (with codebase evidence already gathered)
+---
 
-### 1. Product overview
-- **Name:** Project Chronicle (PWA, manifest in `vite.config.ts`, brand mark in `HomeScreen.tsx` / `AuthHero.tsx`)
-- **Purpose:** Personal, neutral record-keeping for incidents, daily working life, and workplace/legal-adjacent reference
-- **Targets:** Individuals documenting workplace issues, recurring interpersonal events, or personal context for later reference
-- **Not intended for:** legal advice, evidence verification, social/public sharing, real-time collaboration, role-based access
+## 1. Brand Positioning
 
-### 2. Core philosophy
-Drawn from `summaryPipeline.ts`, `templateRenderer.ts`, `PrivacyContext.tsx`, `AttachmentIntegrityPanel.tsx`, project memory: deterministic outputs, immutable original narrative + append-only updates, neutral terminology ("Record" / "Attachments"), no AI interpretation in exports, identity preservation, "informative not empty" empty states.
+**What Chronicle currently communicates**
+- Emotionally: calm, considered, quietly serious. The serif wordmark, sunrise/mountain motif, and gold/green restraint give it a "field notebook" feel rather than software.
+- Functionally: a private place to write down work events that may matter later. The word "documentation" is doing most of the heavy lifting.
 
-### 3. Main user flows
-Mapped from `App.tsx` route table and screen files:
-- Welcome → Sign up / Login (email+password, email confirmation, password reset, OAuth callback route)
-- Record (voice or text) → AI structuring → **Pre-Save Review** (`ReviewScreen.tsx`) → Save
-- Daily Record variant via `record_type='daily_record'` and `interactions[]`
-- Timeline (3 density scales), Calendar (month grid + day sheet), My Record (overview), Incident Detail
-- Attachments library (global) + per-record rows
-- Export (Structured Record live; Issue-Based Record live via builder; others "Coming soon" per `.lovable/plan.md`)
-- Settings (lock, biometric, backup, privacy shield, delete account)
-- Privacy Shield toggle + Attachment unlock dialog
-- App Lock gate (`LockGate.tsx`) on cold start / focus return after timeout
+**What is distinctive**
+- The refusal to use the obvious vocabulary (witness, victim, case, evidence-builder) is genuinely unusual in this space and is the strongest single asset.
+- The mountain/sunrise + Cormorant pairing reads more like a journal or almanac than a tool — rare in workplace software.
+- "Append-only, preserved exactly as written" is a real positioning wedge that most competitors cannot honestly claim.
 
-### 4. Feature inventory
-For each: name, location (file/component), what it does, user benefit, implementation details, known gaps. Includes:
-- Voice recording + transcription (`VoiceRecorder.tsx` + `transcribe-audio` edge function)
-- AI analysis (`analyse-incident`, `detect-multi-incident` — assistive only)
-- Pre-Save Review layer (categories, subtypes, people, context_domain)
-- Categories V4.3 (`src/lib/categories.ts`, 8 primary + scoped subtypes)
-- Sequences (non-destructive grouping — `sequenceEngine.ts`)
-- Edit history (append-only `edit_history` table + DB trigger)
-- Follow-up notes (append-only `follow_up_notes`)
-- Coherence detection, scoring, narrative engine (deterministic)
-- Identity resolution + people aggregation
-- Tutorial modal, Demo video, System status strip, Sync status pill
-- Developer Mode (long-press signature)
-- Conflict resolution UI (multi-device backup conflicts)
+**Risks of dilution / mixed messaging**
+- The current AuthHero tagline *"Documenting progress. Building tomorrow."* is the weakest line in the entire surface. It is generic startup language, slightly aspirational, and not about what Chronicle does. It pulls the brand toward "productivity SaaS" exactly where the rest of the design pulls away from it.
+- "Project Chronicle" + sunrise + "building tomorrow" risks reading as a journaling/self-improvement app rather than a workplace record tool. New visitors may misclassify it in the first 3 seconds.
+- The HomeScreen "Welcome" headline followed immediately by the safety promise is well-judged. But across surfaces the words *private, structured, chronological, exportable, preserved* recur in slightly different orders — the cumulative effect is reassuring but begins to feel like a mantra rather than a description.
 
-### 5. Record system
-- `incidents` table doubles as both "incident" and "daily_record" via `record_type`
-- Field-by-field: incident_date vs original_created_at vs last_modified_at vs version
-- Append-only update behavior enforced by DB trigger `bump_last_modified_at` and `log_incident_edits`; `original_created_at` preserved server-side
-- Daily records use `interactions` JSONB and `record_date`
-- Categories/subtypes flow + `category_source: 'ai' | 'user'`
-- Quotes (`exact_words`), impact_note, tags, witnesses
-- Linked `evidence_files` and `follow_up_notes`
+**Tagline assessment**
+- "Documenting progress. Building tomorrow." should be retired. It does not describe the product, the user, or the moment of use.
+- A stronger replacement would be category-defining rather than aspirational. Directional candidates (for later selection, not implementation):
+  - *"A quiet record of work events."*
+  - *"Workplace events, preserved in order."*
+  - *"A chronological record you can trust."*
+- The goal is one line that, read cold, tells a stranger what kind of object Chronicle is.
 
-### 6. Attachment system
-- Upload pipeline: SHA-256 computed in browser **before** upload (`lib/attachments/integrity.ts`), `capture_date` derived from `File.lastModified` with sanity bounds, `evidence_ref_number` auto-assigned per user via DB trigger
-- `AttachmentIntegrityPanel.tsx`: SHA-256, capture/added, uploaded, linked record ID; "Integrity stamp available/unavailable" pill; explicit neutral copy ("not legal verification")
-- Privacy Shield masking: `MaskedAttachmentThumb.tsx`, file bytes never enter DOM while gated
-- PIN unlock for viewing while shield is on: `AttachmentRevealContext` + `AttachmentUnlockDialog` (reuses app-lock PIN, session-scoped reveal, dropped on lock/shield toggle)
-- Viewer (`EvidencePreview.tsx`): `react-zoom-pan-pinch` with min=1, max=4, double-tap stepped zoom 1→2→3→4→reset, pan when zoomed, native pinch, header zoom buttons, audio + PDF + image + generic download fallback
+---
 
-### 7. Security and privacy
-- **Local-first:** Dexie/IndexedDB is source of truth (`src/local/db.ts`, `useIncidents.ts` reads from local, sync engine pushes to Supabase)
-- **App Lock:** PIN with PBKDF2-SHA256 250k iterations + 16-byte salt (`pinCrypto.ts`); per-user `localStorage` only, never synced. Failed-attempt cooldown doubles after 5 wrong (cap 15 min)
-- **Biometric:** WebAuthn platform authenticator with `userVerification: 'required'` (`webauthn.ts`); credential id stored locally; treated as local presence check, no server attestation
-- **Auto-lock:** visibilitychange listener; allowed timeouts 1m/5m/15m
-- **Privacy Shield:** UI-only display filter (`PrivacyContext.tsx`). Stored data and exports **unaffected**. Masks names, locations, quotes, narrative, filenames; never masks dates/categories/counts
-- **Attachment access while shielded:** PIN gate; reveal scoped to in-memory state, dropped on app lock or shield toggle
-- **Cloud:** Supabase Auth + Postgres + Storage; RLS scoped to `auth.uid()` on every table; backup explicitly user-controlled (`BackupContext.tsx` + `syncEngine.ts` + `sync_upsert_incident` RPC for optimistic-concurrency conflict handling)
-- **Account deletion:** dedicated `delete-account` edge function using service role
+## 2. Trust & Credibility
 
-### 8. Export system
-Reflects `.lovable/plan.md` and `ExportScreen.tsx`:
-- **Structured Record** — primary card, generates via `summaryPipeline.ts` + `templateRenderer.ts` (locked 4-block structure: Cover, Index, Full Record, Closing)
-- **Issue-Based Record** — available via `ExportBuilderModal` + `tribunalRenderer.ts`
-- **Single Incident Report, Chronology, Attachment Index, Full Case Bundle** — listed but "Coming soon"
-- Delivery (`deliverHtmlFile`): Web Share API → anchor download → window.open fallback
-- Integrity statement embedded in template footer
-- `generate-export` edge function exists as a server-side renderer alternative
+**Strengths**
+- The *"What Chronicle is not"* block on `/about` is the single most trust-building piece of copy on the site. It is rare for software to draw its own boundaries this clearly, and it earns credibility.
+- Append-only, local-first, "we do not interpret your records" — these are concrete, falsifiable claims, not marketing.
+- The "General information only — not legal advice" footer line is correctly placed and correctly worded.
 
-### 9. Technical architecture
-- **Framework:** React 18 + Vite 8 + TypeScript 5 + Tailwind 3 + shadcn/ui (Radix)
-- **Routing:** `react-router-dom` v6, all routes in `App.tsx` with `ProtectedRoute` + `PublicRoute` + LockGate gating
-- **State:** TanStack Query for evidence/notes; **Dexie + dexie-react-hooks `useLiveQuery`** for incidents (local-first)
-- **Backend:** Supabase Auth, Postgres (tables: `incidents`, `evidence_files`, `follow_up_notes`, `edit_history`, `rights_guidance`), Storage bucket `evidence` (private), 7 edge functions (`analyse-incident`, `detect-multi-incident`, `summarise-patterns`, `generate-case-narrative`, `generate-export`, `transcribe-audio`, `delete-account`)
-- **DB functions:** `sync_upsert_incident` (RPC for optimistic concurrency), `bump_last_modified_at`, `bump_incident_version`, `log_incident_edits`, `assign_evidence_ref_number`, `set_original_created_at`, `current_edit_source`
-- **PWA:** `vite-plugin-pwa` + manifest; app-shell precache only; SPA navigation fallback; **no runtime caching of authenticated data**; service worker registration guarded against iframes/dev (`registerSW.ts`)
-- **AI gateway:** Lovable AI gateway via `LOVABLE_API_KEY` (no user-provided keys)
-- **Auth quirks handled:** zero-identities `signUp` response (already-exists), email_not_confirmed mapping, 800ms loading cap to keep UI snappy offline
+**Where wording risks overpromising or feeling thin**
+- *"Encrypted sync"* on the WelcomeScreen and HomeScreen is asserted without qualification. For a security-aware reader this is the kind of phrase that invites *"encrypted how? at rest? end-to-end? who holds the keys?"*. Currently the answer (per `PrivacyPage`) is essentially "stored in our secure backend" — which is honest but does not match the strength of the word *encrypted*. Either soften the homepage phrasing (e.g. *"optional cloud sync"*) or strengthen the privacy page to specify what *encrypted* means here. The two surfaces should not disagree.
+- *"Your words remain yours."* is emotionally good but functionally vague — a reader could reasonably ask what it means operationally. It currently sits alongside two concrete claims (preserved input, exportable), which exposes its softness.
+- *"Built with care"* in the HomeScreen footer is the only line in the public experience that sounds like indie-app marketing. It is small but it slightly undercuts the otherwise mature tone.
 
-### 10. Current status
-- **Complete:** record creation (voice + text), review, timeline, calendar, my record overview, attachments with integrity stamps, privacy shield + attachment gate, app lock + biometric, structured record + issue-based exports, local-first persistence + cloud backup with conflict UI, PWA shell
-- **Partial / placeholder:** Single Incident Report, Chronology, Attachment Index, Full Case Bundle exports; Insights/Flow are routed to `/calendar` or `/my-record` (see redirects in `App.tsx`)
-- **Risks identified:** edge functions split between supabase-js v2.99 (older) and v2.103 (modern w/ ES256 JWT support) — comment in `analyse-incident` notes the legacy client could not verify ES256 tokens; `transcribe-audio`, `detect-multi-incident`, `generate-case-narrative`, `summarise-patterns` still on 2.99
-- **Hardening needed:** rate limiting on edge functions; signed URL TTLs (1h hard-coded for previews); Privacy Shield is display-only — exports/storage are not shielded (correctly documented but worth flagging); WebAuthn assertion is not server-verified (acceptable for local-presence semantics, worth noting)
-- **Testing gaps:** only 2 unit tests visible (`example.test.ts`, `summaryPipeline.test.ts`); Playwright fixture present but no visible suite
+**Maturity of trust posture**
+- The posture is believable for an early-stage product. The PrivacyPage *"Status"* paragraph ("early-stage product currently in controlled testing") is the right kind of honesty and should be preserved, not removed as the product matures — just rephrased.
+- What's missing for full credibility: a named entity or contact route. There is no "who is behind this" surface. For a tool that asks people to entrust workplace records to it, a single line — even just *"Built and maintained by a small UK team. Contact: …"* — would materially raise trust. Anonymity is currently the biggest credibility gap.
 
-### 11. Recommended next priorities
-Ordered by user-trust → export credibility → stability → real-world testing value:
-1. Ship the four "Coming soon" export modes (Single Incident, Chronology, Attachment Index, Full Case Bundle) — credibility unlock
-2. Surface attachment integrity in the export footer (data exists, only the renderer needs it)
-3. Standardise edge functions on supabase-js 2.103 + ES256 verification (consistency + correctness)
-4. Server-side PIN/biometric rate limiting and audit log (currently client-only)
-5. Expand test coverage: review-layer, sync-engine conflict paths, integrity hashing, privacy mask functions
-6. Add explicit "Privacy Shield does not affect exports" warning when generating exports while shield is on
-7. Tighten signed-URL TTLs + add download audit notes
-8. Document the local-first migration path (hydrate-once) for users switching devices
+**Onboarding emotional temperature**
+- The HomeScreen does lower temperature well: "Welcome", a soft promise, then context, then how it's built. The pacing is good.
+- The Record screen (per the recent iridescent-orb refinement) is now the right kind of calm.
+- The Welcome/Auth screen is slightly cooler than it needs to be — it goes straight from hero into "Create an account / Sign in" with no plain-language sentence about *what happens after I sign in*. A single line of expectation-setting would reduce hesitation.
 
-## Process
-1. Write the Markdown report directly to `/mnt/documents/project-chronicle-report.md`
-2. Verify line count and a sampled section
-3. Emit a `<lov-artifact>` so you can open or download it
-4. Summarise back what's in the file in chat (short)
+---
 
-## What I will not do
-- Modify any source files
-- Invent features (e.g. won't claim role-based sharing, encryption-at-rest beyond Supabase defaults, or e2e encryption)
-- Mark "Coming soon" features as live
+## 3. Public Experience Review
+
+### Homepage (`HomeScreen.tsx`) — authenticated landing
+- **Strengths:** Editorial pacing, restrained dividers, hierarchy of *welcome → promise → context → built around → pillars*. This is the strongest single page.
+- **Weak points:**
+  - The three pillars (*Your words remain yours / Original input is preserved / Exported when needed*) partially restate the *"Built around"* bullets directly above them. There is repetition without progression.
+  - "Built with care" + heart icon clashes tonally with the rest.
+- **Opportunity:** Either merge "Built around" and the pillars into one section, or make the pillars do a different job (e.g. shift them to a *"What this isn't"* counterpoint — already proven to work on `/about`).
+
+### Hero (`AuthHero`)
+- The image + wordmark + mountain motif is excellent and should be preserved.
+- The tagline is the weak point (see §1).
+- The hero is reused across Welcome / Login / Signup / Forgot / Reset — meaning one tagline serves five emotional contexts. Consider whether the tagline should be context-aware (e.g. softer on Forgot/Reset) or simply removed and replaced by a single neutral line that works everywhere.
+
+### Sign-up area (`WelcomeScreen`)
+- Headline *"A private, structured way to document workplace events."* is the clearest sentence in the product. Keep it.
+- The *"Who Chronicle is for"* list is good but its four items overlap with the four-item *"Built around"*-style list directly below it. Two consecutive bullet lists on a small mobile screen flatten the hierarchy.
+- The mid-screen public-info nav (About / Guides / FAQ / Privacy) is a sensible addition for SEO and trust, but visually it lands inside the auth card, which is normally task-focused. It might sit better outside the card, in the page footer area, to keep the auth surface uncluttered.
+- Missing: one short line of *what happens after I create an account* (see §2).
+
+### Guides
+- Six guides cover the right intent surface. Topic selection is strong.
+- The index page is currently a flat `<ul>` of `<Link> — description`. For an index expected to carry SEO weight, a card or list-with-eyebrow layout would be both more scannable and more crawlable as structured content. Right now the guides index feels like an internal sitemap rather than a content hub.
+- Guide pages themselves (per the prose styling in `PublicPageLayout`) are well-typeset. The risk is *uniformity*: six guides with identical layout and identical About-Chronicle aside at the bottom can read as templated. Consider varying the closing aside (e.g. pointing each guide to the most relevant *other* guide, not back to the app).
+
+### FAQ
+- Eight questions, well-chosen, neutrally answered. The *"Does Chronicle change or interpret my entries?"* answer is excellent.
+- Information architecture suggestion: group into 3 sections (*What it is / How your data is handled / How records are used*). At 8 flat Q&As on mobile, the scroll feels undifferentiated.
+
+### Privacy page
+- Plain-language, well-structured, honest about status. This is the right register.
+- The one tension is the *"Optional encrypted sync"* heading combined with *"our secure backend"* in the body — see §2. Either name the encryption model or drop the word *encrypted* from headings and use *"optional cloud sync"* with a sub-line describing the protection in plain terms.
+- Missing: a date stamp (*"Last updated: …"*). For a privacy page this is expected and its absence is itself a small trust signal in the wrong direction.
+
+### About page
+- The clearest articulation of Chronicle anywhere. *"What Chronicle is / What Chronicle is not / Principles"* is exemplary.
+- Suggestion: surface a condensed version of *"What Chronicle is not"* on the homepage or Welcome screen. It is currently buried where only motivated readers will find it, but it does more positioning work than anything else on the site.
+
+### Footer structure
+- `PublicPageLayout` footer is clean. The *"General information only — not legal advice"* line is correctly placed.
+- Missing: contact route, entity name, jurisdiction (UK). For a workplace-records tool, the absence of any human/organisational signal is the main credibility gap.
+
+### Mobile readability
+- Body text at 15.5px / 1.7 line-height in `PublicPageLayout` is good for long-form.
+- The Welcome screen at 411px has three stacked bullet lists in close succession — visually heavy. This is the main mobile-density issue.
+- The HomeScreen iconography (heart, shield, lock, file) on three consecutive pillar rows reads slightly toy-like at small sizes against the otherwise restrained typography. The icons could go without loss.
+
+### Typography hierarchy
+- Cormorant Garamond for display + system body works. The H1 sizing (34–40px) in `PublicPageLayout` is well-judged.
+- Inconsistency: some surfaces use Cormorant for headings (Welcome H1 does not — it uses the body sans), others do. A single rule (*Cormorant for the wordmark and page H1 only; sans for everything else*) would tighten the system.
+
+### Information architecture
+- Public surfaces: `/`, `/guides`, `/guides/:slug`, `/faq`, `/privacy`, `/about`. This is the right shape.
+- Missing from the public IA: a single page that explains *how Chronicle works in practice* with a screenshot or two — not marketing, but "this is what a record looks like." Currently a curious visitor cannot see the product without signing up. This is the single biggest gap for both trust and conversion.
+
+---
+
+## 4. SEO & AI Discoverability
+
+**Now sufficiently understandable**
+- Yes, broadly. The combination of problem-language meta description, `SoftwareApplication` + `Organization` JSON-LD, six topical guides, FAQ with `FAQPage` schema, and an explicit AI-crawler allow-list in `robots.txt` is a coherent baseline. A model summarising the site can now produce a correct one-paragraph description.
+
+**Niche definition**
+- The category is clearer than it was, but Chronicle still lacks a single self-applied category noun. *"Documentation tool"* is accurate but generic. Competitors and adjacent categories (work diary, incident log, grievance log, contemporaneous record) all have stronger linguistic gravity in search. Choosing one (e.g. *"workplace record-keeper"* or *"contemporaneous workplace log"*) and using it consistently across meta + About + FAQ would help both SEO and AI classification.
+
+**Guides vs. search intent**
+- The six topics map well to real low-KDI UK queries. The titles are slightly more formal than the queries people actually type (*"how to evidence workplace bullying"* vs the searched *"how to prove workplace bullying"*). The page H1s can stay neutral; the `<title>` tags should mirror the colloquial query.
+
+**Remaining gaps**
+- No per-guide `BreadcrumbList` JSON-LD.
+- No `WebSite` schema with `SearchAction` in `index.html`.
+- `sitemap.xml` is static; if guides change, it will drift. Low-priority now, but worth knowing.
+- No public "how it works" page (see §3) — this is also a discoverability gap, as it would be the natural landing surface for branded queries like *"what is project chronicle"*.
+
+---
+
+## 5. Product Identity Alignment
+
+Target identity: *"a trusted system for preserving important workplace records clearly and chronologically."*
+
+| Surface | Aligned? | Notes |
+|---|---|---|
+| Visuals | Strongly | Dark premium UI, restrained accents, serif wordmark, iridescent orb all support "trusted system." |
+| Wording | Mostly | "Preserved" and "chronological" are present and load-bearing. Diluted by the AuthHero tagline and "Built with care." |
+| Structure | Strongly | Append-only model, timestamped entries, exportable — the architecture matches the identity. |
+| Onboarding | Mostly | HomeScreen is well-paced. Welcome/Signup lacks one line of expectation-setting. |
+| Public content | Mostly | About + FAQ + Privacy are excellent. Guides feel templated; no "see the product" surface; no human/entity signal. |
+
+**The two highest-leverage misalignments**
+1. The AuthHero tagline is the single line most at odds with the identity. Replacing it would tighten the brand more than any other change.
+2. The absence of any human / organisational signal (no entity name, no contact, no "about the team") is the single biggest gap between *"calm and credible"* and *"trustworthy enough to entrust workplace records to."* This is not a design problem — it is a presence problem.
+
+---
+
+## Prioritised Refinement Directions (for later discussion, not execution)
+
+**Tier 1 — high leverage, low risk**
+1. Replace the AuthHero tagline with one neutral, category-defining line. Decide whether the tagline appears on all five auth surfaces or only Welcome.
+2. Reconcile the *"encrypted sync"* claim across HomeScreen, WelcomeScreen, and PrivacyPage. Either qualify the wording or specify the protection model.
+3. Add a minimal human/entity signal in the public footer (maintainer, jurisdiction, contact route) and a *"Last updated"* line on `/privacy`.
+4. Remove or rework *"Built with care"* + heart on the HomeScreen footer.
+
+**Tier 2 — clarity and density**
+5. Resolve the bullet-list pile-up on `WelcomeScreen` (merge "Who it's for" and the four-item list, or move one outside the card).
+6. Collapse the HomeScreen "Built around" + three pillars into one section, or reframe the pillars as a *"What Chronicle is not"* counterpoint pulled forward from `/about`.
+7. Group the FAQ into three sections.
+8. Re-typeset the Guides index as a list of titles with eyebrows/descriptions rather than a flat bullet list; vary each guide's closing aside.
+
+**Tier 3 — discoverability and identity**
+9. Choose and consistently apply one category noun for Chronicle across meta, About, FAQ, and the homepage.
+10. Add a public *"How Chronicle works"* page with one or two illustrative screenshots — currently the largest trust and SEO gap.
+11. Mirror colloquial search phrasing in guide `<title>` tags; add `BreadcrumbList` schema on guide pages and `WebSite` schema in `index.html`.
+12. Add one line of post-signup expectation-setting on the Welcome screen.
+
+**Explicitly not recommended**
+- No introduction of legal-outcome framing, urgency, or fear-based copy.
+- No testimonials, social proof badges, or "trusted by" rows.
+- No redesign of the Record, Timeline, or My Record surfaces.
+- No move toward HR/legal-tech visual language.
+
+---
+
+## Open questions before any implementation
+
+1. Is there a real maintainer name / entity / jurisdiction that can be surfaced publicly? This unlocks Tier 1 #3.
+2. What is the actual encryption posture for cloud sync today? This determines whether Tier 1 #2 is a wording change or a wording-plus-page-rewrite.
+3. Is Chronicle willing to show product screenshots on a public page? This determines whether Tier 3 #10 is feasible.
+4. Preferred category noun — *workplace record / work diary / contemporaneous log / workplace record-keeper* — or should this be tested?
+
+Answers to these four shape which of the Tier 1–3 directions are even worth scoping.
