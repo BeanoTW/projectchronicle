@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, Shield, FileText, Lock } from 'lucide-react';
 import TutorialModal from '@/components/chronicle/TutorialModal';
 import heroImage from '@/assets/auth-hero-sunrise.jpg';
 
@@ -47,7 +46,6 @@ const HomeScreen = () => {
           className="absolute inset-0 h-full w-full object-cover"
           draggable={false}
         />
-        {/* Darkening overlay */}
         <div
           className="absolute inset-0"
           style={{
@@ -55,13 +53,11 @@ const HomeScreen = () => {
               'linear-gradient(180deg, hsl(220 35% 8% / 0.35) 0%, hsl(220 35% 8% / 0.45) 55%, hsl(220 35% 8% / 0.65) 100%)',
           }}
         />
-        {/* Bottom vignette for clean transition */}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-16"
           style={{ background: 'linear-gradient(180deg, transparent, hsl(220 35% 8% / 0.40))' }}
         />
 
-        {/* Brand anchor — identical to AuthHero */}
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6">
           <motion.h1
             initial={{ opacity: 0, y: 6 }}
@@ -93,9 +89,8 @@ const HomeScreen = () => {
         </div>
       </div>
 
-      {/* Trust section — editorial introduction */}
+      {/* Editorial introduction */}
       <section className="px-5 pt-10 pb-4">
-        {/* Headline */}
         <motion.h2
           {...fadeUp(0.1)}
           className="text-[32px] sm:text-[38px] font-semibold tracking-[-0.02em] text-foreground leading-[1.1]"
@@ -104,44 +99,40 @@ const HomeScreen = () => {
           Welcome
         </motion.h2>
 
-        {/* Primary promise */}
         <motion.p
           {...fadeUp(0.2)}
           className="mt-5 text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg"
         >
-          Chronicle's first priority is keeping your records safe, secure, and preserved exactly as you entered them.
+          Chronicle's first priority is keeping your records safe and preserved exactly as you entered them.
         </motion.p>
 
-        {/* Subtle divider */}
         <motion.div {...fadeUp(0.28)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-        {/* Problem context */}
         <motion.div {...fadeUp(0.32)} className="space-y-4">
           <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
             People are often advised to email important records to themselves so there is a clear timeline if they ever need it later.
           </p>
           <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
-            The problem is that over time this becomes difficult to manage: screenshots get lost, messages become scattered, and important details become harder to organise.
+            Over time this becomes difficult to manage: screenshots get lost, messages become scattered, and important details become harder to organise.
           </p>
           <p className="text-[15px] sm:text-[16px] leading-[1.65] text-foreground/80 max-w-lg">
-            Chronicle is designed to make that process simpler, clearer, and more structured — while keeping privacy, integrity, and long-term record preservation at the centre of the experience.
+            Chronicle is designed to make that process simpler, clearer, and more structured — while keeping privacy and long-term record preservation at the centre of the experience.
           </p>
         </motion.div>
 
-        {/* Subtle divider */}
         <motion.div {...fadeUp(0.4)} className="mt-8 mb-6 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-        {/* Feature block — built around */}
+        {/* Built around — merged with the old three pillars */}
         <motion.div {...fadeUp(0.44)} className="space-y-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
             Built around
           </p>
           <ul className="space-y-2">
             {[
-              'Local-first storage',
-              'Encrypted sync',
-              'Preserved original input',
-              'Structured exports when needed',
+              'Local-first storage — your records live on your device by default',
+              'Optional cloud sync, where available',
+              'Original wording preserved exactly as entered',
+              'Structured exports when you need them',
             ].map((line) => (
               <li key={line} className="flex items-baseline gap-3 text-[14px] sm:text-[15px] leading-[1.55] text-foreground/80">
                 <span aria-hidden className="mt-[2px] h-1 w-1 rounded-full bg-primary/60 flex-shrink-0 translate-y-[-3px]" />
@@ -151,37 +142,36 @@ const HomeScreen = () => {
           </ul>
         </motion.div>
 
-        {/* Subtle divider */}
-        <motion.div {...fadeUp(0.5)} className="mt-8 mb-8 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        <motion.div {...fadeUp(0.5)} className="mt-8 mb-6 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-        {/* Closing pillars */}
+        {/* "What Chronicle is not" — pulled forward from /about to do real positioning work */}
         <motion.div {...fadeUp(0.54)} className="space-y-3">
-          {[
-            { icon: Shield, text: 'Your words remain yours.' },
-            { icon: Lock, text: 'Original input is preserved.' },
-            { icon: FileText, text: 'Exported when needed.' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
-                <item.icon className="h-3.5 w-3.5 text-primary/70" strokeWidth={2} />
-              </span>
-              <span className="text-[14px] sm:text-[15px] font-medium text-foreground/75">
-                {item.text}
-              </span>
-            </div>
-          ))}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+            What Chronicle is not
+          </p>
+          <ul className="space-y-2">
+            {[
+              'Not a legal service — Chronicle does not give legal advice',
+              'Not an interpreter — your entries are not rewritten or characterised',
+              'Not a reporting channel — Chronicle does not contact your employer for you',
+            ].map((line) => (
+              <li key={line} className="flex items-baseline gap-3 text-[14px] sm:text-[15px] leading-[1.55] text-foreground/75">
+                <span aria-hidden className="mt-[2px] h-1 w-1 rounded-full bg-muted-foreground/50 flex-shrink-0 translate-y-[-3px]" />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
         </motion.div>
       </section>
 
-      {/* Footer */}
-      <motion.div className="px-6 pt-10" {...fade(0.55)}>
+      {/* Quiet footer — no indie/heart language */}
+      <motion.div className="px-6 pt-10" {...fade(0.6)}>
         <div className="text-center py-6 space-y-1">
-          <div className="flex items-center justify-center gap-1.5">
-            <Heart className="h-3.5 w-3.5 text-primary/50" strokeWidth={1.5} />
-            <p className="text-[12px] font-medium text-foreground/45">Built with care</p>
-          </div>
-          <p className="text-[11px] text-muted-foreground/50">
-            Thank you for being part of Project Chronicle
+          <p className="text-[11px] text-muted-foreground/55 leading-relaxed">
+            Independently developed and maintained in the UK.
+          </p>
+          <p className="text-[11px] text-muted-foreground/45">
+            General information only — not legal advice.
           </p>
         </div>
       </motion.div>

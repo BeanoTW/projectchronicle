@@ -3,10 +3,13 @@ import PublicPageLayout from '@/components/chronicle/PublicPageLayout';
 const PrivacyPage = () => (
   <PublicPageLayout
     title="How your data is handled — Project Chronicle"
-    description="A plain explanation of where Chronicle stores your records, how sync works, and what is and is not shared."
+    description="A plain explanation of where Chronicle stores your records, how optional cloud sync works, and what is and is not shared."
     path="/privacy"
   >
     <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>How your data is handled</h1>
+    <p className="text-[12px] uppercase tracking-[0.14em] text-muted-foreground/80" style={{ marginTop: '-0.5rem' }}>
+      Last updated: 16 May 2026
+    </p>
     <p>
       Chronicle is designed around the assumption that your records are personal and may be sensitive.
       This page explains, in plain terms, how data is stored and what happens to it.
@@ -19,12 +22,18 @@ const PrivacyPage = () => (
       a connection.
     </p>
 
-    <h2>Optional encrypted sync</h2>
+    <h2>Optional cloud sync</h2>
     <p>
-      If you choose to enable cloud sync, your records are also stored in our secure backend so that
-      they remain available across your devices and if you reinstall the app. Sync is opt-in and can
-      be turned off. Records themselves are not modified by syncing — sync mirrors them, it does not
-      rewrite them.
+      You can choose to enable cloud sync so that your records remain available across your devices
+      and if you reinstall the app. Sync is opt-in and can be turned off at any time. Records are
+      mirrored — sync does not rewrite or modify the contents of an entry.
+    </p>
+    <p>
+      Cloud sync runs on a managed backend (Supabase) and is protected by the standard transport
+      and at-rest protections that provider offers, together with row-level access rules so your
+      records are only readable by your account. Chronicle does not currently advertise end-to-end
+      or zero-knowledge encryption, and we will not describe it that way until it is implemented and
+      independently verifiable.
     </p>
 
     <h2>What we do not do</h2>
@@ -56,11 +65,11 @@ const PrivacyPage = () => (
       <li>Append-only records — earlier entries are not overwritten by later updates.</li>
     </ul>
 
-    <h2>Status</h2>
+    <h2>Status and contact</h2>
     <p>
-      Chronicle is an early-stage product currently in controlled testing. This page will be expanded
-      as the product develops. For specific data-protection questions, please get in touch via the
-      app's support channels.
+      Chronicle is an early-stage product currently in controlled testing, independently developed
+      and maintained in the UK. This page will be expanded as the product develops. For specific
+      data-protection questions, please use the support channels inside the app.
     </p>
   </PublicPageLayout>
 );
