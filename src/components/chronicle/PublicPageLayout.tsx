@@ -61,9 +61,6 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
                             prose-a:text-primary prose-a:no-underline hover:prose-a:underline
                             prose-strong:text-foreground"
                  style={{ fontFamily: 'inherit' }}>
-          <div style={{ fontFamily: '"Cormorant Garamond", serif' }}>
-            {/* h1 inherits serif via wrapper trick below */}
-          </div>
           {children}
         </article>
 
