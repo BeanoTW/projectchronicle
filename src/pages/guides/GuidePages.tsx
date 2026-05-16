@@ -1,11 +1,14 @@
+import { Link } from 'react-router-dom';
 import PublicPageLayout from '@/components/chronicle/PublicPageLayout';
+
+const BASE = 'https://projectchronicle.app';
 
 const articleSchema = (headline: string, description: string, slug: string) => ({
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline,
   description,
-  url: `https://projectchronicle.app/guides/${slug}`,
+  url: `${BASE}/guides/${slug}`,
   inLanguage: 'en-GB',
   author: { '@type': 'Organization', name: 'Project Chronicle' },
   publisher: { '@type': 'Organization', name: 'Project Chronicle' },
@@ -21,13 +24,48 @@ const faqSchema = (qa: { q: string; a: string }[]) => ({
   })),
 });
 
+const breadcrumbSchema = (title: string, slug: string) => ({
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: `${BASE}/` },
+    { '@type': 'ListItem', position: 2, name: 'Guides', item: `${BASE}/guides` },
+    { '@type': 'ListItem', position: 3, name: title, item: `${BASE}/guides/${slug}` },
+  ],
+});
+
 const H1 = ({ children }: { children: React.ReactNode }) => (
   <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>{children}</h1>
 );
 
+/** Light contextual aside — varies per guide so the foot of each page doesn't feel templated. */
+const RelatedAside = ({
+  related,
+  note,
+}: {
+  related: { to: string; label: string }[];
+  note?: string;
+}) => (
+  <div className="not-prose mt-10 rounded-xl border border-border/70 bg-card/50 px-5 py-4">
+    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80">
+      Related reading
+    </p>
+    <ul className="mt-2 space-y-1.5 text-[13.5px]">
+      {related.map((r) => (
+        <li key={r.to}>
+          <Link to={r.to} className="text-primary hover:underline">{r.label}</Link>
+        </li>
+      ))}
+    </ul>
+    {note && <p className="mt-3 text-[12.5px] text-muted-foreground leading-relaxed">{note}</p>}
+  </div>
+);
+
 // 1 ─────────────────────────────────────────────────────────
 export const HowToDocument = () => {
+  const slug = 'how-to-document-workplace-incidents';
   const title = 'How to document workplace incidents';
+  const seoTitle = 'How to document workplace incidents — a practical guide';
   const description =
     'A practical, neutral guide to recording workplace incidents clearly and chronologically.';
   const faq = [
@@ -37,10 +75,10 @@ export const HowToDocument = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/how-to-document-workplace-incidents"
-      jsonLd={[articleSchema(title, description, 'how-to-document-workplace-incidents'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -88,19 +126,22 @@ export const HowToDocument = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle is built around this pattern: each entry is timestamped, the original wording is
-        preserved, and entries sit in chronological order. When you need to share a structured account —
-        with HR, a union representative or a solicitor — the record can be exported as a single document.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/keeping-a-work-diary', label: 'Keeping a work diary' },
+          { to: '/guides/preparing-a-timeline-for-a-grievance', label: 'Preparing a timeline for a grievance' },
+        ]}
+        note="Chronicle is built around this pattern: each entry is timestamped, the original wording is preserved, and entries sit in chronological order."
+      />
     </PublicPageLayout>
   );
 };
 
 // 2 ─────────────────────────────────────────────────────────
 export const ProveBullying = () => {
+  const slug = 'how-to-prove-workplace-bullying';
   const title = 'How to evidence workplace bullying';
+  const seoTitle = 'How to prove workplace bullying — what contemporaneous records look like';
   const description =
     'What contemporaneous notes, timelines and supporting material typically look like for workplace bullying concerns.';
   const faq = [
@@ -110,10 +151,10 @@ export const ProveBullying = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/how-to-prove-workplace-bullying"
-      jsonLd={[articleSchema(title, description, 'how-to-prove-workplace-bullying'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -158,19 +199,21 @@ export const ProveBullying = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle is designed for this kind of slow, append-only record. Each entry is timestamped and
-        sits alongside the others in chronological order. The full record can be exported when you
-        decide to share it.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/how-to-document-workplace-incidents', label: 'How to document workplace incidents' },
+          { to: '/guides/raising-a-grievance-at-work', label: 'Raising a grievance at work' },
+        ]}
+      />
     </PublicPageLayout>
   );
 };
 
 // 3 ─────────────────────────────────────────────────────────
 export const PrepareTimeline = () => {
+  const slug = 'preparing-a-timeline-for-a-grievance';
   const title = 'Preparing a timeline for a grievance';
+  const seoTitle = 'Preparing a timeline of events for a workplace grievance';
   const description =
     'How a clear chronological timeline of workplace events can support a grievance and what it typically contains.';
   const faq = [
@@ -180,10 +223,10 @@ export const PrepareTimeline = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/preparing-a-timeline-for-a-grievance"
-      jsonLd={[articleSchema(title, description, 'preparing-a-timeline-for-a-grievance'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -226,19 +269,21 @@ export const PrepareTimeline = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle keeps every entry in chronological order automatically, with the original wording
-        preserved. When you are ready, the record can be exported as a structured document suitable
-        for sharing alongside a grievance.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/raising-a-grievance-at-work', label: 'Raising a grievance at work' },
+          { to: '/guides/evidence-for-an-employment-tribunal', label: 'Evidence for an employment tribunal' },
+        ]}
+      />
     </PublicPageLayout>
   );
 };
 
 // 4 ─────────────────────────────────────────────────────────
 export const TribunalEvidence = () => {
+  const slug = 'evidence-for-an-employment-tribunal';
   const title = 'Evidence for an employment tribunal';
+  const seoTitle = 'Evidence for an employment tribunal — what records are typically referred to';
   const description =
     'A neutral overview of how personal records are typically prepared and presented for employment tribunal processes.';
   const faq = [
@@ -248,10 +293,10 @@ export const TribunalEvidence = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/evidence-for-an-employment-tribunal"
-      jsonLd={[articleSchema(title, description, 'evidence-for-an-employment-tribunal'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -297,19 +342,22 @@ export const TribunalEvidence = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle is a structured way to keep contemporaneous notes over time. Entries are
-        timestamped, original wording is preserved, and the full record can be exported as a single
-        document when needed.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/preparing-a-timeline-for-a-grievance', label: 'Preparing a timeline for a grievance' },
+          { to: '/guides/how-to-document-workplace-incidents', label: 'How to document workplace incidents' },
+        ]}
+        note="Tribunal procedure decisions are best made with an adviser. This guide is general information only."
+      />
     </PublicPageLayout>
   );
 };
 
 // 5 ─────────────────────────────────────────────────────────
 export const WorkDiary = () => {
+  const slug = 'keeping-a-work-diary';
   const title = 'Keeping a work diary';
+  const seoTitle = 'Keeping a work diary — a simple daily record of work events';
   const description =
     'Why people keep a daily work diary, what to include, and how to keep it useful over time.';
   const faq = [
@@ -319,10 +367,10 @@ export const WorkDiary = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/keeping-a-work-diary"
-      jsonLd={[articleSchema(title, description, 'keeping-a-work-diary'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -355,18 +403,21 @@ export const WorkDiary = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle has a dedicated daily record mode for exactly this kind of log. Entries are
-        timestamped and sit alongside any incident records you keep, in one chronological view.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/how-to-document-workplace-incidents', label: 'How to document workplace incidents' },
+          { to: '/how-it-works', label: 'How Chronicle works' },
+        ]}
+      />
     </PublicPageLayout>
   );
 };
 
 // 6 ─────────────────────────────────────────────────────────
 export const RaiseGrievance = () => {
+  const slug = 'raising-a-grievance-at-work';
   const title = 'Raising a grievance at work';
+  const seoTitle = 'How to raise a grievance at work — a neutral overview';
   const description =
     'A neutral overview of how workplace grievances typically work in the UK, including ACAS guidance.';
   const faq = [
@@ -376,10 +427,10 @@ export const RaiseGrievance = () => {
   ];
   return (
     <PublicPageLayout
-      title={`${title} — Project Chronicle`}
+      title={`${seoTitle} — Project Chronicle`}
       description={description}
-      path="/guides/raising-a-grievance-at-work"
-      jsonLd={[articleSchema(title, description, 'raising-a-grievance-at-work'), faqSchema(faq)]}
+      path={`/guides/${slug}`}
+      jsonLd={[articleSchema(title, description, slug), faqSchema(faq), breadcrumbSchema(title, slug)]}
     >
       <H1>{title}</H1>
       <p>
@@ -418,12 +469,12 @@ export const RaiseGrievance = () => {
         </div>
       ))}
 
-      <h2>How Chronicle fits in</h2>
-      <p>
-        Chronicle is built for keeping that chronology. Entries are timestamped, the original wording
-        is preserved, and the full record can be exported as a single structured document when you
-        are ready to share it.
-      </p>
+      <RelatedAside
+        related={[
+          { to: '/guides/preparing-a-timeline-for-a-grievance', label: 'Preparing a timeline for a grievance' },
+          { to: '/guides/how-to-document-workplace-incidents', label: 'How to document workplace incidents' },
+        ]}
+      />
     </PublicPageLayout>
   );
 };
