@@ -112,6 +112,19 @@ const App = () => (
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
+
+            {/* Public marketing & content surfaces (indexable, no auth) */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/faq" element={<FaqPage />} />
+            <Route path="/guides" element={<GuidesIndex />} />
+            <Route path="/guides/how-to-document-workplace-incidents" element={<HowToDocument />} />
+            <Route path="/guides/how-to-prove-workplace-bullying" element={<ProveBullying />} />
+            <Route path="/guides/preparing-a-timeline-for-a-grievance" element={<PrepareTimeline />} />
+            <Route path="/guides/evidence-for-an-employment-tribunal" element={<TribunalEvidence />} />
+            <Route path="/guides/keeping-a-work-diary" element={<WorkDiary />} />
+            <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
