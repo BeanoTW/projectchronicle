@@ -12,7 +12,7 @@ interface AuthHeroProps {
  * - Cinematic sunrise/mountain photo with controlled overlay
  * - Single serif wordmark + ONE supporting line
  */
-const AuthHero = ({ tagline = 'Documenting progress. Building tomorrow.' }: AuthHeroProps) => {
+const AuthHero = ({ tagline = 'A chronological workplace record you can trust.' }: AuthHeroProps) => {
   return (
     <div
       className="relative w-full overflow-hidden rounded-b-[28px] shadow-[0_8px_24px_-12px_hsl(220_30%_8%/0.35)]"

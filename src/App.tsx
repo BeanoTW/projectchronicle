@@ -46,6 +46,7 @@ import {
 import FaqPage from "./pages/FaqPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
 
             {/* Public marketing & content surfaces (indexable, no auth) */}
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/guides" element={<GuidesIndex />} />

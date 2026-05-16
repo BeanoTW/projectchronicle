@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const AboutPage = () => (
   <PublicPageLayout
-    title="About Project Chronicle — workplace documentation, not legal advice"
+    title="About Project Chronicle — a structured, chronological workplace record"
     description="What Chronicle is, what it is not, and the principles behind how it records workplace events."
     path="/about"
     jsonLd={{
@@ -15,17 +15,17 @@ const AboutPage = () => (
   >
     <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>About Project Chronicle</h1>
     <p>
-      Project Chronicle is a private, structured way to document workplace incidents, grievances and
-      daily events. Records are timestamped, sit in chronological order, and can be exported when you
-      need to share them.
+      Project Chronicle is a structured, chronological workplace record. Entries are timestamped,
+      sit in date order, and can be exported as a single document when you need to share them.
+      It is independently developed and maintained in the UK.
     </p>
 
     <h2>What Chronicle is</h2>
     <ul>
-      <li>A documentation tool for personal records of workplace events.</li>
-      <li>A chronological log — every entry is dated and kept in order.</li>
+      <li>A structured workplace record for personal use.</li>
+      <li>Chronological — every entry is dated and kept in order.</li>
       <li>Append-only — earlier entries are preserved exactly as written.</li>
-      <li>Local-first — your records live on your device by default, with optional encrypted sync.</li>
+      <li>Local-first — your records live on your device by default, with optional cloud sync.</li>
       <li>Exportable — you can produce a single structured document for HR, a union representative, an adviser or a solicitor.</li>
     </ul>
 
@@ -53,6 +53,7 @@ const AboutPage = () => (
     </ul>
 
     <p>
+      For a walkthrough of the product, see <Link to="/how-it-works">how Chronicle works</Link>.
       For an explanation of how data is stored, see <Link to="/privacy">how your data is handled</Link>.
       For common questions, see the <Link to="/faq">FAQ</Link>.
     </p>
