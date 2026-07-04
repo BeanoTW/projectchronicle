@@ -47,6 +47,7 @@ import FaqPage from "./pages/FaqPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
+import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +71,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (user) return <Navigate to="/home" replace />;
+  if (user) {
+    const next = new URLSearchParams(window.location.search).get('next');
+    const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
+    if (safeNext) {
+      window.location.replace(safeNext);
+      return null;
+    }
+    return <Navigate to="/home" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -96,6 +105,7 @@ const App = () => (
             <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordScreen /></PublicRoute>} />
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />

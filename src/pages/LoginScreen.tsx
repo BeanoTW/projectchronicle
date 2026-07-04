@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, LogIn, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,9 @@ import AuthCard from '@/components/chronicle/AuthCard';
 
 const LoginScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
   const { signIn } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
@@ -44,7 +47,11 @@ const LoginScreen = () => {
         });
       }
     } else {
-      navigate('/home');
+      if (safeNext) {
+        window.location.href = safeNext;
+      } else {
+        navigate('/home');
+      }
     }
   };
 
