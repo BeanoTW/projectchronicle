@@ -47,7 +47,11 @@ const LoginScreen = () => {
         });
       }
     } else {
-      navigate('/home');
+      if (safeNext) {
+        window.location.href = safeNext;
+      } else {
+        navigate('/home');
+      }
     }
   };
 
