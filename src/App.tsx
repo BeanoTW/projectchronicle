@@ -70,7 +70,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (user) return <Navigate to="/home" replace />;
+  if (user) {
+    const next = new URLSearchParams(window.location.search).get('next');
+    const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
+    if (safeNext) {
+      window.location.replace(safeNext);
+      return null;
+    }
+    return <Navigate to="/home" replace />;
+  }
   return <>{children}</>;
 };
 
