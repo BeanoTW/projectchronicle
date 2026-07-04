@@ -105,6 +105,7 @@ const App = () => (
             <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordScreen /></PublicRoute>} />
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route path="/auth/callback" element={<AuthCallbackScreen />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
