@@ -11,6 +11,9 @@ import AuthCard from '@/components/chronicle/AuthCard';
 
 const LoginScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
   const { signIn } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
