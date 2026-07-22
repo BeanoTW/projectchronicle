@@ -75,8 +75,10 @@ const SignupScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background max-w-lg mx-auto flex flex-col">
-      <AuthHero />
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="w-full max-w-lg lg:max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-stretch lg:gap-10 lg:px-8 lg:py-10 flex-1">
+        <div className="lg:flex-1"><AuthHero /></div>
+        <div className="lg:flex-1 lg:max-w-md lg:mx-auto lg:flex lg:items-center"><div className="w-full">
 
       <AuthCard>
         <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.02em]">
@@ -180,6 +182,8 @@ const SignupScreen = () => {
           </div>
         </div>
       </AuthCard>
+      </div></div>
+      </div>
     </div>
   );
 };
