@@ -76,9 +76,9 @@ const SignupScreen = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <div className="w-full max-w-lg lg:max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-stretch lg:gap-10 lg:px-8 lg:py-10 flex-1">
-        <div className="lg:flex-1"><AuthHero /></div>
-        <div className="lg:flex-1 lg:max-w-md lg:mx-auto lg:flex lg:items-center"><div className="w-full">
+      <div className="w-full max-w-lg md:max-w-6xl mx-auto flex flex-col md:flex-row md:items-stretch md:gap-10 md:px-8 md:py-10 flex-1">
+        <div className="md:flex-1"><AuthHero /></div>
+        <div className="md:flex-1 md:max-w-md md:mx-auto md:flex md:items-center"><div className="w-full">
 
       <AuthCard>
         <h2 className="text-[20px] font-semibold text-foreground tracking-[-0.02em]">
