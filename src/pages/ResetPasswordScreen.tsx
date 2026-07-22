@@ -200,6 +200,8 @@ const ResetPasswordScreen = () => {
           </Button>
         </div>
       </AuthCard>
+      </div></div>
+      </div>
     </div>
   );
 };
