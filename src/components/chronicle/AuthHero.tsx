@@ -15,8 +15,7 @@ interface AuthHeroProps {
 const AuthHero = ({ tagline = 'A chronological workplace record you can trust.' }: AuthHeroProps) => {
   return (
     <div
-      className="relative w-full overflow-hidden rounded-b-[28px] md:rounded-[24px] md:h-full shadow-[0_8px_24px_-12px_hsl(220_30%_8%/0.35)]"
-      style={{ height: 'min(42vh, 320px)', minHeight: 240 }}
+      className="relative w-full overflow-hidden rounded-b-[28px] md:rounded-[24px] shadow-[0_8px_24px_-12px_hsl(220_30%_8%/0.35)] h-[min(42vh,320px)] min-h-[240px] md:h-full md:min-h-[560px]"
     >
       {/* Background photo */}
       <img
