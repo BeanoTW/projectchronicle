@@ -149,6 +149,8 @@ const LoginScreen = () => {
           </ul>
         </div>
       </AuthCard>
+      </div></div>
+      </div>
     </div>
   );
 };
