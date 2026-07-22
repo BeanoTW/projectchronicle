@@ -182,6 +182,8 @@ const SignupScreen = () => {
           </div>
         </div>
       </AuthCard>
+      </div></div>
+      </div>
     </div>
   );
 };
