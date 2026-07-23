@@ -46,7 +46,7 @@ const AuthHero = ({ tagline = 'A chronological workplace record you can trust.' 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
           className="font-serif text-white tracking-[0.18em] text-[26px] sm:text-[30px] leading-none"
-          style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+          style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}
         >
           PROJECT&nbsp;CHRONICLE
         </motion.h1>
