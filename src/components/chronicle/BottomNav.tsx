@@ -53,7 +53,7 @@ const BottomNav = () => {
 
   return (
     <div
-      className="fixed left-1/2 z-50 -translate-x-1/2"
+      className="fixed left-1/2 z-50 -translate-x-1/2 md:hidden"
       style={{
         bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
         width: 'calc(100% - 32px)',
