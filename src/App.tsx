@@ -13,6 +13,7 @@ import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
 import BottomNav from "@/components/chronicle/BottomNav";
+import DesktopSideNav from "@/components/chronicle/DesktopSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
 import WelcomeScreen from "./pages/WelcomeScreen";
@@ -52,8 +53,13 @@ import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="max-w-lg mx-auto">
-    {children}
+  <div className="md:flex md:min-h-screen">
+    <DesktopSideNav />
+    <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0">
+      <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
+        {children}
+      </div>
+    </div>
     <BottomNav />
     <AuthDebugPanel />
   </div>
