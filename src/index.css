@@ -146,7 +146,7 @@
 
   body {
     @apply bg-background text-body font-sans;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Epilogue', system-ui, -apple-system, sans-serif;
     font-size: 15px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -155,8 +155,9 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply text-foreground;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
+    font-family: 'Urbanist', system-ui, -apple-system, sans-serif;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
   }
 
   h1 {
