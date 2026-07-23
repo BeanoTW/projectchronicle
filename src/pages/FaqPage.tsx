@@ -46,7 +46,7 @@ const FaqPage = () => {
       path="/faq"
       jsonLd={jsonLd}
     >
-      <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>Frequently asked questions</h1>
+      <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>Frequently asked questions</h1>
       {SECTIONS.map((section) => (
         <section key={section.heading}>
           <h2>{section.heading}</h2>

@@ -54,7 +54,7 @@ const GuidesIndex = () => {
         description: 'Practical, neutral guides to documenting workplace incidents, grievances and daily events.',
       }}
     >
-      <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>Guides</h1>
+      <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>Guides</h1>
       <p>
         Plain, neutral guides on how people typically document workplace incidents, grievances and daily
         work events. Information only — not legal advice. Where relevant, we point to recognised UK bodies

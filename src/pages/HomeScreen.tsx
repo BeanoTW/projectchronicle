@@ -64,7 +64,7 @@ const HomeScreen = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
             className="font-serif text-white tracking-[0.18em] text-[26px] sm:text-[30px] leading-none"
-            style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+            style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}
           >
             PROJECT&nbsp;CHRONICLE
           </motion.h1>
@@ -94,7 +94,7 @@ const HomeScreen = () => {
         <motion.h2
           {...fadeUp(0.1)}
           className="text-[32px] sm:text-[38px] font-semibold tracking-[-0.02em] text-foreground leading-[1.1]"
-          style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+          style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}
         >
           Welcome
         </motion.h2>

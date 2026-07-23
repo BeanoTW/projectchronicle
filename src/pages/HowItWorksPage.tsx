@@ -66,7 +66,7 @@ const HowItWorksPage = () => (
     path="/how-it-works"
     jsonLd={[howTo, breadcrumb]}
   >
-    <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>How Chronicle works</h1>
+    <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>How Chronicle works</h1>
     <p>
       Chronicle is a structured, chronological workplace record. It is built around five things:
       recording an event in your own words, preserving that original wording, organising entries in

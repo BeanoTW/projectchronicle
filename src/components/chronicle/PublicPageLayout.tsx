@@ -38,7 +38,7 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
           <Link
             to="/"
             className="font-serif tracking-[0.18em] text-[15px] lg:text-[17px] text-foreground/80"
-            style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}
+            style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}
           >
             PROJECT&nbsp;CHRONICLE
           </Link>

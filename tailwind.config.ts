@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Epilogue', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Urbanist', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['Urbanist', 'system-ui', '-apple-system', 'sans-serif'],
       },
       fontSize: {
         'xs': '0.75rem',

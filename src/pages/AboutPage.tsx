@@ -13,7 +13,7 @@ const AboutPage = () => (
       name: 'About Project Chronicle',
     }}
   >
-    <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>About Project Chronicle</h1>
+    <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>About Project Chronicle</h1>
     <p>
       Project Chronicle is a structured, chronological workplace record. Entries are timestamped,
       sit in date order, and can be exported as a single document when you need to share them.

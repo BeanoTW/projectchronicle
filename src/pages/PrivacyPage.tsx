@@ -6,7 +6,7 @@ const PrivacyPage = () => (
     description="A plain explanation of where Chronicle stores your records, how optional cloud sync works, and what is and is not shared."
     path="/privacy"
   >
-    <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>How your data is handled</h1>
+    <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>How your data is handled</h1>
     <p className="text-[12px] uppercase tracking-[0.14em] text-muted-foreground/80" style={{ marginTop: '-0.5rem' }}>
       Last updated: 16 May 2026
     </p>

@@ -21,7 +21,7 @@ const WelcomeScreen = () => {
               Why Chronicle
             </p>
             <p className="mt-3 text-[18px] leading-[1.55] text-foreground/85 max-w-md"
-               style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif', fontWeight: 500 }}>
+               style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}>
               A calm, private place to record workplace events chronologically —
               so if you ever need a clear account, it already exists.
             </p>

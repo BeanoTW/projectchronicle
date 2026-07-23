@@ -35,7 +35,7 @@ const breadcrumbSchema = (title: string, slug: string) => ({
 });
 
 const H1 = ({ children }: { children: React.ReactNode }) => (
-  <h1 style={{ fontFamily: '"Cormorant Garamond", serif' }}>{children}</h1>
+  <h1 style={{ fontFamily: 'Urbanist, system-ui, sans-serif' }}>{children}</h1>
 );
 
 /** Light contextual aside — varies per guide so the foot of each page doesn't feel templated. */
