@@ -13,6 +13,7 @@ import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
 import BottomNav from "@/components/chronicle/BottomNav";
+import DesktopSideNav from "@/components/chronicle/DesktopSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
 import WelcomeScreen from "./pages/WelcomeScreen";
