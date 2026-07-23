@@ -395,45 +395,40 @@
    barely-there grid in light mode, swapped for dark in dark mode. */
 .iridescent-bg {
   background:
-    radial-gradient(1100px 700px at 12% -10%, hsl(220 60% 96% / 0.9), transparent 60%),
-    radial-gradient(900px 600px at 95% 8%, hsl(280 55% 97% / 0.65), transparent 60%),
-    radial-gradient(800px 700px at 50% 110%, hsl(170 60% 96% / 0.55), transparent 60%),
-    linear-gradient(180deg, hsl(220 30% 99%) 0%, hsl(210 25% 97%) 100%);
+    radial-gradient(1100px 700px at 12% -10%, hsl(214 30% 96% / 0.9), transparent 60%),
+    radial-gradient(900px 600px at 95% 8%, hsl(217 20% 95% / 0.7), transparent 60%),
+    linear-gradient(180deg, hsl(214 20% 99%) 0%, hsl(217 18% 96%) 100%);
 }
 .dark .iridescent-bg {
   background:
-    radial-gradient(900px 600px at 10% -5%, hsl(220 30% 12% / 0.9), transparent 60%),
-    radial-gradient(900px 600px at 95% 10%, hsl(260 25% 14% / 0.6), transparent 60%),
-    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 20% 5%) 100%);
+    radial-gradient(900px 600px at 10% -5%, hsl(217 24% 11% / 0.9), transparent 60%),
+    radial-gradient(900px 600px at 95% 10%, hsl(217 20% 12% / 0.6), transparent 60%),
+    linear-gradient(180deg, hsl(var(--background)) 0%, hsl(217 24% 5%) 100%);
 }
 
-/* Iridescent water orb — used for the main mic button and the
-   bottom-nav centre Record button. Light = pearl/silver with subtle
-   cyan/violet/green optical wash. Dark = deep glass with same accents. */
+/* Steel orb — used for the main mic button and the bottom-nav centre
+   Record button. Restrained institutional palette: brushed pearl in
+   light mode, deep slate glass in dark. No purple/mint tints. */
 .iridescent-orb {
   background:
-    radial-gradient(circle at 30% 28%, hsl(280 70% 90% / 0.55) 0%, transparent 55%),
-    radial-gradient(circle at 75% 70%, hsl(190 80% 88% / 0.55) 0%, transparent 55%),
-    radial-gradient(circle at 55% 90%, hsl(140 60% 88% / 0.4) 0%, transparent 60%),
-    linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(220 30% 96%) 60%, hsl(220 25% 92%) 100%);
-  border: 1.25px solid hsl(220 30% 88%);
+    radial-gradient(circle at 30% 25%, hsl(214 25% 96%) 0%, transparent 60%),
+    linear-gradient(160deg, hsl(214 20% 96%) 0%, hsl(217 18% 88%) 60%, hsl(217 20% 78%) 100%);
+  border: 1.25px solid hsl(217 18% 72%);
   box-shadow:
-    0 0 22px -4px hsl(220 40% 80% / 0.5),
-    0 10px 26px -8px hsl(220 25% 40% / 0.18),
-    inset 0 1.5px 1.5px hsl(0 0% 100% / 0.9),
-    inset 0 -6px 14px hsl(220 30% 80% / 0.25);
+    0 0 18px -6px hsl(217 24% 40% / 0.35),
+    0 10px 26px -8px hsl(217 24% 20% / 0.22),
+    inset 0 1.5px 1.5px hsl(0 0% 100% / 0.85),
+    inset 0 -6px 14px hsl(217 20% 65% / 0.28);
 }
 .dark .iridescent-orb {
   background:
-    radial-gradient(circle at 30% 28%, hsl(280 60% 55% / 0.32) 0%, transparent 55%),
-    radial-gradient(circle at 75% 70%, hsl(190 70% 50% / 0.28) 0%, transparent 55%),
-    radial-gradient(circle at 50% 90%, hsl(140 55% 50% / 0.22) 0%, transparent 60%),
-    linear-gradient(160deg, hsl(220 22% 14%) 0%, hsl(220 25% 9%) 100%);
-  border: 1.25px solid hsl(var(--primary) / 0.6);
+    radial-gradient(circle at 30% 25%, hsl(214 20% 30% / 0.5) 0%, transparent 60%),
+    linear-gradient(160deg, hsl(217 22% 16%) 0%, hsl(217 24% 9%) 100%);
+  border: 1.25px solid hsl(214 25% 55% / 0.45);
   box-shadow:
-    0 0 22px -2px hsl(var(--primary) / 0.28),
+    0 0 22px -4px hsl(214 25% 60% / 0.25),
     0 8px 18px -6px hsl(0 0% 0% / 0.55),
-    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    inset 0 1px 0 hsl(0 0% 100% / 0.06),
     inset 0 -6px 14px hsl(0 0% 0% / 0.45);
 }
 
