@@ -114,10 +114,10 @@
     --input: 217 18% 20%;
     --ring: 214 25% 60%;
 
-    --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.18);
-    --shadow-card-hover: 0 2px 8px -2px hsl(0 0% 0% / 0.28);
-    --shadow-nav: 0 -1px 8px 0 hsl(0 0% 0% / 0.28);
-    --shadow-elevated: 0 4px 16px -4px hsl(0 0% 0% / 0.35);
+    --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.22), 0 2px 6px -2px hsl(0 0% 0% / 0.30), inset 0 1px 0 0 hsl(214 25% 70% / 0.04);
+    --shadow-card-hover: 0 6px 20px -6px hsl(0 0% 0% / 0.40), 0 3px 8px -3px hsl(0 0% 0% / 0.30), inset 0 1px 0 0 hsl(214 25% 70% / 0.06);
+    --shadow-nav: 0 -2px 14px 0 hsl(0 0% 0% / 0.35);
+    --shadow-elevated: 0 12px 32px -8px hsl(0 0% 0% / 0.50), 0 4px 10px -4px hsl(0 0% 0% / 0.35), inset 0 1px 0 0 hsl(214 25% 70% / 0.05);
 
     --sidebar-background: 217 24% 8%;
     --sidebar-foreground: 214 20% 92%;
