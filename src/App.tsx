@@ -49,6 +49,8 @@ import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import OAuthConsentScreen from "./pages/OAuthConsentScreen";
+import PrototypeApp from "./prototype/PrototypeApp";
+
 
 const queryClient = new QueryClient();
 
