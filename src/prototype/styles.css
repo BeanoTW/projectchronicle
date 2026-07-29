@@ -1,0 +1,287 @@
+/* Prototype-scoped styles. Kept local to .proto-root to avoid leaking into production UI. */
+.proto-root {
+  --p-paper: #f7f3ec;
+  --p-paper-2: #efe9dd;
+  --p-ink: #1f1c17;
+  --p-ink-2: #4a463f;
+  --p-muted: #7a7367;
+  --p-line: #e2dbcb;
+  --p-brass: #8a6a2b;
+  --p-brass-soft: #b48a3a;
+  --p-accent-bg: #f0e6cf;
+  --p-danger: #8a3a2b;
+  background: var(--p-paper);
+  color: var(--p-ink);
+  min-height: 100dvh;
+  font-family: 'Epilogue', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.proto-root .proto-serif {
+  font-family: 'Instrument Serif', 'Cormorant', Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.proto-root .proto-banner {
+  background: var(--p-ink);
+  color: var(--p-paper);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.proto-root .proto-banner a {
+  color: var(--p-paper);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.proto-root .proto-topbar {
+  padding: 12px 16px 8px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-brand {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 20px;
+  line-height: 1;
+}
+.proto-root .proto-brand-sub {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  margin-left: 6px;
+}
+
+.proto-root .proto-main {
+  padding: 16px;
+  padding-bottom: 128px; /* room for bottom nav + capture FAB */
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* Bottom nav — 2 destinations, plenty of room at 360px */
+.proto-root .proto-bottomnav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--p-paper);
+  border-top: 1px solid var(--p-line);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+}
+.proto-root .proto-bottomnav button {
+  background: transparent;
+  border: 0;
+  color: var(--p-muted);
+  font-size: 12px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  min-width: 0;
+}
+.proto-root .proto-bottomnav button[data-active="true"] {
+  color: var(--p-ink);
+  font-weight: 600;
+}
+.proto-root .proto-bottomnav button[data-active="true"] .proto-navdot {
+  background: var(--p-brass);
+}
+.proto-root .proto-navdot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: transparent;
+  margin-top: 2px;
+}
+
+/* Capture FAB */
+.proto-root .proto-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  background: var(--p-ink);
+  color: var(--p-paper);
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Inputs / buttons */
+.proto-root .proto-input,
+.proto-root .proto-textarea {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--p-ink);
+  font-family: inherit;
+}
+.proto-root .proto-textarea {
+  min-height: 220px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.proto-root .proto-input:focus,
+.proto-root .proto-textarea:focus {
+  outline: 2px solid var(--p-brass-soft);
+  outline-offset: 1px;
+}
+
+.proto-root .proto-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--p-line);
+  background: #fff;
+  color: var(--p-ink);
+  cursor: pointer;
+  min-height: 44px;
+}
+.proto-root .proto-btn[data-variant="primary"] {
+  background: var(--p-ink);
+  color: var(--p-paper);
+  border-color: var(--p-ink);
+}
+.proto-root .proto-btn[data-variant="ghost"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--p-ink-2);
+}
+.proto-root .proto-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Entry cards */
+.proto-root .proto-entry {
+  background: #fff;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  padding: 14px 14px 12px;
+  margin-bottom: 10px;
+}
+.proto-root .proto-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--p-muted);
+  margin-bottom: 6px;
+}
+.proto-root .proto-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--p-paper-2);
+  color: var(--p-ink-2);
+  font-size: 11px;
+  border: 1px solid var(--p-line);
+}
+.proto-root .proto-chip[data-tone="brass"] {
+  background: var(--p-accent-bg);
+  color: var(--p-brass);
+  border-color: transparent;
+}
+
+.proto-root .proto-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+.proto-root .proto-controls .proto-input { flex: 1; }
+.proto-root .proto-viewswitch {
+  display: inline-flex;
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.proto-root .proto-viewswitch button {
+  border: 0; background: transparent; padding: 0 10px; font-size: 12px; color: var(--p-muted);
+  min-height: 44px; cursor: pointer;
+}
+.proto-root .proto-viewswitch button[data-active="true"] {
+  background: var(--p-ink); color: var(--p-paper);
+}
+
+.proto-root .proto-h1 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 4px 0 12px;
+}
+.proto-root .proto-h2 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0 0 8px;
+}
+.proto-root .proto-help {
+  font-size: 13px;
+  color: var(--p-muted);
+  line-height: 1.5;
+}
+
+.proto-root .proto-sealed-note {
+  background: var(--p-accent-bg);
+  border: 1px solid #e6d5a8;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  color: var(--p-ink);
+}
+.proto-root .proto-actions-row {
+  display: flex; gap: 8px; margin-top: 8px;
+}
+.proto-root .proto-actions-row .proto-btn { flex: 1; }
+
+.proto-root .proto-empty {
+  text-align: center;
+  color: var(--p-muted);
+  padding: 40px 16px;
+  font-size: 14px;
+}
+
+/* Dark mode — charcoal + parchment. Scoped so it only applies inside the prototype. */
+:root.dark .proto-root {
+  --p-paper: #14120f;
+  --p-paper-2: #1c1a16;
+  --p-ink: #ece4d1;
+  --p-ink-2: #c9c1ae;
+  --p-muted: #8e8778;
+  --p-line: #2a2620;
+  --p-brass: #c9a25b;
+  --p-brass-soft: #b48a3a;
+  --p-accent-bg: #2b2418;
+}
+:root.dark .proto-root .proto-input,
+:root.dark .proto-root .proto-textarea,
+:root.dark .proto-root .proto-entry,
+:root.dark .proto-root .proto-viewswitch { background: #1c1a16; color: var(--p-ink); }
+:root.dark .proto-root .proto-btn { background: #1c1a16; color: var(--p-ink); }
+:root.dark .proto-root .proto-btn[data-variant="primary"] { background: var(--p-brass); color: #14120f; border-color: var(--p-brass); }
+:root.dark .proto-root .proto-fab { background: var(--p-brass); color: #14120f; }
