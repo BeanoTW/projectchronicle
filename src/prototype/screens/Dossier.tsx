@@ -3,11 +3,10 @@ import { protoDB } from '../db';
 
 const DossierScreen = () => {
   const entries = useLiveQuery(async () => {
-    const rows = await protoDB.entries.where('in_dossier').equals(1 as unknown as boolean).toArray();
-    // Dexie boolean indexing is quirky — fall back to a filter for reliability.
     const all = await protoDB.entries.toArray();
     return all.filter(e => e.in_dossier).sort((a, b) => a.sealed_at.localeCompare(b.sealed_at));
   }, [], []);
+
 
   return (
     <div>
