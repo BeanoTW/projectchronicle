@@ -145,7 +145,11 @@ const App = () => (
             <Route path="/guides/keeping-a-work-diary" element={<WorkDiary />} />
             <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
 
+            {/* Isolated design prototype — separate Dexie DB, no production writes */}
+            <Route path="/prototype/*" element={<PrototypeApp />} />
+
             <Route path="*" element={<NotFound />} />
+
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
