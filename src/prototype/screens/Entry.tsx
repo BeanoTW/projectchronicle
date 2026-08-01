@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { protoDB } from '../db';
@@ -6,6 +7,9 @@ const EntryScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const entry = useLiveQuery(() => (id ? protoDB.entries.get(id) : Promise.resolve(undefined)), [id]);
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
 
   if (entry === undefined) return <p className="proto-help">Loading…</p>;
   if (!entry) return (
@@ -16,6 +20,28 @@ const EntryScreen = () => {
   );
 
   const toggleDossier = () => protoDB.entries.update(entry.id, { in_dossier: !entry.in_dossier });
+
+  const saveClarification = async () => {
+    const body = text.trim();
+    if (!body) return;
+    setSaving(true);
+    const next = [
+      ...entry.clarifications,
+      { id: crypto.randomUUID(), text: body, created_at: new Date().toISOString() },
+    ];
+    await protoDB.entries.update(entry.id, { clarifications: next });
+    setText('');
+    setAdding(false);
+    setSaving(false);
+  };
+
+  const clarifications = [...entry.clarifications].sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const details: Array<[string, string]> = [];
+  if (entry.category) details.push(['Category', entry.category]);
+  if (entry.context) details.push(['Context', entry.context]);
+  if (entry.event_date) details.push(['Event date', `${entry.event_date}${entry.event_time ? ` · ${entry.event_time}` : ''}`]);
+  if (entry.people.length > 0) details.push(['People', entry.people.join(', ')]);
 
   return (
     <div>
@@ -32,52 +58,102 @@ const EntryScreen = () => {
       <div className="proto-entry-meta" style={{ marginBottom: 12 }}>
         <span>Sealed {new Date(entry.sealed_at).toLocaleString()}</span>
         <span className="proto-chip">Sealed</span>
+        {clarifications.length > 0 && (
+          <span className="proto-chip">{clarifications.length} clarification{clarifications.length === 1 ? '' : 's'}</span>
+        )}
         {entry.in_dossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
       </div>
 
       <div className="proto-sealed-note">
-        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--p-muted)', marginBottom: 6 }}>
-          Original record — unchanged
-        </div>
+        <div className="proto-sealed-label">Original record — unchanged</div>
         <div style={{ whiteSpace: 'pre-wrap', fontSize: 15, lineHeight: 1.55 }}>{entry.original_text}</div>
       </div>
 
-      {entry.clarifications.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <h2 className="proto-h2">Added clarifications</h2>
-          {entry.clarifications.map(c => (
-            <div key={c.id} className="proto-entry">
-              <div className="proto-entry-meta">{new Date(c.created_at).toLocaleString()}</div>
-              <div style={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>{c.text}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <section style={{ marginTop: 20 }}>
+        <h2 className="proto-h2">Clarifications</h2>
+        <p className="proto-help" style={{ marginBottom: 10 }}>
+          A clarification adds context without changing your original record.
+        </p>
 
-      <div style={{ marginTop: 16 }}>
+        {clarifications.length === 0 && !adding && (
+          <div className="proto-empty">No clarifications added.</div>
+        )}
+
+        {clarifications.map((c, i) => (
+          <div key={c.id} className="proto-clar">
+            <div className="proto-entry-meta">
+              <span>Clarification {i + 1}</span>
+              <span>{new Date(c.created_at).toLocaleString()}</span>
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.text}</div>
+          </div>
+        ))}
+
+        {adding ? (
+          <div style={{ marginTop: 10 }}>
+            <textarea
+              className="proto-textarea"
+              autoFocus
+              placeholder="Add context, a correction of understanding, or what happened next."
+              value={text}
+              onChange={e => setText(e.target.value)}
+            />
+            <div className="proto-actions-row" style={{ marginTop: 8 }}>
+              <button className="proto-btn" data-variant="ghost" onClick={() => { setAdding(false); setText(''); }}>
+                Cancel
+              </button>
+              <button
+                className="proto-btn"
+                data-variant="primary"
+                disabled={!text.trim() || saving}
+                onClick={saveClarification}
+              >
+                Save clarification
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button className="proto-btn" style={{ width: '100%', marginTop: 10 }} onClick={() => setAdding(true)}>
+            Add clarification
+          </button>
+        )}
+      </section>
+
+      <section style={{ marginTop: 20 }}>
         <h2 className="proto-h2">Organisational details</h2>
         <div className="proto-entry">
-          <div className="proto-entry-meta">
-            {entry.category && <span className="proto-chip">{entry.category}</span>}
-            {entry.context && <span className="proto-chip">{entry.context}</span>}
-            {entry.event_date && <span className="proto-chip">Event: {entry.event_date}{entry.event_time ? ` ${entry.event_time}` : ''}</span>}
-            {entry.people.map(p => <span key={p} className="proto-chip">{p}</span>)}
-            {!entry.category && !entry.context && !entry.event_date && entry.people.length === 0 && (
-              <span style={{ color: 'var(--p-muted)', fontSize: 12 }}>No details added.</span>
-            )}
-          </div>
+          {details.length === 0 ? (
+            <p className="proto-help" style={{ margin: 0 }}>No details added.</p>
+          ) : (
+            <dl className="proto-deflist">
+              {details.map(([k, v]) => (
+                <div key={k}>
+                  <dt>{k}</dt>
+                  <dd>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
           <button
             className="proto-btn"
-            style={{ marginTop: 8 }}
+            style={{ marginTop: 10, width: '100%' }}
             onClick={() => navigate(`/prototype/review/${entry.id}`)}
           >
             Edit details
           </button>
         </div>
-      </div>
+        <p className="proto-help" style={{ marginTop: 6 }}>
+          Details are organisational only. Editing them never alters the sealed wording above.
+        </p>
+      </section>
 
-      <div style={{ marginTop: 16 }}>
-        <button className="proto-btn" data-variant={entry.in_dossier ? 'ghost' : 'primary'} onClick={toggleDossier} style={{ width: '100%' }}>
+      <div style={{ marginTop: 20 }}>
+        <button
+          className="proto-btn"
+          data-variant={entry.in_dossier ? 'ghost' : 'primary'}
+          onClick={toggleDossier}
+          style={{ width: '100%' }}
+        >
           {entry.in_dossier ? 'Remove from dossier' : 'Include in dossier'}
         </button>
       </div>
