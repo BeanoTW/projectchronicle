@@ -2,8 +2,18 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import { protoDB } from '../db';
-
-type View = 'list' | 'compact';
+import FilterSheet from '../components/FilterSheet';
+import MonthView from '../components/MonthView';
+import {
+  activeFilterCount,
+  buildChips,
+  cloneFilters,
+  emptyFilters,
+  matchesFilters,
+  matchesSearch,
+  notebookState,
+  type NotebookFilters,
+} from '../filters';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
   day: 'numeric', month: 'short', year: 'numeric',
@@ -14,24 +24,46 @@ const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(undefined, {
 
 const NotebookScreen = () => {
   const navigate = useNavigate();
-  const [q, setQ] = useState('');
-  const [view, setView] = useState<View>('list');
+  const [q, setQ] = useState(notebookState.q);
+  const [view, setView] = useState<'list' | 'month'>(notebookState.view);
+  const [month, setMonth] = useState(notebookState.month);
+  const [selectedDate, setSelectedDate] = useState<string | null>(notebookState.selectedDate);
+  const [filters, setFilters] = useState<NotebookFilters>(cloneFilters(notebookState.filters));
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  /* Persist notebook UI state for the session so it survives entry navigation. */
+  const persist = (patch: Partial<typeof notebookState>) => Object.assign(notebookState, patch);
 
   const entries = useLiveQuery(async () => {
     const rows = await protoDB.entries.toArray();
     return rows.sort((a, b) => b.sealed_at.localeCompare(a.sealed_at));
   }, [], []);
 
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return entries;
-    return entries.filter(e =>
-      e.original_text.toLowerCase().includes(term) ||
-      (e.title ?? '').toLowerCase().includes(term) ||
-      (e.category ?? '').toLowerCase().includes(term) ||
-      e.people.some(p => p.toLowerCase().includes(term))
-    );
-  }, [entries, q]);
+  const categories = useMemo(
+    () => Array.from(new Set(entries.map(e => e.category).filter(Boolean) as string[])).sort(),
+    [entries],
+  );
+  const people = useMemo(
+    () => Array.from(new Set(entries.flatMap(e => e.people))).sort(),
+    [entries],
+  );
+
+  const searched = useMemo(() => entries.filter(e => matchesSearch(e, q)), [entries, q]);
+  const filtered = useMemo(() => searched.filter(e => matchesFilters(e, filters)), [searched, filters]);
+
+  const chips = buildChips(filters);
+  const count = activeFilterCount(filters);
+
+  const applyFilters = (f: NotebookFilters) => {
+    setFilters(f);
+    persist({ filters: cloneFilters(f) });
+    setSheetOpen(false);
+  };
+
+  const totalInMonth = useMemo(
+    () => entries.filter(e => (e.event_date ?? e.sealed_at.slice(0, 10)).startsWith(month)).length,
+    [entries, month],
+  );
 
   return (
     <div>
@@ -42,33 +74,62 @@ const NotebookScreen = () => {
           className="proto-input"
           placeholder="Search records"
           value={q}
-          onChange={e => setQ(e.target.value)}
+          onChange={e => { setQ(e.target.value); persist({ q: e.target.value }); }}
         />
         <div className="proto-viewswitch" role="group" aria-label="View">
-          <button data-active={view === 'list'} onClick={() => setView('list')}>List</button>
-          <button data-active={view === 'compact'} onClick={() => setView('compact')}>Compact</button>
+          <button data-active={view === 'list'} onClick={() => { setView('list'); persist({ view: 'list' }); }}>List</button>
+          <button data-active={view === 'month'} onClick={() => { setView('month'); persist({ view: 'month' }); }}>Month</button>
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <button
-          className="proto-btn"
-          onClick={() => alert('Filters panel arrives in Phase 2.')}
-          style={{ width: '100%' }}
-        >
-          Filters
+      <div style={{ marginBottom: 10 }}>
+        <button className="proto-btn" onClick={() => setSheetOpen(true)} style={{ width: '100%' }}>
+          Filters{count > 0 ? ` · ${count}` : ''}
         </button>
       </div>
 
-      {filtered.length === 0 ? (
+      {chips.length > 0 && (
+        <div className="proto-chipwrap" style={{ marginBottom: 12 }}>
+          {chips.map(c => (
+            <button
+              key={c.key}
+              className="proto-activechip"
+              onClick={() => applyFilters(c.remove(filters))}
+              aria-label={`Remove filter ${c.label}`}
+            >
+              {c.label} <span aria-hidden="true">×</span>
+            </button>
+          ))}
+          <button
+            className="proto-activechip"
+            data-tone="clear"
+            onClick={() => applyFilters(cloneFilters(emptyFilters))}
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {view === 'month' ? (
+        <MonthView
+          month={month}
+          entries={filtered}
+          totalInMonth={totalInMonth}
+          selectedDate={selectedDate}
+          onMonthChange={m => { setMonth(m); persist({ month: m, selectedDate: null }); }}
+          onSelectDate={d => { setSelectedDate(d); persist({ selectedDate: d }); }}
+          onOpenEntry={id => navigate(`/prototype/entry/${id}`)}
+        />
+      ) : filtered.length === 0 ? (
         <div className="proto-empty">
-          {q ? 'No records match that search.' : 'No records yet. Tap Capture to start.'}
+          {entries.length === 0
+            ? 'No records yet. Tap Capture to start.'
+            : count > 0 || q
+            ? 'No records match your search and filters.'
+            : 'No records yet.'}
         </div>
       ) : (
         filtered.map(e => {
-          const preview = e.original_text.length > 140 && view === 'compact'
-            ? e.original_text.slice(0, 140) + '…'
-            : e.original_text;
           const hasClar = e.clarifications.length > 0;
           return (
             <button
@@ -89,17 +150,23 @@ const NotebookScreen = () => {
               )}
               <div style={{
                 fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
-                display: '-webkit-box',
-                WebkitLineClamp: view === 'compact' ? 2 : 4,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
+                display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
               }}>
-                {preview}
+                {e.original_text}
               </div>
             </button>
           );
         })
       )}
+
+      <FilterSheet
+        open={sheetOpen}
+        value={filters}
+        categories={categories}
+        people={people}
+        onClose={() => setSheetOpen(false)}
+        onApply={applyFilters}
+      />
     </div>
   );
 };
