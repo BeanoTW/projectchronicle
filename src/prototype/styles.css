@@ -285,3 +285,258 @@
 :root.dark .proto-root .proto-btn { background: #1c1a16; color: var(--p-ink); }
 :root.dark .proto-root .proto-btn[data-variant="primary"] { background: var(--p-brass); color: #14120f; border-color: var(--p-brass); }
 :root.dark .proto-root .proto-fab { background: var(--p-brass); color: #14120f; }
+
+/* ---------- Phase 2: filters, month view, clarifications, dossier ---------- */
+
+.proto-root .proto-chipwrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.proto-root .proto-selchip {
+  border: 1px solid var(--p-line);
+  background: transparent;
+  color: var(--p-ink-2);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  min-height: 36px;
+  cursor: pointer;
+}
+.proto-root .proto-selchip[data-on="true"] {
+  background: var(--p-accent-bg);
+  border-color: var(--p-brass-soft);
+  color: var(--p-brass);
+  font-weight: 600;
+}
+
+.proto-root .proto-activechip {
+  border: 1px solid var(--p-line);
+  background: var(--p-paper-2);
+  color: var(--p-ink-2);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  min-height: 30px;
+  cursor: pointer;
+}
+.proto-root .proto-activechip[data-tone="clear"] {
+  background: transparent;
+  color: var(--p-brass);
+  border-style: dashed;
+}
+
+.proto-root .proto-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 15, 0.45);
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.proto-root .proto-sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--p-paper);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  border: 1px solid var(--p-line);
+  border-bottom: none;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.proto-root .proto-sheet-grip {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--p-line);
+  margin: 8px auto 0;
+}
+
+.proto-root .proto-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--p-line);
+}
+
+.proto-root .proto-sheet-body {
+  padding: 12px 16px 16px;
+  overflow-y: auto;
+}
+
+.proto-root .proto-sheet-foot {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--p-line);
+  background: var(--p-paper);
+}
+.proto-root .proto-sheet-foot .proto-btn { flex: 1; }
+
+.proto-root .proto-fgroup { margin-bottom: 18px; }
+
+.proto-root .proto-flabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--p-muted);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.proto-root .proto-daterow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.proto-root .proto-daterow label { display: block; }
+.proto-root .proto-daterow .proto-input { width: 100%; margin-top: 2px; }
+
+/* Month view */
+.proto-root .proto-monthbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.proto-root .proto-monthbar .proto-btn { min-width: 44px; font-size: 18px; }
+.proto-root .proto-monthtitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.proto-root .proto-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.proto-root .proto-cal-wd {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--p-muted);
+  padding-bottom: 4px;
+}
+.proto-root .proto-cal-day {
+  position: relative;
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--p-ink-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 13px;
+  cursor: default;
+}
+.proto-root .proto-cal-day[data-has="true"] {
+  background: var(--p-paper-2);
+  border-color: var(--p-line);
+  color: var(--p-ink);
+  cursor: pointer;
+}
+.proto-root .proto-cal-day[data-selected="true"] {
+  background: var(--p-accent-bg);
+  border-color: var(--p-brass);
+  box-shadow: inset 0 0 0 1px var(--p-brass);
+}
+.proto-root .proto-cal-num { font-variant-numeric: tabular-nums; }
+.proto-root .proto-cal-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--p-brass);
+  line-height: 1;
+}
+
+.proto-root .proto-dayresults { margin-top: 16px; }
+
+/* Clarifications */
+.proto-root .proto-clar {
+  border-left: 2px solid var(--p-brass-soft);
+  background: var(--p-paper-2);
+  border-radius: 0 8px 8px 0;
+  padding: 10px 12px;
+  margin-top: 8px;
+  color: var(--p-ink-2);
+}
+
+.proto-root .proto-sealed-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--p-muted);
+  margin-bottom: 6px;
+}
+
+.proto-root .proto-deflist { margin: 0; }
+.proto-root .proto-deflist > div {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-deflist > div:last-child { border-bottom: none; }
+.proto-root .proto-deflist dt {
+  flex: 0 0 42%;
+  font-size: 12px;
+  color: var(--p-muted);
+}
+.proto-root .proto-deflist dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--p-ink);
+}
+
+/* Dossier */
+.proto-root .proto-selectrow {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--p-line);
+  cursor: pointer;
+}
+.proto-root .proto-selectrow input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--p-brass); }
+.proto-root .proto-selectrow > span { display: flex; flex-direction: column; gap: 2px; }
+.proto-root .proto-selectrow-title { font-size: 14px; color: var(--p-ink); }
+
+.proto-root .proto-preview {
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  background: var(--p-paper-2);
+  padding: 14px;
+}
+.proto-root .proto-preview-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--p-line);
+  margin-bottom: 12px;
+}
+.proto-root .proto-preview-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-preview-item:last-child { border-bottom: none; }
+.proto-root .proto-preview-num {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--p-muted);
+  margin-bottom: 4px;
+}
+
+:root.dark .proto-root .proto-sheet { background: var(--p-paper); }
+:root.dark .proto-root .proto-sheet-foot { background: var(--p-paper); }
+:root.dark .proto-root .proto-clar,
+:root.dark .proto-root .proto-preview { background: #1c1a16; }
