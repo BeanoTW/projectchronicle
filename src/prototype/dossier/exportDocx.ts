@@ -70,7 +70,7 @@ export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierC
       heading: HeadingLevel.HEADING_2,
       keepNext: true,
       spacing: { before: 320, after: 60 },
-      children: [new TextRun({ text: r.heading, size: 28, bold: true, font: 'Arial' })],
+      children: [new TextRun({ text: r.heading, size: 28, bold: true, font: 'Arial', color: '1A1A1A' })],
     }));
     if (r.title) children.push(body(r.title, { italics: true, after: 60 }));
     children.push(body(`Sealed ${r.sealedLabel}`, { size: 17, color: '767676', after: 120 }));
@@ -120,15 +120,27 @@ export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierC
   doc.integrity.forEach(p => children.push(body(p, { after: 160 })));
 
   const wordDocument = new Document({
-    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    styles: {
+      default: { document: { run: { font: 'Arial', size: 22, color: '1A1A1A' } } },
+      paragraphStyles: [
+        { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+          run: { size: 26, bold: true, font: 'Arial', color: '1A1A1A' },
+          paragraph: { spacing: { before: 320, after: 200 }, outlineLevel: 0 } },
+        { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
+          run: { size: 28, bold: true, font: 'Arial', color: '1A1A1A' },
+          paragraph: { spacing: { before: 320, after: 60 }, outlineLevel: 1 } },
+      ],
+    },
     sections: [{
       properties: {
+        titlePage: true, // cover page carries no running header
         page: {
           size: { width: 11906, height: 16838 }, // A4
           margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, // 20mm
         },
       },
       headers: {
+        first: new Header({ children: [new Paragraph({ children: [] })] }),
         default: new Header({
           children: [new Paragraph({
             spacing: { after: 200 },
@@ -137,6 +149,7 @@ export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierC
         }),
       },
       footers: {
+        first: new Footer({ children: [new Paragraph({ children: [] })] }),
         default: new Footer({
           children: [new Paragraph({
             tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
