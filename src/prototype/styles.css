@@ -540,3 +540,162 @@
 :root.dark .proto-root .proto-sheet-foot { background: var(--p-paper); }
 :root.dark .proto-root .proto-clar,
 :root.dark .proto-root .proto-preview { background: #1c1a16; }
+
+/* ============================================================
+   Dossier document preview + print layout (prototype-scoped)
+   ============================================================ */
+.proto-root .proto-exportbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.proto-root .proto-doc {
+  color: var(--p-ink);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.proto-root .proto-page {
+  background: #fffdf8;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  padding: 22px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+.proto-root .proto-doc-cover {
+  padding: 46px 20px 40px;
+}
+.proto-root .proto-doc-title {
+  font-size: 30px;
+  line-height: 1.15;
+  margin: 0 0 12px;
+}
+.proto-root .proto-doc-sub { margin: 0 0 4px; font-size: 15px; color: var(--p-ink-2); }
+.proto-root .proto-doc-fine { margin: 4px 0 0; font-size: 12px; color: var(--p-muted); }
+
+.proto-root .proto-doc-h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--p-ink-2);
+  margin: 0 0 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-doc-h3 { font-size: 17px; margin: 0 0 2px; }
+.proto-root .proto-doc-h4 { font-size: 14px; margin: 0 0 6px; }
+.proto-root .proto-doc-rectitle { margin: 0 0 2px; font-style: italic; color: var(--p-ink-2); }
+
+.proto-root .proto-doc-toc { list-style: none; margin: 0; padding: 0; }
+.proto-root .proto-doc-toc li { padding: 3px 0; font-size: 14px; }
+.proto-root .proto-doc-toc li[data-kind="record"] { padding-left: 16px; color: var(--p-ink-2); font-size: 13px; }
+
+.proto-root .proto-doc-dl { margin: 0; }
+.proto-root .proto-doc-dl dt {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--p-muted);
+}
+.proto-root .proto-doc-dl dd { margin: 0 0 12px; font-size: 14px; }
+
+.proto-root .proto-doc-record {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-doc-record:last-child { border-bottom: none; }
+
+.proto-root .proto-doc-details {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  background: var(--p-paper-2);
+}
+.proto-root .proto-doc-details > div { display: flex; gap: 10px; padding: 2px 0; }
+.proto-root .proto-doc-details dt { flex: 0 0 38%; font-size: 12px; color: var(--p-muted); }
+.proto-root .proto-doc-details dd { margin: 0; font-size: 13px; }
+
+.proto-root .proto-doc-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--p-muted); margin: 12px 0 4px;
+}
+.proto-root .proto-doc-body { white-space: pre-wrap; font-size: 14.5px; line-height: 1.62; }
+.proto-root .proto-doc-clar {
+  border-left: 2px solid var(--p-brass-soft);
+  padding: 4px 0 4px 12px;
+  margin: 8px 0;
+}
+.proto-root .proto-doc-note { font-size: 13px; color: var(--p-muted); margin: 0 0 12px; }
+.proto-root .proto-doc-empty { font-size: 14px; color: var(--p-muted); font-style: italic; }
+.proto-root .proto-doc-appitem { padding: 10px 0; border-bottom: 1px solid var(--p-line); }
+.proto-root .proto-doc-appitem:last-child { border-bottom: none; }
+.proto-root .proto-doc-history { margin: 0; padding-left: 18px; font-size: 13px; color: var(--p-ink-2); }
+
+:root.dark .proto-root .proto-page { background: #1c1a16; }
+
+/* ---------------- Print: A4, black and white, sensible breaks -------------- */
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+}
+
+@media print {
+  body * { visibility: hidden !important; }
+  #proto-doc, #proto-doc * { visibility: visible !important; }
+  #proto-doc {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  .proto-noprint, .proto-root .proto-noprint,
+  .proto-root .proto-banner,
+  .proto-root .proto-topbar,
+  .proto-root .proto-bottomnav,
+  .proto-root .proto-fab { display: none !important; }
+
+  .proto-root .proto-page {
+    background: #fff !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 10mm !important;
+    break-after: page;
+    page-break-after: always;
+  }
+  .proto-root .proto-page:last-child { break-after: auto; page-break-after: auto; }
+  .proto-root .proto-doc-cover { padding-top: 45mm !important; }
+  .proto-root .proto-doc-title { font-size: 26pt; }
+
+  .proto-root .proto-doc-h2 {
+    font-size: 11pt;
+    border-bottom: 1pt solid #000;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .proto-root .proto-doc-h3,
+  .proto-root .proto-doc-h4 { break-after: avoid; page-break-after: avoid; }
+
+  .proto-root .proto-doc-record,
+  .proto-root .proto-doc-appitem,
+  .proto-root .proto-doc-clar {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-color: #999 !important;
+  }
+  .proto-root .proto-doc-details {
+    background: #fff !important;
+    border: 0.5pt solid #666 !important;
+  }
+  .proto-root .proto-doc-fine,
+  .proto-root .proto-doc-label,
+  .proto-root .proto-doc-note,
+  .proto-root .proto-doc-dl dt,
+  .proto-root .proto-doc-details dt { color: #333 !important; }
+  .proto-root .proto-doc-clar { border-left: 2pt solid #000 !important; }
+}
