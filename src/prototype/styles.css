@@ -699,3 +699,64 @@
   .proto-root .proto-doc-details dt { color: #333 !important; }
   .proto-root .proto-doc-clar { border-left: 2pt solid #000 !important; }
 }
+
+/* ---------- Phase 4: voice capture, attachments and evidence ---------- */
+.proto-root .proto-media-box {
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+  background: var(--p-paper-2, transparent);
+}
+.proto-root .proto-media-box[data-live] { border-color: var(--p-brass); }
+.proto-root .proto-media-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--p-muted); margin-bottom: 10px;
+}
+.proto-root .proto-timer { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--p-ink); text-transform: none; letter-spacing: 0; }
+.proto-root .proto-media-meta { font-size: 13px; color: var(--p-ink-2); margin-bottom: 8px; }
+.proto-root .proto-media-error {
+  font-size: 12.5px; line-height: 1.45; margin: 8px 0 0;
+  color: #a3341f; overflow-wrap: anywhere;
+}
+:root.dark .proto-root .proto-media-error { color: #f0a08c; }
+.proto-root .proto-audio { width: 100%; margin-top: 8px; max-width: 100%; }
+.proto-root .proto-video { width: 100%; max-height: 240px; margin-top: 8px; border-radius: 8px; background: #000; }
+
+.proto-root .proto-att-row {
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.proto-root .proto-att-row[data-later] { border-style: dashed; }
+.proto-root .proto-att-top { display: flex; align-items: flex-start; gap: 10px; }
+.proto-root .proto-att-thumb {
+  width: 44px; height: 44px; object-fit: cover; border-radius: 8px;
+  border: 1px solid var(--p-line); flex: 0 0 auto;
+}
+.proto-root .proto-att-badge {
+  flex: 0 0 auto; min-width: 44px; height: 44px; border-radius: 8px;
+  border: 1px solid var(--p-line); display: flex; align-items: center; justify-content: center;
+  font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--p-muted);
+  padding: 0 6px;
+}
+.proto-root .proto-att-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.proto-root .proto-att-name {
+  font-size: 14px; color: var(--p-ink); overflow-wrap: anywhere; word-break: break-word;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.proto-root .proto-att-desc { font-size: 13px; line-height: 1.45; color: var(--p-ink-2); margin: 2px 0 0; overflow-wrap: anywhere; }
+
+/* Document preview evidence */
+.proto-root .proto-doc-evidence { margin-top: 12px; }
+.proto-root .proto-doc-evimg { max-width: 100%; max-height: 260px; border: 1px solid #d8d3c8; border-radius: 2px; display: block; margin-bottom: 4px; }
+.proto-root .proto-doc-evitem { margin-bottom: 10px; }
+.proto-root .proto-doc-evitem .proto-doc-fine { overflow-wrap: anywhere; }
+
+@media (max-width: 380px) {
+  .proto-root .proto-media-box { padding: 10px; }
+  .proto-root .proto-att-top { gap: 8px; }
+}
