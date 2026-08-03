@@ -34,15 +34,56 @@ export interface PrototypeMeta {
   value: string;
 }
 
+/* ---------- Phase 4: media (voice recordings + attachments) ---------- */
+
+export type MediaKind = 'voice' | 'attachment';
+/** `original` = present at the moment the record was sealed. `later` = appended afterwards. */
+export type MediaRole = 'original' | 'later';
+
+export interface PrototypeMedia {
+  id: string;
+  entry_id: string;
+  kind: MediaKind;
+  role: MediaRole;
+  name: string;
+  mime: string;
+  size: number;
+  /** Voice recordings only. Milliseconds. */
+  duration_ms: number | null;
+  description: string | null;
+  added_at: string;           // ISO — when this file became part of the record
+  /** Visible exclusion instead of deletion for sealed evidence. */
+  excluded_from_dossier: boolean;
+  blob: Blob;
+}
+
+export interface PrototypeMediaEvent {
+  id: string;
+  media_id: string;
+  entry_id: string;
+  at: string;                 // ISO
+  action: 'added' | 'described' | 'excluded' | 'included' | 'removed_before_seal';
+  detail: string | null;
+}
+
 class PrototypeDB extends Dexie {
   entries!: Table<PrototypeEntry, string>;
   meta!: Table<PrototypeMeta, string>;
+  media!: Table<PrototypeMedia, string>;
+  media_events!: Table<PrototypeMediaEvent, string>;
 
   constructor() {
     super('chronicle_prototype');
     this.version(1).stores({
       entries: 'id, sealed_at, event_date, in_dossier',
       meta: 'key',
+    });
+    // v2 adds media storage. Existing entries are untouched by this upgrade.
+    this.version(2).stores({
+      entries: 'id, sealed_at, event_date, in_dossier',
+      meta: 'key',
+      media: 'id, entry_id, kind, role, added_at, [entry_id+kind]',
+      media_events: 'id, media_id, entry_id, at',
     });
   }
 }
@@ -54,6 +95,8 @@ export const PROTOTYPE_DB_NAME = 'chronicle_prototype';
 export async function resetPrototypeDB() {
   await protoDB.entries.clear();
   await protoDB.meta.clear();
+  await protoDB.media.clear();
+  await protoDB.media_events.clear();
   await seedPrototypeIfEmpty(true);
 }
 
