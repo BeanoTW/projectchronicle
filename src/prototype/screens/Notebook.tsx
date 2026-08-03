@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { protoDB } from '../db';
+import { protoDB, type PrototypeMedia } from '../db';
+import { emptySummary, summariseMedia } from '../media/media';
 import FilterSheet from '../components/FilterSheet';
 import MonthView from '../components/MonthView';
 import {
@@ -39,6 +40,9 @@ const NotebookScreen = () => {
     return rows.sort((a, b) => b.sealed_at.localeCompare(a.sealed_at));
   }, [], []);
 
+  const mediaRows = useLiveQuery(() => protoDB.media.toArray(), [], [] as PrototypeMedia[]);
+  const summaries = useMemo(() => summariseMedia(mediaRows), [mediaRows]);
+
   const categories = useMemo(
     () => Array.from(new Set(entries.map(e => e.category).filter(Boolean) as string[])).sort(),
     [entries],
@@ -49,7 +53,10 @@ const NotebookScreen = () => {
   );
 
   const searched = useMemo(() => entries.filter(e => matchesSearch(e, q)), [entries, q]);
-  const filtered = useMemo(() => searched.filter(e => matchesFilters(e, filters)), [searched, filters]);
+  const filtered = useMemo(
+    () => searched.filter(e => matchesFilters(e, filters, summaries.get(e.id) ?? emptySummary)),
+    [searched, filters, summaries],
+  );
 
   const chips = buildChips(filters);
   const count = activeFilterCount(filters);
@@ -131,6 +138,7 @@ const NotebookScreen = () => {
       ) : (
         filtered.map(e => {
           const hasClar = e.clarifications.length > 0;
+          const sum = summaries.get(e.id) ?? emptySummary;
           return (
             <button
               key={e.id}
@@ -142,6 +150,12 @@ const NotebookScreen = () => {
                 <span>{fmtDate(e.sealed_at)} · {fmtTime(e.sealed_at)}</span>
                 <span className="proto-chip">Sealed</span>
                 {hasClar && <span className="proto-chip">Clarification added</span>}
+                {sum.hasVoice && <span className="proto-chip">Voice</span>}
+                {sum.attachmentCount > 0 && (
+                  <span className="proto-chip">
+                    {sum.attachmentCount} attachment{sum.attachmentCount === 1 ? '' : 's'}
+                  </span>
+                )}
                 {e.in_dossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
                 {e.category && <span className="proto-chip">{e.category}</span>}
               </div>
@@ -152,7 +166,7 @@ const NotebookScreen = () => {
                 fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
                 display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
               }}>
-                {e.original_text}
+                {e.original_text || 'Voice record — no written wording.'}
               </div>
             </button>
           );
