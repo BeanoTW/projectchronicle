@@ -221,6 +221,12 @@ export function buildDossierDocument(
     'Clarifications are additions made after a record was sealed. They are shown separately, with the date they were added, and never merged into the original wording.',
     'Organisational details such as category, context and people are labels added by the author for organisation. They are kept apart from the original wording.',
     'Records appear in chronological order by the date each one was sealed.',
+    ...(hasEvidence
+      ? [
+        'Voice records and attachments are listed with the record they belong to, showing when each file was added. Files present when a record was sealed are distinguished from files added afterwards.',
+        'Chronicle has not analysed, transcribed or independently verified the contents of any attached file.',
+      ]
+      : []),
     `This document was generated on ${fmtDateTime(now.toISOString())} and contains ${records.length} record${records.length === 1 ? '' : 's'}.`,
     'This document is a personal record. It is not a certified or legally verified document.',
   ];
@@ -238,7 +244,9 @@ export function buildDossierDocument(
     contents,
     integrity,
     hasClarifications,
+    hasEvidence,
   };
+
 }
 
 export const safeFileName = (title: string) =>
