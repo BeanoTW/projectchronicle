@@ -3,11 +3,13 @@
 import { jsPDF } from 'jspdf';
 import type { DossierConfig, DossierDocumentModel } from './document';
 import { safeFileName } from './document';
+import { prepareEvidenceImages } from './evidenceImages';
 
 const M = 56;          // margin (pt) ≈ 20mm
 const LEAD = 14;       // body line height
 
-export function exportDossierPdf(doc: DossierDocumentModel, cfg: DossierConfig) {
+export async function exportDossierPdf(doc: DossierDocumentModel, cfg: DossierConfig) {
+  const images = await prepareEvidenceImages(doc);
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = pdf.internal.pageSize.getWidth();
   const H = pdf.internal.pageSize.getHeight();
@@ -118,6 +120,33 @@ export function exportDossierPdf(doc: DossierDocumentModel, cfg: DossierConfig) 
         text(c.text, { size: 10, indent: 14, gap: 4 });
       });
     }
+    if (r.evidence.length > 0) {
+      y += 6;
+      text('Evidence', { size: 8.5, style: 'bold', color: [120, 120, 120], gap: 2 });
+      r.evidence.forEach(e => {
+        const img = e.type === 'image' ? images.get(e.id) : undefined;
+        if (img) {
+          const maxW = CW - 14;
+          const maxH = 260;
+          const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          need(h + 30);
+          try {
+            pdf.addImage(img.dataUrl, 'JPEG', M + 14, y, w, h);
+            y += h + 4;
+          } catch {
+            /* fall through to the textual reference below */
+          }
+        }
+        const meta = [e.typeLabel, e.name, e.sizeLabel, e.durationLabel].filter(Boolean).join(' · ');
+        text(meta, { size: 8.5, color: [110, 110, 110], indent: 14 });
+        if (e.description) text(e.description, { size: 9.5, indent: 14 });
+        text(`${e.roleLabel} · added ${e.addedLabel}`, { size: 8.5, color: [130, 130, 130], indent: 14, gap: 4 });
+      });
+      text('File contents have not been analysed or verified.', { size: 8, style: 'italic', color: [140, 140, 140], indent: 14, gap: 2 });
+    }
+
     rule(10, 4);
   });
 

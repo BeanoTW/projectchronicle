@@ -1,4 +1,34 @@
-import type { DossierConfig, DossierDocumentModel } from '../dossier/document';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { protoDB, type PrototypeMedia } from '../db';
+import type { DossierConfig, DossierDocumentModel, DossierEvidenceItem } from '../dossier/document';
+import { useBlobUrl } from '../media/useBlobUrl';
+
+const EvidenceMedia = ({ item }: { item: DossierEvidenceItem }) => {
+  const row = useLiveQuery(() => protoDB.media.get(item.id), [item.id]) as PrototypeMedia | undefined;
+  const previewable = item.type === 'image' || item.type === 'audio';
+  const url = useBlobUrl(previewable ? row?.blob ?? null : null);
+  if (!url) return null;
+  if (item.type === 'image') return <img className="proto-doc-evimg" src={url} alt={item.description ?? item.name} />;
+  return <audio className="proto-audio proto-noprint" controls src={url} preload="metadata" />;
+};
+
+const EvidenceBlock = ({ items }: { items: DossierEvidenceItem[] }) => (
+  <div className="proto-doc-evidence">
+    <p className="proto-doc-label">Evidence</p>
+    {items.map(e => (
+      <div key={e.id} className="proto-doc-evitem">
+        <EvidenceMedia item={e} />
+        <p className="proto-doc-fine">
+          {e.typeLabel} · {e.name} · {e.sizeLabel}
+          {e.durationLabel ? ` · ${e.durationLabel}` : ''}
+        </p>
+        {e.description && <p className="proto-doc-body">{e.description}</p>}
+        <p className="proto-doc-fine">{e.roleLabel} · added {e.addedLabel}</p>
+      </div>
+    ))}
+    <p className="proto-doc-fine">Chronicle has not analysed or verified the contents of these files.</p>
+  </div>
+);
 
 interface Props {
   doc: DossierDocumentModel;
@@ -79,6 +109,8 @@ const DossierPreview = ({ doc, cfg, onOpenRecord }: Props) => (
                 ))}
               </>
             )}
+
+            {r.evidence.length > 0 && <EvidenceBlock items={r.evidence} />}
 
             {onOpenRecord && (
               <button

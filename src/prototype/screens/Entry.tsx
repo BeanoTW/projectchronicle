@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { protoDB } from '../db';
+import EvidenceSection from '../media/EvidenceSection';
 
 const EntryScreen = () => {
   const { id } = useParams();
@@ -65,8 +66,10 @@ const EntryScreen = () => {
       </div>
 
       <div className="proto-sealed-note">
-        <div className="proto-sealed-label">Original record — unchanged</div>
-        <div style={{ whiteSpace: 'pre-wrap', fontSize: 15, lineHeight: 1.55 }}>{entry.original_text}</div>
+        <div className="proto-sealed-label">Written record — unchanged</div>
+        {entry.original_text
+          ? <div style={{ whiteSpace: 'pre-wrap', fontSize: 15, lineHeight: 1.55 }}>{entry.original_text}</div>
+          : <p className="proto-help" style={{ margin: 0 }}>No written wording. This record was captured as a voice record.</p>}
       </div>
 
       <section style={{ marginTop: 20 }}>
@@ -118,6 +121,8 @@ const EntryScreen = () => {
           </button>
         )}
       </section>
+
+      <EvidenceSection entryId={entry.id} />
 
       <section style={{ marginTop: 20 }}>
         <h2 className="proto-h2">Organisational details</h2>

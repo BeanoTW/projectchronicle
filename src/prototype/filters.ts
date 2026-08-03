@@ -1,5 +1,6 @@
 // Prototype-only filter model. Pure functions over PrototypeEntry.
 import type { PrototypeEntry } from './db';
+import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/media';
 
 export type DossierStatus = 'any' | 'included' | 'excluded';
 
@@ -10,6 +11,9 @@ export interface NotebookFilters {
   to: string | null;     // YYYY-MM-DD
   dossier: DossierStatus;
   withClarifications: boolean;
+  hasVoice: boolean;
+  hasAttachments: boolean;
+  attachmentTypes: AttachmentType[];
 }
 
 export const emptyFilters: NotebookFilters = {
@@ -19,12 +23,16 @@ export const emptyFilters: NotebookFilters = {
   to: null,
   dossier: 'any',
   withClarifications: false,
+  hasVoice: false,
+  hasAttachments: false,
+  attachmentTypes: [],
 };
 
 export const cloneFilters = (f: NotebookFilters): NotebookFilters => ({
   ...f,
   categories: [...f.categories],
   people: [...f.people],
+  attachmentTypes: [...f.attachmentTypes],
 });
 
 export const activeFilterCount = (f: NotebookFilters): number =>
@@ -33,7 +41,10 @@ export const activeFilterCount = (f: NotebookFilters): number =>
   (f.from ? 1 : 0) +
   (f.to ? 1 : 0) +
   (f.dossier !== 'any' ? 1 : 0) +
-  (f.withClarifications ? 1 : 0);
+  (f.withClarifications ? 1 : 0) +
+  (f.hasVoice ? 1 : 0) +
+  (f.hasAttachments ? 1 : 0) +
+  f.attachmentTypes.length;
 
 /* Effective date of a record: user-set event date, else the sealed date. */
 export const entryDate = (e: PrototypeEntry): string =>
@@ -52,7 +63,11 @@ export const matchesSearch = (e: PrototypeEntry, term: string): boolean => {
   );
 };
 
-export const matchesFilters = (e: PrototypeEntry, f: NotebookFilters): boolean => {
+export const matchesFilters = (
+  e: PrototypeEntry,
+  f: NotebookFilters,
+  summary: EntryMediaSummary = emptySummary,
+): boolean => {
   if (f.categories.length > 0 && !(e.category && f.categories.includes(e.category))) return false;
   if (f.people.length > 0 && !e.people.some(p => f.people.includes(p))) return false;
   const d = entryDate(e);
@@ -61,6 +76,9 @@ export const matchesFilters = (e: PrototypeEntry, f: NotebookFilters): boolean =
   if (f.dossier === 'included' && !e.in_dossier) return false;
   if (f.dossier === 'excluded' && e.in_dossier) return false;
   if (f.withClarifications && e.clarifications.length === 0) return false;
+  if (f.hasVoice && !summary.hasVoice) return false;
+  if (f.hasAttachments && summary.attachmentCount === 0) return false;
+  if (f.attachmentTypes.length > 0 && !f.attachmentTypes.some(t => summary.types.includes(t))) return false;
   return true;
 };
 
@@ -100,6 +118,17 @@ export const buildChips = (f: NotebookFilters): ActiveChip[] => {
       label: 'Has clarifications',
       remove: cur => ({ ...cur, withClarifications: false }),
     });
+  if (f.hasVoice)
+    chips.push({ key: 'voice', label: 'Has voice record', remove: cur => ({ ...cur, hasVoice: false }) });
+  if (f.hasAttachments)
+    chips.push({ key: 'att', label: 'Has attachments', remove: cur => ({ ...cur, hasAttachments: false }) });
+  f.attachmentTypes.forEach(t =>
+    chips.push({
+      key: `atype:${t}`,
+      label: `${t.charAt(0).toUpperCase()}${t.slice(1)} attachment`,
+      remove: cur => ({ ...cur, attachmentTypes: cur.attachmentTypes.filter(x => x !== t) }),
+    }),
+  );
   return chips;
 };
 

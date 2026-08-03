@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeEntry } from '../db';
+import { protoDB, type PrototypeEntry, type PrototypeMedia } from '../db';
+import { typeLabel, type AttachmentType } from '../media/media';
 import { entryDate } from '../filters';
 import {
   buildDossierDocument,
@@ -21,6 +22,7 @@ const DossierScreen = () => {
   const [busy, setBusy] = useState<null | 'pdf' | 'docx'>(null);
 
   const all = useLiveQuery(async () => protoDB.entries.toArray(), [], []) as PrototypeEntry[];
+  const media = useLiveQuery(async () => protoDB.media.toArray(), [], []) as PrototypeMedia[];
 
   const categories = useMemo(
     () => Array.from(new Set(all.map(e => e.category).filter(Boolean) as string[])).sort(),
@@ -34,7 +36,7 @@ const DossierScreen = () => {
     [all, cfg],
   );
 
-  const doc = useMemo(() => buildDossierDocument(all, cfg), [all, cfg]);
+  const doc = useMemo(() => buildDossierDocument(all, cfg, media), [all, cfg, media]);
 
   const filtersActive = !!(cfg.from || cfg.to || cfg.category || cfg.person);
   const clearFilters = () => setCfg({ ...cfg, from: null, to: null, category: null, person: null });
@@ -44,8 +46,8 @@ const DossierScreen = () => {
   const runExport = async (kind: 'pdf' | 'docx') => {
     setBusy(kind);
     try {
-      const fresh = buildDossierDocument(all, cfg);
-      if (kind === 'pdf') exportDossierPdf(fresh, cfg);
+      const fresh = buildDossierDocument(all, cfg, media);
+      if (kind === 'pdf') await exportDossierPdf(fresh, cfg);
       else await exportDossierDocx(fresh, cfg);
     } finally {
       setBusy(null);
@@ -112,6 +114,41 @@ const DossierScreen = () => {
             <p className="proto-help">
               Organisational details cover the event date, category, context and people recorded.
               These settings change how the document reads, not which records belong to it.
+            </p>
+          </section>
+
+          <section className="proto-fgroup">
+            <h2 className="proto-flabel">Evidence</h2>
+            <div className="proto-chipwrap">
+              <button className="proto-selchip" data-on={cfg.includeVoice}
+                onClick={() => setCfg({ ...cfg, includeVoice: !cfg.includeVoice })}>
+                Voice-record references
+              </button>
+              <button className="proto-selchip" data-on={cfg.includeAttachments}
+                onClick={() => setCfg({ ...cfg, includeAttachments: !cfg.includeAttachments })}>
+                Attachments
+              </button>
+            </div>
+            {cfg.includeAttachments && (
+              <div className="proto-chipwrap" style={{ marginTop: 8 }}>
+                {(['image', 'document', 'audio', 'video', 'other'] as AttachmentType[]).map(t => (
+                  <button key={t} className="proto-selchip"
+                    data-on={cfg.attachmentTypes.includes(t)}
+                    onClick={() => setCfg({
+                      ...cfg,
+                      attachmentTypes: cfg.attachmentTypes.includes(t)
+                        ? cfg.attachmentTypes.filter(x => x !== t)
+                        : [...cfg.attachmentTypes, t],
+                    })}>
+                    {typeLabel[t]}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="proto-help">
+              Evidence always belongs to its record. If a record is not included, none of its
+              evidence appears. Individual files can be excluded from within a record’s Evidence
+              section. No attachment-type selection means all types are included.
             </p>
           </section>
 

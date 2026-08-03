@@ -6,6 +6,7 @@ import {
   emptyFilters,
   activeFilterCount,
 } from '../filters';
+import { typeLabel, type AttachmentType } from '../media/media';
 
 interface Props {
   open: boolean;
@@ -125,6 +126,38 @@ const FilterSheet = ({ open, value, categories, people, onClose, onApply }: Prop
                   onClick={() => setDraft({ ...draft, dossier: v })}
                 >
                   {label}
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="proto-fgroup">
+            <h3 className="proto-flabel">Evidence</h3>
+            <div className="proto-chipwrap">
+              <button
+                className="proto-selchip"
+                data-on={draft.hasVoice}
+                onClick={() => setDraft({ ...draft, hasVoice: !draft.hasVoice })}
+              >
+                Has voice record
+              </button>
+              <button
+                className="proto-selchip"
+                data-on={draft.hasAttachments}
+                onClick={() => setDraft({ ...draft, hasAttachments: !draft.hasAttachments })}
+              >
+                Has attachments
+              </button>
+            </div>
+            <div className="proto-chipwrap" style={{ marginTop: 8 }}>
+              {(['image', 'document', 'audio', 'video', 'other'] as AttachmentType[]).map(t => (
+                <button
+                  key={t}
+                  className="proto-selchip"
+                  data-on={draft.attachmentTypes.includes(t)}
+                  onClick={() => setDraft({ ...draft, attachmentTypes: toggle(draft.attachmentTypes, t) as AttachmentType[] })}
+                >
+                  {typeLabel[t]}
                 </button>
               ))}
             </div>
