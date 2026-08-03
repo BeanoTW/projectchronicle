@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { protoDB, type PrototypeEntry } from '../db';
+import EvidenceSection from '../media/EvidenceSection';
 
 const ReviewScreen = () => {
   const { id } = useParams();
@@ -35,7 +36,7 @@ const ReviewScreen = () => {
       event_date: eventDate || null,
       event_time: eventTime || null,
     });
-    navigate('/prototype/notebook');
+    navigate(`/prototype/entry/${entry.id}`);
   };
 
   return (
@@ -64,6 +65,8 @@ const ReviewScreen = () => {
           <input className="proto-input" type="time" value={eventTime} onChange={e => setEventTime(e.target.value)} />
         </div>
       </div>
+
+      <EvidenceSection entryId={entry.id} />
 
       <div className="proto-actions-row" style={{ marginTop: 20 }}>
         <button className="proto-btn" data-variant="primary" onClick={save}>Save details</button>
