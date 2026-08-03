@@ -1,7 +1,8 @@
 // Prototype-only. Builds the single document model used by the on-screen preview,
 // the PDF export and the DOCX export, so all three stay identical.
-import type { PrototypeEntry } from '../db';
+import type { PrototypeEntry, PrototypeMedia } from '../db';
 import { entryDate } from '../filters';
+import { attachmentType, formatBytes, formatDuration, typeLabel, type AttachmentType } from '../media/media';
 
 export interface DossierConfig {
   title: string;
@@ -15,6 +16,10 @@ export interface DossierConfig {
   to: string | null;
   category: string | null;
   person: string | null;
+  /* Evidence */
+  includeAttachments: boolean;
+  includeVoice: boolean;
+  attachmentTypes: AttachmentType[];   // empty = all types
 }
 
 export const DEFAULT_DOSSIER_TITLE = 'Chronological record';
@@ -29,7 +34,25 @@ export const defaultDossierConfig: DossierConfig = {
   to: null,
   category: null,
   person: null,
+  includeAttachments: true,
+  includeVoice: true,
+  attachmentTypes: [],
 };
+
+export interface DossierEvidenceItem {
+  id: string;
+  kind: 'voice' | 'attachment';
+  type: AttachmentType;
+  role: 'original' | 'later';
+  name: string;
+  mime: string;
+  typeLabel: string;
+  sizeLabel: string;
+  durationLabel: string | null;
+  description: string | null;
+  addedLabel: string;
+  roleLabel: string;
+}
 
 export interface DossierRecord {
   id: string;
@@ -43,6 +66,7 @@ export interface DossierRecord {
   text: string;
   clarifications: Array<{ id: string; label: string; text: string }>;
   history: string[];
+  evidence: DossierEvidenceItem[];
 }
 
 export interface DossierDocumentModel {
@@ -58,6 +82,7 @@ export interface DossierDocumentModel {
   contents: Array<{ label: string; kind: 'section' | 'record' }>;
   integrity: string[];
   hasClarifications: boolean;
+  hasEvidence: boolean;
 }
 
 const fmtDate = (iso: string) =>
@@ -77,9 +102,46 @@ export const matchesScope = (e: PrototypeEntry, c: DossierConfig): boolean => {
   return true;
 };
 
+export const evidenceForRecord = (
+  media: PrototypeMedia[],
+  entryId: string,
+  cfg: DossierConfig,
+): DossierEvidenceItem[] =>
+  media
+    .filter(m => m.entry_id === entryId)
+    .filter(m => !m.excluded_from_dossier)
+    .filter(m => (m.kind === 'voice' ? cfg.includeVoice : cfg.includeAttachments))
+    .filter(m => {
+      if (m.kind === 'voice' || cfg.attachmentTypes.length === 0) return true;
+      return cfg.attachmentTypes.includes(attachmentType(m.mime, m.name));
+    })
+    .sort((a, b) => {
+      if (a.role !== b.role) return a.role === 'original' ? -1 : 1;
+      if (a.kind !== b.kind) return a.kind === 'voice' ? -1 : 1;
+      return a.added_at.localeCompare(b.added_at);
+    })
+    .map(m => {
+      const t: AttachmentType = m.kind === 'voice' ? 'audio' : attachmentType(m.mime, m.name);
+      return {
+        id: m.id,
+        kind: m.kind,
+        type: t,
+        role: m.role,
+        name: m.name,
+        mime: m.mime,
+        typeLabel: m.kind === 'voice' ? 'Voice record' : typeLabel[t],
+        sizeLabel: formatBytes(m.size),
+        durationLabel: m.duration_ms ? formatDuration(m.duration_ms) : null,
+        description: m.description,
+        addedLabel: fmtDateTime(m.added_at),
+        roleLabel: m.role === 'original' ? 'Present when the record was sealed' : 'Added after sealing',
+      };
+    });
+
 export function buildDossierDocument(
   all: PrototypeEntry[],
   cfg: DossierConfig,
+  media: PrototypeMedia[] = [],
   now: Date = new Date(),
 ): DossierDocumentModel {
   const members = all.filter(e => e.in_dossier);
@@ -125,6 +187,7 @@ export function buildDossierDocument(
           text: c.text,
         })),
       history,
+      evidence: evidenceForRecord(media, e.id, cfg),
     };
   });
 
@@ -138,6 +201,7 @@ export function buildDossierDocument(
   const people = Array.from(new Set(scoped.flatMap(e => e.people))).sort();
   const categories = Array.from(new Set(scoped.map(e => e.category).filter(Boolean) as string[])).sort();
   const hasClarifications = scoped.some(e => e.clarifications.length > 0);
+  const hasEvidence = records.some(r => r.evidence.length > 0);
 
   const contents: DossierDocumentModel['contents'] = [
     { label: 'Overview', kind: 'section' },
