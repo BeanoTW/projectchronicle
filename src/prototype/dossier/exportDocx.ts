@@ -1,10 +1,11 @@
 // Prototype-only Word export. Mirrors the on-screen preview and the PDF.
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-  Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition,
+  Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition, ImageRun,
 } from 'docx';
 import type { DossierConfig, DossierDocumentModel } from './document';
 import { safeFileName } from './document';
+import { prepareEvidenceImages } from './evidenceImages';
 
 const body = (text: string, opts: Partial<{ size: number; bold: boolean; italics: boolean; color: string; indent: number; after: number }> = {}) =>
   new Paragraph({
@@ -30,6 +31,7 @@ const sectionHeading = (text: string) =>
 
 export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierConfig) {
   const children: Paragraph[] = [];
+  const images = await prepareEvidenceImages(doc);
 
   /* Cover */
   children.push(
@@ -89,6 +91,37 @@ export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierC
         children.push(body(c.label, { size: 17, color: '767676', indent: 360, after: 40 }));
         children.push(body(c.text, { size: 21, indent: 360, after: 120 }));
       });
+    }
+
+    if (r.evidence.length) {
+      children.push(body('Evidence', { size: 17, bold: true, color: '767676', after: 60 }));
+      r.evidence.forEach(e => {
+        const img = e.type === 'image' ? images.get(e.id) : undefined;
+        if (img) {
+          const maxW = 420; // points, keeps images inside A4 margins
+          const scale = Math.min(maxW / img.width, 320 / img.height, 1);
+          try {
+            children.push(new Paragraph({
+              keepNext: true,
+              indent: { left: 360 },
+              spacing: { after: 60 },
+              children: [new ImageRun({
+                type: 'jpg',
+                data: img.bytes,
+                transformation: { width: Math.round(img.width * scale), height: Math.round(img.height * scale) },
+                altText: { title: e.name, description: e.description ?? e.name, name: e.name },
+              })],
+            }));
+          } catch {
+            /* unembeddable image — the textual reference below still appears */
+          }
+        }
+        const meta = [e.typeLabel, e.name, e.sizeLabel, e.durationLabel].filter(Boolean).join(' · ');
+        children.push(body(meta, { size: 17, color: '6E6E6E', indent: 360, after: 40 }));
+        if (e.description) children.push(body(e.description, { size: 20, indent: 360, after: 40 }));
+        children.push(body(`${e.roleLabel} · added ${e.addedLabel}`, { size: 16, color: '8C8C8C', indent: 360, after: 120 }));
+      });
+      children.push(body('File contents have not been analysed or verified.', { size: 16, italics: true, color: '8C8C8C', indent: 360, after: 120 }));
     }
   });
 
