@@ -145,8 +145,10 @@ const App = () => (
             <Route path="/guides/keeping-a-work-diary" element={<WorkDiary />} />
             <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
 
-            {/* Isolated design prototype — separate Dexie DB, no production writes */}
-            <Route path="/prototype/*" element={<V2App />} />
+            {/* Chronicle V2 candidate — isolated Dexie DB, no production writes.
+                `/prototype/*` stays as a compatibility redirect for existing links. */}
+            <Route path="/v2/*" element={<V2App />} />
+            <Route path="/prototype/*" element={<Navigate to="/v2/notebook" replace />} />
 
             <Route path="*" element={<NotFound />} />
 
