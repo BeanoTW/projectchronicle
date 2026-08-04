@@ -267,7 +267,7 @@ const DossierScreen = () => {
             </p>
           )}
 
-          <DossierPreview doc={doc} cfg={cfg} onOpenRecord={id => navigate(`/prototype/entry/${id}`)} />
+          <DossierPreview doc={doc} cfg={cfg} onOpenRecord={id => navigate(`${V2_BASE}/entry/${id}`)} />
         </>
       )}
     </div>

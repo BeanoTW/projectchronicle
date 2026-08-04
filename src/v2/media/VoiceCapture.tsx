@@ -1,4 +1,4 @@
-// Prototype-only voice capture. Browser MediaRecorder, no upload, no transcription.
+// Chronicle V2 (candidate). voice capture. Browser MediaRecorder, no upload, no transcription.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LIMITS, formatBytes, formatDuration } from './media';
 import { useBlobUrl } from './useBlobUrl';
@@ -108,7 +108,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
         const ms = accumRef.current + (Date.now() - startedRef.current);
         setElapsed(ms);
         if (ms >= LIMITS.MAX_VOICE_MS) {
-          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} prototype limit.`);
+          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
           stopTicker();
           accumRef.current = LIMITS.MAX_VOICE_MS;
           try { recorderRef.current?.stop(); } catch { /* ignore */ }
@@ -150,7 +150,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
       const ms = accumRef.current + (Date.now() - startedRef.current);
       setElapsed(ms);
       if (ms >= LIMITS.MAX_VOICE_MS) {
-        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} prototype limit.`);
+        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
         stopTicker();
         accumRef.current = LIMITS.MAX_VOICE_MS;
         try { recorderRef.current?.stop(); } catch { /* ignore */ }

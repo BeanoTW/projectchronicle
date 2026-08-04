@@ -1,4 +1,4 @@
-// Prototype-only media helpers: limits, classification, formatting and safe writes.
+// Chronicle V2 (candidate). media helpers: limits, classification, formatting and safe writes.
 // Everything stays inside the isolated `chronicle_prototype` IndexedDB database.
 import { v2DB, type V2Media, type MediaRole } from '../db';
 

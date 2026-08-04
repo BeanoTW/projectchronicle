@@ -1,4 +1,4 @@
-// Prototype-only Evidence section: persisted voice record and attachments for a sealed record.
+// Chronicle V2 (candidate). Evidence section: persisted voice record and attachments for a sealed record.
 // Sealed evidence cannot be deleted or replaced here — it can only be excluded from the dossier.
 import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';

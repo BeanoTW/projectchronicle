@@ -1,4 +1,4 @@
-// Prototype-only filter model. Pure functions over V2Entry.
+// Chronicle V2 (candidate). filter model. Pure functions over V2Entry.
 import type { V2Entry } from './db';
 import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/media';
 

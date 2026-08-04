@@ -42,7 +42,7 @@ const CaptureScreen = () => {
 
   const leave = () => {
     if (dirty && !confirm('Leave this capture? Anything you have written or recorded here will be discarded.')) return;
-    navigate('/prototype/notebook');
+    navigate(V2_BASE + '/notebook');
   };
 
   const seal = async () => {
@@ -117,13 +117,13 @@ const CaptureScreen = () => {
           <button
             className="proto-btn"
             data-variant="primary"
-            onClick={() => navigate(`/prototype/review/${sealed.id}`)}
+            onClick={() => navigate(`${V2_BASE}/review/${sealed.id}`)}
           >
             Add details
           </button>
           <button
             className="proto-btn"
-            onClick={() => navigate(`/prototype/entry/${sealed.id}`)}
+            onClick={() => navigate(`${V2_BASE}/entry/${sealed.id}`)}
           >
             Open record
           </button>

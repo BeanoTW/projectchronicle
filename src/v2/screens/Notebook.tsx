@@ -125,7 +125,7 @@ const NotebookScreen = () => {
           selectedDate={selectedDate}
           onMonthChange={m => { setMonth(m); persist({ month: m, selectedDate: null }); }}
           onSelectDate={d => { setSelectedDate(d); persist({ selectedDate: d }); }}
-          onOpenEntry={id => navigate(`/prototype/entry/${id}`)}
+          onOpenEntry={id => navigate(`${V2_BASE}/entry/${id}`)}
         />
       ) : filtered.length === 0 ? (
         <div className="proto-empty">
@@ -142,7 +142,7 @@ const NotebookScreen = () => {
           return (
             <button
               key={e.id}
-              onClick={() => navigate(`/prototype/entry/${e.id}`)}
+              onClick={() => navigate(`${V2_BASE}/entry/${e.id}`)}
               className="proto-entry"
               style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
             >

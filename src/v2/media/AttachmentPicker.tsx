@@ -1,4 +1,4 @@
-// Prototype-only staging list for attachments added before a record is sealed.
+// Chronicle V2 (candidate). staging list for attachments added before a record is sealed.
 import { useRef, useState } from 'react';
 import {
   ACCEPT_ATTR, LIMITS, LIMITS_COPY, attachmentType, formatBytes, typeLabel,

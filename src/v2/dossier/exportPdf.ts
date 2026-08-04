@@ -1,4 +1,4 @@
-// Prototype-only PDF export. Manual A4 layout with jsPDF so chronology,
+// Chronicle V2 (candidate). PDF export. Manual A4 layout with jsPDF so chronology,
 // wording and page numbering are fully deterministic.
 import { jsPDF } from 'jspdf';
 import type { DossierConfig, DossierDocumentModel } from './document';

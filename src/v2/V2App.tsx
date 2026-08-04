@@ -8,7 +8,7 @@ import EntryScreen from './screens/Entry';
 import DossierScreen from './screens/Dossier';
 import './styles.css';
 
-const HIDE_FAB_ON = ['/prototype/capture', '/prototype/review'];
+const HIDE_FAB_ON = [V2_BASE + '/capture', V2_BASE + '/review'];
 
 const Shell = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -16,8 +16,8 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
   const path = location.pathname;
   const showFab = !HIDE_FAB_ON.some(p => path.startsWith(p));
 
-  const activeNotebook = path === '/prototype' || path.startsWith('/prototype/notebook') || path.startsWith('/prototype/entry');
-  const activeDossier = path.startsWith('/prototype/dossier');
+  const activeNotebook = path === V2_BASE + '' || path.startsWith(V2_BASE + '/notebook') || path.startsWith(V2_BASE + '/entry');
+  const activeDossier = path.startsWith(V2_BASE + '/dossier');
 
   return (
     <div className="proto-root">
@@ -37,7 +37,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
           onClick={async () => {
             if (confirm('Reset prototype demo data? This only affects the prototype database.')) {
               await resetV2DB();
-              navigate('/prototype/notebook');
+              navigate(V2_BASE + '/notebook');
             }
           }}
         >
@@ -50,7 +50,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
       {showFab && (
         <button
           className="proto-fab"
-          onClick={() => navigate('/prototype/capture')}
+          onClick={() => navigate(V2_BASE + '/capture')}
           aria-label="New capture"
         >
           + Capture
@@ -58,11 +58,11 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
       )}
 
       <nav className="proto-bottomnav" aria-label="Prototype navigation">
-        <button data-active={activeNotebook} onClick={() => navigate('/prototype/notebook')}>
+        <button data-active={activeNotebook} onClick={() => navigate(V2_BASE + '/notebook')}>
           <span>Notebook</span>
           <span className="proto-navdot" />
         </button>
-        <button data-active={activeDossier} onClick={() => navigate('/prototype/dossier')}>
+        <button data-active={activeDossier} onClick={() => navigate(V2_BASE + '/dossier')}>
           <span>Dossier</span>
           <span className="proto-navdot" />
         </button>

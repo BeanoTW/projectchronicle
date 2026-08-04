@@ -16,7 +16,7 @@ const EntryScreen = () => {
   if (!entry) return (
     <div>
       <p className="proto-empty">Record not found.</p>
-      <button className="proto-btn" onClick={() => navigate('/prototype/notebook')}>Back to Notebook</button>
+      <button className="proto-btn" onClick={() => navigate(V2_BASE + '/notebook')}>Back to Notebook</button>
     </div>
   );
 
@@ -49,7 +49,7 @@ const EntryScreen = () => {
       <button
         className="proto-btn"
         data-variant="ghost"
-        onClick={() => navigate('/prototype/notebook')}
+        onClick={() => navigate(V2_BASE + '/notebook')}
         style={{ padding: '4px 8px', marginBottom: 8, minHeight: 32 }}
       >
         ← Notebook
@@ -142,7 +142,7 @@ const EntryScreen = () => {
           <button
             className="proto-btn"
             style={{ marginTop: 10, width: '100%' }}
-            onClick={() => navigate(`/prototype/review/${entry.id}`)}
+            onClick={() => navigate(`${V2_BASE}/review/${entry.id}`)}
           >
             Edit details
           </button>

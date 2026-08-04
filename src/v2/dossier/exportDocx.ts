@@ -1,4 +1,4 @@
-// Prototype-only Word export. Mirrors the on-screen preview and the PDF.
+// Chronicle V2 (candidate). Word export. Mirrors the on-screen preview and the PDF.
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition, ImageRun,

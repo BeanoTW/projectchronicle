@@ -36,7 +36,7 @@ const ReviewScreen = () => {
       event_date: eventDate || null,
       event_time: eventTime || null,
     });
-    navigate(`/prototype/entry/${entry.id}`);
+    navigate(`${V2_BASE}/entry/${entry.id}`);
   };
 
   return (
@@ -70,7 +70,7 @@ const ReviewScreen = () => {
 
       <div className="proto-actions-row" style={{ marginTop: 20 }}>
         <button className="proto-btn" data-variant="primary" onClick={save}>Save details</button>
-        <button className="proto-btn" onClick={() => navigate('/prototype/notebook')}>Skip</button>
+        <button className="proto-btn" onClick={() => navigate(V2_BASE + '/notebook')}>Skip</button>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-// Prototype-only Dexie database.
+// Chronicle V2 (candidate) Dexie database.
 // FULLY ISOLATED from production data:
 //   - Separate IndexedDB database name: "chronicle_prototype"
 //   - Separate table shape (prototype_entries) — does not mirror production `incidents`.
