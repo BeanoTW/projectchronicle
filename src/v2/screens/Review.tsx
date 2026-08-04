@@ -1,3 +1,4 @@
+import { V2_BASE } from '../routes';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { v2DB, type V2Entry } from '../db';

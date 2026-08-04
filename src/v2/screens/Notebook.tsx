@@ -1,3 +1,4 @@
+import { V2_BASE } from '../routes';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';

@@ -1,3 +1,4 @@
+import { V2_BASE } from './routes';
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
 import { seedV2IfEmpty, resetV2DB } from './db';
