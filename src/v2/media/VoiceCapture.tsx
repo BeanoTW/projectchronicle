@@ -1,5 +1,6 @@
 // Chronicle V2 (candidate). voice capture. Browser MediaRecorder, no upload, no transcription.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDialogs } from '../components/Dialog';
 import { LIMITS, formatBytes, formatDuration } from './media';
 import { useBlobUrl } from './useBlobUrl';
 
