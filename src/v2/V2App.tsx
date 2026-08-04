@@ -7,6 +7,7 @@ import ReviewScreen from './screens/Review';
 import NotebookScreen from './screens/Notebook';
 import EntryScreen from './screens/Entry';
 import DossierScreen from './screens/Dossier';
+import { DialogProvider, useDialogs } from './components/Dialog';
 import './styles.css';
 
 const HIDE_FAB_ON = [V2_BASE + '/capture', V2_BASE + '/review'];
@@ -84,8 +85,9 @@ const V2App = () => {
   }, []);
 
   return (
-    <Shell>
-      <Routes>
+    <DialogProvider>
+      <Shell>
+        <Routes>
         <Route index element={<Navigate to="notebook" replace />} />
         <Route path="notebook" element={<NotebookScreen />} />
         <Route path="capture" element={<CaptureScreen />} />
@@ -93,8 +95,9 @@ const V2App = () => {
         <Route path="entry/:id" element={<EntryScreen />} />
         <Route path="dossier" element={<DossierScreen />} />
         <Route path="*" element={<Navigate to="notebook" replace />} />
-      </Routes>
-    </Shell>
+        </Routes>
+      </Shell>
+    </DialogProvider>
   );
 };
 
