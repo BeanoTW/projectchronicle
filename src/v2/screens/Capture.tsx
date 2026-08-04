@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { v2DB, type V2Entry } from '../db';
 import VoiceCapture, { type VoiceDraft } from '../media/VoiceCapture';
 import AttachmentPicker from '../media/AttachmentPicker';
+import { useDialogs } from '../components/Dialog';
 import { STORAGE_COPY, addMedia, type PendingFile, writeErrorMessage } from '../media/media';
 
 const DRAFT_KEY = 'proto.capture.draft';
 
 const CaptureScreen = () => {
   const navigate = useNavigate();
+  const dialogs = useDialogs();
   const [text, setText] = useState(() => {
     try { return sessionStorage.getItem(DRAFT_KEY) ?? ''; } catch { return ''; }
   });
@@ -41,8 +43,17 @@ const CaptureScreen = () => {
 
   const canSeal = !recordingActive && (text.trim().length > 0 || !!voice);
 
-  const leave = () => {
-    if (dirty && !confirm('Leave this capture? Anything you have written or recorded here will be discarded.')) return;
+  const leave = async () => {
+    if (dirty) {
+      const ok = await dialogs.confirm({
+        title: 'Leave this capture?',
+        body: 'Anything written or recorded here has not been sealed yet and will be discarded.',
+        confirmLabel: 'Discard and leave',
+        cancelLabel: 'Keep writing',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
     navigate(V2_BASE + '/notebook');
   };
 
@@ -181,12 +192,13 @@ const CaptureScreen = () => {
         {STORAGE_COPY}{' '}
         <button
           type="button"
-          onClick={() => alert(
-            'What is stored:\n• Your exact wording, unchanged\n• Any voice record, exactly as captured\n• Attachments you added before sealing\n• The timestamp you sealed it\n\n' +
-            'Clarifications and later files:\n• Added as separate, timestamped items\n• Do not alter the original record\n\n' +
-            'What Chronicle tracks: dates, additions, dossier inclusion.\n' +
-            'What it does not: transcribe, analyse or independently verify what happened or what a file contains.'
-          )}
+          onClick={() => dialogs.notice({
+            title: 'What Chronicle stores',
+            body:
+              'Sealed and unchanged: your exact wording, any voice record, attachments added before sealing, and the time you sealed it. ' +
+              'Clarifications and files added later are stored as separate, timestamped items and never alter the original. ' +
+              'Chronicle records dates, additions and dossier inclusion. It does not transcribe, analyse or independently verify what happened or what a file contains.',
+          })}
           style={{ background: 'none', border: 0, padding: 0, color: 'var(--p-brass)', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
         >
           Learn more
