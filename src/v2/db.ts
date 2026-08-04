@@ -1,7 +1,7 @@
 // Chronicle V2 (candidate) Dexie database.
 // FULLY ISOLATED from production data:
 //   - Separate IndexedDB database name: "chronicle_prototype"
-//   - Separate table shape (prototype_entries) — does not mirror production `incidents`.
+//   - Separate table shape (v2 entries) — does not mirror production `incidents`.
 //   - No writes ever hit the production `chronicle_local` DB or Supabase.
 //   - No Supabase client is imported from this module.
 //

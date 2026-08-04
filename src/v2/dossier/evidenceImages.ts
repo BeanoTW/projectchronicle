@@ -1,4 +1,4 @@
-// Prototype-only: prepares image evidence for PDF/DOCX embedding.
+// Chronicle V2 (candidate): prepares image evidence for PDF/DOCX embedding.
 // Images are decoded in the browser and re-encoded as JPEG at a bounded size so
 // exports stay a sensible size and both exporters get a format they support.
 // If an image cannot be decoded, it is simply omitted and the exporters fall back

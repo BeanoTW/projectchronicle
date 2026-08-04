@@ -266,7 +266,7 @@
   font-size: 14px;
 }
 
-/* Dark mode — charcoal + parchment. Scoped so it only applies inside the prototype. */
+/* Dark mode — charcoal + parchment. Scoped so it only applies inside V2. */
 :root.dark .proto-root {
   --p-paper: #14120f;
   --p-paper-2: #1c1a16;
@@ -542,7 +542,7 @@
 :root.dark .proto-root .proto-preview { background: #1c1a16; }
 
 /* ============================================================
-   Dossier document preview + print layout (prototype-scoped)
+   Dossier document preview + print layout (V2-scoped)
    ============================================================ */
 .proto-root .proto-exportbar {
   display: flex;

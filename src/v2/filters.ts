@@ -132,7 +132,7 @@ export const buildChips = (f: NotebookFilters): ActiveChip[] => {
   return chips;
 };
 
-/* Notebook UI state survives navigation to an entry and back (prototype session only). */
+/* Notebook UI state survives navigation to an entry and back (V2 session only). */
 export const notebookState: {
   filters: NotebookFilters;
   q: string;

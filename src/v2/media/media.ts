@@ -2,7 +2,7 @@
 // Everything stays inside the isolated `chronicle_prototype` IndexedDB database.
 import { v2DB, type V2Media, type MediaRole } from '../db';
 
-/* ---------- Limits (deliberately conservative for a browser-storage prototype) ---------- */
+/* ---------- Limits (deliberately conservative for a browser-storage candidate) ---------- */
 export const LIMITS = {
   MAX_FILE_BYTES: 20 * 1024 * 1024,   // 20 MB per file
   MAX_ATTACHMENTS_PER_RECORD: 10,
@@ -13,7 +13,7 @@ export const LIMITS_COPY =
   'Up to 10 files per record · 20 MB per file · voice recordings up to 10 minutes.';
 
 export const STORAGE_COPY =
-  'Files stay in this prototype’s storage on this device. They are not uploaded anywhere. ' +
+  'Files stay in Chronicle’s local storage on this device. They are not uploaded anywhere. ' +
   'Clearing your browser storage may remove them. Chronicle has not checked or verified file contents.';
 
 /* ---------- Accepted types ---------- */
@@ -108,8 +108,8 @@ export const isQuotaError = (err: unknown): boolean => {
 
 export const writeErrorMessage = (err: unknown): string =>
   isQuotaError(err)
-    ? 'There is not enough browser storage left to save this file. Remove some prototype files, or free space on this device, then try again.'
-    : 'That file could not be saved to this device’s prototype storage. Nothing else in the record was changed.';
+    ? 'There is not enough browser storage left to save this file. Remove some files, or free space on this device, then try again.'
+    : 'That file could not be saved to this device’s local storage. Nothing else in the record was changed.';
 
 export async function addMedia(params: {
   entry_id: string;

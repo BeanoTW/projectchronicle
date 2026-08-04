@@ -1,4 +1,4 @@
-// Prototype-only. Builds the single document model used by the on-screen preview,
+// Chronicle V2 (candidate). Builds the single document model used by the on-screen preview,
 // the PDF export and the DOCX export, so all three stay identical.
 import type { V2Entry, V2Media } from '../db';
 import { entryDate } from '../filters';
