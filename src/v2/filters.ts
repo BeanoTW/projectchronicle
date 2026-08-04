@@ -1,5 +1,5 @@
-// Prototype-only filter model. Pure functions over PrototypeEntry.
-import type { PrototypeEntry } from './db';
+// Prototype-only filter model. Pure functions over V2Entry.
+import type { V2Entry } from './db';
 import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/media';
 
 export type DossierStatus = 'any' | 'included' | 'excluded';
@@ -47,10 +47,10 @@ export const activeFilterCount = (f: NotebookFilters): number =>
   f.attachmentTypes.length;
 
 /* Effective date of a record: user-set event date, else the sealed date. */
-export const entryDate = (e: PrototypeEntry): string =>
+export const entryDate = (e: V2Entry): string =>
   e.event_date ?? e.sealed_at.slice(0, 10);
 
-export const matchesSearch = (e: PrototypeEntry, term: string): boolean => {
+export const matchesSearch = (e: V2Entry, term: string): boolean => {
   const t = term.trim().toLowerCase();
   if (!t) return true;
   return (
@@ -64,7 +64,7 @@ export const matchesSearch = (e: PrototypeEntry, term: string): boolean => {
 };
 
 export const matchesFilters = (
-  e: PrototypeEntry,
+  e: V2Entry,
   f: NotebookFilters,
   summary: EntryMediaSummary = emptySummary,
 ): boolean => {

@@ -5,13 +5,13 @@
 //   - No writes ever hit the production `chronicle_local` DB or Supabase.
 //   - No Supabase client is imported from this module.
 //
-// Reset: call `resetPrototypeDB()` (wired to the shell's "Reset demo data" action)
+// Reset: call `resetV2DB()` (wired to the shell's "Reset demo data" action)
 // or manually delete the IndexedDB database "chronicle_prototype" via devtools.
 import Dexie, { type Table } from 'dexie';
 
 export type EntryStatus = 'sealed' | 'clarified' | 'in_dossier';
 
-export interface PrototypeEntry {
+export interface V2Entry {
   id: string;
   // Original brain-dump. Immutable after sealing.
   original_text: string;
@@ -29,7 +29,7 @@ export interface PrototypeEntry {
   title: string | null;       // optional short label
 }
 
-export interface PrototypeMeta {
+export interface V2Meta {
   key: string;
   value: string;
 }
@@ -40,7 +40,7 @@ export type MediaKind = 'voice' | 'attachment';
 /** `original` = present at the moment the record was sealed. `later` = appended afterwards. */
 export type MediaRole = 'original' | 'later';
 
-export interface PrototypeMedia {
+export interface V2Media {
   id: string;
   entry_id: string;
   kind: MediaKind;
@@ -57,7 +57,7 @@ export interface PrototypeMedia {
   blob: Blob;
 }
 
-export interface PrototypeMediaEvent {
+export interface V2MediaEvent {
   id: string;
   media_id: string;
   entry_id: string;
@@ -66,11 +66,11 @@ export interface PrototypeMediaEvent {
   detail: string | null;
 }
 
-class PrototypeDB extends Dexie {
-  entries!: Table<PrototypeEntry, string>;
-  meta!: Table<PrototypeMeta, string>;
-  media!: Table<PrototypeMedia, string>;
-  media_events!: Table<PrototypeMediaEvent, string>;
+class V2DB extends Dexie {
+  entries!: Table<V2Entry, string>;
+  meta!: Table<V2Meta, string>;
+  media!: Table<V2Media, string>;
+  media_events!: Table<V2MediaEvent, string>;
 
   constructor() {
     super('chronicle_prototype');
@@ -88,22 +88,22 @@ class PrototypeDB extends Dexie {
   }
 }
 
-export const protoDB = new PrototypeDB();
+export const v2DB = new V2DB();
 
-export const PROTOTYPE_DB_NAME = 'chronicle_prototype';
+export const V2_DB_NAME = 'chronicle_prototype';
 
-export async function resetPrototypeDB() {
-  await protoDB.entries.clear();
-  await protoDB.meta.clear();
-  await protoDB.media.clear();
-  await protoDB.media_events.clear();
-  await seedPrototypeIfEmpty(true);
+export async function resetV2DB() {
+  await v2DB.entries.clear();
+  await v2DB.meta.clear();
+  await v2DB.media.clear();
+  await v2DB.media_events.clear();
+  await seedV2IfEmpty(true);
 }
 
-export async function seedPrototypeIfEmpty(force = false) {
-  const count = await protoDB.entries.count();
+export async function seedV2IfEmpty(force = false) {
+  const count = await v2DB.entries.count();
   if (count > 0 && !force) return;
   const { seedEntries } = await import('./seed');
-  await protoDB.entries.bulkPut(seedEntries());
-  await protoDB.meta.put({ key: 'seeded_at', value: new Date().toISOString() });
+  await v2DB.entries.bulkPut(seedEntries());
+  await v2DB.meta.put({ key: 'seeded_at', value: new Date().toISOString() });
 }

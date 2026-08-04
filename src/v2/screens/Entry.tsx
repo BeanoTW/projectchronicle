@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
-import { protoDB } from '../db';
+import { v2DB } from '../db';
 import EvidenceSection from '../media/EvidenceSection';
 
 const EntryScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const entry = useLiveQuery(() => (id ? protoDB.entries.get(id) : Promise.resolve(undefined)), [id]);
+  const entry = useLiveQuery(() => (id ? v2DB.entries.get(id) : Promise.resolve(undefined)), [id]);
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
@@ -20,7 +20,7 @@ const EntryScreen = () => {
     </div>
   );
 
-  const toggleDossier = () => protoDB.entries.update(entry.id, { in_dossier: !entry.in_dossier });
+  const toggleDossier = () => v2DB.entries.update(entry.id, { in_dossier: !entry.in_dossier });
 
   const saveClarification = async () => {
     const body = text.trim();
@@ -30,7 +30,7 @@ const EntryScreen = () => {
       ...entry.clarifications,
       { id: crypto.randomUUID(), text: body, created_at: new Date().toISOString() },
     ];
-    await protoDB.entries.update(entry.id, { clarifications: next });
+    await v2DB.entries.update(entry.id, { clarifications: next });
     setText('');
     setAdding(false);
     setSaving(false);

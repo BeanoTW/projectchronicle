@@ -3,7 +3,7 @@
 // exports stay a sensible size and both exporters get a format they support.
 // If an image cannot be decoded, it is simply omitted and the exporters fall back
 // to a textual attachment reference.
-import { protoDB } from '../db';
+import { v2DB } from '../db';
 import type { DossierDocumentModel } from './document';
 
 export interface PreparedImage {
@@ -40,7 +40,7 @@ export async function prepareEvidenceImages(
   const map = new Map<string, PreparedImage>();
   if (ids.length === 0) return map;
 
-  const rows = await protoDB.media.bulkGet(ids);
+  const rows = await v2DB.media.bulkGet(ids);
   for (const row of rows) {
     if (!row) continue;
     try {

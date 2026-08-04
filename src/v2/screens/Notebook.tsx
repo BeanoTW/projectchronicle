@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeMedia } from '../db';
+import { v2DB, type V2Media } from '../db';
 import { emptySummary, summariseMedia } from '../media/media';
 import FilterSheet from '../components/FilterSheet';
 import MonthView from '../components/MonthView';
@@ -36,11 +36,11 @@ const NotebookScreen = () => {
   const persist = (patch: Partial<typeof notebookState>) => Object.assign(notebookState, patch);
 
   const entries = useLiveQuery(async () => {
-    const rows = await protoDB.entries.toArray();
+    const rows = await v2DB.entries.toArray();
     return rows.sort((a, b) => b.sealed_at.localeCompare(a.sealed_at));
   }, [], []);
 
-  const mediaRows = useLiveQuery(() => protoDB.media.toArray(), [], [] as PrototypeMedia[]);
+  const mediaRows = useLiveQuery(() => v2DB.media.toArray(), [], [] as V2Media[]);
   const summaries = useMemo(() => summariseMedia(mediaRows), [mediaRows]);
 
   const categories = useMemo(

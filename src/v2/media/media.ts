@@ -1,6 +1,6 @@
 // Prototype-only media helpers: limits, classification, formatting and safe writes.
 // Everything stays inside the isolated `chronicle_prototype` IndexedDB database.
-import { protoDB, type PrototypeMedia, type MediaRole } from '../db';
+import { v2DB, type V2Media, type MediaRole } from '../db';
 
 /* ---------- Limits (deliberately conservative for a browser-storage prototype) ---------- */
 export const LIMITS = {
@@ -113,7 +113,7 @@ export const writeErrorMessage = (err: unknown): string =>
 
 export async function addMedia(params: {
   entry_id: string;
-  kind: PrototypeMedia['kind'];
+  kind: V2Media['kind'];
   role: MediaRole;
   name: string;
   mime: string;
@@ -121,9 +121,9 @@ export async function addMedia(params: {
   description?: string | null;
   duration_ms?: number | null;
   added_at?: string;
-}): Promise<PrototypeMedia> {
+}): Promise<V2Media> {
   const now = params.added_at ?? new Date().toISOString();
-  const row: PrototypeMedia = {
+  const row: V2Media = {
     id: `pm-${crypto.randomUUID()}`,
     entry_id: params.entry_id,
     kind: params.kind,
@@ -137,8 +137,8 @@ export async function addMedia(params: {
     excluded_from_dossier: false,
     blob: params.blob,
   };
-  await protoDB.media.add(row);
-  await protoDB.media_events.add({
+  await v2DB.media.add(row);
+  await v2DB.media_events.add({
     id: `pe-${crypto.randomUUID()}`,
     media_id: row.id,
     entry_id: row.entry_id,
@@ -150,11 +150,11 @@ export async function addMedia(params: {
 }
 
 export async function logMediaEvent(
-  media: PrototypeMedia,
+  media: V2Media,
   action: 'described' | 'excluded' | 'included',
   detail: string | null = null,
 ) {
-  await protoDB.media_events.add({
+  await v2DB.media_events.add({
     id: `pe-${crypto.randomUUID()}`,
     media_id: media.id,
     entry_id: media.entry_id,
@@ -165,7 +165,7 @@ export async function logMediaEvent(
 }
 
 export const mediaForEntry = (entryId: string) =>
-  protoDB.media.where('entry_id').equals(entryId).toArray();
+  v2DB.media.where('entry_id').equals(entryId).toArray();
 
 /* ---------- Notebook summaries ---------- */
 export interface EntryMediaSummary {
@@ -176,7 +176,7 @@ export interface EntryMediaSummary {
 
 export const emptySummary: EntryMediaSummary = { hasVoice: false, attachmentCount: 0, types: [] };
 
-export function summariseMedia(rows: PrototypeMedia[]): Map<string, EntryMediaSummary> {
+export function summariseMedia(rows: V2Media[]): Map<string, EntryMediaSummary> {
   const map = new Map<string, EntryMediaSummary>();
   rows.forEach(r => {
     const cur = map.get(r.entry_id) ?? { hasVoice: false, attachmentCount: 0, types: [] as AttachmentType[] };

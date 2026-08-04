@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeEntry } from '../db';
+import { v2DB, type V2Entry } from '../db';
 import VoiceCapture, { type VoiceDraft } from '../media/VoiceCapture';
 import AttachmentPicker from '../media/AttachmentPicker';
 import { STORAGE_COPY, addMedia, type PendingFile, writeErrorMessage } from '../media/media';
@@ -17,7 +17,7 @@ const CaptureScreen = () => {
   const [recordingActive, setRecordingActive] = useState(false);
   const [sealing, setSealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sealed, setSealed] = useState<PrototypeEntry | null>(null);
+  const [sealed, setSealed] = useState<V2Entry | null>(null);
   const capturedAt = useRef(new Date().toISOString());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -50,7 +50,7 @@ const CaptureScreen = () => {
     setSealing(true);
     setError(null);
     const now = new Date().toISOString();
-    const entry: PrototypeEntry = {
+    const entry: V2Entry = {
       id: `proto-${crypto.randomUUID()}`,
       original_text: text.trim(),
       sealed_at: now,
@@ -65,7 +65,7 @@ const CaptureScreen = () => {
       title: null,
     };
     try {
-      await protoDB.entries.put(entry);
+      await v2DB.entries.put(entry);
       if (voice) {
         await addMedia({
           entry_id: entry.id, kind: 'voice', role: 'original',

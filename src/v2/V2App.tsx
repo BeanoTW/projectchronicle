@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom';
-import { seedPrototypeIfEmpty, resetPrototypeDB } from './db';
+import { seedV2IfEmpty, resetV2DB } from './db';
 import CaptureScreen from './screens/Capture';
 import ReviewScreen from './screens/Review';
 import NotebookScreen from './screens/Notebook';
@@ -36,7 +36,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
           style={{ padding: '6px 10px', minHeight: 32, fontSize: 12 }}
           onClick={async () => {
             if (confirm('Reset prototype demo data? This only affects the prototype database.')) {
-              await resetPrototypeDB();
+              await resetV2DB();
               navigate('/prototype/notebook');
             }
           }}
@@ -71,9 +71,9 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const PrototypeApp = () => {
+const V2App = () => {
   useEffect(() => {
-    seedPrototypeIfEmpty().catch(() => {});
+    seedV2IfEmpty().catch(() => {});
   }, []);
 
   return (
@@ -91,4 +91,4 @@ const PrototypeApp = () => {
   );
 };
 
-export default PrototypeApp;
+export default V2App;

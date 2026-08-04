@@ -49,7 +49,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import OAuthConsentScreen from "./pages/OAuthConsentScreen";
-import PrototypeApp from "./prototype/PrototypeApp";
+import V2App from "./v2/V2App";
 
 
 const queryClient = new QueryClient();
@@ -146,7 +146,7 @@ const App = () => (
             <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
 
             {/* Isolated design prototype — separate Dexie DB, no production writes */}
-            <Route path="/prototype/*" element={<PrototypeApp />} />
+            <Route path="/prototype/*" element={<V2App />} />
 
             <Route path="*" element={<NotFound />} />
 

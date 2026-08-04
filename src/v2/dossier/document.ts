@@ -1,6 +1,6 @@
 // Prototype-only. Builds the single document model used by the on-screen preview,
 // the PDF export and the DOCX export, so all three stay identical.
-import type { PrototypeEntry, PrototypeMedia } from '../db';
+import type { V2Entry, V2Media } from '../db';
 import { entryDate } from '../filters';
 import { attachmentType, formatBytes, formatDuration, typeLabel, type AttachmentType } from '../media/media';
 
@@ -93,7 +93,7 @@ const fmtDateTime = (iso: string) =>
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 
-export const matchesScope = (e: PrototypeEntry, c: DossierConfig): boolean => {
+export const matchesScope = (e: V2Entry, c: DossierConfig): boolean => {
   if (c.category && e.category !== c.category) return false;
   if (c.person && !e.people.includes(c.person)) return false;
   const d = entryDate(e);
@@ -103,7 +103,7 @@ export const matchesScope = (e: PrototypeEntry, c: DossierConfig): boolean => {
 };
 
 export const evidenceForRecord = (
-  media: PrototypeMedia[],
+  media: V2Media[],
   entryId: string,
   cfg: DossierConfig,
 ): DossierEvidenceItem[] =>
@@ -139,9 +139,9 @@ export const evidenceForRecord = (
     });
 
 export function buildDossierDocument(
-  all: PrototypeEntry[],
+  all: V2Entry[],
   cfg: DossierConfig,
-  media: PrototypeMedia[] = [],
+  media: V2Media[] = [],
   now: Date = new Date(),
 ): DossierDocumentModel {
   const members = all.filter(e => e.in_dossier);

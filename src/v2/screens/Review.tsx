@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { protoDB, type PrototypeEntry } from '../db';
+import { v2DB, type V2Entry } from '../db';
 import EvidenceSection from '../media/EvidenceSection';
 
 const ReviewScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [entry, setEntry] = useState<PrototypeEntry | null>(null);
+  const [entry, setEntry] = useState<V2Entry | null>(null);
   const [category, setCategory] = useState('');
   const [context, setContext] = useState('');
   const [people, setPeople] = useState('');
@@ -15,7 +15,7 @@ const ReviewScreen = () => {
 
   useEffect(() => {
     if (!id) return;
-    protoDB.entries.get(id).then(e => {
+    v2DB.entries.get(id).then(e => {
       if (!e) return;
       setEntry(e);
       setCategory(e.category ?? '');
@@ -29,7 +29,7 @@ const ReviewScreen = () => {
   if (!entry) return <p className="proto-help">Loading…</p>;
 
   const save = async () => {
-    await protoDB.entries.update(entry.id, {
+    await v2DB.entries.update(entry.id, {
       category: category.trim() || null,
       context: context.trim() || null,
       people: people.split(',').map(p => p.trim()).filter(Boolean),
