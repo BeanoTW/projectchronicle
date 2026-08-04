@@ -28,6 +28,7 @@ const pickMime = (): string => {
 };
 
 const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
+  const dialogs = useDialogs();
   const [status, setStatus] = useState<Status>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
