@@ -77,31 +77,43 @@ const CaptureScreen = () => {
       title: null,
     };
     try {
+      // The written record is written first and on its own. If any media write
+      // fails afterwards, the sealed wording and timestamp still survive.
       await v2DB.entries.put(entry);
-      if (voice) {
+    } catch (e) {
+      // Nothing was sealed. Keep the draft text in place so it is not lost.
+      setError(`${writeErrorMessage(e)} Nothing was sealed — your wording is still here, so you can try again.`);
+      setSealing(false);
+      return;
+    }
+
+    const failed: string[] = [];
+    if (voice) {
+      try {
         await addMedia({
           entry_id: entry.id, kind: 'voice', role: 'original',
           name: `voice-record-${now.slice(0, 19).replace(/[:T]/g, '-')}.${voice.mime.includes('mp4') ? 'm4a' : 'webm'}`,
           mime: voice.mime, blob: voice.blob, duration_ms: voice.duration_ms, added_at: now,
         });
-      }
-      const failed: string[] = [];
-      for (const f of files) {
-        try {
-          await addMedia({
-            entry_id: entry.id, kind: 'attachment', role: 'original',
-            name: f.name, mime: f.mime, blob: f.blob, description: f.description, added_at: now,
-          });
-        } catch (e) { failed.push(`“${f.name}” — ${writeErrorMessage(e)}`); }
-      }
-      try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-      if (failed.length) setError(`${failed.length} file${failed.length === 1 ? '' : 's'} could not be saved. The record itself was sealed. ${failed[0]}`);
-      setSealed(entry);
-    } catch (e) {
-      setError(writeErrorMessage(e));
-    } finally {
-      setSealing(false);
+      } catch (e) { failed.push(`the voice record — ${writeErrorMessage(e)}`); }
     }
+    for (const f of files) {
+      try {
+        await addMedia({
+          entry_id: entry.id, kind: 'attachment', role: 'original',
+          name: f.name, mime: f.mime, blob: f.blob, description: f.description, added_at: now,
+        });
+      } catch (e) { failed.push(`“${f.name}” — ${writeErrorMessage(e)}`); }
+    }
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    if (failed.length) {
+      setError(
+        `The record was sealed and your wording is safe. ${failed.length} item${failed.length === 1 ? '' : 's'} could not be saved to this device: ${failed[0]}` +
+        ' You can add the file again from the record.',
+      );
+    }
+    setSealed(entry);
+    setSealing(false);
   };
 
   if (sealed) {
