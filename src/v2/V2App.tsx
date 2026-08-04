@@ -14,6 +14,7 @@ const HIDE_FAB_ON = [V2_BASE + '/capture', V2_BASE + '/review'];
 const Shell = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dialogs = useDialogs();
   const path = location.pathname;
   const showFab = !HIDE_FAB_ON.some(p => path.startsWith(p));
 
@@ -23,26 +24,31 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="proto-root">
       <div className="proto-banner">
-        <span>Prototype · isolated demo data</span>
+        <span>V2 preview · isolated preview data</span>
         <Link to="/home">Back to app</Link>
       </div>
       <div className="proto-topbar">
         <div>
           <span className="proto-brand">Chronicle</span>
-          <span className="proto-brand-sub">Preview</span>
+          <span className="proto-brand-sub">V2</span>
         </div>
         <button
           className="proto-btn"
           data-variant="ghost"
           style={{ padding: '6px 10px', minHeight: 32, fontSize: 12 }}
           onClick={async () => {
-            if (confirm('Reset prototype demo data? This only affects the prototype database.')) {
-              await resetV2DB();
-              navigate(V2_BASE + '/notebook');
-            }
+            const ok = await dialogs.confirm({
+              title: 'Reset preview data?',
+              body: 'This clears the isolated V2 preview database on this device and restores the sample records. Your existing Chronicle records are not affected.',
+              confirmLabel: 'Reset preview data',
+              tone: 'danger',
+            });
+            if (!ok) return;
+            await resetV2DB();
+            navigate(V2_BASE + '/notebook');
           }}
         >
-          Reset demo
+          Reset preview data
         </button>
       </div>
 
