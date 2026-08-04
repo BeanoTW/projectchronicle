@@ -1,12 +1,13 @@
+import { V2_BASE } from '../routes';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { protoDB, type PrototypeEntry } from '../db';
+import { v2DB, type V2Entry } from '../db';
 import EvidenceSection from '../media/EvidenceSection';
 
 const ReviewScreen = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [entry, setEntry] = useState<PrototypeEntry | null>(null);
+  const [entry, setEntry] = useState<V2Entry | null>(null);
   const [category, setCategory] = useState('');
   const [context, setContext] = useState('');
   const [people, setPeople] = useState('');
@@ -15,7 +16,7 @@ const ReviewScreen = () => {
 
   useEffect(() => {
     if (!id) return;
-    protoDB.entries.get(id).then(e => {
+    v2DB.entries.get(id).then(e => {
       if (!e) return;
       setEntry(e);
       setCategory(e.category ?? '');
@@ -29,14 +30,14 @@ const ReviewScreen = () => {
   if (!entry) return <p className="proto-help">Loading…</p>;
 
   const save = async () => {
-    await protoDB.entries.update(entry.id, {
+    await v2DB.entries.update(entry.id, {
       category: category.trim() || null,
       context: context.trim() || null,
       people: people.split(',').map(p => p.trim()).filter(Boolean),
       event_date: eventDate || null,
       event_time: eventTime || null,
     });
-    navigate(`/prototype/entry/${entry.id}`);
+    navigate(`${V2_BASE}/entry/${entry.id}`);
   };
 
   return (
@@ -70,7 +71,7 @@ const ReviewScreen = () => {
 
       <div className="proto-actions-row" style={{ marginTop: 20 }}>
         <button className="proto-btn" data-variant="primary" onClick={save}>Save details</button>
-        <button className="proto-btn" onClick={() => navigate('/prototype/notebook')}>Skip</button>
+        <button className="proto-btn" onClick={() => navigate(V2_BASE + '/notebook')}>Skip</button>
       </div>
     </div>
   );

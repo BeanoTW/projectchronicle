@@ -1,14 +1,17 @@
+import { V2_BASE } from '../routes';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeEntry } from '../db';
+import { v2DB, type V2Entry } from '../db';
 import VoiceCapture, { type VoiceDraft } from '../media/VoiceCapture';
 import AttachmentPicker from '../media/AttachmentPicker';
+import { useDialogs } from '../components/Dialog';
 import { STORAGE_COPY, addMedia, type PendingFile, writeErrorMessage } from '../media/media';
 
 const DRAFT_KEY = 'proto.capture.draft';
 
 const CaptureScreen = () => {
   const navigate = useNavigate();
+  const dialogs = useDialogs();
   const [text, setText] = useState(() => {
     try { return sessionStorage.getItem(DRAFT_KEY) ?? ''; } catch { return ''; }
   });
@@ -17,7 +20,7 @@ const CaptureScreen = () => {
   const [recordingActive, setRecordingActive] = useState(false);
   const [sealing, setSealing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sealed, setSealed] = useState<PrototypeEntry | null>(null);
+  const [sealed, setSealed] = useState<V2Entry | null>(null);
   const capturedAt = useRef(new Date().toISOString());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -40,9 +43,18 @@ const CaptureScreen = () => {
 
   const canSeal = !recordingActive && (text.trim().length > 0 || !!voice);
 
-  const leave = () => {
-    if (dirty && !confirm('Leave this capture? Anything you have written or recorded here will be discarded.')) return;
-    navigate('/prototype/notebook');
+  const leave = async () => {
+    if (dirty) {
+      const ok = await dialogs.confirm({
+        title: 'Leave this capture?',
+        body: 'Anything written or recorded here has not been sealed yet and will be discarded.',
+        confirmLabel: 'Discard and leave',
+        cancelLabel: 'Keep writing',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
+    navigate(V2_BASE + '/notebook');
   };
 
   const seal = async () => {
@@ -50,7 +62,7 @@ const CaptureScreen = () => {
     setSealing(true);
     setError(null);
     const now = new Date().toISOString();
-    const entry: PrototypeEntry = {
+    const entry: V2Entry = {
       id: `proto-${crypto.randomUUID()}`,
       original_text: text.trim(),
       sealed_at: now,
@@ -65,31 +77,43 @@ const CaptureScreen = () => {
       title: null,
     };
     try {
-      await protoDB.entries.put(entry);
-      if (voice) {
+      // The written record is written first and on its own. If any media write
+      // fails afterwards, the sealed wording and timestamp still survive.
+      await v2DB.entries.put(entry);
+    } catch (e) {
+      // Nothing was sealed. Keep the draft text in place so it is not lost.
+      setError(`${writeErrorMessage(e)} Nothing was sealed — your wording is still here, so you can try again.`);
+      setSealing(false);
+      return;
+    }
+
+    const failed: string[] = [];
+    if (voice) {
+      try {
         await addMedia({
           entry_id: entry.id, kind: 'voice', role: 'original',
           name: `voice-record-${now.slice(0, 19).replace(/[:T]/g, '-')}.${voice.mime.includes('mp4') ? 'm4a' : 'webm'}`,
           mime: voice.mime, blob: voice.blob, duration_ms: voice.duration_ms, added_at: now,
         });
-      }
-      const failed: string[] = [];
-      for (const f of files) {
-        try {
-          await addMedia({
-            entry_id: entry.id, kind: 'attachment', role: 'original',
-            name: f.name, mime: f.mime, blob: f.blob, description: f.description, added_at: now,
-          });
-        } catch (e) { failed.push(`“${f.name}” — ${writeErrorMessage(e)}`); }
-      }
-      try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
-      if (failed.length) setError(`${failed.length} file${failed.length === 1 ? '' : 's'} could not be saved. The record itself was sealed. ${failed[0]}`);
-      setSealed(entry);
-    } catch (e) {
-      setError(writeErrorMessage(e));
-    } finally {
-      setSealing(false);
+      } catch (e) { failed.push(`the voice record — ${writeErrorMessage(e)}`); }
     }
+    for (const f of files) {
+      try {
+        await addMedia({
+          entry_id: entry.id, kind: 'attachment', role: 'original',
+          name: f.name, mime: f.mime, blob: f.blob, description: f.description, added_at: now,
+        });
+      } catch (e) { failed.push(`“${f.name}” — ${writeErrorMessage(e)}`); }
+    }
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    if (failed.length) {
+      setError(
+        `The record was sealed and your wording is safe. ${failed.length} item${failed.length === 1 ? '' : 's'} could not be saved to this device: ${failed[0]}` +
+        ' You can add the file again from the record.',
+      );
+    }
+    setSealed(entry);
+    setSealing(false);
   };
 
   if (sealed) {
@@ -117,13 +141,13 @@ const CaptureScreen = () => {
           <button
             className="proto-btn"
             data-variant="primary"
-            onClick={() => navigate(`/prototype/review/${sealed.id}`)}
+            onClick={() => navigate(`${V2_BASE}/review/${sealed.id}`)}
           >
             Add details
           </button>
           <button
             className="proto-btn"
-            onClick={() => navigate(`/prototype/entry/${sealed.id}`)}
+            onClick={() => navigate(`${V2_BASE}/entry/${sealed.id}`)}
           >
             Open record
           </button>
@@ -180,12 +204,13 @@ const CaptureScreen = () => {
         {STORAGE_COPY}{' '}
         <button
           type="button"
-          onClick={() => alert(
-            'What is stored:\n• Your exact wording, unchanged\n• Any voice record, exactly as captured\n• Attachments you added before sealing\n• The timestamp you sealed it\n\n' +
-            'Clarifications and later files:\n• Added as separate, timestamped items\n• Do not alter the original record\n\n' +
-            'What Chronicle tracks: dates, additions, dossier inclusion.\n' +
-            'What it does not: transcribe, analyse or independently verify what happened or what a file contains.'
-          )}
+          onClick={() => dialogs.notice({
+            title: 'What Chronicle stores',
+            body:
+              'Sealed and unchanged: your exact wording, any voice record, attachments added before sealing, and the time you sealed it. ' +
+              'Clarifications and files added later are stored as separate, timestamped items and never alter the original. ' +
+              'Chronicle records dates, additions and dossier inclusion. It does not transcribe, analyse or independently verify what happened or what a file contains.',
+          })}
           style={{ background: 'none', border: 0, padding: 0, color: 'var(--p-brass)', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
         >
           Learn more

@@ -266,7 +266,7 @@
   font-size: 14px;
 }
 
-/* Dark mode — charcoal + parchment. Scoped so it only applies inside the prototype. */
+/* Dark mode — charcoal + parchment. Scoped so it only applies inside V2. */
 :root.dark .proto-root {
   --p-paper: #14120f;
   --p-paper-2: #1c1a16;
@@ -542,7 +542,7 @@
 :root.dark .proto-root .proto-preview { background: #1c1a16; }
 
 /* ============================================================
-   Dossier document preview + print layout (prototype-scoped)
+   Dossier document preview + print layout (V2-scoped)
    ============================================================ */
 .proto-root .proto-exportbar {
   display: flex;
@@ -759,4 +759,82 @@
 @media (max-width: 380px) {
   .proto-root .proto-media-box { padding: 10px; }
   .proto-root .proto-att-top { gap: 8px; }
+}
+
+/* ------------------------------------------------------------------
+   V2 accessible dialog layer (replaces native alert()/confirm())
+   ------------------------------------------------------------------ */
+.proto-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(20, 18, 15, 0.45);
+}
+.proto-dialog {
+  width: 100%;
+  max-width: 380px;
+  background: var(--p-paper, #fdfbf6);
+  color: var(--p-ink, #201d18);
+  border: 1px solid var(--p-rule, rgba(0, 0, 0, 0.14));
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 18px 40px rgba(20, 18, 15, 0.28);
+}
+.proto-dialog-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.proto-dialog-body {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--p-muted, #5d574c);
+}
+.proto-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.proto-dialog-actions .proto-btn { min-height: 44px; }
+
+.proto-root .proto-btn[data-variant="danger"] {
+  background: #8c2f22;
+  border-color: #8c2f22;
+  color: #fff;
+}
+:root.dark .proto-dialog {
+  background: #1c1a17;
+  color: #ece5d8;
+  border-color: rgba(255, 255, 255, 0.14);
+}
+:root.dark .proto-root .proto-btn[data-variant="danger"] {
+  background: #b04434;
+  border-color: #b04434;
+  color: #12100e;
+}
+
+/* Visible keyboard focus everywhere inside V2. */
+.proto-root :focus-visible,
+.proto-dialog :focus-visible {
+  outline: 2px solid var(--p-brass, #8a6d3b);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect the operating-system reduced-motion setting. */
+@media (prefers-reduced-motion: reduce) {
+  .proto-root *,
+  .proto-dialog * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

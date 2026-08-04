@@ -1,4 +1,4 @@
-import type { PrototypeEntry } from './db';
+import type { V2Entry } from './db';
 
 const daysAgo = (n: number, h = 9, m = 0) => {
   const d = new Date();
@@ -9,8 +9,8 @@ const daysAgo = (n: number, h = 9, m = 0) => {
 
 const dateOnly = (iso: string) => iso.slice(0, 10);
 
-export function seedEntries(): PrototypeEntry[] {
-  const rows: Array<Partial<PrototypeEntry> & { original_text: string; days: number; hour?: number }> = [
+export function seedEntries(): V2Entry[] {
+  const rows: Array<Partial<V2Entry> & { original_text: string; days: number; hour?: number }> = [
     {
       original_text:
         "Manager raised voice again in the team stand-up when I asked about the deadline change. Two colleagues went quiet. I felt singled out.",

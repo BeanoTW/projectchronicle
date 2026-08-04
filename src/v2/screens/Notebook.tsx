@@ -1,7 +1,8 @@
+import { V2_BASE } from '../routes';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeMedia } from '../db';
+import { v2DB, type V2Media } from '../db';
 import { emptySummary, summariseMedia } from '../media/media';
 import FilterSheet from '../components/FilterSheet';
 import MonthView from '../components/MonthView';
@@ -36,11 +37,11 @@ const NotebookScreen = () => {
   const persist = (patch: Partial<typeof notebookState>) => Object.assign(notebookState, patch);
 
   const entries = useLiveQuery(async () => {
-    const rows = await protoDB.entries.toArray();
+    const rows = await v2DB.entries.toArray();
     return rows.sort((a, b) => b.sealed_at.localeCompare(a.sealed_at));
   }, [], []);
 
-  const mediaRows = useLiveQuery(() => protoDB.media.toArray(), [], [] as PrototypeMedia[]);
+  const mediaRows = useLiveQuery(() => v2DB.media.toArray(), [], [] as V2Media[]);
   const summaries = useMemo(() => summariseMedia(mediaRows), [mediaRows]);
 
   const categories = useMemo(
@@ -125,7 +126,7 @@ const NotebookScreen = () => {
           selectedDate={selectedDate}
           onMonthChange={m => { setMonth(m); persist({ month: m, selectedDate: null }); }}
           onSelectDate={d => { setSelectedDate(d); persist({ selectedDate: d }); }}
-          onOpenEntry={id => navigate(`/prototype/entry/${id}`)}
+          onOpenEntry={id => navigate(`${V2_BASE}/entry/${id}`)}
         />
       ) : filtered.length === 0 ? (
         <div className="proto-empty">
@@ -142,7 +143,7 @@ const NotebookScreen = () => {
           return (
             <button
               key={e.id}
-              onClick={() => navigate(`/prototype/entry/${e.id}`)}
+              onClick={() => navigate(`${V2_BASE}/entry/${e.id}`)}
               className="proto-entry"
               style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
             >

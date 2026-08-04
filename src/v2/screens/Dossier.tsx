@@ -1,7 +1,8 @@
+import { V2_BASE } from '../routes';
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
-import { protoDB, type PrototypeEntry, type PrototypeMedia } from '../db';
+import { v2DB, type V2Entry, type V2Media } from '../db';
 import { typeLabel, type AttachmentType } from '../media/media';
 import { entryDate } from '../filters';
 import {
@@ -21,8 +22,8 @@ const DossierScreen = () => {
   const [tab, setTab] = useState<'configure' | 'preview'>('configure');
   const [busy, setBusy] = useState<null | 'pdf' | 'docx'>(null);
 
-  const all = useLiveQuery(async () => protoDB.entries.toArray(), [], []) as PrototypeEntry[];
-  const media = useLiveQuery(async () => protoDB.media.toArray(), [], []) as PrototypeMedia[];
+  const all = useLiveQuery(async () => v2DB.entries.toArray(), [], []) as V2Entry[];
+  const media = useLiveQuery(async () => v2DB.media.toArray(), [], []) as V2Media[];
 
   const categories = useMemo(
     () => Array.from(new Set(all.map(e => e.category).filter(Boolean) as string[])).sort(),
@@ -41,7 +42,7 @@ const DossierScreen = () => {
   const filtersActive = !!(cfg.from || cfg.to || cfg.category || cfg.person);
   const clearFilters = () => setCfg({ ...cfg, from: null, to: null, category: null, person: null });
 
-  const toggleMember = (id: string, on: boolean) => protoDB.entries.update(id, { in_dossier: on });
+  const toggleMember = (id: string, on: boolean) => v2DB.entries.update(id, { in_dossier: on });
 
   const runExport = async (kind: 'pdf' | 'docx') => {
     setBusy(kind);
@@ -267,7 +268,7 @@ const DossierScreen = () => {
             </p>
           )}
 
-          <DossierPreview doc={doc} cfg={cfg} onOpenRecord={id => navigate(`/prototype/entry/${id}`)} />
+          <DossierPreview doc={doc} cfg={cfg} onOpenRecord={id => navigate(`${V2_BASE}/entry/${id}`)} />
         </>
       )}
     </div>

@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import type { PrototypeEntry } from '../db';
+import type { V2Entry } from '../db';
 import { entryDate } from '../filters';
 
 interface Props {
   month: string;                 // YYYY-MM
-  entries: PrototypeEntry[];     // already search+filter matched
+  entries: V2Entry[];     // already search+filter matched
   totalInMonth: number;          // matched-before-filters count, for empty-state wording
   selectedDate: string | null;
   onMonthChange: (m: string) => void;

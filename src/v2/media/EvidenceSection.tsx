@@ -1,15 +1,15 @@
-// Prototype-only Evidence section: persisted voice record and attachments for a sealed record.
+// Chronicle V2 (candidate). Evidence section: persisted voice record and attachments for a sealed record.
 // Sealed evidence cannot be deleted or replaced here — it can only be excluded from the dossier.
 import { useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { protoDB, type PrototypeMedia } from '../db';
+import { v2DB, type V2Media } from '../db';
 import {
   ACCEPT_ATTR, LIMITS, LIMITS_COPY, STORAGE_COPY, addMedia, attachmentType, fmtDateTime,
   formatBytes, formatDuration, logMediaEvent, typeLabel, validateFile, writeErrorMessage,
 } from './media';
 import { useBlobUrl } from './useBlobUrl';
 
-const EvidenceRow = ({ m }: { m: PrototypeMedia }) => {
+const EvidenceRow = ({ m }: { m: V2Media }) => {
   const type = m.kind === 'voice' ? 'audio' : attachmentType(m.mime, m.name);
   const previewable = type === 'image' || type === 'audio' || type === 'video';
   const url = useBlobUrl(previewable ? m.blob : null);
@@ -19,7 +19,7 @@ const EvidenceRow = ({ m }: { m: PrototypeMedia }) => {
 
   const saveDesc = async () => {
     try {
-      await protoDB.media.update(m.id, { description: desc.trim() || null });
+      await v2DB.media.update(m.id, { description: desc.trim() || null });
       await logMediaEvent(m, 'described', desc.trim() || null);
       setEditing(false);
       setErr(null);
@@ -29,7 +29,7 @@ const EvidenceRow = ({ m }: { m: PrototypeMedia }) => {
   const toggleExcluded = async () => {
     const next = !m.excluded_from_dossier;
     try {
-      await protoDB.media.update(m.id, { excluded_from_dossier: next });
+      await v2DB.media.update(m.id, { excluded_from_dossier: next });
       await logMediaEvent(m, next ? 'excluded' : 'included');
     } catch (e) { setErr(writeErrorMessage(e)); }
   };
@@ -103,9 +103,9 @@ const EvidenceRow = ({ m }: { m: PrototypeMedia }) => {
 
 const EvidenceSection = ({ entryId }: { entryId: string }) => {
   const rows = useLiveQuery(
-    () => protoDB.media.where('entry_id').equals(entryId).toArray(),
+    () => v2DB.media.where('entry_id').equals(entryId).toArray(),
     [entryId],
-    [] as PrototypeMedia[],
+    [] as V2Media[],
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);

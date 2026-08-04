@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { protoDB, type PrototypeMedia } from '../db';
+import { v2DB, type V2Media } from '../db';
 import type { DossierConfig, DossierDocumentModel, DossierEvidenceItem } from '../dossier/document';
 import { useBlobUrl } from '../media/useBlobUrl';
 
 const EvidenceMedia = ({ item }: { item: DossierEvidenceItem }) => {
-  const row = useLiveQuery(() => protoDB.media.get(item.id), [item.id]) as PrototypeMedia | undefined;
+  const row = useLiveQuery(() => v2DB.media.get(item.id), [item.id]) as V2Media | undefined;
   const previewable = item.type === 'image' || item.type === 'audio';
   const url = useBlobUrl(previewable ? row?.blob ?? null : null);
   if (!url) return null;

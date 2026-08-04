@@ -1,5 +1,6 @@
-// Prototype-only voice capture. Browser MediaRecorder, no upload, no transcription.
+// Chronicle V2 (candidate) voice capture. Browser MediaRecorder, no upload, no transcription.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDialogs } from '../components/Dialog';
 import { LIMITS, formatBytes, formatDuration } from './media';
 import { useBlobUrl } from './useBlobUrl';
 
@@ -27,6 +28,7 @@ const pickMime = (): string => {
 };
 
 const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
+  const dialogs = useDialogs();
   const [status, setStatus] = useState<Status>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
@@ -81,7 +83,15 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
 
   const start = async () => {
     if (active || disabled) return;                      // never two recordings at once
-    if (value && !confirm('Replace the recording you already made? The current one will be discarded.')) return;
+    if (value) {
+      const ok = await dialogs.confirm({
+        title: 'Replace this recording?',
+        body: 'The voice record you already made will be discarded and cannot be recovered.',
+        confirmLabel: 'Record again',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
     setMessage(null);
     setStatus('requesting');
     try {
@@ -108,7 +118,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
         const ms = accumRef.current + (Date.now() - startedRef.current);
         setElapsed(ms);
         if (ms >= LIMITS.MAX_VOICE_MS) {
-          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} prototype limit.`);
+          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
           stopTicker();
           accumRef.current = LIMITS.MAX_VOICE_MS;
           try { recorderRef.current?.stop(); } catch { /* ignore */ }
@@ -150,7 +160,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
       const ms = accumRef.current + (Date.now() - startedRef.current);
       setElapsed(ms);
       if (ms >= LIMITS.MAX_VOICE_MS) {
-        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} prototype limit.`);
+        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
         stopTicker();
         accumRef.current = LIMITS.MAX_VOICE_MS;
         try { recorderRef.current?.stop(); } catch { /* ignore */ }
@@ -166,8 +176,14 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
     try { rec.stop(); } catch { /* ignore */ }
   };
 
-  const cancel = () => {
-    if (!confirm('Discard this recording? It cannot be recovered.')) return;
+  const cancel = async () => {
+    const ok = await dialogs.confirm({
+      title: 'Discard this recording?',
+      body: 'The audio captured so far cannot be recovered. Anything you have written stays as it is.',
+      confirmLabel: 'Discard recording',
+      tone: 'danger',
+    });
+    if (!ok) return;
     cancelledRef.current = true;
     const rec = recorderRef.current;
     stopTicker();
@@ -175,8 +191,14 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
     else { setStatus('idle'); setElapsed(0); accumRef.current = 0; releaseStream(); }
   };
 
-  const discardCompleted = () => {
-    if (!confirm('Discard this voice record? It cannot be recovered.')) return;
+  const discardCompleted = async () => {
+    const ok = await dialogs.confirm({
+      title: 'Discard this voice record?',
+      body: 'The recording cannot be recovered. Anything you have written stays as it is.',
+      confirmLabel: 'Discard voice record',
+      tone: 'danger',
+    });
+    if (!ok) return;
     onChange(null);
     setMessage(null);
   };
