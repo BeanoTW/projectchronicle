@@ -40,7 +40,7 @@ const EntryScreen = () => {
       standalone={false}
       onBack={() => navigate(V2_BASE + '/notebook')}
       onEditDetails={() => navigate(`${V2_BASE}/review/${entry.id}`)}
-      onToggleDossier={() => v2DB.entries.update(entry.id, { in_dossier: !entry.in_dossier })}
+      onToggleDossier={async () => { await v2DB.entries.update(entry.id, { in_dossier: !entry.in_dossier }); }}
       onAddClarification={async (text) => {
         const next = [
           ...entry.clarifications,
