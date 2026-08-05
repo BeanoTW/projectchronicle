@@ -32,7 +32,7 @@ import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
 import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
-import IncidentDetailScreen from "./pages/IncidentDetailScreen";
+import RecordDetailRoute from "./routes/RecordDetailRoute";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
 import GuidesIndex from "./pages/guides/GuidesIndex";
@@ -129,7 +129,7 @@ const App = () => (
             <Route path="/rights" element={<Navigate to="/support" replace />} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><IncidentDetailScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><RecordDetailRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
 
             {/* Public marketing & content surfaces (indexable, no auth) */}
