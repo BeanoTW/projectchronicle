@@ -49,6 +49,8 @@ const EntryView = ({
   onEditDetails,
   evidenceSlot,
   backLabel = '← Notebook',
+  standalone = true,
+
 }: EntryViewProps) => {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState('');
