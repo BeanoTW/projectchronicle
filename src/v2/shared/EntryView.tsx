@@ -37,6 +37,8 @@ export interface EntryViewProps {
   /** Evidence UI differs per data source; injected by the caller. */
   evidenceSlot?: ReactNode;
   backLabel?: string;
+  /** False when already rendered inside a `.proto-root .proto-main` shell. */
+  standalone?: boolean;
 }
 
 const EntryView = ({
