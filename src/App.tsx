@@ -32,7 +32,7 @@ import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
 import ExportScreen from "./pages/ExportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
-import IncidentDetailScreen from "./pages/IncidentDetailScreen";
+import RecordDetailRoute from "./routes/RecordDetailRoute";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
 import GuidesIndex from "./pages/guides/GuidesIndex";
