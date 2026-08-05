@@ -71,9 +71,10 @@ const EntryView = ({
     }
   };
 
-  return (
-    <div className="proto-root">
-      <div className="proto-main">
+  const body = (
+    <>
+      <div>
+
         <button
           className="proto-btn"
           data-variant="ghost"
