@@ -192,8 +192,12 @@ const EntryView = ({
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
+
+  if (!standalone) return body;
+  return <div className="proto-root"><div className="proto-main">{body}</div></div>;
 };
+
 
 export default EntryView;
