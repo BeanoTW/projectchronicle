@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
-import type { V2Entry } from '../db';
-import { entryDate } from '../filters';
+import { monthCounts, type NotebookRecord } from '../shared/notebookModel';
 
 interface Props {
   month: string;                 // YYYY-MM
-  entries: V2Entry[];     // already search+filter matched
+  entries: NotebookRecord[];     // already search+filter matched
   totalInMonth: number;          // matched-before-filters count, for empty-state wording
   selectedDate: string | null;
   onMonthChange: (m: string) => void;
@@ -30,14 +29,7 @@ const MonthView = ({
 }: Props) => {
   const [year, mon] = month.split('-').map(Number);
 
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    entries.forEach(e => {
-      const d = entryDate(e);
-      if (d.startsWith(month)) map.set(d, (map.get(d) ?? 0) + 1);
-    });
-    return map;
-  }, [entries, month]);
+  const counts = useMemo(() => monthCounts(entries, month), [entries, month]);
 
   const cells = useMemo(() => {
     const first = new Date(year, mon - 1, 1);
@@ -51,9 +43,9 @@ const MonthView = ({
     return out;
   }, [year, mon, month]);
 
-  const monthMatched = entries.filter(e => entryDate(e).startsWith(month));
+  const monthMatched = entries.filter(e => e.dateKey.startsWith(month));
   const dayEntries = selectedDate
-    ? monthMatched.filter(e => entryDate(e) === selectedDate).sort((a, b) => a.sealed_at.localeCompare(b.sealed_at))
+    ? monthMatched.filter(e => e.dateKey === selectedDate).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
     : [];
 
   return (
@@ -121,17 +113,17 @@ const MonthView = ({
                 onClick={() => onOpenEntry(e.id)}
               >
                 <div className="proto-entry-meta">
-                  <span>{new Date(e.sealed_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{new Date(e.recordedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
                   {e.category && <span className="proto-chip">{e.category}</span>}
-                  {e.clarifications.length > 0 && <span className="proto-chip">Clarified</span>}
-                  {e.in_dossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
+                  {e.hasClarifications && <span className="proto-chip">Clarified</span>}
+                  {e.inDossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
                 </div>
                 {e.title && <div className="proto-serif" style={{ fontSize: 16, marginBottom: 4 }}>{e.title}</div>}
                 <div style={{
                   fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
                   display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                 }}>
-                  {e.original_text}
+                  {e.preview}
                 </div>
               </button>
             ))}
