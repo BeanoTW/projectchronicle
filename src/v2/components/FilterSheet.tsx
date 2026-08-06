@@ -13,11 +13,14 @@ interface Props {
   value: NotebookFilters;
   categories: string[];
   people: string[];
+  /** Hide evidence filters when the data source has no reliable attachment data. */
+  showEvidence?: boolean;
+  showAttachmentTypes?: boolean;
   onClose: () => void;
   onApply: (f: NotebookFilters) => void;
 }
 
-const FilterSheet = ({ open, value, categories, people, onClose, onApply }: Props) => {
+const FilterSheet = ({ open, value, categories, people, showEvidence = true, showAttachmentTypes = true, onClose, onApply }: Props) => {
   const [draft, setDraft] = useState<NotebookFilters>(cloneFilters(value));
 
   useEffect(() => {
@@ -131,6 +134,7 @@ const FilterSheet = ({ open, value, categories, people, onClose, onApply }: Prop
             </div>
           </section>
 
+          {showEvidence && (
           <section className="proto-fgroup">
             <h3 className="proto-flabel">Evidence</h3>
             <div className="proto-chipwrap">
@@ -149,6 +153,7 @@ const FilterSheet = ({ open, value, categories, people, onClose, onApply }: Prop
                 Has attachments
               </button>
             </div>
+            {showAttachmentTypes && (
             <div className="proto-chipwrap" style={{ marginTop: 8 }}>
               {(['image', 'document', 'audio', 'video', 'other'] as AttachmentType[]).map(t => (
                 <button
@@ -161,7 +166,9 @@ const FilterSheet = ({ open, value, categories, people, onClose, onApply }: Prop
                 </button>
               ))}
             </div>
+            )}
           </section>
+          )}
 
           <section className="proto-fgroup">
             <h3 className="proto-flabel">Clarifications</h3>
