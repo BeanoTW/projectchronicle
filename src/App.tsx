@@ -24,7 +24,7 @@ import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import AuthCallbackScreen from "./pages/AuthCallbackScreen";
 import HomeScreen from "./pages/HomeScreen";
 import RecordScreen from "./pages/RecordScreen";
-import TimelineScreen from "./pages/TimelineScreen";
+import NotebookRoute from "./routes/NotebookRoute";
 import FlowScreen from "./pages/FlowScreen";
 import CalendarScreen from "./pages/CalendarScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
@@ -116,7 +116,7 @@ const App = () => (
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><RecordScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/timeline" element={<ProtectedRoute><AppLayout><TimelineScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/timeline" element={<ProtectedRoute><AppLayout><NotebookRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><AppLayout><CalendarScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/activity" element={<Navigate to="/calendar" replace />} />
             <Route path="/flow" element={<Navigate to="/calendar" replace />} />
