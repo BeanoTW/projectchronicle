@@ -10,7 +10,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useBackup } from '@/contexts/BackupContext';
-import { useDevMode } from '@/contexts/DevModeContext';
 import { useIncidents } from '@/hooks/useIncidents';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +37,6 @@ const SettingsScreen = () => {
   const { user, signOut } = useAuth();
   const { mode, setMode } = useTheme();
   const { enabled: shielded, setEnabled: setShielded } = usePrivacy();
-  const { canAccessDevPanel } = useDevMode();
   const { data: incidents } = useIncidents();
   const {
     backupEnabled, online, localCount, cloudCount, conflictCount, lastBackupAt, syncStatus,
