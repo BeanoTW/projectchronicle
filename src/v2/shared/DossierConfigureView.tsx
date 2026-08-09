@@ -42,7 +42,7 @@ const DossierConfigureView = ({
   return (
     <div className="proto-noprint">
       <section className="proto-fgroup">
-        <h2 className="proto-flabel">Document title</h2>
+        <h2 className="proto-flabel">Report title</h2>
         <input
           className="proto-input"
           value={cfg.title}
@@ -64,7 +64,7 @@ const DossierConfigureView = ({
       </section>
 
       <section className="proto-fgroup">
-        <h2 className="proto-flabel">What the document contains</h2>
+        <h2 className="proto-flabel">What the report contains</h2>
         <div className="proto-chipwrap">
           <button className="proto-selchip" data-on={cfg.includeDetails}
             onClick={() => set({ includeDetails: !cfg.includeDetails })}>
@@ -83,7 +83,7 @@ const DossierConfigureView = ({
         </div>
         <p className="proto-help">
           Organisational details cover the event date, category, context and people recorded.
-          These settings change how the document reads, not which records belong to it.
+          These settings change how the report reads, not which records belong to My Record.
         </p>
       </section>
 
@@ -197,7 +197,7 @@ const DossierConfigureView = ({
       <p className="proto-help">
         {totalMembers} record{totalMembers === 1 ? '' : 's'} in My Record
         {hiddenByFilters > 0 ? ` · ${hiddenByFilters} outside the current scope` : ''}
-        {includedInDocument === 1 ? ' · this document contains a single record' : ''}.
+        {includedInDocument === 1 ? ' · this report contains a single record' : ''}.
       </p>
     </div>
   );
