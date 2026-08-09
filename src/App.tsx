@@ -14,7 +14,7 @@ import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
 import AppBottomNav from "@/components/chronicle/AppBottomNav";
 
-import DesktopSideNav from "@/components/chronicle/DesktopSideNav";
+import AppSideNav from "@/components/chronicle/AppSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
 import WelcomeScreen from "./pages/WelcomeScreen";
@@ -23,7 +23,6 @@ import SignupScreen from "./pages/SignupScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import AuthCallbackScreen from "./pages/AuthCallbackScreen";
-import HomeScreen from "./pages/HomeScreen";
 import CaptureScreen from "./pages/CaptureScreen";
 import CaptureDetailsScreen from "./pages/CaptureDetailsScreen";
 import NotebookScreen from "./pages/NotebookScreen";
@@ -89,7 +88,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
       window.location.replace(safeNext);
       return null;
     }
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/timeline" replace />;
   }
   return <>{children}</>;
 };
@@ -117,7 +116,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route path="/auth/callback" element={<AuthCallbackScreen />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
-            <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/home" element={<Navigate to="/timeline" replace />} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><CaptureScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record/details/:id" element={<ProtectedRoute><AppLayout><CaptureDetailsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><NotebookScreen /></AppLayout></ProtectedRoute>} />
