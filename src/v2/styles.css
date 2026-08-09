@@ -1,4 +1,4 @@
-/* Prototype-scoped styles. Kept local to .proto-root to avoid leaking into production UI. */
+/* Chronicle V2 styles. Scoped to .proto-root so they never leak into V1 surfaces. */
 .proto-root {
   --p-paper: #f7f3ec;
   --p-paper-2: #efe9dd;

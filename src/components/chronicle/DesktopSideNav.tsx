@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useFullV2 } from '@/hooks/useFeatureFlag';
 import { Settings, Home } from 'lucide-react';
 import {
   TimelineIcon,
@@ -20,6 +21,15 @@ const navItems = [
 const DesktopSideNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const fullV2 = useFullV2();
+  // Full V2 navigation: Notebook · Capture · Dossier stay reachable from one place.
+  const items = fullV2
+    ? navItems.map(i =>
+        i.path === '/timeline' ? { ...i, label: 'Notebook' }
+        : i.path === '/record' ? { ...i, label: 'Capture' }
+        : i,
+      )
+    : navItems;
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -40,7 +50,7 @@ const DesktopSideNav = () => {
       </button>
 
       <nav className="flex flex-col gap-1">
-        {navItems.map(({ path, label, Icon, primary, isLucide }) => {
+        {items.map(({ path, label, Icon, primary, isLucide }) => {
           const active = isActive(path);
           return (
             <button
