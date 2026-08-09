@@ -22,11 +22,13 @@ const DesktopSideNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const fullV2 = useFullV2();
-  // Full V2 navigation: Notebook · Capture · Dossier stay reachable from one place.
+  // Full V2 navigation reads Notebook · Capture · My Record.
+  // Labels and destinations converge; existing URLs stay valid for deep links.
   const items = fullV2
     ? navItems.map(i =>
         i.path === '/timeline' ? { ...i, label: 'Notebook' }
         : i.path === '/record' ? { ...i, label: 'Capture' }
+        : i.path === '/my-record' ? { ...i, path: '/export' }
         : i,
       )
     : navItems;

@@ -14,8 +14,10 @@ const leftItems = (fullV2: boolean) => [
   { path: '/calendar', label: 'Calendar', Icon: CalendarIcon },
 ];
 
-const rightItems = [
-  { path: '/my-record', label: 'My Record', Icon: MyRecordIcon },
+// In full V2, "My Record" is the workspace where records are selected and a
+// report is generated. The URL (/export) stays stable for deep links.
+const rightItems = (fullV2: boolean) => [
+  { path: fullV2 ? '/export' : '/my-record', label: 'My Record', Icon: MyRecordIcon },
   { path: '/support', label: 'Support', Icon: SupportIcon },
 ];
 
@@ -70,7 +72,7 @@ const BottomNav = () => {
             {leftItems(fullV2).map(renderItem)}
           </div>
           <div className="flex h-full items-center pl-10 pr-1">
-            {rightItems.map(renderItem)}
+            {rightItems(fullV2).map(renderItem)}
           </div>
         </div>
       </nav>
@@ -78,7 +80,7 @@ const BottomNav = () => {
       {/* Elevated Record button — dark glass iridescent orb */}
       <button
         onClick={() => navigate('/record')}
-        aria-label="Record"
+        aria-label={fullV2 ? 'Capture' : 'Record'}
         className="absolute left-1/2 -translate-x-1/2 z-10 group"
         style={{ top: -18 }}
       >
