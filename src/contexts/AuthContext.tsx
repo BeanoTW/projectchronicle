@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { analytics } from '@/lib/analytics/analytics';
+import { clearUserScopedState, syncActiveUser } from '@/v2/shared/sessionCleanup';
 
 interface AuthContextType {
   user: User | null;
@@ -24,6 +25,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // localStorage by the supabase client; cap our loading flag so the UI
     // always renders quickly even if the auth network call hangs.
     const settle = (s: Session | null) => {
+      // Account switch on a shared device must never surface the previous
+      // user's drafts or transient screen state.
+      syncActiveUser(s?.user?.id ?? null);
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
@@ -116,7 +120,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const uid = data.session?.user?.id;
       if (uid) clearLastUnlockedAt(uid);
     } catch { /* noop */ }
-    await supabase.auth.signOut();
+    // Clear user-specific transient UI state and capture drafts. Canonical
+    // records are never deleted on sign out.
+    clearUserScopedState();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     analytics.reset();
   };
 
