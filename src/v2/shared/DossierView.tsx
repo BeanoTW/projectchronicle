@@ -100,13 +100,13 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
   return (
     <div>
       <div className="proto-noprint">
-        <h1 className="proto-h1">Dossier</h1>
+        <h1 className="proto-h1">My Record</h1>
         <p className="proto-help" style={{ marginBottom: 12 }}>
           {intro ??
-            'A document assembled from your sealed records, in chronological order. Original wording is never altered.'}
+            'The records you have chosen to bring together, in chronological order. A report is generated from them. Original wording is never altered.'}
         </p>
 
-        <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="Dossier view">
+        <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="My Record view">
           <button style={{ flex: 1 }} data-active={tab === 'configure'} onClick={() => setTab('configure')}>Configure</button>
           <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview</button>
         </div>
