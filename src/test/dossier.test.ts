@@ -310,10 +310,10 @@ describe('source isolation', () => {
 
   it('shared dossier modules never import Dexie, Supabase or production hooks', () => {
     for (const f of [
-      'src/v2/shared/dossierModel.ts',
-      'src/v2/shared/DossierView.tsx',
-      'src/v2/shared/DossierConfigureView.tsx',
-      'src/v2/shared/DossierPreviewView.tsx',
+      'src/chronicle/shared/dossierModel.ts',
+      'src/chronicle/shared/DossierView.tsx',
+      'src/chronicle/shared/DossierConfigureView.tsx',
+      'src/chronicle/shared/DossierPreviewView.tsx',
     ]) {
       const src = imports(f);
       expect(src).not.toMatch(/dexie|supabase|@\/hooks\//i);
@@ -322,12 +322,12 @@ describe('source isolation', () => {
   });
 
   it('the production dossier adapter never imports the preview database', () => {
-    const src = imports('src/v2/shared/productionDossierAdapter.ts');
+    const src = imports('src/chronicle/shared/productionDossierAdapter.ts');
     expect(src).not.toMatch(/chronicle_prototype|v2\/db|from '\.\.\/db'|dexie/i);
   });
 
   it('the shared exporters take a storage-agnostic blob loader', () => {
-    for (const f of ['src/v2/dossier/exportPdf.ts', 'src/v2/dossier/exportDocx.ts']) {
+    for (const f of ['src/chronicle/dossier/exportPdf.ts', 'src/chronicle/dossier/exportDocx.ts']) {
       const src = imports(f);
       expect(src).toMatch(/loadBlob\?: LoadBlob/);
       expect(src).not.toMatch(/dexie|supabase/i);
