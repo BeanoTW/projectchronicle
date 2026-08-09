@@ -31,7 +31,6 @@ import CalendarScreen from "./pages/CalendarScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
-import ExportScreen from "./pages/ExportScreen";
 import ExportRoute from "./routes/ExportRoute";
 import SettingsScreen from "./pages/SettingsScreen";
 import RecordDetailRoute from "./routes/RecordDetailRoute";
