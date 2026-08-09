@@ -1,7 +1,7 @@
 // Chronicle V2 (candidate) voice capture. Browser MediaRecorder, no upload, no transcription.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDialogs } from '../components/Dialog';
-import { LIMITS, formatBytes, formatDuration } from './media';
+import { LIMITS, formatBytes, formatDuration } from './mediaCore';
 import { useBlobUrl } from './useBlobUrl';
 
 export interface VoiceDraft {
@@ -16,6 +16,8 @@ interface Props {
   /** Lets the parent block navigation / sealing while a recording is live. */
   onActiveChange?: (active: boolean) => void;
   disabled?: boolean;
+  /** Source-specific line shown while recording (where the audio ends up). */
+  privacyNote?: string;
 }
 
 type Status = 'idle' | 'requesting' | 'recording' | 'paused' | 'denied' | 'error' | 'unsupported';
@@ -27,7 +29,7 @@ const pickMime = (): string => {
   return candidates.find(c => R.isTypeSupported(c)) ?? '';
 };
 
-const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
+const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }: Props) => {
   const dialogs = useDialogs();
   const [status, setStatus] = useState<Status>('idle');
   const [elapsed, setElapsed] = useState(0);
@@ -269,7 +271,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled }: Props) => {
 
       {status === 'recording' && (
         <p className="proto-help" style={{ marginTop: 8 }}>
-          Recording. Audio stays on this device and is not sent anywhere.
+          {privacyNote ?? 'Recording. Audio stays on this device and is not sent anywhere.'}
         </p>
       )}
       {message && <p className="proto-media-error">{message}</p>}
