@@ -7,11 +7,9 @@ import ReviewView from '@/chronicle/shared/ReviewView';
 import { useProductionCaptureAdapter } from '@/chronicle/shared/productionCaptureAdapter';
 import AppSurface from '@/chronicle/shared/AppSurface';
 import '@/chronicle/styles.css';
-import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 const CaptureDetailsScreenV2 = () => {
   // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
-  useOwnNavigationV2();
   const { id } = useParams();
   const navigate = useNavigate();
   const adapter = useProductionCaptureAdapter();

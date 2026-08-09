@@ -4,7 +4,7 @@
 // incidents + follow-up notes) normalise into `NotebookRecord`. The shared
 // NotebookView never knows where the data came from.
 import type { NotebookFilters, RecordTypeFilter } from '../filters';
-import type { AttachmentType } from '../media/media';
+import type { AttachmentType } from '../media/mediaCore';
 
 export interface NotebookRecord {
   id: string;

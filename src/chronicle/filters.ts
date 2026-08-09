@@ -1,6 +1,6 @@
 // Chronicle V2 (candidate). filter model. Pure functions over V2Entry.
 import type { V2Entry } from './db';
-import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/media';
+import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/mediaCore';
 
 export type DossierStatus = 'any' | 'included' | 'excluded';
 
