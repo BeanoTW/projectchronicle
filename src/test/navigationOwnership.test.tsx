@@ -32,7 +32,7 @@ const Shell = ({ path, children }: { path: string; children: React.ReactNode }) 
   </MemoryRouter>
 );
 
-const v1Nav = () => screen.queryByLabelText('Record') ?? screen.queryByLabelText('Capture');
+const v1Nav = () => screen.queryByTestId('v1-bottom-nav');
 const v2Nav = () => screen.queryByTestId('v2-bottom-nav');
 
 describe('navigation ownership', () => {
@@ -119,6 +119,6 @@ describe('navigation ownership', () => {
     render(<Shell path="/timeline"><V2Screen name="v2" /></Shell>);
     const spacer = v2Nav()!.querySelector('[aria-hidden]') as HTMLElement;
     expect(spacer).toBeTruthy();
-    expect(spacer.style.height).toContain('72px');
+    expect(spacer.style.height).toBe('72px');
   });
 });
