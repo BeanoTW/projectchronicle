@@ -62,7 +62,20 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
     [records, cfg],
   );
 
-  const doc = useMemo(() => buildDossierFromSource(records, cfg, media), [records, cfg, media]);
+  /* Phase 8 measurement: assembling the full document costs ~1.6s at 5,000
+     records, so it is only built when the report is actually being shown or
+     exported. Configure only needs counts, which are cheap. */
+  const totalMembers = useMemo(() => records.filter(r => r.in_dossier).length, [records]);
+  const hiddenByFilters = useMemo(
+    () => records.filter(r => r.in_dossier && !matchesScope(r, cfg)).length,
+    [records, cfg],
+  );
+  const includedInDocument = totalMembers - hiddenByFilters;
+
+  const doc = useMemo(
+    () => (tab === 'preview' ? buildDossierFromSource(records, cfg, media) : null),
+    [tab, records, cfg, media],
+  );
 
   const toggleMember = async (id: string, on: boolean) => {
     setTogglingId(id);
@@ -95,7 +108,7 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
     }
   };
 
-  const canExport = doc.records.length > 0;
+  const canExport = includedInDocument > 0;
 
   return (
     <div>
@@ -124,9 +137,9 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
           categories={categories}
           people={people}
           onToggleMember={toggleMember}
-          totalMembers={doc.totalMembers}
-          hiddenByFilters={doc.hiddenByFilters}
-          includedInDocument={doc.records.length}
+          totalMembers={totalMembers}
+          hiddenByFilters={hiddenByFilters}
+          includedInDocument={includedInDocument}
           evidenceNote={adapter.evidenceNote}
           supportsHistory={supportsHistory}
           supportsEvidence={supportsEvidence}
@@ -152,28 +165,28 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
             <p className="proto-help proto-noprint" style={{ marginBottom: 10 }} aria-live="polite">
               {progress && progress.total > 0
                 ? `Preparing images ${progress.done} of ${progress.total}…`
-                : `Assembling ${doc.records.length} record${doc.records.length === 1 ? '' : 's'}…`}
+                : `Assembling ${includedInDocument} record${includedInDocument === 1 ? '' : 's'}…`}
             </p>
           )}
 
-          {doc.records.length === 0 && (
+          {includedInDocument === 0 && (
             <div className="proto-empty proto-noprint" style={{ marginBottom: 14 }}>
-              {doc.totalMembers === 0
+              {totalMembers === 0
                 ? 'No records are included yet. Select records in Configure.'
-                : `All ${doc.totalMembers} included record${doc.totalMembers === 1 ? '' : 's'} fall outside the current scope. Adjust the date range, category or person in Configure.`}
+                : `All ${totalMembers} included record${totalMembers === 1 ? '' : 's'} fall outside the current scope. Adjust the date range, category or person in Configure.`}
             </div>
           )}
 
-          {doc.hiddenByFilters > 0 && doc.records.length > 0 && (
+          {hiddenByFilters > 0 && includedInDocument > 0 && (
             <p className="proto-help proto-noprint" style={{ marginBottom: 10 }}>
-              {doc.hiddenByFilters} included record{doc.hiddenByFilters === 1 ? ' is' : 's are'} hidden
+              {hiddenByFilters} included record{hiddenByFilters === 1 ? ' is' : 's are'} hidden
               by the current scope and will not appear in the report.
             </p>
           )}
 
           {previewWithheld ? (
             <div className="proto-empty proto-noprint" role="status">{previewWithheld}</div>
-          ) : (
+          ) : doc && (
             <DossierPreviewView doc={doc} cfg={cfg} onOpenRecord={onOpenRecord} useMediaUrl={adapter.useMediaUrl} />
           )}
         </>
