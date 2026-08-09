@@ -1,6 +1,4 @@
-// Phase 6B — migrated production Notebook route (behind the `v2Notebook` flag).
-//
-// Real production data only. Read-only: navigation + filter state.
+// Canonical Notebook route. Real production data only.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';

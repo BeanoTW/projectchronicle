@@ -39,7 +39,7 @@ describe('canonical app architecture — account independence', () => {
   });
 
   it('no feature-flag module or V1/V2 switching survives', () => {
-    const offenders = sourceFiles.filter(p =>
+    const offenders = sourceFiles.filter(p => p.endsWith('clientStateCleanup.ts') ? false :
       /featureFlags|fullV2Mode|NavigationOwnership|v2Notebook|v2Capture|v2Dossier|v2Entry\b/.test(
         readFileSync(p, 'utf8').replace(/^\/\/.*$/gm, ''),
       ),

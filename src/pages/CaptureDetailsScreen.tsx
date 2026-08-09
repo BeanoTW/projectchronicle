@@ -1,6 +1,4 @@
 // Phase 6C — optional "Add details" step for a sealed production record.
-// Behind the `v2Capture` flag; when the flag is off the route redirects to the
-// canonical record so direct links and refreshes never break.
 import { useNavigate, useParams } from 'react-router-dom';
 import { useIncident } from '@/hooks/useIncidents';
 import ReviewView from '@/chronicle/shared/ReviewView';
