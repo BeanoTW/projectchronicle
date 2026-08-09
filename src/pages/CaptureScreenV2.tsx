@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import CaptureView from '@/v2/shared/CaptureView';
 import { useProductionCaptureAdapter } from '@/v2/shared/productionCaptureAdapter';
 import { DialogProvider } from '@/v2/components/Dialog';
+import V2Surface from '@/v2/shared/V2Surface';
 import '@/v2/styles.css';
 import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
@@ -14,11 +15,11 @@ const CaptureScreenV2 = () => {
   const adapter = useProductionCaptureAdapter();
   return (
     <DialogProvider>
-      <div className="proto-root proto-surface">
+      <V2Surface>
         <div className="proto-page">
           <CaptureView adapter={adapter} onNavigate={path => navigate(path)} />
         </div>
-      </div>
+      </V2Surface>
     </DialogProvider>
   );
 };

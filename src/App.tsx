@@ -34,7 +34,7 @@ import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
 import ExportRoute from "./routes/ExportRoute";
-import SettingsScreen from "./pages/SettingsScreen";
+import SettingsRoute from "./routes/SettingsRoute";
 import RecordDetailRoute from "./routes/RecordDetailRoute";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
@@ -78,7 +78,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const { isLocked, isLockConfigured } = useLock();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) {
+    // Preserve the intended destination; PublicRoute honours a safe `next`.
+    const intended = window.location.pathname + window.location.search;
+    const next = intended && intended !== '/' ? `?next=${encodeURIComponent(intended)}` : '';
+    return <Navigate to={`/${next}`} replace />;
+  }
   if (isLockConfigured && isLocked) return <LockGate />;
   return <>{children}</>;
 };
@@ -136,7 +141,7 @@ const App = () => (
             <Route path="/support" element={<ProtectedRoute><AppLayout><SupportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<Navigate to="/support" replace />} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><RecordDetailRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
 

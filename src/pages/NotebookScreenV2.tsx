@@ -8,26 +8,14 @@ import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
 import NotebookView from '@/v2/shared/NotebookView';
 import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
-import { cloneFilters, emptyFilters, type NotebookFilters } from '@/v2/filters';
+import { cloneFilters, type NotebookFilters } from '@/v2/filters';
+import { notebookUiState as prodNotebookState } from '@/v2/shared/notebookUiState';
+import V2Surface from '@/v2/shared/V2Surface';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useMemo } from 'react';
 import '@/v2/styles.css';
 import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
-/** Session-scoped UI state so the view survives navigation to a record and back. */
-const prodNotebookState: {
-  q: string;
-  view: 'list' | 'month';
-  month: string;
-  selectedDate: string | null;
-  filters: NotebookFilters;
-} = {
-  q: '',
-  view: 'list',
-  month: new Date().toISOString().slice(0, 7),
-  selectedDate: null,
-  filters: cloneFilters(emptyFilters),
-};
 
 const NotebookScreenV2 = () => {
   // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
@@ -73,7 +61,7 @@ const NotebookScreenV2 = () => {
   }, [records, shielded, privacy]);
 
   return (
-    <div className="proto-root proto-surface">
+    <V2Surface>
       <div className="proto-page">
         <NotebookView
           title="Notebook"
@@ -99,7 +87,7 @@ const NotebookScreenV2 = () => {
           emptyMessage="No records yet."
         />
       </div>
-    </div>
+    </V2Surface>
   );
 };
 

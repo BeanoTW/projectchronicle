@@ -8,7 +8,7 @@
 //   ?ff=v2Entry:1,v2Notebook:0     — sets and persists per-device overrides
 //   ?ff=reset                      — clears all overrides
 
-export type FeatureFlag = 'v2Entry' | 'v2Notebook' | 'v2Capture' | 'v2Dossier';
+export type FeatureFlag = 'v2Entry' | 'v2Notebook' | 'v2Capture' | 'v2Dossier' | 'v2Settings';
 
 /** Production defaults. Flip a value to roll a route forward or back. */
 export const FLAG_DEFAULTS: Record<FeatureFlag, boolean> = {
@@ -16,6 +16,7 @@ export const FLAG_DEFAULTS: Record<FeatureFlag, boolean> = {
   v2Notebook: false,
   v2Capture: false,
   v2Dossier: false,
+  v2Settings: false,
 };
 
 export const FLAG_LABELS: Record<FeatureFlag, string> = {
@@ -23,6 +24,7 @@ export const FLAG_LABELS: Record<FeatureFlag, string> = {
   v2Notebook: 'V2 notebook (/timeline)',
   v2Capture: 'V2 capture (/record)',
   v2Dossier: 'V2 dossier (/export)',
+  v2Settings: 'V2 settings (/settings)',
 };
 
 const STORAGE_KEY = 'chronicle.flags';
