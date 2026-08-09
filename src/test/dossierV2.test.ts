@@ -26,7 +26,7 @@ import {
   FLAG_DEFAULTS,
   clearFeatureOverrides,
   isFeatureEnabled,
-  setFeatureOverride,,
+  setFeatureOverride,
   setAllV2Override,
 } from '@/lib/featureFlags';
 import type { LocalIncident } from '@/local/db';
