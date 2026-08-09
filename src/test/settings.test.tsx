@@ -22,11 +22,10 @@ import { notebookUiState, resetNotebookUiState } from '@/chronicle/shared/notebo
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
-  clearFeatureOverrides();
 });
 
 
-describe('V2 shell settings access', () => {
+describe('App shell settings access', () => {
   it('every V2 surface exposes a secondary settings control', () => {
     render(
       <MemoryRouter>
@@ -138,12 +137,6 @@ describe('user-specific state clearing', () => {
     sessionStorage.setItem(productionDraftKey('user-a'), 'draft');
     expect(syncActiveUser('user-a')).toBe(false);
     expect(sessionStorage.getItem(productionDraftKey('user-a'))).toBe('draft');
-  });
-
-  it('leaves device-local feature flags untouched (no user information)', () => {
-    setFeatureOverride('v2Settings', true);
-    clearUserScopedState();
-    expect(isFeatureEnabled('v2Settings')).toBe(true);
   });
 
   it('registered resets can be removed again', () => {
