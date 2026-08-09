@@ -103,11 +103,11 @@ const DossierScreenV2 = () => {
       adapter={adapter}
       previewWithheld={
         shielded
-          ? 'Privacy Shield is on, so the document is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
+          ? 'Privacy Shield is on, so the report is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
           : null
       }
       onOpenRecord={id => navigate(`/incident/${id}`)}
-      intro="A document assembled from your saved records, in chronological order. Original wording is never altered."
+      intro="The records you have chosen to bring together, in chronological order. Your report is generated from them — original wording is never altered."
     />
   );
 };

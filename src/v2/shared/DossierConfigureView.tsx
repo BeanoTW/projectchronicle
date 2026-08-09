@@ -164,7 +164,7 @@ const DossierConfigureView = ({
         )}
         <p className="proto-help">
           Scope decides which included records appear in this document. It never adds or removes
-          records from the dossier itself.
+          records from My Record itself.
         </p>
       </section>
 
@@ -195,7 +195,7 @@ const DossierConfigureView = ({
       </section>
 
       <p className="proto-help">
-        {totalMembers} record{totalMembers === 1 ? '' : 's'} in the dossier
+        {totalMembers} record{totalMembers === 1 ? '' : 's'} in My Record
         {hiddenByFilters > 0 ? ` · ${hiddenByFilters} outside the current scope` : ''}
         {includedInDocument === 1 ? ' · this document contains a single record' : ''}.
       </p>

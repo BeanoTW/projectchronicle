@@ -108,7 +108,7 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
 
         <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="My Record view">
           <button style={{ flex: 1 }} data-active={tab === 'configure'} onClick={() => setTab('configure')}>Configure</button>
-          <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview</button>
+          <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview report</button>
         </div>
 
         {adapter.loading && <p className="proto-help" style={{ marginBottom: 10 }}>Loading records…</p>}
@@ -137,11 +137,11 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
           <div className="proto-noprint proto-exportbar">
             <button className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
               onClick={() => runExport('pdf')}>
-              {busy === 'pdf' ? 'Preparing…' : 'Export PDF'}
+              {busy === 'pdf' ? 'Preparing…' : 'Export PDF report'}
             </button>
             <button className="proto-btn" disabled={!canExport || busy !== null}
               onClick={() => runExport('docx')}>
-              {busy === 'docx' ? 'Preparing…' : 'Export Word'}
+              {busy === 'docx' ? 'Preparing…' : 'Export Word report'}
             </button>
             <button className="proto-btn" data-variant="ghost" disabled={!canExport || busy !== null} onClick={() => window.print()}>
               Print
@@ -167,7 +167,7 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
           {doc.hiddenByFilters > 0 && doc.records.length > 0 && (
             <p className="proto-help proto-noprint" style={{ marginBottom: 10 }}>
               {doc.hiddenByFilters} included record{doc.hiddenByFilters === 1 ? ' is' : 's are'} hidden
-              by the current scope and will not appear in the export.
+              by the current scope and will not appear in the report.
             </p>
           )}
 
