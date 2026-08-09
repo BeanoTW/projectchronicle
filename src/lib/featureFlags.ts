@@ -28,7 +28,35 @@ export const FLAG_LABELS: Record<FeatureFlag, string> = {
 const STORAGE_KEY = 'chronicle.flags';
 const FLAG_NAMES = Object.keys(FLAG_DEFAULTS) as FeatureFlag[];
 
+/**
+ * Phase 7 convenience override: turns every V2 route on (or off) at once for
+ * development and release testing. It never removes flag independence — an
+ * individual override always wins over it:
+ *
+ *   individual override  >  v2All override  >  FLAG_DEFAULTS
+ *
+ *   ?ff=v2All:1                — full V2 mode
+ *   ?ff=v2All:1,v2Dossier:0    — full V2 except the dossier
+ *   ?ff=reset                  — back to defaults
+ */
+export const ALL_KEY = 'v2All';
+
 const isFlag = (v: string): v is FeatureFlag => (FLAG_NAMES as string[]).includes(v);
+
+const readRaw = (): Record<string, unknown> => {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+};
+
+const readAllOverride = (): boolean | undefined => {
+  const v = readRaw()[ALL_KEY];
+  return typeof v === 'boolean' ? v : undefined;
+};
 
 const readOverrides = (): Partial<Record<FeatureFlag, boolean>> => {
   if (typeof localStorage === 'undefined') return {};
@@ -46,7 +74,8 @@ const readOverrides = (): Partial<Record<FeatureFlag, boolean>> => {
   }
 };
 
-const writeOverrides = (next: Partial<Record<FeatureFlag, boolean>>) => {
+/** Persists the whole override object (individual flags + the v2All key). */
+const writeRaw = (next: Record<string, unknown>) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch { /* storage unavailable — flags fall back to defaults */ }
@@ -65,25 +94,48 @@ export const applyFlagOverridesFromUrl = () => {
     listeners.forEach(l => l());
     return;
   }
-  const next = { ...readOverrides() };
+  const next = { ...readRaw() };
   for (const part of raw.split(',')) {
     const [name, value] = part.split(':');
-    if (isFlag(name)) next[name] = value !== '0' && value !== 'false';
+    const on = value !== '0' && value !== 'false';
+    if (isFlag(name)) next[name] = on;
+    else if (name === ALL_KEY) next[ALL_KEY] = on;
   }
-  writeOverrides(next);
+  writeRaw(next);
 };
 
 export const isFeatureEnabled = (flag: FeatureFlag): boolean => {
   const override = readOverrides()[flag];
-  return override ?? FLAG_DEFAULTS[flag];
+  if (override !== undefined) return override;      // individual flags stay independent
+  const all = readAllOverride();
+  if (all !== undefined) return all;
+  return FLAG_DEFAULTS[flag];
 };
 
+/** True when every V2 route resolves to V2 — however that was reached. */
+export const isFullV2Enabled = (): boolean => FLAG_NAMES.every(isFeatureEnabled);
+
 export const setFeatureOverride = (flag: FeatureFlag, value: boolean | null) => {
-  const next = { ...readOverrides() };
+  const next = { ...readRaw() };
   if (value === null) delete next[flag];
   else next[flag] = value;
-  writeOverrides(next);
+  writeRaw(next);
 };
+
+/** Set (or clear, with `null`) the all-routes override. */
+export const setAllV2Override = (value: boolean | null) => {
+  const next = { ...readRaw() };
+  if (value === null) delete next[ALL_KEY];
+  else {
+    next[ALL_KEY] = value;
+    // Clearing individual overrides makes the switch predictable; they can be
+    // set again afterwards and will continue to win.
+    FLAG_NAMES.forEach(n => delete next[n]);
+  }
+  writeRaw(next);
+};
+
+export const getAllV2Override = (): boolean | undefined => readAllOverride();
 
 export const clearFeatureOverrides = () => {
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }

@@ -61,6 +61,7 @@ export const toNotebookRecords = ({ incidents, notes, evidence }: AdapterInput):
       dateKey: ((isDaily ? i.record_date : null) ?? i.incident_date ?? (i.created_at ?? '').slice(0, 10)),
       recordedAt: i.original_created_at ?? i.created_at,
       category: i.category ?? null,
+      recordType: isDaily ? 'daily' : 'incident',
       searchExtras: [
         i.subtype ?? '', i.location ?? '', i.context_domain ?? '',
         i.exact_words ?? '', i.impact_note ?? '', ...(i.tags ?? []),

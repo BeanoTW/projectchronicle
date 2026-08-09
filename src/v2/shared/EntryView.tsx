@@ -37,6 +37,10 @@ export interface EntryViewProps {
   /** Evidence UI differs per data source; injected by the caller. */
   evidenceSlot?: ReactNode;
   backLabel?: string;
+  /** Quiet status line under the title (e.g. Privacy Shield active). */
+  notice?: ReactNode;
+  /** Extra section rendered after organisational details (e.g. record history). */
+  footerSlot?: ReactNode;
   /** False when already rendered inside a `.proto-root .proto-main` shell. */
   standalone?: boolean;
 }
@@ -48,6 +52,8 @@ const EntryView = ({
   onToggleDossier,
   onEditDetails,
   evidenceSlot,
+  notice,
+  footerSlot,
   backLabel = '← Notebook',
   standalone = true,
 
@@ -95,6 +101,8 @@ const EntryView = ({
           )}
           {entry.in_dossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
         </div>
+
+        {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
         <div className="proto-sealed-note">
           <div className="proto-sealed-label">Written record — unchanged</div>
@@ -180,6 +188,10 @@ const EntryView = ({
             Details are organisational only. Editing them never alters the sealed wording above.
           </p>
         </section>
+
+        {footerSlot}
+
+
 
         <div style={{ marginTop: 20 }}>
           <button

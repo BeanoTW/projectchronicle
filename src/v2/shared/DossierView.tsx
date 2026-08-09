@@ -22,9 +22,15 @@ interface Props {
   supportsEvidence?: boolean;
   /** Neutral note shown under the header (e.g. where the data comes from). */
   intro?: string;
+  /**
+   * When set, the on-screen document preview is withheld and this message is
+   * shown instead (Privacy Shield). Exported files are never affected — the
+   * shield is a display filter, not a redaction of the record.
+   */
+  previewWithheld?: string | null;
 }
 
-const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro }: Props) => {
+const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro, previewWithheld = null }: Props) => {
   const [cfg, setCfg] = useState<DossierConfig>(defaultDossierConfig);
   const [tab, setTab] = useState<'configure' | 'preview'>('configure');
   const [busy, setBusy] = useState<null | 'pdf' | 'docx'>(null);
@@ -165,7 +171,11 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
             </p>
           )}
 
-          <DossierPreviewView doc={doc} cfg={cfg} onOpenRecord={onOpenRecord} useMediaUrl={adapter.useMediaUrl} />
+          {previewWithheld ? (
+            <div className="proto-empty proto-noprint" role="status">{previewWithheld}</div>
+          ) : (
+            <DossierPreviewView doc={doc} cfg={cfg} onOpenRecord={onOpenRecord} useMediaUrl={adapter.useMediaUrl} />
+          )}
         </>
       )}
     </div>

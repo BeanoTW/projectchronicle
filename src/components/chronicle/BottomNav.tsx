@@ -6,9 +6,11 @@ import {
   MyRecordIcon,
   SupportIcon,
 } from './NavIcons';
+import { useFullV2 } from '@/hooks/useFeatureFlag';
 
-const leftItems = [
-  { path: '/timeline', label: 'Timeline', Icon: TimelineIcon },
+// In full V2 the chronology is the Notebook. Labels converge; routes do not move.
+const leftItems = (fullV2: boolean) => [
+  { path: '/timeline', label: fullV2 ? 'Notebook' : 'Timeline', Icon: TimelineIcon },
   { path: '/calendar', label: 'Calendar', Icon: CalendarIcon },
 ];
 
@@ -20,6 +22,7 @@ const rightItems = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const fullV2 = useFullV2();
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -64,7 +67,7 @@ const BottomNav = () => {
       <nav className="iridescent-nav relative h-[56px] rounded-[22px] overflow-hidden">
         <div className="relative grid h-full" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <div className="flex h-full items-center pl-1 pr-10">
-            {leftItems.map(renderItem)}
+            {leftItems(fullV2).map(renderItem)}
           </div>
           <div className="flex h-full items-center pl-10 pr-1">
             {rightItems.map(renderItem)}

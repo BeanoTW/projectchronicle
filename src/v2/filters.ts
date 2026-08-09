@@ -4,12 +4,16 @@ import { emptySummary, type AttachmentType, type EntryMediaSummary } from './med
 
 export type DossierStatus = 'any' | 'included' | 'excluded';
 
+/** Chronicle supports two record types. Both remain first-class in V2. */
+export type RecordTypeFilter = 'incident' | 'daily';
+
 export interface NotebookFilters {
   categories: string[];
   people: string[];
   from: string | null;   // YYYY-MM-DD
   to: string | null;     // YYYY-MM-DD
   dossier: DossierStatus;
+  recordTypes: RecordTypeFilter[];
   withClarifications: boolean;
   hasVoice: boolean;
   hasAttachments: boolean;
@@ -22,6 +26,7 @@ export const emptyFilters: NotebookFilters = {
   from: null,
   to: null,
   dossier: 'any',
+  recordTypes: [],
   withClarifications: false,
   hasVoice: false,
   hasAttachments: false,
@@ -32,6 +37,7 @@ export const cloneFilters = (f: NotebookFilters): NotebookFilters => ({
   ...f,
   categories: [...f.categories],
   people: [...f.people],
+  recordTypes: [...f.recordTypes],
   attachmentTypes: [...f.attachmentTypes],
 });
 
@@ -41,6 +47,7 @@ export const activeFilterCount = (f: NotebookFilters): number =>
   (f.from ? 1 : 0) +
   (f.to ? 1 : 0) +
   (f.dossier !== 'any' ? 1 : 0) +
+  f.recordTypes.length +
   (f.withClarifications ? 1 : 0) +
   (f.hasVoice ? 1 : 0) +
   (f.hasAttachments ? 1 : 0) +
@@ -112,6 +119,13 @@ export const buildChips = (f: NotebookFilters): ActiveChip[] => {
       label: f.dossier === 'included' ? 'In dossier' : 'Not in dossier',
       remove: cur => ({ ...cur, dossier: 'any' as DossierStatus }),
     });
+  f.recordTypes.forEach(t =>
+    chips.push({
+      key: `rtype:${t}`,
+      label: t === 'daily' ? 'Daily record' : 'Incident',
+      remove: cur => ({ ...cur, recordTypes: cur.recordTypes.filter(x => x !== t) }),
+    }),
+  );
   if (f.withClarifications)
     chips.push({
       key: 'clar',

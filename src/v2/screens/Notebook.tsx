@@ -34,6 +34,7 @@ const NotebookScreen = () => {
         dateKey: entryDate(e),
         recordedAt: e.sealed_at,
         category: e.category,
+        recordType: 'incident' as const,
         searchExtras: [e.context ?? '', ...e.clarifications.map(c => c.text)],
         people: e.people,
         inDossier: e.in_dossier,

@@ -12,6 +12,7 @@ import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
 import { supabase } from '@/integrations/supabase/client';
 import DossierView from '@/v2/shared/DossierView';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import type { DossierAdapter, DossierEvidenceItem } from '@/v2/shared/dossierModel';
 import {
   inclusionToExcluded,
@@ -22,6 +23,7 @@ import '@/v2/styles.css';
 
 const DossierScreenV2 = () => {
   const navigate = useNavigate();
+  const { enabled: shielded } = usePrivacy();
   const { data: incidents, isLoading } = useIncidents();
   const { data: notes } = useAllFollowUpNotes();
   const evidenceQuery = useEvidence();
@@ -99,6 +101,11 @@ const DossierScreenV2 = () => {
   return (
     <DossierView
       adapter={adapter}
+      previewWithheld={
+        shielded
+          ? 'Privacy Shield is on, so the document is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
+          : null
+      }
       onOpenRecord={id => navigate(`/incident/${id}`)}
       intro="A document assembled from your saved records, in chronological order. Original wording is never altered."
     />

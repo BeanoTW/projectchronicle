@@ -8,6 +8,7 @@ import { useDialogs } from '../components/Dialog';
 import { type PendingFile } from '../media/mediaCore';
 import {
   canSealCapture, captureIsDirty, describeFailures,
+  type CaptureRecordType,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure,
 } from './captureModel';
 
@@ -33,12 +34,24 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
   const [sealed, setSealed] = useState<{ id: string; sealedAt: string; text: string } | null>(null);
   const [failures, setFailures] = useState<MediaFailure[]>([]);
   const [retrying, setRetrying] = useState(false);
+  const [recordType, setRecordType] = useState<CaptureRecordType>('incident');
+  // Offline awareness: users must always know where their record has got to.
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine !== false));
+  const [sealedOffline, setSealedOffline] = useState(false);
 
   const capturedAt = useRef(new Date().toISOString());
   const submissionId = useRef(crypto.randomUUID());
   const submittingRef = useRef(false);           // hard guard against double-tap / slow network
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sealedHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   useEffect(() => {
     if (!sealed) textareaRef.current?.focus();
@@ -112,6 +125,7 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
         capturedAt: capturedAt.current,
         sealedAt,
         hasVoice: !!voice,
+        recordType,
       });
     } catch (e) {
       // Nothing was sealed. The draft stays exactly where it is.
@@ -135,6 +149,7 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
     try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
     setFailures(mediaFailures);
     if (mediaFailures.length) setError(describeFailures(mediaFailures));
+    setSealedOffline(!online);
     setSealed({ id: created.recordId, sealedAt: created.sealedAt, text: text.trim() });
     setSealing(false);
   };
@@ -166,6 +181,12 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
             <div className="proto-help" style={{ margin: 0 }}>Voice record only — no written wording.</div>
           )}
         </div>
+
+        <p className="proto-help" role="status" style={{ marginTop: 8 }}>
+          {sealedOffline
+            ? 'You were offline, so this record is saved on this device. It will be backed up automatically the next time you are online.'
+            : 'This record is saved on this device and backed up to your private Chronicle storage.'}
+        </p>
 
         {error && <p className="proto-media-error" role="alert">{error}</p>}
         {failures.length > 0 && (
@@ -207,6 +228,23 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
         the time you sealed it.
       </p>
       {notice && <p className="proto-media-error" role="status">{notice}</p>}
+      {!online && (
+        <p className="proto-help" role="status" style={{ marginBottom: 10 }}>
+          You are offline. You can still seal this record — it is saved on this device first, and
+          backed up when you are next online. Attachments may not upload until then.
+        </p>
+      )}
+
+      {capabilities.recordTypes && (
+        <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 12 }} role="group" aria-label="Record type">
+          <button style={{ flex: 1 }} data-active={recordType === 'incident'} onClick={() => setRecordType('incident')}>
+            Incident
+          </button>
+          <button style={{ flex: 1 }} data-active={recordType === 'daily'} onClick={() => setRecordType('daily')}>
+            Daily record
+          </button>
+        </div>
+      )}
 
       <label className="proto-flabel" htmlFor="proto-written">Written record</label>
       <textarea
