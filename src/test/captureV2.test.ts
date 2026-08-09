@@ -132,7 +132,7 @@ const item = (id: string): CaptureMediaItem => ({
 describe('capture adapter contract', () => {
   it('creating twice with the same submission id yields one record', async () => {
     const { adapter, records } = makeFakeAdapter();
-    const input = { submissionId: 'sub-1', text: 'a', capturedAt: 'now', sealedAt: 'now', hasVoice: false };
+    const input = { submissionId: 'sub-1', text: 'a', capturedAt: 'now', sealedAt: 'now', hasVoice: false, recordType: 'incident' as const };
     const a = await adapter.createRecord(input);
     const b = await adapter.createRecord(input);
     expect(a.recordId).toBe(b.recordId);
