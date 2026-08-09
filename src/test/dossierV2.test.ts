@@ -326,6 +326,7 @@ describe('v2Dossier feature flag', () => {
     expect(isFeatureEnabled('v2Dossier')).toBe(false);
 
     clearFeatureOverrides();
+    setAllV2Override(false);
     expect(isFeatureEnabled('v2Notebook')).toBe(false);
   });
 });
