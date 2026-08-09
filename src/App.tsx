@@ -12,8 +12,7 @@ import { LockProvider, useLock } from "@/contexts/LockContext";
 import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
-import AppNavigation from "@/components/chronicle/AppNavigation";
-import { NavigationOwnershipProvider } from "@/components/chronicle/NavigationOwnership";
+import AppBottomNav from "@/components/chronicle/AppBottomNav";
 
 import DesktopSideNav from "@/components/chronicle/DesktopSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
@@ -25,18 +24,14 @@ import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import AuthCallbackScreen from "./pages/AuthCallbackScreen";
 import HomeScreen from "./pages/HomeScreen";
-import RecordRoute from "./routes/RecordRoute";
-import CaptureDetailsRoute from "./routes/CaptureDetailsRoute";
-import NotebookRoute from "./routes/NotebookRoute";
-import FlowScreen from "./pages/FlowScreen";
-import CalendarScreen from "./pages/CalendarScreen";
+import CaptureScreen from "./pages/CaptureScreen";
+import CaptureDetailsScreen from "./pages/CaptureDetailsScreen";
+import NotebookScreen from "./pages/NotebookScreen";
 import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
-import ExportRoute from "./routes/ExportRoute";
-import SettingsRoute from "./routes/SettingsRoute";
-import RecordDetailRoute from "./routes/RecordDetailRoute";
-import ReviewScreen from "./pages/ReviewScreen";
+import SettingsScreen from "./pages/SettingsScreen";
+import EntryScreen from "./pages/EntryScreen";
 import NotFound from "./pages/NotFound";
 import GuidesIndex from "./pages/guides/GuidesIndex";
 import {
@@ -52,25 +47,21 @@ import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import OAuthConsentScreen from "./pages/OAuthConsentScreen";
-import V2App from "./v2/V2App";
-import DevOnlyRoute from "./routes/DevOnlyRoute";
 
 
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <NavigationOwnershipProvider>
-    <div className="md:flex md:h-screen md:overflow-hidden">
-      <DesktopSideNav />
-      <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0 md:h-screen md:overflow-y-auto">
-        <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
-          {children}
-        </div>
+  <div className="md:flex md:h-screen md:overflow-hidden">
+    <DesktopSideNav />
+    <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0 md:h-screen md:overflow-y-auto">
+      <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
+        {children}
       </div>
-      <AppNavigation />
-      <AuthDebugPanel />
     </div>
-  </NavigationOwnershipProvider>
+    <AppBottomNav />
+    <AuthDebugPanel />
+  </div>
 );
 
 
@@ -127,23 +118,22 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallbackScreen />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
             <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/record" element={<ProtectedRoute><AppLayout><RecordRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/record/details/:id" element={<ProtectedRoute><AppLayout><CaptureDetailsRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/timeline" element={<ProtectedRoute><AppLayout><NotebookRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/calendar" element={<ProtectedRoute><AppLayout><CalendarScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/activity" element={<Navigate to="/calendar" replace />} />
-            <Route path="/flow" element={<Navigate to="/calendar" replace />} />
-            <Route path="/my-record" element={<ProtectedRoute><AppLayout><MyRecordScreen /></AppLayout></ProtectedRoute>} />
-            <Route path="/patterns" element={<Navigate to="/my-record" replace />} />
-            <Route path="/insights" element={<Navigate to="/my-record" replace />} />
+            <Route path="/record" element={<ProtectedRoute><AppLayout><CaptureScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/record/details/:id" element={<ProtectedRoute><AppLayout><CaptureDetailsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/timeline" element={<ProtectedRoute><AppLayout><NotebookScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/calendar" element={<Navigate to="/timeline" replace />} />
+            <Route path="/activity" element={<Navigate to="/timeline" replace />} />
+            <Route path="/flow" element={<Navigate to="/timeline" replace />} />
+            <Route path="/my-record" element={<Navigate to="/export" replace />} />
+            <Route path="/patterns" element={<Navigate to="/export" replace />} />
+            <Route path="/insights" element={<Navigate to="/export" replace />} />
             <Route path="/attachments" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/support" element={<ProtectedRoute><AppLayout><SupportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<Navigate to="/support" replace />} />
-            <Route path="/export" element={<ProtectedRoute><AppLayout><ExportRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><RecordDetailRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/export" element={<ProtectedRoute><AppLayout><MyRecordScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><EntryScreen /></AppLayout></ProtectedRoute>} />
 
             {/* Public marketing & content surfaces (indexable, no auth) */}
             <Route path="/about" element={<AboutPage />} />
@@ -158,9 +148,8 @@ const App = () => (
             <Route path="/guides/keeping-a-work-diary" element={<WorkDiary />} />
             <Route path="/guides/raising-a-grievance-at-work" element={<RaiseGrievance />} />
 
-            {/* Chronicle V2 candidate — isolated Dexie DB, no production writes.
-                `/prototype/*` stays as a compatibility redirect for existing links. */}
-            <Route path="/v2/*" element={<DevOnlyRoute><V2App /></DevOnlyRoute>} />
+            {/* Retired preview/prototype shell — existing links land on the Notebook. */}
+            <Route path="/v2/*" element={<Navigate to="/timeline" replace />} />
             <Route path="/prototype/*" element={<Navigate to="/timeline" replace />} />
 
             <Route path="*" element={<NotFound />} />

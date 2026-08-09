@@ -6,7 +6,6 @@ import { useBackup } from '@/contexts/BackupContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation } from 'react-router-dom';
 import DevAnalyticsPanel from './DevAnalyticsPanel';
-import DevV2FlagsPanel from './DevV2FlagsPanel';
 
 type PanelState = 'expanded' | 'collapsed' | 'closed';
 const STORAGE_KEY = 'chronicle.devPanel.state';
@@ -156,7 +155,6 @@ const AuthDebugPanel = () => {
           </button>
         </div>
         <div className="border-t border-border my-2" />
-        <DevV2FlagsPanel />
         <DevAnalyticsPanel />
       </div>
     </div>

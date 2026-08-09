@@ -1,81 +1,85 @@
-import { useState } from 'react';
-import { LogOut, ShieldCheck, Download, HelpCircle, ChevronRight, Eye, EyeOff, Fingerprint, Cloud, Loader2, CloudUpload, CloudDownload, Database, Trash2, Lock } from 'lucide-react';
-import { useLock } from '@/contexts/LockContext';
-import { isValidPinFormat } from '@/lib/lock/pinCrypto';
-import PageHeader from '@/components/chronicle/PageHeader';
-import { useAuth } from '@/contexts/AuthContext';
+// Phase 9 — production V2 Settings surface.
+//
+// Reuses the existing production systems only: AuthContext (session + sign
+// out), ThemeContext (appearance), PrivacyContext (Privacy Shield),
+// BackupContext (sync/backup + local/cloud data), useIncidents (counts) and
+// the existing `delete-account` function. No second auth or theme system.
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
+import { usePrivacy } from '@/contexts/PrivacyContext';
+import { useBackup } from '@/contexts/BackupContext';
+import { useDevMode } from '@/contexts/DevModeContext';
+import { useIncidents } from '@/hooks/useIncidents';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useIncidents } from '@/hooks/useIncidents';
-import { useBackup } from '@/contexts/BackupContext';
-import { usePrivacy } from '@/contexts/PrivacyContext';
-import { format } from 'date-fns';
-import SyncStatusPill from '@/components/chronicle/SyncStatusPill';
+import AppSurface from '@/chronicle/shared/AppSurface';
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  SettingsChoice,
+  SettingsDeferred,
+  SettingsLinkRow,
+  SettingsRow,
+  SettingsSection,
+  SettingsToggle,
+} from '@/chronicle/shared/SettingsView';
 import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
-import { useTheme } from '@/contexts/ThemeContext';
+import { clearUserScopedState } from '@/chronicle/shared/sessionCleanup';
+import { APP_VERSION } from '@/lib/appVersion';
+import '@/chronicle/styles.css';
+
+export const PRIVACY_SHIELD_COPY =
+  'Privacy Shield hides sensitive record content on screen. It does not alter or delete your stored records.';
 
 const SettingsScreen = () => {
-  const { user } = useAuth();
+  // Settings is part of the V2 shell, so V2 owns navigation here too.
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
+  const { mode, setMode } = useTheme();
+  const { enabled: shielded, setEnabled: setShielded } = usePrivacy();
+  const { canAccessDevPanel } = useDevMode();
   const { data: incidents } = useIncidents();
   const {
-    backupEnabled, online, pendingCount, conflictCount, lastSyncAttemptAt, lastSyncResult,
-    localCount, cloudCount, cloudLastUpdatedAt, lastBackupAt, lastRestoreAt, syncStatus,
-    setBackupEnabled, retrySyncNow, backupNow, restoreFromCloud, deleteCloudData, refreshCloudCount,
+    backupEnabled, online, localCount, cloudCount, conflictCount, lastBackupAt, syncStatus,
   } = useBackup();
-  const { enabled: privacyEnabled, setEnabled: setPrivacyEnabled } = usePrivacy();
-  const { mode: themeMode, setMode: setThemeMode } = useTheme();
-  const [busy, setBusy] = useState(false);
-  const [restoring, setRestoring] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+
+  const [shieldGateOpen, setShieldGateOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
-  const [privacyDisableOpen, setPrivacyDisableOpen] = useState(false);
 
-  // App Lock
-  const lock = useLock();
-  const [pinSetupOpen, setPinSetupOpen] = useState(false);
-  const [pinValue, setPinValue] = useState('');
-  const [pinConfirm, setPinConfirm] = useState('');
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [pinBusy, setPinBusy] = useState(false);
+  const recordCount = incidents?.length ?? 0;
 
-  const handleSetPin = async () => {
-    if (!isValidPinFormat(pinValue)) { setPinError('PIN must be 4–6 digits.'); return; }
-    if (pinValue !== pinConfirm) { setPinError('PINs do not match.'); return; }
-    setPinBusy(true);
-    setPinError(null);
+  const syncLabel = useMemo(() => {
+    if (!backupEnabled) return 'Off — records stay on this device';
+    if (conflictCount > 0) return `${conflictCount} record${conflictCount === 1 ? '' : 's'} need review`;
+    if (!online) return 'Offline — will back up when reconnected';
+    if (syncStatus === 'in_sync') return 'Backed up';
+    if (lastBackupAt) return 'Backed up earlier';
+    return 'Waiting to back up';
+  }, [backupEnabled, conflictCount, online, syncStatus, lastBackupAt]);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setSignOutError(null);
     try {
-      await lock.setPin(pinValue);
-      setPinSetupOpen(false);
-      setPinValue(''); setPinConfirm('');
-      toast({ title: 'App lock enabled' });
+      // Clear user-specific transient UI state and drafts BEFORE the session
+      // ends, so nothing can be shown to the next account on this device.
+      clearUserScopedState();
+      await signOut();
+      toast({ title: 'Signed out' });
+      navigate('/login', { replace: true });
     } catch (e) {
-      setPinError(e instanceof Error ? e.message : 'Could not set PIN.');
+      setSignOutError(
+        e instanceof Error && e.message
+          ? `Sign out failed: ${e.message}. You are still signed in on this device.`
+          : 'Sign out failed. You are still signed in on this device. Please try again.',
+      );
     } finally {
-      setPinBusy(false);
-    }
-  };
-
-  const handleRemoveLock = () => {
-    lock.removeLock();
-    toast({ title: 'App lock removed' });
-  };
-
-  const handleToggleBiometric = async (on: boolean) => {
-    try {
-      if (on) { await lock.enableBiometric(); toast({ title: 'Biometric unlock enabled' }); }
-      else { lock.disableBiometric(); }
-    } catch (e) {
-      toast({ title: 'Could not enable biometric', description: e instanceof Error ? e.message : undefined, variant: 'destructive' });
+      setSigningOut(false);
     }
   };
 
@@ -88,10 +92,11 @@ const SettingsScreen = () => {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
+      clearUserScopedState();
       try { await supabase.auth.signOut(); } catch { /* ignore */ }
       toast({ title: 'Your account has been deleted.' });
-      setDeleteAccountOpen(false);
-      navigate('/welcome');
+      setDeleteOpen(false);
+      navigate('/', { replace: true });
     } catch (e) {
       toast({
         title: 'Unable to delete account right now. Please try again.',
@@ -103,613 +108,187 @@ const SettingsScreen = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast({ title: 'Logged out' });
-    navigate('/login');
-  };
-
-  const totalIncidents = incidents?.length ?? 0;
-  const firstRecord = incidents?.length
-    ? incidents.reduce((earliest, i) => (i.created_at < earliest ? i.created_at : earliest), incidents[0].created_at)
-    : null;
-  const lastUpdated = incidents?.length
-    ? incidents.reduce((latest, i) => (i.updated_at > latest ? i.updated_at : latest), incidents[0].updated_at)
-    : null;
-
-  // Derive a single, calm sync state for the header pill.
-  const syncPillState: 'local_only' | 'backed_up' | 'conflict' =
-    conflictCount > 0 ? 'conflict' : (backupEnabled && lastBackupAt ? 'backed_up' : 'local_only');
-
-  const scrollToConflicts = () => {
-    const el = document.getElementById('settings-cloud-conflicts');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
-
   return (
-    <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Settings" hideSettings>
-        <SyncStatusPill
-          state={syncPillState}
-          lastBackupAt={lastBackupAt}
-          conflictCount={conflictCount}
-          onClick={syncPillState === 'conflict' ? scrollToConflicts : undefined}
-        />
-      </PageHeader>
+    <AppSurface hideSettingsControl>
+      <div className="proto-page" data-testid="v2-settings">
+        <h1 className="proto-h1">Settings</h1>
+        <p className="proto-help">Your account, appearance, privacy and data.</p>
 
-      {/* Hero — Your Record */}
-      <div className="mx-5 mb-6 bg-card border border-border rounded-xl p-5">
-        <h2 className="text-[18px] font-bold text-foreground mb-1">Your record</h2>
-        <p className="text-[13px] text-muted-foreground mb-4">Your records are private and under your control.</p>
-        <div className="space-y-3">
-          <div className="flex justify-between items-baseline">
-            <span className="text-[13px] text-muted-foreground">Total incidents</span>
-            <span className="text-[20px] font-bold text-foreground tabular-nums">{totalIncidents}</span>
-          </div>
-          {firstRecord && (
-            <div className="flex justify-between items-baseline">
-              <span className="text-[13px] text-muted-foreground">First record</span>
-              <span className="text-[14px] font-medium text-foreground">{format(new Date(firstRecord), 'd MMM yyyy')}</span>
-            </div>
-          )}
-          {lastUpdated && (
-            <div className="flex justify-between items-baseline">
-              <span className="text-[13px] text-muted-foreground">Last updated</span>
-              <span className="text-[14px] font-medium text-foreground">{format(new Date(lastUpdated), 'd MMM yyyy')}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Appearance */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">Appearance</p>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <p className="text-[14px] font-semibold text-foreground mb-1">Theme</p>
-          <p className="text-[12px] text-muted-foreground mb-3">
-            System follows your device theme. Choose Light or Dark to override.
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {(['system', 'light', 'dark'] as const).map((opt) => {
-              const active = themeMode === opt;
-              return (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => setThemeMode(opt)}
-                  className={`px-3 py-2 rounded-lg text-[13px] font-medium border transition-colors ${
-                    active
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-foreground border-border hover:bg-muted/40'
-                  }`}
-                  aria-pressed={active}
-                >
-                  {opt === 'system' ? 'System' : opt === 'light' ? 'Light' : 'Dark'}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Control */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">Control</p>
-
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Privacy */}
-          <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">Privacy & control</span>
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5 flex-1">
-                {privacyEnabled ? (
-                  <EyeOff className="h-4 w-4 text-primary mt-0.5" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground mt-0.5" />
-                )}
-                <div className="flex-1">
-                  <p className="text-[14px] text-foreground">Privacy Shield</p>
-                  <p className="text-[12px] text-muted-foreground leading-relaxed mt-0.5">
-                    Visually mask names, locations, quotes, narratives, and attachment file names across the app. Stored data and exports are unaffected.
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={privacyEnabled}
-                onCheckedChange={(v) => {
-                  if (v) {
-                    setPrivacyEnabled(true);
-                  } else {
-                    setPrivacyDisableOpen(true);
-                  }
-                }}
-                aria-label="Toggle Privacy Shield"
-              />
-            </div>
-          </div>
-
-          <div className="border-t border-border" />
-
-          {/* Cloud backup */}
-          <div className="p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Cloud className="h-4 w-4 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">Cloud backup</span>
-            </div>
-            <p className="text-[12px] text-muted-foreground leading-relaxed">
-              Your records are stored on this device. Cloud backup is optional and uploads them to your account so they can be restored on another device.
-            </p>
-
-            {/* How your records are stored — plain-language local-first explainer */}
-            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 text-[12px] leading-relaxed">
-              <p className="text-[12px] font-semibold text-foreground">How your records are stored</p>
-              <p className="text-muted-foreground">
-                Chronicle stores your records on this device first. Cloud backup is optional. If backup is off,
-                your records may be lost if this device is lost, damaged, reset, or the browser data is cleared.
-              </p>
-              <p className="text-muted-foreground">
-                When backup is on, Chronicle keeps a cloud copy linked to your account so records can be
-                restored on another device. You can turn backup off or delete the cloud copy from Settings.
-              </p>
-              <ul className="space-y-1 text-muted-foreground pt-1">
-                <li><span className="text-foreground font-medium">Local only</span> — stored on this device only.</li>
-                <li><span className="text-foreground font-medium">Queued</span> — waiting to back up.</li>
-                <li><span className="text-foreground font-medium">Backed up</span> — cloud copy saved.</li>
-                <li><span className="text-foreground font-medium">Conflict</span> — this device and cloud copy differ and need review.</li>
-              </ul>
-            </div>
-
-            {conflictCount > 0 && (
-              <div
-                id="settings-cloud-conflicts"
-                className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-[12px] text-foreground space-y-1 scroll-mt-20"
-              >
-                <div className="font-medium">
-                  {conflictCount} record{conflictCount === 1 ? '' : 's'} changed elsewhere.
-                </div>
-                <p className="text-muted-foreground leading-relaxed">
-                  These records were modified on another device since this device last synced. Open each record to review and choose which version to keep.
-                </p>
-              </div>
-            )}
-
-            {/* Data state — what you're viewing */}
-            <div className="bg-muted/30 rounded-lg p-3 space-y-1.5 text-[12px]">
-              <div className="flex items-center gap-1.5 text-foreground font-medium mb-1">
-                <Database className="h-3.5 w-3.5 text-primary" />
-                <span>Data state</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Records on this device</span>
-                <span className="text-foreground tabular-nums font-medium">{localCount}</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Records in cloud backup</span>
-                <span className="text-foreground tabular-nums font-medium">
-                  {cloudCount === null ? (online ? '—' : 'offline') : (cloudCount === 0 ? 'None' : cloudCount)}
-                </span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
-                <span>Sync status</span>
-                <span className="text-foreground font-medium">
-                  {syncStatus === 'in_sync' && 'In sync'}
-                  {syncStatus === 'local_newer' && 'Local is newer'}
-                  {syncStatus === 'cloud_newer' && 'Cloud is newer'}
-                  {syncStatus === 'cloud_unavailable' && 'Cloud unavailable'}
-                  {syncStatus === 'local_only' && 'Local only (no cloud data)'}
-                  {syncStatus === 'unknown' && (online ? 'Checking…' : 'Offline')}
-                </span>
-              </div>
-              {cloudLastUpdatedAt && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Last cloud update</span>
-                  <span className="text-foreground">{format(new Date(cloudLastUpdatedAt), 'd MMM HH:mm')}</span>
-                </div>
-              )}
-              {lastBackupAt && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Last backup from this device</span>
-                  <span className="text-foreground">{format(new Date(lastBackupAt), 'd MMM HH:mm')}</span>
-                </div>
-              )}
-              {lastRestoreAt && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Last restore</span>
-                  <span className="text-foreground">{format(new Date(lastRestoreAt), 'd MMM HH:mm')}</span>
-                </div>
-              )}
-              <button
-                onClick={() => refreshCloudCount()}
-                className="text-[11px] text-primary hover:underline pt-0.5"
-                disabled={!online}
-              >
-                Refresh cloud status
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] text-foreground">Enable cloud backup</span>
-              <Switch
-                checked={backupEnabled}
-                disabled={busy}
-                onCheckedChange={async (v) => {
-                  setBusy(true);
-                  try { await setBackupEnabled(v); } finally { setBusy(false); }
-                }}
-              />
-            </div>
-
-            <div className="text-[12px] text-muted-foreground space-y-1 pt-1">
-              <div className="flex justify-between"><span>Status</span><span className="text-foreground">{backupEnabled ? (online ? 'On — uploading when online' : 'On — offline, will retry') : 'Off — local only'}</span></div>
-              <div className="flex justify-between"><span>Pending upload</span><span className="text-foreground tabular-nums">{pendingCount}</span></div>
-              {lastSyncAttemptAt && (
-                <div className="flex justify-between"><span>Last attempt</span><span className="text-foreground">{format(new Date(lastSyncAttemptAt), 'd MMM HH:mm')}</span></div>
-              )}
-              {lastSyncResult?.lastError && (
-                <div className="flex justify-between"><span>Last error</span><span className="text-foreground truncate max-w-[180px]">{lastSyncResult.lastError}</span></div>
-              )}
-            </div>
-
-            {/* Explicit user-controlled actions. Restore is enabled whenever cloud
-                data exists, even if the backup toggle is OFF. */}
-            <div className="grid grid-cols-1 gap-2 pt-1">
-              <button
-                onClick={async () => { setBusy(true); try { await backupNow(); } finally { setBusy(false); } }}
-                disabled={busy || !online || !backupEnabled}
-                className="flex items-center justify-center gap-1.5 text-[13px] text-primary border border-primary/30 bg-primary/5 hover:bg-primary/10 py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CloudUpload className="h-3.5 w-3.5" />}
-                Save this device's records to your cloud backup
-              </button>
-
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button
-                    disabled={!online || cloudCount === null || cloudCount === 0}
-                    className="flex items-center justify-center gap-1.5 text-[13px] text-foreground border border-border hover:bg-muted/50 py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <CloudDownload className="h-3.5 w-3.5" />
-                    Replace this device's records with your cloud backup
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Replace this device's records with your cloud backup?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will replace all records on this device ({localCount}) with your cloud backup ({cloudCount ?? '—'} records). Any records on this device that have not been backed up will be lost. This cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      disabled={restoring}
-                      onClick={async () => {
-                        setRestoring(true);
-                        try {
-                          const res = await restoreFromCloud();
-                          toast({ title: 'Restore complete', description: `${res.incidents} record(s) and ${res.notes} note(s) restored from cloud.` });
-                        } catch (e) {
-                          toast({ title: 'Restore failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-                        } finally {
-                          setRestoring(false);
-                        }
-                      }}
-                    >
-                      Replace local records
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-
-            {backupEnabled && pendingCount > 0 && (
-              <button
-                onClick={async () => { setBusy(true); try { await retrySyncNow(); } finally { setBusy(false); } }}
-                disabled={busy || !online}
-                className="w-full text-[13px] text-primary py-2 hover:bg-muted/30 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {busy && <Loader2 className="h-3 w-3 animate-spin" />}
-                Retry backup now
-              </button>
-            )}
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <button className="w-full text-[13px] text-destructive py-2 hover:bg-destructive/5 rounded-lg transition-colors">
-                  Delete cloud copy
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete cloud copy of your records?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently removes records previously uploaded to your cloud account. Records on this device are not affected and will remain available locally. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={deleting}
-                    onClick={async () => {
-                      setDeleting(true);
-                      try {
-                        const res = await deleteCloudData();
-                        toast({ title: 'Cloud copy deleted', description: `${res.incidents} records and ${res.notes} notes removed from your cloud account. Local copies are unchanged.` });
-                      } catch (e) {
-                        toast({ title: 'Delete failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-                      } finally {
-                        setDeleting(false);
-                      }
-                    }}
-                  >
-                    Delete cloud copy
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-
-          <div className="border-t border-border" />
-
-          {/* Export */}
-          <div className="p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Download className="h-4 w-4 text-primary" />
-              <span className="text-[14px] font-semibold text-foreground">Export & backup</span>
-            </div>
-            <p className="text-[12px] text-muted-foreground mb-2">Your data belongs to you.</p>
-            {['Export full record', 'Export timeline', 'Export individual incidents'].map((label) => (
-              <button
-                key={label}
-                onClick={() => navigate('/export')}
-                className="w-full flex items-center justify-between py-2.5 text-[14px] text-foreground hover:bg-muted/30 rounded-lg px-1 transition-colors"
-              >
-                {label}
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* App lock */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">App lock</p>
-        <div className="bg-card border border-border rounded-xl divide-y divide-border">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <Lock className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-[13px] font-medium text-foreground">Require PIN to open Chronicle</p>
-                <p className="text-[12px] text-muted-foreground">PIN is stored only on this device.</p>
-              </div>
-            </div>
-            <Switch
-              checked={lock.isLockConfigured}
-              onCheckedChange={(v) => v ? setPinSetupOpen(true) : handleRemoveLock()}
-            />
-          </div>
-
-          {lock.isLockConfigured && (
-            <>
-              <button
-                onClick={() => setPinSetupOpen(true)}
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-muted/30 transition"
-              >
-                <span className="text-[13px] text-foreground">Change PIN</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-              </button>
-
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <Fingerprint className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-[13px] font-medium text-foreground">Biometric unlock</p>
-                    <p className="text-[12px] text-muted-foreground">
-                      {lock.biometricSupported ? 'Use Face ID / Touch ID where available.' : 'Not supported on this device.'}
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={lock.biometricEnabled}
-                  disabled={!lock.biometricSupported}
-                  onCheckedChange={handleToggleBiometric}
-                />
-              </div>
-
-              <div className="p-4 space-y-2">
-                <p className="text-[13px] text-foreground">Auto-lock after</p>
-                <div className="flex gap-2">
-                  {[
-                    { ms: 60_000, label: '1 min' },
-                    { ms: 5 * 60_000, label: '5 min' },
-                    { ms: 15 * 60_000, label: '15 min' },
-                  ].map(opt => (
-                    <button
-                      key={opt.ms}
-                      onClick={() => lock.setTimeout(opt.ms)}
-                      className={`flex-1 text-[12px] py-2 rounded-lg border transition ${
-                        lock.lockTimeoutMs === opt.ms
-                          ? 'bg-primary/10 border-primary/40 text-primary'
-                          : 'bg-card border-border text-muted-foreground hover:bg-muted/30'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={() => { lock.lockNow(); }}
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-muted/30 transition"
-              >
-                <span className="text-[13px] text-foreground">Lock now</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <AlertDialog open={pinSetupOpen} onOpenChange={(v) => { if (!v) { setPinSetupOpen(false); setPinValue(''); setPinConfirm(''); setPinError(null); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{lock.isLockConfigured ? 'Change PIN' : 'Set a PIN'}</AlertDialogTitle>
-            <AlertDialogDescription>Choose a 4–6 digit PIN. It is stored only on this device.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3">
-            <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-              value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
-              placeholder="New PIN" disabled={pinBusy}
-              className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-[14px]" />
-            <input type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-              value={pinConfirm} onChange={e => setPinConfirm(e.target.value.replace(/\D/g, ''))}
-              placeholder="Confirm PIN" disabled={pinBusy}
-              className="w-full h-10 px-3 rounded-md border border-border bg-background text-foreground text-[14px]" />
-            {pinError && <p className="text-[12px] text-destructive">{pinError}</p>}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={pinBusy}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); void handleSetPin(); }} disabled={pinBusy || !pinValue || !pinConfirm}>
-              {pinBusy ? 'Saving…' : 'Save PIN'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Support */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">Support</p>
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <button
-            onClick={() => navigate('/rights')}
-            className="w-full flex items-center justify-between p-4 text-[14px] text-foreground hover:bg-muted/30 transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              <HelpCircle className="h-4 w-4 text-primary" />
-              <span>Rights & guidance</span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
-          </button>
-        </div>
-      </div>
-
-      {/* Account */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">Account</p>
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="p-4">
-            <p className="text-[12px] text-muted-foreground mb-0.5">Logged in as</p>
-            <p className="text-[14px] text-foreground font-medium">{user?.email}</p>
-          </div>
-          <div className="border-t border-border">
+        {/* ACCOUNT */}
+        <SettingsSection title="Account">
+          <SettingsRow
+            label="Signed in as"
+            value={user?.email ?? 'Not signed in'}
+          />
+          <SettingsRow
+            label="Account status"
+            value={user ? 'Active' : 'Signed out'}
+            help={user ? 'Your records are linked to this account.' : undefined}
+          />
+          <div className="proto-set-row">
             <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2 p-4 text-[14px] text-destructive hover:bg-destructive/4 transition-colors"
+              type="button"
+              className="proto-btn proto-set-fullbtn"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              data-testid="v2-signout"
             >
-              <LogOut className="h-4 w-4" />
-              Log out
+              {signingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
-          <div className="border-t border-border">
-            <AlertDialog
-              open={deleteAccountOpen}
-              onOpenChange={(o) => {
-                setDeleteAccountOpen(o);
-                if (!o) setDeleteConfirm('');
-              }}
+          {signOutError && (
+            <p className="proto-set-error" role="alert" data-testid="v2-signout-error">
+              {signOutError}
+            </p>
+          )}
+        </SettingsSection>
+
+        {/* APPEARANCE */}
+        <SettingsSection title="Appearance">
+          <SettingsChoice<ThemeMode>
+            legend="Theme"
+            help="System follows your device setting. Light and Dark override it on this device."
+            value={mode}
+            options={[
+              { value: 'system', label: 'System default' },
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+            ]}
+            onChange={setMode}
+          />
+        </SettingsSection>
+
+        {/* PRIVACY */}
+        <SettingsSection title="Privacy">
+          <SettingsToggle
+            label="Privacy Shield"
+            help={PRIVACY_SHIELD_COPY}
+            checked={shielded}
+            testId="v2-privacy-shield"
+            onChange={v => (v ? setShielded(true) : setShieldGateOpen(true))}
+          />
+          <SettingsRow
+            label="Where your records live"
+            help="Chronicle stores your records on this device first. Cloud backup is optional and linked to your account."
+            value={`${localCount} on this device`}
+          />
+          <SettingsRow
+            label="Backup and sync"
+            value={syncLabel}
+            help={
+              cloudCount === null
+                ? undefined
+                : `${cloudCount} record${cloudCount === 1 ? '' : 's'} in cloud backup.`
+            }
+          />
+        </SettingsSection>
+
+        {/* RECORDING */}
+        <SettingsSection title="Recording">
+          <SettingsRow
+            label="Default record type"
+            value="Incident"
+            help="You can switch to a daily record on the Capture screen each time you write."
+          />
+          <SettingsRow
+            label="Microphone access"
+            value={
+              typeof navigator !== 'undefined' && navigator.mediaDevices ? 'Supported on this device' : 'Not available'
+            }
+            help="Chronicle asks for microphone permission the first time you record with your voice."
+          />
+          <SettingsRow
+            label="Attachments"
+            help="Photos, documents and voice records are stored in your private Chronicle storage and always belong to a record."
+          />
+        </SettingsSection>
+
+        {/* DATA */}
+        <SettingsSection title="Data">
+          <SettingsLinkRow
+            label="Build a report from your records"
+            help="Choose what to include, then export as PDF or Word."
+            onClick={() => navigate('/export')}
+          />
+          <SettingsRow
+            label="Records on this device"
+            value={String(recordCount)}
+            help="Records are held locally first. Clearing this browser's data removes local copies that are not backed up."
+          />
+          <SettingsDeferred
+            label="Download a copy of all account data"
+            reason="Report export is available today. A full account-data download is not supported yet, so nothing is offered here rather than improvising."
+          />
+          <div className="proto-set-row">
+            <button
+              type="button"
+              className="proto-btn proto-set-fullbtn proto-set-danger"
+              onClick={() => { setDeleteConfirm(''); setDeleteOpen(true); }}
+              data-testid="v2-delete-account"
             >
-              <AlertDialogTrigger asChild>
-                <button
-                  className="w-full flex items-center gap-2 p-4 text-[14px] text-destructive hover:bg-destructive/5 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete account
-                </button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete account?</AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-2 text-[13px] text-muted-foreground">
-                      <p>This will permanently delete your account and associated cloud data. This action cannot be undone.</p>
-                      <ul className="list-disc pl-4 space-y-1">
-                        <li>Your account access will be removed.</li>
-                        <li>All records, notes, and attachments stored in your cloud backup will be deleted.</li>
-                        <li>Records stored only on this device will remain on this device but cannot be restored once your account is gone, unless you have separately exported them.</li>
-                      </ul>
-                      <p className="pt-2 text-foreground">Type <span className="font-mono font-semibold">DELETE</span> to confirm.</p>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <input
-                  type="text"
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  value={deleteConfirm}
-                  onChange={(e) => setDeleteConfirm(e.target.value)}
-                  placeholder="DELETE"
-                  className="w-full border border-border rounded-lg px-3 py-2 text-[14px] font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-destructive/30"
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deletingAccount}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    disabled={deleteConfirm.trim() !== 'DELETE' || deletingAccount}
-                    onClick={(e) => { e.preventDefault(); handleDeleteAccount(); }}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {deletingAccount && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-                    Delete account permanently
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              Delete account and all data
+            </button>
           </div>
-        </div>
+        </SettingsSection>
+
+        {/* SUPPORT */}
+        <SettingsSection title="Support">
+          <SettingsLinkRow
+            label="Help & support"
+            help="Guidance and organisations that may be able to help."
+            onClick={() => navigate('/support')}
+          />
+          <SettingsLinkRow label="How Chronicle works" onClick={() => navigate('/how-it-works')} />
+          <SettingsLinkRow label="Privacy policy" onClick={() => navigate('/privacy')} />
+          <SettingsLinkRow label="About Chronicle" onClick={() => navigate('/about')} />
+          <SettingsRow label="App version" value={APP_VERSION} />
+        </SettingsSection>
+
       </div>
 
-      {/* About your data — read-only integrity model */}
-      <div className="mx-5 mb-6">
-        <p className="section-group-title">About your data</p>
-        <div className="bg-card border border-border rounded-xl p-4 space-y-2.5 text-[13px]">
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Storage</span>
-            <span className="text-foreground text-right">Local-first, optional encrypted backup</span>
-          </div>
-          <div className="border-t border-border/60" />
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Audit logging</span>
-            <span className="text-foreground text-right">Database-enforced</span>
-          </div>
-          <div className="border-t border-border/60" />
-          <div className="flex justify-between gap-3">
-            <span className="text-muted-foreground">Sync conflicts</span>
-            <span className="text-foreground text-right">Detected and surfaced</span>
-          </div>
-        </div>
-      </div>
-
-      {/* About */}
-      <div className="mx-5 mb-8">
-        <p className="section-group-title">About</p>
-        <div className="px-1 space-y-1">
-          <p className="text-[13px] text-muted-foreground leading-relaxed">
-            This tool helps you capture and organise events clearly, as they happen. It does not provide legal advice.
-          </p>
-          <p className="text-[12px] text-muted-foreground/60">Project Chronicle · v0.1.0</p>
-        </div>
-      </div>
       <PrivacyShieldDisableGate
-        open={privacyDisableOpen}
-        onConfirmed={() => { setPrivacyDisableOpen(false); setPrivacyEnabled(false); }}
-        onCancel={() => setPrivacyDisableOpen(false)}
+        open={shieldGateOpen}
+        onConfirmed={() => { setShielded(false); setShieldGateOpen(false); }}
+        onCancel={() => setShieldGateOpen(false)}
       />
-    </div>
+
+      {deleteOpen && (
+        <div className="proto-sheet-backdrop" role="dialog" aria-modal="true" aria-label="Delete account">
+          <div className="proto-sheet">
+            <div className="proto-sheet-head">
+              <strong>Delete account and all data</strong>
+            </div>
+            <div className="proto-sheet-body">
+              <p className="proto-help">
+                This permanently deletes your Chronicle account, your cloud copy and all records linked to it.
+                Records stored only on this device are also removed. This cannot be undone, and nothing is
+                deleted until the server confirms it.
+              </p>
+              <label className="proto-flabel" htmlFor="v2-delete-confirm">Type DELETE to confirm</label>
+              <input
+                id="v2-delete-confirm"
+                className="proto-input"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div className="proto-sheet-foot">
+              <button className="proto-btn" onClick={() => setDeleteOpen(false)} disabled={deletingAccount}>
+                Cancel
+              </button>
+              <button
+                className="proto-btn proto-set-danger"
+                disabled={deleteConfirm !== 'DELETE' || deletingAccount}
+                onClick={handleDeleteAccount}
+              >
+                {deletingAccount ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AppSurface>
   );
 };
 
