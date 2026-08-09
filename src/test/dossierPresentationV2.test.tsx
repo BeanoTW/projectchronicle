@@ -16,6 +16,7 @@ const record = (id: string, title: string): DossierSourceRecord => ({
   title,
   original_text: 'Original wording for ' + title,
   sealed_at: '2026-01-0' + id + 'T09:00:00.000Z',
+  captured_at: '2026-01-0' + id + 'T09:00:00.000Z',
   event_date: '2026-01-0' + id,
   event_time: null,
   category: 'Bullying',
@@ -23,7 +24,6 @@ const record = (id: string, title: string): DossierSourceRecord => ({
   people: ['Line manager'],
   clarifications: [],
   in_dossier: true,
-  history: [],
 });
 
 const adapter = (): DossierAdapter => ({
