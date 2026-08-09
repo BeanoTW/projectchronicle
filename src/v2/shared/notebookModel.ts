@@ -3,7 +3,7 @@
 // Both the V2 preview (Dexie) and the production adapter (local-first
 // incidents + follow-up notes) normalise into `NotebookRecord`. The shared
 // NotebookView never knows where the data came from.
-import type { NotebookFilters } from '../filters';
+import type { NotebookFilters, RecordTypeFilter } from '../filters';
 import type { AttachmentType } from '../media/media';
 
 export interface NotebookRecord {
@@ -16,6 +16,8 @@ export interface NotebookRecord {
   /** Moment the record was sealed/created — shown as date · time. */
   recordedAt: string;
   category: string | null;
+  /** Chronicle record type. Daily records stay findable and openable in V2. */
+  recordType: RecordTypeFilter;
   /** Free-text extras that search should also match (context, location, subtype…). */
   searchExtras: string[];
   people: string[];
@@ -48,6 +50,7 @@ export const recordMatchesFilters = (r: NotebookRecord, f: NotebookFilters): boo
   if (f.to && r.dateKey > f.to) return false;
   if (f.dossier === 'included' && !r.inDossier) return false;
   if (f.dossier === 'excluded' && r.inDossier) return false;
+  if (f.recordTypes.length > 0 && !f.recordTypes.includes(r.recordType)) return false;
   if (f.withClarifications && !r.hasClarifications) return false;
   if (f.hasVoice && !r.hasVoice) return false;
   if (f.hasAttachments && r.attachmentCount === 0) return false;
