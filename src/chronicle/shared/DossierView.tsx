@@ -14,6 +14,7 @@ import { exportDossierPdf } from '../dossier/exportPdf';
 import { exportDossierDocx } from '../dossier/exportDocx';
 import DossierConfigureView, { type ConfigureRow } from './DossierConfigureView';
 import DossierPreviewView from './DossierPreviewView';
+import { useIsWide } from './useMediaQuery';
 
 interface Props {
   adapter: DossierAdapter;
@@ -33,6 +34,9 @@ interface Props {
 const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro, previewWithheld = null }: Props) => {
   const [cfg, setCfg] = useState<DossierConfig>(defaultDossierConfig);
   const [tab, setTab] = useState<'configure' | 'preview'>('configure');
+  // Desktop shows configuration and the live report side by side; mobile keeps
+  // the single-column tab switch.
+  const wide = useIsWide();
   const [busy, setBusy] = useState<null | 'pdf' | 'docx'>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,8 +77,8 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
   const includedInDocument = totalMembers - hiddenByFilters;
 
   const doc = useMemo(
-    () => (tab === 'preview' ? buildDossierFromSource(records, cfg, media) : null),
-    [tab, records, cfg, media],
+    () => (wide || tab === 'preview' ? buildDossierFromSource(records, cfg, media) : null),
+    [wide, tab, records, cfg, media],
   );
 
   const toggleMember = async (id: string, on: boolean) => {
@@ -119,7 +123,7 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
             'The records you have chosen to bring together, in chronological order. A report is generated from them. Original wording is never altered.'}
         </p>
 
-        <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="My Record view">
+        <div className="proto-viewswitch proto-splittabs" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="My Record view">
           <button style={{ flex: 1 }} data-active={tab === 'configure'} onClick={() => setTab('configure')}>Configure</button>
           <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview report</button>
         </div>
@@ -128,7 +132,9 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
         {error && <p className="proto-media-error">{error}</p>}
       </div>
 
-      {tab === 'configure' ? (
+      <div className={wide ? 'proto-split' : undefined} data-testid="myrecord-layout">
+      {(wide || tab === 'configure') && (
+        <div className={wide ? 'proto-split-config' : undefined}>
         <DossierConfigureView
           cfg={cfg}
           onChange={setCfg}
@@ -145,8 +151,10 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
           supportsEvidence={supportsEvidence}
           busyId={togglingId}
         />
-      ) : (
-        <>
+        </div>
+      )}
+      {(wide || tab === 'preview') && (
+        <div>
           <div className="proto-noprint proto-exportbar">
             <button className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
               onClick={() => runExport('pdf')}>
@@ -189,8 +197,9 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
           ) : doc && (
             <DossierPreviewView doc={doc} cfg={cfg} onOpenRecord={onOpenRecord} useMediaUrl={adapter.useMediaUrl} />
           )}
-        </>
+        </div>
       )}
+      </div>
     </div>
   );
 };
