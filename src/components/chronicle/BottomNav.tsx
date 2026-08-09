@@ -58,6 +58,7 @@ const BottomNav = () => {
 
   return (
     <div
+      data-testid="v1-bottom-nav"
       className="fixed left-1/2 z-50 -translate-x-1/2 md:hidden"
       style={{
         bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,

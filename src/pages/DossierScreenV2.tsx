@@ -20,8 +20,11 @@ import {
   toDossierSourceRecords,
 } from '@/v2/shared/productionDossierAdapter';
 import '@/v2/styles.css';
+import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 const DossierScreenV2 = () => {
+  // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
+  useOwnNavigationV2();
   const navigate = useNavigate();
   const { enabled: shielded } = usePrivacy();
   const { data: incidents, isLoading } = useIncidents();

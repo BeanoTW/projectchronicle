@@ -12,7 +12,9 @@ import { LockProvider, useLock } from "@/contexts/LockContext";
 import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
-import BottomNav from "@/components/chronicle/BottomNav";
+import AppNavigation from "@/components/chronicle/AppNavigation";
+import { NavigationOwnershipProvider } from "@/components/chronicle/NavigationOwnership";
+
 import DesktopSideNav from "@/components/chronicle/DesktopSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
@@ -57,17 +59,20 @@ import DevOnlyRoute from "./routes/DevOnlyRoute";
 const queryClient = new QueryClient();
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="md:flex md:h-screen md:overflow-hidden">
-    <DesktopSideNav />
-    <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0 md:h-screen md:overflow-y-auto">
-      <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
-        {children}
+  <NavigationOwnershipProvider>
+    <div className="md:flex md:h-screen md:overflow-hidden">
+      <DesktopSideNav />
+      <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0 md:h-screen md:overflow-y-auto">
+        <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
+          {children}
+        </div>
       </div>
+      <AppNavigation />
+      <AuthDebugPanel />
     </div>
-    <BottomNav />
-    <AuthDebugPanel />
-  </div>
+  </NavigationOwnershipProvider>
 );
+
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
