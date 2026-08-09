@@ -208,7 +208,15 @@ const EntryView = ({
   );
 
   if (!standalone) return body;
-  return <div className="proto-root"><div className="proto-main">{body}</div></div>;
+  return (
+    <div className="proto-root">
+      <div className="proto-main">
+        {/* Phase 9 — secondary shell control, same as every other V2 surface. */}
+        <V2SettingsControl />
+        {body}
+      </div>
+    </div>
+  );
 };
 
 
