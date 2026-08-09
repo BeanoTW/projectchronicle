@@ -20,7 +20,7 @@ import {
   uniquePeople,
   type NotebookRecord,
 } from './notebookModel';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
   day: 'numeric', month: 'short', year: 'numeric',
@@ -52,6 +52,8 @@ export interface NotebookViewProps {
   /** Show the incident / daily-record filter (production has both types). */
   showRecordTypeFilters?: boolean;
   emptyMessage?: string;
+  /** Quiet status line (e.g. Privacy Shield active). */
+  notice?: ReactNode;
 }
 
 const NotebookView = ({
@@ -74,6 +76,7 @@ const NotebookView = ({
   showAttachmentTypeFilters = true,
   showRecordTypeFilters = false,
   emptyMessage = 'No records yet.',
+  notice,
 }: NotebookViewProps) => {
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -100,6 +103,7 @@ const NotebookView = ({
   return (
     <div>
       <h1 className="proto-h1">{title}</h1>
+      {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
       <div className="proto-controls">
         <input
