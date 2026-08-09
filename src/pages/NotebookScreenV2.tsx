@@ -9,6 +9,7 @@ import { useEvidence } from '@/hooks/useEvidence';
 import NotebookView from '@/v2/shared/NotebookView';
 import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
 import { cloneFilters, emptyFilters, type NotebookFilters } from '@/v2/filters';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useMemo } from 'react';
 import '@/v2/styles.css';
 
@@ -32,6 +33,8 @@ const NotebookScreenV2 = () => {
   const { data: incidents, isLoading } = useIncidents();
   const { data: notes } = useAllFollowUpNotes();
   const evidenceQuery = useEvidence();
+  const privacy = usePrivacy();
+  const { enabled: shielded } = privacy;
 
   const [q, setQ] = useState(prodNotebookState.q);
   const [view, setView] = useState<'list' | 'month'>(prodNotebookState.view);
@@ -53,12 +56,25 @@ const NotebookScreenV2 = () => {
     [incidents, notes, evidenceReady, evidenceQuery.data],
   );
 
+  // Privacy Shield: display-only masking. Search still matches the real wording,
+  // which is kept in `searchExtras` so shielded users can still find records.
+  const shownRecords = useMemo(() => {
+    if (!shielded) return records;
+    return records.map(r => ({
+      ...r,
+      title: r.title ? privacy.maskEntities(r.title, { people_involved: r.people }) : r.title,
+      preview: privacy.maskText(r.preview, { preview: true }),
+      people: privacy.maskNames(r.people),
+      searchExtras: [...r.searchExtras, r.preview, r.title ?? '', ...r.people],
+    }));
+  }, [records, shielded, privacy]);
+
   return (
     <div className="proto-root">
       <div className="proto-page">
         <NotebookView
           title="Notebook"
-          records={records}
+          records={shownRecords}
           loading={isLoading}
           q={q}
           onQChange={v => { setQ(v); persist({ q: v }); }}
@@ -75,6 +91,8 @@ const NotebookScreenV2 = () => {
           // filters stay hidden until per-file types are reliable offline.
           showEvidenceFilters={evidenceReady}
           showAttachmentTypeFilters={false}
+          showRecordTypeFilters
+          notice={shielded ? 'Privacy Shield is on — names and wording are hidden on screen only.' : undefined}
           emptyMessage="No records yet."
         />
       </div>
