@@ -6,8 +6,11 @@ import { useIncident } from '@/hooks/useIncidents';
 import ReviewView from '@/v2/shared/ReviewView';
 import { useProductionCaptureAdapter } from '@/v2/shared/productionCaptureAdapter';
 import '@/v2/styles.css';
+import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 const CaptureDetailsScreenV2 = () => {
+  // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
+  useOwnNavigationV2();
   const { id } = useParams();
   const navigate = useNavigate();
   const adapter = useProductionCaptureAdapter();

@@ -12,6 +12,7 @@ import { cloneFilters, emptyFilters, type NotebookFilters } from '@/v2/filters';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useMemo } from 'react';
 import '@/v2/styles.css';
+import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 /** Session-scoped UI state so the view survives navigation to a record and back. */
 const prodNotebookState: {
@@ -29,6 +30,8 @@ const prodNotebookState: {
 };
 
 const NotebookScreenV2 = () => {
+  // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
+  useOwnNavigationV2();
   const navigate = useNavigate();
   const { data: incidents, isLoading } = useIncidents();
   const { data: notes } = useAllFollowUpNotes();
