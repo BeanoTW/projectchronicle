@@ -189,6 +189,10 @@ const EntryView = ({
           </p>
         </section>
 
+        {footerSlot}
+
+
+
         <div style={{ marginTop: 20 }}>
           <button
             className="proto-btn"
