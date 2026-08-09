@@ -51,6 +51,7 @@ import AboutPage from "./pages/AboutPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 import V2App from "./v2/V2App";
+import DevOnlyRoute from "./routes/DevOnlyRoute";
 
 
 const queryClient = new QueryClient();
@@ -149,8 +150,8 @@ const App = () => (
 
             {/* Chronicle V2 candidate — isolated Dexie DB, no production writes.
                 `/prototype/*` stays as a compatibility redirect for existing links. */}
-            <Route path="/v2/*" element={<V2App />} />
-            <Route path="/prototype/*" element={<Navigate to="/v2/notebook" replace />} />
+            <Route path="/v2/*" element={<DevOnlyRoute><V2App /></DevOnlyRoute>} />
+            <Route path="/prototype/*" element={<Navigate to="/timeline" replace />} />
 
             <Route path="*" element={<NotFound />} />
 

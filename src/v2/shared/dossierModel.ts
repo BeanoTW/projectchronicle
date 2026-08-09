@@ -58,7 +58,7 @@ export interface DossierConfig {
   attachmentTypes: AttachmentType[];   // empty = all types
 }
 
-export const DEFAULT_DOSSIER_TITLE = 'Chronological record';
+export const DEFAULT_DOSSIER_TITLE = 'Chronological Record';
 
 export const defaultDossierConfig: DossierConfig = {
   title: DEFAULT_DOSSIER_TITLE,

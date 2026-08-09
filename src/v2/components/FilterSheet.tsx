@@ -142,12 +142,12 @@ const FilterSheet = ({ open, value, categories, people, showEvidence = true, sho
           </section>
 
           <section className="proto-fgroup">
-            <h3 className="proto-flabel">Dossier</h3>
+            <h3 className="proto-flabel">My Record</h3>
             <div className="proto-chipwrap">
               {([
                 ['any', 'Any'],
-                ['included', 'In dossier'],
-                ['excluded', 'Not in dossier'],
+                ['included', 'In My Record'],
+                ['excluded', 'Not in My Record'],
               ] as Array<[DossierStatus, string]>).map(([v, label]) => (
                 <button
                   key={v}

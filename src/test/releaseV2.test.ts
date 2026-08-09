@@ -10,6 +10,8 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   FLAG_DEFAULTS,
+  environmentDefault,
+  isTesterEnvironment,
   clearFeatureOverrides,
   isFeatureEnabled,
   isFullV2Enabled,
@@ -45,9 +47,22 @@ const record = (over: Partial<NotebookRecord> = {}): NotebookRecord => ({
 describe('full V2 mode', () => {
   beforeEach(() => clearFeatureOverrides());
 
-  it('is off by default', () => {
+  it('follows the environment default when nothing is overridden', () => {
+    FLAGS.forEach(f => expect(isFeatureEnabled(f)).toBe(environmentDefault(f)));
+  });
+
+  it('is default-on for tester hosts and default-off for public production hosts', () => {
+    expect(isTesterEnvironment('localhost')).toBe(true);
+    expect(isTesterEnvironment('projectchronicle.lovable.app')).toBe(true);
+    expect(isTesterEnvironment('projectchronicle.app')).toBe(false);
+    expect(isTesterEnvironment('www.projectchronicle.app')).toBe(false);
+    FLAGS.forEach(f => expect(FLAG_DEFAULTS[f]).toBe(false));   // V1 remains the public default
+  });
+
+  it('can return the whole application to V1', () => {
+    setAllV2Override(false);
+    FLAGS.forEach(f => expect(isFeatureEnabled(f)).toBe(false));
     expect(isFullV2Enabled()).toBe(false);
-    FLAGS.forEach(f => expect(isFeatureEnabled(f)).toBe(FLAG_DEFAULTS[f]));
   });
 
   it('turns every migrated route on at once', () => {
@@ -65,6 +80,7 @@ describe('full V2 mode', () => {
   });
 
   it('a single flag works without the meta switch', () => {
+    setAllV2Override(false);
     setFeatureOverride('v2Notebook', true);
     expect(isFeatureEnabled('v2Notebook')).toBe(true);
     expect(isFeatureEnabled('v2Entry')).toBe(false);
@@ -73,7 +89,7 @@ describe('full V2 mode', () => {
   it('clearing overrides returns every route to its default', () => {
     setAllV2Override(true);
     clearFeatureOverrides();
-    FLAGS.forEach(f => expect(isFeatureEnabled(f)).toBe(FLAG_DEFAULTS[f]));
+    FLAGS.forEach(f => expect(isFeatureEnabled(f)).toBe(environmentDefault(f)));
   });
 });
 

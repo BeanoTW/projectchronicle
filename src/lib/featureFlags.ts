@@ -104,12 +104,32 @@ export const applyFlagOverridesFromUrl = () => {
   writeRaw(next);
 };
 
+/**
+ * Phase 8 — tester default-on.
+ *
+ * V2 is the normal experience in the tester/preview environments only. The
+ * public production hosts keep the V1 defaults until tester acceptance is in.
+ * Rollback stays a per-device configuration change:
+ *   ?ff=v2All:0            — whole app back to V1
+ *   ?ff=v2Capture:0        — one route back to V1
+ */
+export const TESTER_HOST_PATTERNS = [/(^|\.)lovable\.app$/, /^localhost$/, /^127\.0\.0\.1$/];
+
+export const isTesterEnvironment = (host?: string): boolean => {
+  const h = host ?? (typeof window !== 'undefined' ? window.location.hostname : '');
+  return TESTER_HOST_PATTERNS.some(re => re.test(h));
+};
+
+/** Defaults actually in force, before any per-device override. */
+export const environmentDefault = (flag: FeatureFlag): boolean =>
+  isTesterEnvironment() ? true : FLAG_DEFAULTS[flag];
+
 export const isFeatureEnabled = (flag: FeatureFlag): boolean => {
   const override = readOverrides()[flag];
   if (override !== undefined) return override;      // individual flags stay independent
   const all = readAllOverride();
   if (all !== undefined) return all;
-  return FLAG_DEFAULTS[flag];
+  return environmentDefault(flag);
 };
 
 /** True when every V2 route resolves to V2 — however that was reached. */
