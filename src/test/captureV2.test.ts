@@ -142,7 +142,7 @@ describe('capture adapter contract', () => {
   it('reports failed media without losing the sealed record', async () => {
     const { adapter, records } = makeFakeAdapter({ mediaFails: true });
     const { recordId } = await adapter.createRecord({
-      submissionId: 'sub-2', text: 'kept', capturedAt: 'n', sealedAt: 'n', hasVoice: false,
+      submissionId: 'sub-2', text: 'kept', capturedAt: 'n', sealedAt: 'n', hasVoice: false, recordType: 'incident' as const,
     });
     const failures = await adapter.saveMedia(recordId, [item('f1'), item('f2')]);
     expect(failures).toHaveLength(2);
@@ -153,7 +153,7 @@ describe('capture adapter contract', () => {
   it('retrying only the failed items can succeed later', async () => {
     const failing = makeFakeAdapter({ mediaFails: true });
     const { recordId } = await failing.adapter.createRecord({
-      submissionId: 'sub-3', text: 't', capturedAt: 'n', sealedAt: 'n', hasVoice: false,
+      submissionId: 'sub-3', text: 't', capturedAt: 'n', sealedAt: 'n', hasVoice: false, recordType: 'incident' as const,
     });
     const failures = await failing.adapter.saveMedia(recordId, [item('f1')]);
     const working = makeFakeAdapter();
@@ -165,7 +165,7 @@ describe('capture adapter contract', () => {
   it('review details are optional and can be skipped', async () => {
     const { adapter, records } = makeFakeAdapter();
     const { recordId } = await adapter.createRecord({
-      submissionId: 'sub-4', text: 't', capturedAt: 'n', sealedAt: 'n', hasVoice: false,
+      submissionId: 'sub-4', text: 't', capturedAt: 'n', sealedAt: 'n', hasVoice: false, recordType: 'incident' as const,
     });
     expect(records.get(recordId)!.details).toBeUndefined();
   });
@@ -173,7 +173,7 @@ describe('capture adapter contract', () => {
   it('a failing review save leaves the sealed record intact', async () => {
     const { adapter, records } = makeFakeAdapter({ detailsFails: true });
     const { recordId } = await adapter.createRecord({
-      submissionId: 'sub-5', text: 'original wording', capturedAt: 'n', sealedAt: 'sealed-ts', hasVoice: false,
+      submissionId: 'sub-5', text: 'original wording', capturedAt: 'n', sealedAt: 'sealed-ts', hasVoice: false, recordType: 'incident' as const,
     });
     await expect(adapter.saveDetails(recordId, {
       category: 'x', context: null, people: [], eventDate: null, eventTime: null,
