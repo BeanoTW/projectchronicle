@@ -6,6 +6,7 @@
 //
 // It owns no data access. All reads/writes arrive through props so production
 // writes stay behind the existing production interfaces.
+import V2SettingsControl from '@/components/chronicle/V2SettingsControl';
 import { useState, type ReactNode } from 'react';
 import '../styles.css';
 

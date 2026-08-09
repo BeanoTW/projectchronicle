@@ -25,7 +25,7 @@ const CaptureDetailsScreenV2 = () => {
           <p className="proto-help">That record could not be found on this device.</p>
           <button className="proto-btn" onClick={() => navigate('/timeline')}>Back to Notebook</button>
         </div>
-      </div>
+      </V2Surface>
     );
   }
 
