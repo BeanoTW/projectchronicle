@@ -3,6 +3,7 @@
 // clarification/evidence inclusion, document/preview consistency, export
 // model creation, empty + large dossiers, and feature-flag independence.
 import { describe, expect, it, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   buildDossierFromSource,
   defaultDossierConfig,
@@ -324,5 +325,42 @@ describe('v2Dossier feature flag', () => {
 
     clearFeatureOverrides();
     expect(isFeatureEnabled('v2Notebook')).toBe(false);
+  });
+});
+
+/* ---------- Source isolation ---------- */
+
+describe('source isolation', () => {
+  /** Source with comments stripped — prose mentions are fine, imports are not. */
+  const imports = (p: string) =>
+    readFileSync(p, 'utf8')
+      .split('\n')
+      .filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*'))
+      .join('\n');
+
+  it('shared dossier modules never import Dexie, Supabase or production hooks', () => {
+    for (const f of [
+      'src/v2/shared/dossierModel.ts',
+      'src/v2/shared/DossierView.tsx',
+      'src/v2/shared/DossierConfigureView.tsx',
+      'src/v2/shared/DossierPreviewView.tsx',
+    ]) {
+      const src = imports(f);
+      expect(src).not.toMatch(/dexie|supabase|@\/hooks\//i);
+      expect(src).not.toMatch(/from '\.\.\/db'|from '\.\.\/media\/media'/);
+    }
+  });
+
+  it('the production dossier adapter never imports the preview database', () => {
+    const src = imports('src/v2/shared/productionDossierAdapter.ts');
+    expect(src).not.toMatch(/chronicle_prototype|v2\/db|from '\.\.\/db'|dexie/i);
+  });
+
+  it('the shared exporters take a storage-agnostic blob loader', () => {
+    for (const f of ['src/v2/dossier/exportPdf.ts', 'src/v2/dossier/exportDocx.ts']) {
+      const src = imports(f);
+      expect(src).toMatch(/loadBlob\?: LoadBlob/);
+      expect(src).not.toMatch(/dexie|supabase/i);
+    }
   });
 });
