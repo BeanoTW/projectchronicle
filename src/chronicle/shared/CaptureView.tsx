@@ -221,7 +221,7 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
   }
 
   return (
-    <div>
+    <div className="proto-capture">
       <h1 className="proto-h1">Capture</h1>
       <p className="proto-help" style={{ marginBottom: 12 }}>
         Write freely, speak, or both. You do not need a title, category or date. Chronicle will note
