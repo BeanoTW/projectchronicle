@@ -5,13 +5,13 @@
 // compared over time; assertions guard only against order-of-magnitude
 // regressions so the suite stays stable on slower CI machines.
 import { describe, it, expect } from 'vitest';
-import { buildScaleDataset } from '@/v2/model/fixtures/scaleDataset';
-import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
-import { toDossierSourceMedia, toDossierSourceRecords } from '@/v2/shared/productionDossierAdapter';
-import { buildDossierFromSource, defaultDossierConfig } from '@/v2/shared/dossierModel';
-import { emptyFilters as defaultFilters } from '@/v2/filters';
-import { monthCounts, recordMatchesFilters, recordMatchesSearch, sortByRecency } from '@/v2/shared/notebookModel';
-import { planMigration } from '@/v2/model/migrationPlan';
+import { buildScaleDataset } from '@/chronicle/model/fixtures/scaleDataset';
+import { toNotebookRecords } from '@/chronicle/shared/productionNotebookAdapter';
+import { toDossierSourceMedia, toDossierSourceRecords } from '@/chronicle/shared/productionDossierAdapter';
+import { buildDossierFromSource, defaultDossierConfig } from '@/chronicle/shared/dossierModel';
+import { emptyFilters as defaultFilters } from '@/chronicle/filters';
+import { monthCounts, recordMatchesFilters, recordMatchesSearch, sortByRecency } from '@/chronicle/shared/notebookModel';
+import { planMigration } from '@/chronicle/model/migrationPlan';
 
 const SIZES = [100, 1000, 5000];
 const results: string[] = [];

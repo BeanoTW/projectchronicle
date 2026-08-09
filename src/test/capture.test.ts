@@ -5,7 +5,7 @@ import {
   canSealCapture, captureIsDirty, parsePeople, productionDraftKey,
   PREVIEW_DRAFT_KEY, describeFailures,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure,
-} from '@/v2/shared/captureModel';
+} from '@/chronicle/shared/captureModel';
 import {
   FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,
   setAllV2Override,

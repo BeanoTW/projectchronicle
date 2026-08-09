@@ -6,14 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
-import NotebookView from '@/v2/shared/NotebookView';
-import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
-import { cloneFilters, type NotebookFilters } from '@/v2/filters';
-import { notebookUiState as prodNotebookState } from '@/v2/shared/notebookUiState';
-import V2Surface from '@/v2/shared/V2Surface';
+import NotebookView from '@/chronicle/shared/NotebookView';
+import { toNotebookRecords } from '@/chronicle/shared/productionNotebookAdapter';
+import { cloneFilters, type NotebookFilters } from '@/chronicle/filters';
+import { notebookUiState as prodNotebookState } from '@/chronicle/shared/notebookUiState';
+import AppSurface from '@/chronicle/shared/AppSurface';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useMemo } from 'react';
-import '@/v2/styles.css';
+import '@/chronicle/styles.css';
 import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 
@@ -61,7 +61,7 @@ const NotebookScreenV2 = () => {
   }, [records, shielded, privacy]);
 
   return (
-    <V2Surface>
+    <AppSurface>
       <div className="proto-page">
         <NotebookView
           title="Notebook"
@@ -87,7 +87,7 @@ const NotebookScreenV2 = () => {
           emptyMessage="No records yet."
         />
       </div>
-    </V2Surface>
+    </AppSurface>
   );
 };
 

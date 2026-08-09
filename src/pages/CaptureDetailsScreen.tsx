@@ -3,10 +3,10 @@
 // canonical record so direct links and refreshes never break.
 import { useNavigate, useParams } from 'react-router-dom';
 import { useIncident } from '@/hooks/useIncidents';
-import ReviewView from '@/v2/shared/ReviewView';
-import { useProductionCaptureAdapter } from '@/v2/shared/productionCaptureAdapter';
-import V2Surface from '@/v2/shared/V2Surface';
-import '@/v2/styles.css';
+import ReviewView from '@/chronicle/shared/ReviewView';
+import { useProductionCaptureAdapter } from '@/chronicle/shared/productionCaptureAdapter';
+import AppSurface from '@/chronicle/shared/AppSurface';
+import '@/chronicle/styles.css';
 import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 const CaptureDetailsScreenV2 = () => {
@@ -20,17 +20,17 @@ const CaptureDetailsScreenV2 = () => {
   if (isLoading) return <p className="proto-help">Loading…</p>;
   if (!incident) {
     return (
-      <V2Surface>
+      <AppSurface>
         <div className="proto-page">
           <p className="proto-help">That record could not be found on this device.</p>
           <button className="proto-btn" onClick={() => navigate('/timeline')}>Back to Notebook</button>
         </div>
-      </V2Surface>
+      </AppSurface>
     );
   }
 
   return (
-    <V2Surface>
+    <AppSurface>
       <div className="proto-page">
         <ReviewView
           initial={{
@@ -47,7 +47,7 @@ const CaptureDetailsScreenV2 = () => {
           onSkip={() => navigate(`/incident/${incident.id}`)}
         />
       </div>
-    </V2Surface>
+    </AppSurface>
   );
 };
 

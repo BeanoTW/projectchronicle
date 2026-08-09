@@ -8,16 +8,16 @@ import {
   SettingsSection,
   SettingsToggle,
   SettingsDeferred,
-} from '@/v2/shared/SettingsView';
-import V2Surface from '@/v2/shared/V2Surface';
+} from '@/chronicle/shared/SettingsView';
+import AppSurface from '@/chronicle/shared/AppSurface';
 import {
   clearCaptureDrafts,
   clearUserScopedState,
   registerTransientReset,
   syncActiveUser,
-} from '@/v2/shared/sessionCleanup';
-import { productionDraftKey } from '@/v2/shared/captureModel';
-import { notebookUiState, resetNotebookUiState } from '@/v2/shared/notebookUiState';
+} from '@/chronicle/shared/sessionCleanup';
+import { productionDraftKey } from '@/chronicle/shared/captureModel';
+import { notebookUiState, resetNotebookUiState } from '@/chronicle/shared/notebookUiState';
 import { FLAG_DEFAULTS, isFeatureEnabled, clearFeatureOverrides, setFeatureOverride } from '@/lib/featureFlags';
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ describe('V2 shell settings access', () => {
   it('every V2 surface exposes a secondary settings control', () => {
     render(
       <MemoryRouter>
-        <V2Surface><p>Notebook</p></V2Surface>
+        <AppSurface><p>Notebook</p></AppSurface>
       </MemoryRouter>,
     );
     const btn = screen.getByTestId('v2-settings-control');
@@ -52,15 +52,15 @@ describe('V2 shell settings access', () => {
   it('hides the control on the settings screen itself', () => {
     render(
       <MemoryRouter>
-        <V2Surface hideSettingsControl><p>Settings</p></V2Surface>
+        <AppSurface hideSettingsControl><p>Settings</p></AppSurface>
       </MemoryRouter>,
     );
     expect(screen.queryByTestId('v2-settings-control')).toBeNull();
   });
 
   it('does not reintroduce a Support primary navigation destination', async () => {
-    const V2BottomNav = (await import('@/components/chronicle/V2BottomNav')).default;
-    render(<MemoryRouter><V2BottomNav /></MemoryRouter>);
+    const AppBottomNav = (await import('@/components/chronicle/AppBottomNav')).default;
+    render(<MemoryRouter><AppBottomNav /></MemoryRouter>);
     expect(screen.getByLabelText('Notebook')).toBeTruthy();
     expect(screen.getByLabelText('Capture')).toBeTruthy();
     expect(screen.getByLabelText('My Record')).toBeTruthy();

@@ -13,7 +13,7 @@ import {
   type DossierConfig,
   type DossierSourceMedia,
   type DossierSourceRecord,
-} from '@/v2/shared/dossierModel';
+} from '@/chronicle/shared/dossierModel';
 import {
   inclusionToExcluded,
   mapInclusion,
@@ -21,7 +21,7 @@ import {
   toDossierSourceMedia,
   toDossierSourceRecords,
   ORIGINAL_EVIDENCE_WINDOW_MS,
-} from '@/v2/shared/productionDossierAdapter';
+} from '@/chronicle/shared/productionDossierAdapter';
 import {
   FLAG_DEFAULTS,
   clearFeatureOverrides,

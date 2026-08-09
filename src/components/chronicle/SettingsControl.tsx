@@ -5,7 +5,7 @@
 // present on every V2 surface, visually subordinate to the core navigation.
 import { useInRouterContext, useNavigate } from 'react-router-dom';
 
-const V2SettingsControl = () => {
+const SettingsControl = () => {
   const inRouter = useInRouterContext();
   // Rendered inside presentation-only tests without a router — degrade quietly.
   if (!inRouter) return null;
@@ -33,4 +33,4 @@ const SettingsButton = () => {
   );
 };
 
-export default V2SettingsControl;
+export default SettingsControl;

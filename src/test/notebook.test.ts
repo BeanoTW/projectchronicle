@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
+import { toNotebookRecords } from '@/chronicle/shared/productionNotebookAdapter';
 import {
   recordMatchesFilters,
   recordMatchesSearch,
@@ -7,8 +7,8 @@ import {
   sortByRecency,
   uniqueCategories,
   uniquePeople,
-} from '@/v2/shared/notebookModel';
-import { cloneFilters, emptyFilters } from '@/v2/filters';
+} from '@/chronicle/shared/notebookModel';
+import { cloneFilters, emptyFilters } from '@/chronicle/filters';
 import {
   FLAG_DEFAULTS,
   isFeatureEnabled,

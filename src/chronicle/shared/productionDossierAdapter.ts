@@ -12,7 +12,7 @@
 // No second membership field is introduced.
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
-import type { DossierSourceMedia, DossierSourceRecord } from '@/v2/shared/dossierModel';
+import type { DossierSourceMedia, DossierSourceRecord } from '@/chronicle/shared/dossierModel';
 
 export interface ProductionNote {
   id: string;
