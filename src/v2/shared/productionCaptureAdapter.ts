@@ -37,6 +37,7 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
       storageCopy:
         'Your written record is saved on this device first. Voice records and attachments are stored ' +
         'in your private Chronicle storage, the same as the current record screen.',
+      recordTypes: true,
       voicePrivacyNote:
         'Recording. When you seal, the audio is stored in your private Chronicle storage.',
     },
@@ -50,7 +51,8 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
         raw_narrative: input.text,
         incident_date: input.sealedAt.slice(0, 10),
         record_method: input.hasVoice ? (input.text ? 'text_voice' : 'voice') : 'text',
-        record_type: 'incident',
+        record_type: input.recordType === 'daily' ? 'daily_record' : 'incident',
+        ...(input.recordType === 'daily' ? { record_date: input.sealedAt.slice(0, 10) } : {}),
         original_created_at: input.sealedAt,
         created_at: input.sealedAt,
       } as Parameters<typeof createIncident.mutateAsync>[0]);

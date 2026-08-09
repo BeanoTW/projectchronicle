@@ -18,7 +18,12 @@ export interface CaptureCapabilities {
   storageCopy: string;
   /** Shown inside the recorder while recording. */
   voicePrivacyNote: string;
+  /** True where both Chronicle record types can be created (production parity). */
+  recordTypes?: boolean;
 }
+
+/** Chronicle record types. Daily records are a first-class type, not a category. */
+export type CaptureRecordType = 'incident' | 'daily';
 
 export interface CaptureMediaItem {
   id: string;
@@ -37,6 +42,8 @@ export interface CaptureSealInput {
   capturedAt: string;
   sealedAt: string;
   hasVoice: boolean;
+  /** Defaults to 'incident' where the source does not offer a choice. */
+  recordType: CaptureRecordType;
 }
 
 export interface MediaFailure {
