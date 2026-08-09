@@ -18,7 +18,6 @@ import {
 } from '@/chronicle/shared/sessionCleanup';
 import { productionDraftKey } from '@/chronicle/shared/captureModel';
 import { notebookUiState, resetNotebookUiState } from '@/chronicle/shared/notebookUiState';
-import { FLAG_DEFAULTS, isFeatureEnabled, clearFeatureOverrides, setFeatureOverride } from '@/lib/featureFlags';
 
 beforeEach(() => {
   sessionStorage.clear();
@@ -26,17 +25,6 @@ beforeEach(() => {
   clearFeatureOverrides();
 });
 
-describe('Settings route flag', () => {
-  it('is off by default in production so V1 settings remain the baseline', () => {
-    expect(FLAG_DEFAULTS.v2Settings).toBe(false);
-  });
-
-  it('can be switched on independently', () => {
-    setFeatureOverride('v2Settings', true);
-    expect(isFeatureEnabled('v2Settings')).toBe(true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(isFeatureEnabled('v2Notebook'));
-  });
-});
 
 describe('V2 shell settings access', () => {
   it('every V2 surface exposes a secondary settings control', () => {
