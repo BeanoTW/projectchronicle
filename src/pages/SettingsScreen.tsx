@@ -114,6 +114,7 @@ const SettingsScreen = () => {
         <h1 className="proto-h1">Settings</h1>
         <p className="proto-help">Your account, appearance, privacy and data.</p>
 
+        <div className="proto-settings-grid">
         {/* ACCOUNT */}
         <SettingsSection title="Account">
           <SettingsRow
@@ -243,6 +244,7 @@ const SettingsScreen = () => {
           <SettingsLinkRow label="About Chronicle" onClick={() => navigate('/about')} />
           <SettingsRow label="App version" value={APP_VERSION} />
         </SettingsSection>
+        </div>
 
       </div>
 
