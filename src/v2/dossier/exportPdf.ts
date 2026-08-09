@@ -1,15 +1,20 @@
 // Chronicle V2 (candidate). PDF export. Manual A4 layout with jsPDF so chronology,
 // wording and page numbering are fully deterministic.
 import { jsPDF } from 'jspdf';
-import type { DossierConfig, DossierDocumentModel } from './document';
-import { safeFileName } from './document';
-import { prepareEvidenceImages } from './evidenceImages';
+import type { DossierConfig, DossierDocumentModel } from '../shared/dossierModel';
+import { safeFileName } from '../shared/dossierModel';
+import { prepareEvidenceImages, type LoadBlob } from './evidenceImages';
 
 const M = 56;          // margin (pt) ≈ 20mm
 const LEAD = 14;       // body line height
 
-export async function exportDossierPdf(doc: DossierDocumentModel, cfg: DossierConfig) {
-  const images = await prepareEvidenceImages(doc);
+export async function exportDossierPdf(
+  doc: DossierDocumentModel,
+  cfg: DossierConfig,
+  loadBlob?: LoadBlob,
+  onProgress?: (done: number, total: number) => void,
+) {
+  const images = await prepareEvidenceImages(doc, loadBlob, onProgress);
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = pdf.internal.pageSize.getWidth();
   const H = pdf.internal.pageSize.getHeight();

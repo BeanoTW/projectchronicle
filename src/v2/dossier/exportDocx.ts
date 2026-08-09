@@ -3,9 +3,9 @@ import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
   Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition, ImageRun,
 } from 'docx';
-import type { DossierConfig, DossierDocumentModel } from './document';
-import { safeFileName } from './document';
-import { prepareEvidenceImages } from './evidenceImages';
+import type { DossierConfig, DossierDocumentModel } from '../shared/dossierModel';
+import { safeFileName } from '../shared/dossierModel';
+import { prepareEvidenceImages, type LoadBlob } from './evidenceImages';
 
 const body = (text: string, opts: Partial<{ size: number; bold: boolean; italics: boolean; color: string; indent: number; after: number }> = {}) =>
   new Paragraph({
@@ -29,9 +29,14 @@ const sectionHeading = (text: string) =>
     children: [new TextRun({ text, size: 26, bold: true, font: 'Arial' })],
   });
 
-export async function exportDossierDocx(doc: DossierDocumentModel, cfg: DossierConfig) {
+export async function exportDossierDocx(
+  doc: DossierDocumentModel,
+  cfg: DossierConfig,
+  loadBlob?: LoadBlob,
+  onProgress?: (done: number, total: number) => void,
+) {
   const children: Paragraph[] = [];
-  const images = await prepareEvidenceImages(doc);
+  const images = await prepareEvidenceImages(doc, loadBlob, onProgress);
 
   /* Cover */
   children.push(

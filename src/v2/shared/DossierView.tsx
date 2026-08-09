@@ -1,0 +1,175 @@
+// Phase 6D — shared Dossier orchestrator (Configure + Preview + exports).
+// Source-agnostic: all data, persistence and blob access arrive via a
+// `DossierAdapter`. No Dexie, Supabase or production hooks are imported here.
+import { useMemo, useState } from 'react';
+import {
+  buildDossierFromSource,
+  defaultDossierConfig,
+  matchesScope,
+  recordDate,
+  type DossierAdapter,
+  type DossierConfig,
+} from './dossierModel';
+import { exportDossierPdf } from '../dossier/exportPdf';
+import { exportDossierDocx } from '../dossier/exportDocx';
+import DossierConfigureView, { type ConfigureRow } from './DossierConfigureView';
+import DossierPreviewView from './DossierPreviewView';
+
+interface Props {
+  adapter: DossierAdapter;
+  onOpenRecord?: (id: string) => void;
+  supportsHistory?: boolean;
+  supportsEvidence?: boolean;
+  /** Neutral note shown under the header (e.g. where the data comes from). */
+  intro?: string;
+}
+
+const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro }: Props) => {
+  const [cfg, setCfg] = useState<DossierConfig>(defaultDossierConfig);
+  const [tab, setTab] = useState<'configure' | 'preview'>('configure');
+  const [busy, setBusy] = useState<null | 'pdf' | 'docx'>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const { records, media } = adapter;
+
+  const categories = useMemo(
+    () => Array.from(new Set(records.map(r => r.category).filter(Boolean) as string[])).sort(),
+    [records],
+  );
+  const people = useMemo(() => Array.from(new Set(records.flatMap(r => r.people))).sort(), [records]);
+
+  /* Records offered for selection, narrowed by the same scope filters.
+     Narrowing visibility only — membership is never changed by a filter. */
+  const rows: ConfigureRow[] = useMemo(
+    () =>
+      records
+        .filter(r => matchesScope(r, cfg))
+        .sort((a, b) => b.sealed_at.localeCompare(a.sealed_at))
+        .map(r => ({
+          id: r.id,
+          label: r.title || r.original_text.slice(0, 48) + (r.original_text.length > 48 ? '…' : ''),
+          meta: `${new Date(recordDate(r)).toLocaleDateString()}${r.category ? ` · ${r.category}` : ''}`,
+          included: r.in_dossier,
+        })),
+    [records, cfg],
+  );
+
+  const doc = useMemo(() => buildDossierFromSource(records, cfg, media), [records, cfg, media]);
+
+  const toggleMember = async (id: string, on: boolean) => {
+    setTogglingId(id);
+    setError(null);
+    try {
+      await adapter.setIncluded(id, on);
+    } catch {
+      setError('That record could not be updated. Nothing has been changed.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const runExport = async (kind: 'pdf' | 'docx') => {
+    setBusy(kind);
+    setError(null);
+    setProgress(null);
+    try {
+      // Rebuild immediately before writing so the export matches what is on screen.
+      const fresh = buildDossierFromSource(records, cfg, media);
+      const onProgress = (done: number, total: number) => setProgress({ done, total });
+      if (kind === 'pdf') await exportDossierPdf(fresh, cfg, adapter.loadBlob, onProgress);
+      else await exportDossierDocx(fresh, cfg, adapter.loadBlob, onProgress);
+    } catch {
+      // Exports are read-only: a failure never changes a record.
+      setError('The document could not be generated. Your records are unchanged — please try again.');
+    } finally {
+      setBusy(null);
+      setProgress(null);
+    }
+  };
+
+  const canExport = doc.records.length > 0;
+
+  return (
+    <div>
+      <div className="proto-noprint">
+        <h1 className="proto-h1">Dossier</h1>
+        <p className="proto-help" style={{ marginBottom: 12 }}>
+          {intro ??
+            'A document assembled from your sealed records, in chronological order. Original wording is never altered.'}
+        </p>
+
+        <div className="proto-viewswitch" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="Dossier view">
+          <button style={{ flex: 1 }} data-active={tab === 'configure'} onClick={() => setTab('configure')}>Configure</button>
+          <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview</button>
+        </div>
+
+        {adapter.loading && <p className="proto-help" style={{ marginBottom: 10 }}>Loading records…</p>}
+        {error && <p className="proto-media-error">{error}</p>}
+      </div>
+
+      {tab === 'configure' ? (
+        <DossierConfigureView
+          cfg={cfg}
+          onChange={setCfg}
+          rows={rows}
+          totalRecords={records.length}
+          categories={categories}
+          people={people}
+          onToggleMember={toggleMember}
+          totalMembers={doc.totalMembers}
+          hiddenByFilters={doc.hiddenByFilters}
+          includedInDocument={doc.records.length}
+          evidenceNote={adapter.evidenceNote}
+          supportsHistory={supportsHistory}
+          supportsEvidence={supportsEvidence}
+          busyId={togglingId}
+        />
+      ) : (
+        <>
+          <div className="proto-noprint proto-exportbar">
+            <button className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
+              onClick={() => runExport('pdf')}>
+              {busy === 'pdf' ? 'Preparing…' : 'Export PDF'}
+            </button>
+            <button className="proto-btn" disabled={!canExport || busy !== null}
+              onClick={() => runExport('docx')}>
+              {busy === 'docx' ? 'Preparing…' : 'Export Word'}
+            </button>
+            <button className="proto-btn" data-variant="ghost" disabled={!canExport || busy !== null} onClick={() => window.print()}>
+              Print
+            </button>
+          </div>
+
+          {busy && (
+            <p className="proto-help proto-noprint" style={{ marginBottom: 10 }} aria-live="polite">
+              {progress && progress.total > 0
+                ? `Preparing images ${progress.done} of ${progress.total}…`
+                : `Assembling ${doc.records.length} record${doc.records.length === 1 ? '' : 's'}…`}
+            </p>
+          )}
+
+          {doc.records.length === 0 && (
+            <div className="proto-empty proto-noprint" style={{ marginBottom: 14 }}>
+              {doc.totalMembers === 0
+                ? 'No records are included yet. Select records in Configure.'
+                : `All ${doc.totalMembers} included record${doc.totalMembers === 1 ? '' : 's'} fall outside the current scope. Adjust the date range, category or person in Configure.`}
+            </div>
+          )}
+
+          {doc.hiddenByFilters > 0 && doc.records.length > 0 && (
+            <p className="proto-help proto-noprint" style={{ marginBottom: 10 }}>
+              {doc.hiddenByFilters} included record{doc.hiddenByFilters === 1 ? ' is' : 's are'} hidden
+              by the current scope and will not appear in the export.
+            </p>
+          )}
+
+          <DossierPreviewView doc={doc} cfg={cfg} onOpenRecord={onOpenRecord} useMediaUrl={adapter.useMediaUrl} />
+        </>
+      )}
+    </div>
+  );
+};
+
+export default DossierView;
