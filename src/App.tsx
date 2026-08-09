@@ -129,7 +129,7 @@ const App = () => (
             <Route path="/evidence" element={<ProtectedRoute><AppLayout><EvidenceScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/support" element={<ProtectedRoute><AppLayout><SupportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<Navigate to="/support" replace />} />
-            <Route path="/export" element={<ProtectedRoute><AppLayout><ExportScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/export" element={<ProtectedRoute><AppLayout><ExportRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><RecordDetailRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
