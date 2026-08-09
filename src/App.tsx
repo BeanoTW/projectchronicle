@@ -78,7 +78,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const { isLocked, isLockConfigured } = useLock();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) {
+    // Preserve the intended destination; PublicRoute honours a safe `next`.
+    const intended = window.location.pathname + window.location.search;
+    const next = intended && intended !== '/' ? `?next=${encodeURIComponent(intended)}` : '';
+    return <Navigate to={`/${next}`} replace />;
+  }
   if (isLockConfigured && isLocked) return <LockGate />;
   return <>{children}</>;
 };
