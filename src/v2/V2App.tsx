@@ -71,7 +71,7 @@ const Shell = ({ children }: { children: React.ReactNode }) => {
           <span className="proto-navdot" />
         </button>
         <button data-active={activeDossier} onClick={() => navigate(V2_BASE + '/dossier')}>
-          <span>Dossier</span>
+          <span>My Record</span>
           <span className="proto-navdot" />
         </button>
       </nav>

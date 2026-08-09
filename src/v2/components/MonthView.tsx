@@ -116,7 +116,7 @@ const MonthView = ({
                   <span>{new Date(e.recordedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
                   {e.category && <span className="proto-chip">{e.category}</span>}
                   {e.hasClarifications && <span className="proto-chip">Clarified</span>}
-                  {e.inDossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
+                  {e.inDossier && <span className="proto-chip" data-tone="brass">In My Record</span>}
                 </div>
                 {e.title && <div className="proto-serif" style={{ fontSize: 16, marginBottom: 4 }}>{e.title}</div>}
                 <div style={{

@@ -187,7 +187,7 @@ const NotebookView = ({
                   {r.attachmentCount} attachment{r.attachmentCount === 1 ? '' : 's'}
                 </span>
               )}
-              {r.inDossier && <span className="proto-chip" data-tone="brass">In dossier</span>}
+              {r.inDossier && <span className="proto-chip" data-tone="brass">In My Record</span>}
               {r.category && <span className="proto-chip">{r.category}</span>}
             </div>
             {r.title && (
