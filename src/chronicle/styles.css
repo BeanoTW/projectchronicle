@@ -979,3 +979,155 @@
   font-size: 13px;
   color: #a3352f;
 }
+
+/* ── Phase 11 — canonical app shell (one design system, two presentations) ──
+   Mobile: single column + bottom bar (Notebook · Capture · My Record).
+   Desktop (>=1024px): persistent left rail, wider intentional layouts.
+   The same routes and screens render in both. */
+
+.proto-root.proto-shell {
+  min-height: 100dvh;
+  background: var(--p-paper);
+}
+.proto-shell .proto-shell-main { min-width: 0; }
+
+.proto-root.proto-sidenav { display: none; }
+
+@media (min-width: 1024px) {
+  .proto-root.proto-shell {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .proto-root.proto-sidenav {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    padding: 24px 16px;
+    border-right: 1px solid var(--p-line);
+    background: var(--p-paper-2);
+    min-height: 0;
+  }
+  .proto-shell .proto-shell-main { height: 100dvh; overflow-y: auto; }
+}
+
+.proto-sidenav .proto-sidenav-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px 14px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--p-ink);
+}
+.proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 22px; letter-spacing: 0.2px; }
+.proto-sidenav .proto-sidenav-sub { font-size: 11px; color: var(--p-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+
+.proto-sidenav .proto-sidenav-list { display: flex; flex-direction: column; gap: 4px; }
+.proto-sidenav .proto-sidenav-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--p-ink-2);
+}
+.proto-sidenav .proto-sidenav-item:hover { background: rgba(0,0,0,0.035); }
+.proto-sidenav .proto-sidenav-item[data-active="true"] {
+  background: var(--p-accent-bg);
+  border-color: var(--p-line);
+  color: var(--p-ink);
+}
+.proto-sidenav .proto-sidenav-label { font-size: 14px; }
+.proto-sidenav .proto-sidenav-item[data-active="true"] .proto-sidenav-label { font-weight: 600; }
+.proto-sidenav .proto-sidenav-hint { font-size: 11px; color: var(--p-muted); }
+.proto-sidenav .proto-sidenav-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--p-line); }
+.proto-sidenav .proto-sidenav-status {
+  display: flex; align-items: center; gap: 7px;
+  padding: 0 12px; font-size: 11.5px; color: var(--p-muted);
+}
+.proto-sidenav .proto-sidenav-dot {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--p-line); border: 1px solid var(--p-muted);
+}
+.proto-sidenav .proto-sidenav-status[data-on="true"] { color: var(--p-brass); }
+.proto-sidenav .proto-sidenav-status[data-on="true"] .proto-sidenav-dot { background: var(--p-brass); border-color: var(--p-brass); }
+
+:root.dark .proto-root.proto-sidenav { background: #17150f; }
+:root.dark .proto-sidenav .proto-sidenav-item[data-active="true"] { background: #241f16; }
+
+/* Surface widths: reading column on mobile, intentional desktop canvas. */
+@media (min-width: 1024px) {
+  .proto-root.proto-surface {
+    max-width: 960px;
+    padding: 32px 32px 56px;
+  }
+  /* The rail owns Settings on desktop; the compact gear is mobile-only. */
+  .proto-root .proto-set-control { display: none; }
+}
+@media (min-width: 1440px) {
+  .proto-root.proto-surface { max-width: 1080px; }
+}
+
+/* Notebook — denser desktop list with an inline toolbar. */
+@media (min-width: 1024px) {
+  .proto-root .proto-toolbar { display: flex; gap: 10px; align-items: center; }
+  .proto-root .proto-toolbar .proto-controls { flex: 1; margin-bottom: 0; }
+  .proto-root .proto-toolbar .proto-filterbtn { width: auto !important; white-space: nowrap; }
+  .proto-root .proto-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .proto-root .proto-list .proto-entry { margin-bottom: 0; }
+}
+@media (min-width: 1440px) {
+  .proto-root .proto-list { grid-template-columns: 1fr 1fr; }
+}
+
+/* Entry — reading column plus a secondary metadata rail. */
+@media (min-width: 1200px) {
+  .proto-root .proto-entrylayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.95fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .proto-root .proto-entrylayout > * { min-width: 0; }
+}
+
+/* Capture — calm, wider writing area. */
+@media (min-width: 1024px) {
+  .proto-root .proto-capture { max-width: 760px; }
+  .proto-root .proto-capture .proto-textarea { min-height: 320px; font-size: 16px; }
+}
+
+/* My Record — configuration left, live report preview right. */
+@media (min-width: 1200px) {
+  .proto-root .proto-split {
+    display: grid;
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .proto-root .proto-split > * { min-width: 0; }
+  .proto-root .proto-split-config { position: sticky; top: 24px; max-height: calc(100dvh - 48px); overflow-y: auto; padding-right: 6px; }
+  .proto-root .proto-splittabs { display: none; }
+}
+
+/* Settings — grouped sections across the available width. */
+@media (min-width: 1024px) {
+  .proto-root .proto-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+    align-items: start;
+  }
+  .proto-root .proto-settings-grid > * { min-width: 0; }
+}

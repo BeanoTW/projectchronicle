@@ -1,4 +1,4 @@
-// Phase 6D — migrated production Dossier route (behind the `v2Dossier` flag).
+// Canonical My Record route.
 //
 // Real production data only:
 //   - useIncidents         (local-first records)

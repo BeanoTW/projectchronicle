@@ -105,6 +105,10 @@ const EntryView = ({
 
         {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
+        {/* Desktop: a comfortable reading column with a secondary rail.
+            Mobile: the same order in one column. */}
+        <div className="proto-entrylayout">
+        <div>
         <div className="proto-sealed-note">
           <div className="proto-sealed-label">Written record — unchanged</div>
           {entry.original_text
@@ -161,7 +165,9 @@ const EntryView = ({
             </button>
           )}
         </section>
+        </div>
 
+        <div>
         {evidenceSlot}
 
         <section style={{ marginTop: 20 }}>
@@ -203,6 +209,8 @@ const EntryView = ({
           >
             {entry.in_dossier ? 'Remove from My Record' : 'Add to My Record'}
           </button>
+        </div>
+        </div>
         </div>
       </div>
     </>

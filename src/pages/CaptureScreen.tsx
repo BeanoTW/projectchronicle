@@ -1,4 +1,4 @@
-// Phase 6C — migrated production Capture route (behind the `v2Capture` flag).
+// Canonical Capture route.
 // Real production writes only; no preview database.
 import { useNavigate } from 'react-router-dom';
 import CaptureView from '@/chronicle/shared/CaptureView';

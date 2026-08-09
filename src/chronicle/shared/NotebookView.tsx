@@ -105,6 +105,7 @@ const NotebookView = ({
       <h1 className="proto-h1">{title}</h1>
       {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
+      <div className="proto-toolbar">
       <div className="proto-controls">
         <input
           className="proto-input"
@@ -120,9 +121,10 @@ const NotebookView = ({
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <button className="proto-btn" onClick={() => setSheetOpen(true)} style={{ width: '100%' }}>
+        <button className="proto-btn proto-filterbtn" onClick={() => setSheetOpen(true)} style={{ width: '100%' }}>
           Filters{count > 0 ? ` · ${count}` : ''}
         </button>
+      </div>
       </div>
 
       {chips.length > 0 && (
@@ -170,7 +172,8 @@ const NotebookView = ({
             : emptyMessage}
         </div>
       ) : (
-        filtered.map(r => (
+        <div className="proto-list">
+        {filtered.map(r => (
           <button
             key={r.id}
             onClick={() => onOpenRecord(r.id)}
@@ -200,7 +203,8 @@ const NotebookView = ({
               {r.preview}
             </div>
           </button>
-        ))
+        ))}
+        </div>
       )}
 
       <FilterSheet

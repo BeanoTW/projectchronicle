@@ -21,7 +21,7 @@ const AppBottomNav = () => {
   };
 
   return (
-    <div className="proto-root md:hidden" data-testid="v2-bottom-nav">
+    <div className="proto-root lg:hidden" data-testid="v2-bottom-nav">
       {/* Keeps content clear of the fixed bar; replaces the V1 nav's spacing. */}
       <div aria-hidden style={{ height: 72, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} />
       <nav className="proto-bottomnav" aria-label="Primary" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
