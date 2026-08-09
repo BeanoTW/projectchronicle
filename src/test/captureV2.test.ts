@@ -7,7 +7,7 @@ import {
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure,
 } from '@/v2/shared/captureModel';
 import {
-  FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,,
+  FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,
   setAllV2Override,
 } from '@/lib/featureFlags';
 
