@@ -14,7 +14,7 @@ const CaptureScreenV2 = () => {
   const adapter = useProductionCaptureAdapter();
   return (
     <DialogProvider>
-      <div className="proto-root">
+      <div className="proto-root proto-surface">
         <div className="proto-page">
           <CaptureView adapter={adapter} onNavigate={path => navigate(path)} />
         </div>

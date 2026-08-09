@@ -73,7 +73,7 @@ const NotebookScreenV2 = () => {
   }, [records, shielded, privacy]);
 
   return (
-    <div className="proto-root">
+    <div className="proto-root proto-surface">
       <div className="proto-page">
         <NotebookView
           title="Notebook"

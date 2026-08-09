@@ -12,6 +12,7 @@ import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
 import { supabase } from '@/integrations/supabase/client';
 import DossierView from '@/v2/shared/DossierView';
+import V2Surface from '@/v2/shared/V2Surface';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import type { DossierAdapter, DossierEvidenceItem } from '@/v2/shared/dossierModel';
 import {
@@ -102,16 +103,18 @@ const DossierScreenV2 = () => {
   };
 
   return (
-    <DossierView
-      adapter={adapter}
-      previewWithheld={
-        shielded
-          ? 'Privacy Shield is on, so the report is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
-          : null
-      }
-      onOpenRecord={id => navigate(`/incident/${id}`)}
-      intro="The records you have chosen to bring together, in chronological order. Your report is generated from them — original wording is never altered."
-    />
+    <V2Surface>
+      <DossierView
+        adapter={adapter}
+        previewWithheld={
+          shielded
+            ? 'Privacy Shield is on, so the report is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
+            : null
+        }
+        onOpenRecord={id => navigate(`/incident/${id}`)}
+        intro="The records you have chosen to bring together, in chronological order. Your report is generated from them — original wording is never altered."
+      />
+    </V2Surface>
   );
 };
 

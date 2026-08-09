@@ -838,3 +838,22 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Production V2 surface (src/v2/shared/V2Surface.tsx).
+   Mirrors the preview shell's `.proto-main` metrics so a production-backed V2
+   screen has the same page padding, width and bottom-nav clearance. */
+.proto-root.proto-surface {
+  padding: 16px;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* Small-phone safety for the shared form controls (360–412px). */
+.proto-root .proto-daterow .proto-input { min-width: 0; }
+@media (max-width: 359px) {
+  .proto-root .proto-daterow { grid-template-columns: 1fr; }
+}
+.proto-root .proto-selectrow-title,
+.proto-root .proto-selectrow .proto-help { overflow-wrap: anywhere; }
+.proto-root .proto-selectrow > span { min-width: 0; flex: 1; }
