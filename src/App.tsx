@@ -51,15 +51,15 @@ import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 
 const queryClient = new QueryClient();
 
+// One canonical shell for every account. Desktop gets a persistent left rail,
+// mobile keeps the accepted bottom bar. Same routes, same screens.
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
-  <div className="md:flex md:h-screen md:overflow-hidden">
-    <DesktopSideNav />
-    <div className="flex-1 min-w-0 max-w-lg mx-auto md:max-w-none md:mx-0 md:h-screen md:overflow-y-auto">
-      <div className="md:max-w-5xl md:mx-auto md:px-4 md:py-2">
-        {children}
-      </div>
+  <div className="proto-root proto-shell" data-testid="app-shell">
+    <AppSideNav />
+    <div className="proto-shell-main">
+      {children}
+      <AppBottomNav />
     </div>
-    <AppBottomNav />
     <AuthDebugPanel />
   </div>
 );
