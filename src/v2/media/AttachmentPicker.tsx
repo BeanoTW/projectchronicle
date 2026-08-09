@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import {
   ACCEPT_ATTR, LIMITS, LIMITS_COPY, attachmentType, formatBytes, typeLabel,
   validateFile, type PendingFile,
-} from './media';
+} from './mediaCore';
 import { useBlobUrl } from './useBlobUrl';
 
 const PendingRow = ({
