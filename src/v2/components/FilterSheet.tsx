@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   type NotebookFilters,
   type DossierStatus,
+  type RecordTypeFilter,
   cloneFilters,
   emptyFilters,
   activeFilterCount,
@@ -16,11 +17,13 @@ interface Props {
   /** Hide evidence filters when the data source has no reliable attachment data. */
   showEvidence?: boolean;
   showAttachmentTypes?: boolean;
+  /** Record-type filter — shown only where both Chronicle record types exist. */
+  showRecordTypes?: boolean;
   onClose: () => void;
   onApply: (f: NotebookFilters) => void;
 }
 
-const FilterSheet = ({ open, value, categories, people, showEvidence = true, showAttachmentTypes = true, onClose, onApply }: Props) => {
+const FilterSheet = ({ open, value, categories, people, showEvidence = true, showAttachmentTypes = true, showRecordTypes = false, onClose, onApply }: Props) => {
   const [draft, setDraft] = useState<NotebookFilters>(cloneFilters(value));
 
   useEffect(() => {
@@ -50,6 +53,30 @@ const FilterSheet = ({ open, value, categories, people, showEvidence = true, sho
         </div>
 
         <div className="proto-sheet-body">
+          {showRecordTypes && (
+          <section className="proto-fgroup">
+            <h3 className="proto-flabel">Record type</h3>
+            <div className="proto-chipwrap">
+              {([['incident', 'Incident'], ['daily', 'Daily record']] as Array<[RecordTypeFilter, string]>).map(([v, label]) => (
+                <button
+                  key={v}
+                  className="proto-fchip"
+                  data-on={draft.recordTypes.includes(v)}
+                  aria-pressed={draft.recordTypes.includes(v)}
+                  onClick={() => setDraft({
+                    ...draft,
+                    recordTypes: draft.recordTypes.includes(v)
+                      ? draft.recordTypes.filter(x => x !== v)
+                      : [...draft.recordTypes, v],
+                  })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+          )}
+
           <section className="proto-fgroup">
             <h3 className="proto-flabel">Category</h3>
             {categories.length === 0 ? (

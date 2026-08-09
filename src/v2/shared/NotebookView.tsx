@@ -49,6 +49,8 @@ export interface NotebookViewProps {
   /** Hide evidence filters when the source has no reliable attachment data. */
   showEvidenceFilters?: boolean;
   showAttachmentTypeFilters?: boolean;
+  /** Show the incident / daily-record filter (production has both types). */
+  showRecordTypeFilters?: boolean;
   emptyMessage?: string;
 }
 
@@ -70,6 +72,7 @@ const NotebookView = ({
   onOpenRecord,
   showEvidenceFilters = true,
   showAttachmentTypeFilters = true,
+  showRecordTypeFilters = false,
   emptyMessage = 'No records yet.',
 }: NotebookViewProps) => {
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -203,6 +206,7 @@ const NotebookView = ({
         people={people}
         showEvidence={showEvidenceFilters}
         showAttachmentTypes={showAttachmentTypeFilters}
+        showRecordTypes={showRecordTypeFilters}
         onClose={() => setSheetOpen(false)}
         onApply={apply}
       />
