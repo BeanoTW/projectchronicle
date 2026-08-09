@@ -1,5 +1,6 @@
 // Phase 9 — Settings surface, sign out, account safety.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -170,7 +171,7 @@ describe('user-specific state clearing', () => {
 
 describe('sign out behaviour', () => {
   const SignOutHarness = ({ signOut }: { signOut: () => Promise<void> }) => {
-    const [error, setError] = (globalThis as unknown as { __react: typeof import('react') }).__react.useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
     return (
       <div>
         <button
@@ -190,10 +191,6 @@ describe('sign out behaviour', () => {
       </div>
     );
   };
-
-  beforeEach(async () => {
-    (globalThis as unknown as { __react: unknown }).__react = await import('react');
-  });
 
   it('clears drafts and succeeds', async () => {
     sessionStorage.setItem(productionDraftKey('user-a'), 'draft');
