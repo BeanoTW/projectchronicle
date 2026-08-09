@@ -7,8 +7,8 @@
 // Read-only: no mutations, no dossier toggling, no preview database.
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
-import type { NotebookRecord } from '@/v2/shared/notebookModel';
-import type { AttachmentType } from '@/v2/media/media';
+import type { NotebookRecord } from '@/chronicle/shared/notebookModel';
+import type { AttachmentType } from '@/chronicle/media/mediaCore';
 
 const evidenceType = (f: EvidenceFile): AttachmentType => {
   const m = (f.mime_type ?? '').toLowerCase();

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
+import { toNotebookRecords } from '@/chronicle/shared/productionNotebookAdapter';
 import {
   recordMatchesFilters,
   recordMatchesSearch,
@@ -7,15 +7,8 @@ import {
   sortByRecency,
   uniqueCategories,
   uniquePeople,
-} from '@/v2/shared/notebookModel';
-import { cloneFilters, emptyFilters } from '@/v2/filters';
-import {
-  FLAG_DEFAULTS,
-  isFeatureEnabled,
-  setFeatureOverride,
-  clearFeatureOverrides,
-  setAllV2Override,
-} from '@/lib/featureFlags';
+} from '@/chronicle/shared/notebookModel';
+import { cloneFilters, emptyFilters } from '@/chronicle/filters';
 import type { LocalIncident } from '@/local/db';
 
 const inc = (over: Partial<LocalIncident>): LocalIncident => ({
@@ -144,28 +137,3 @@ describe('notebook filtering', () => {
   });
 });
 
-describe('v2Notebook feature flag', () => {
-  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
-  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
-
-  it('defaults off so V1 Timeline is served', () => {
-    expect(FLAG_DEFAULTS.v2Notebook).toBe(false);   // V1 remains the public default
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-  });
-
-  it('is independent of v2Entry', () => {
-    setFeatureOverride('v2Notebook', true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(true);
-    expect(isFeatureEnabled('v2Entry')).toBe(false);
-    setFeatureOverride('v2Entry', true);
-    setFeatureOverride('v2Notebook', false);
-    expect(isFeatureEnabled('v2Entry')).toBe(true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-  });
-
-  it('rolls back with one configuration change', () => {
-    setFeatureOverride('v2Notebook', true);
-    setFeatureOverride('v2Notebook', null);
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-  });
-});

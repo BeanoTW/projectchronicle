@@ -8,7 +8,7 @@ const items = [
   { path: '/export', label: 'My Record' },
 ];
 
-const V2BottomNav = () => {
+const AppBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
@@ -36,4 +36,4 @@ const V2BottomNav = () => {
   );
 };
 
-export default V2BottomNav;
+export default AppBottomNav;

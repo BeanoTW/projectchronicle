@@ -10,7 +10,7 @@
 // Phase 9: the surface also carries the shell's secondary control — a compact
 // top-right Settings entry point, subordinate to Notebook / Capture / My Record.
 import type { ReactNode } from 'react';
-import V2SettingsControl from '@/components/chronicle/V2SettingsControl';
+import SettingsControl from '@/components/chronicle/SettingsControl';
 import '../styles.css';
 
 interface Props {
@@ -21,11 +21,11 @@ interface Props {
   hideSettingsControl?: boolean;
 }
 
-const V2Surface = ({ children, className, hideSettingsControl }: Props) => (
+const AppSurface = ({ children, className, hideSettingsControl }: Props) => (
   <div className={`proto-root proto-surface${className ? ` ${className}` : ''}`} data-v2-surface="true">
-    {!hideSettingsControl && <V2SettingsControl />}
+    {!hideSettingsControl && <SettingsControl />}
     {children}
   </div>
 );
 
-export default V2Surface;
+export default AppSurface;

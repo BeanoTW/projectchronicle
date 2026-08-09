@@ -1,10 +1,9 @@
-// Chronicle V2 (candidate). filter model. Pure functions over V2Entry.
-import type { V2Entry } from './db';
-import { emptySummary, type AttachmentType, type EntryMediaSummary } from './media/media';
+// Chronicle Notebook filter model. Pure, storage-agnostic.
+import type { AttachmentType } from './media/mediaCore';
 
 export type DossierStatus = 'any' | 'included' | 'excluded';
 
-/** Chronicle supports two record types. Both remain first-class in V2. */
+/** Chronicle supports two record types. Both are first-class. */
 export type RecordTypeFilter = 'incident' | 'daily';
 
 export interface NotebookFilters {
@@ -52,42 +51,6 @@ export const activeFilterCount = (f: NotebookFilters): number =>
   (f.hasVoice ? 1 : 0) +
   (f.hasAttachments ? 1 : 0) +
   f.attachmentTypes.length;
-
-/* Effective date of a record: user-set event date, else the sealed date. */
-export const entryDate = (e: V2Entry): string =>
-  e.event_date ?? e.sealed_at.slice(0, 10);
-
-export const matchesSearch = (e: V2Entry, term: string): boolean => {
-  const t = term.trim().toLowerCase();
-  if (!t) return true;
-  return (
-    e.original_text.toLowerCase().includes(t) ||
-    (e.title ?? '').toLowerCase().includes(t) ||
-    (e.category ?? '').toLowerCase().includes(t) ||
-    (e.context ?? '').toLowerCase().includes(t) ||
-    e.people.some(p => p.toLowerCase().includes(t)) ||
-    e.clarifications.some(c => c.text.toLowerCase().includes(t))
-  );
-};
-
-export const matchesFilters = (
-  e: V2Entry,
-  f: NotebookFilters,
-  summary: EntryMediaSummary = emptySummary,
-): boolean => {
-  if (f.categories.length > 0 && !(e.category && f.categories.includes(e.category))) return false;
-  if (f.people.length > 0 && !e.people.some(p => f.people.includes(p))) return false;
-  const d = entryDate(e);
-  if (f.from && d < f.from) return false;
-  if (f.to && d > f.to) return false;
-  if (f.dossier === 'included' && !e.in_dossier) return false;
-  if (f.dossier === 'excluded' && e.in_dossier) return false;
-  if (f.withClarifications && e.clarifications.length === 0) return false;
-  if (f.hasVoice && !summary.hasVoice) return false;
-  if (f.hasAttachments && summary.attachmentCount === 0) return false;
-  if (f.attachmentTypes.length > 0 && !f.attachmentTypes.some(t => summary.types.includes(t))) return false;
-  return true;
-};
 
 export interface ActiveChip {
   key: string;
@@ -146,7 +109,7 @@ export const buildChips = (f: NotebookFilters): ActiveChip[] => {
   return chips;
 };
 
-/* Notebook UI state survives navigation to an entry and back (V2 session only). */
+/* Notebook UI state survives navigation to a record and back (session only). */
 export const notebookState: {
   filters: NotebookFilters;
   q: string;

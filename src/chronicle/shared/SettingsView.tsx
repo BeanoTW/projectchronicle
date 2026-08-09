@@ -2,7 +2,7 @@
 //
 // Presentation only: no data access, no auth, no storage. Production wires
 // these up in src/pages/SettingsScreenV2.tsx. Everything is scoped under
-// `.proto-root` (supplied by V2Surface), so the same styling applies wherever
+// `.proto-root` (supplied by AppSurface), so the same styling applies wherever
 // the data comes from.
 import { useId, type ReactNode } from 'react';
 

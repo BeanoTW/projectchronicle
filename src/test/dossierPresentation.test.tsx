@@ -1,15 +1,15 @@
 // Phase 8 regression — My Record (Dossier) presentation is source-agnostic.
 //
 // All V2 product styles are scoped under `.proto-root`. The preview shell
-// supplies that ancestor; production routes must supply it via `V2Surface`.
+// supplies that ancestor; production routes must supply it via `AppSurface`.
 // These tests assert the shared layout classes are present regardless of the
 // data source, so styling can never depend on where records come from.
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import DossierView from '@/v2/shared/DossierView';
-import V2Surface from '@/v2/shared/V2Surface';
-import type { DossierAdapter, DossierSourceRecord } from '@/v2/shared/dossierModel';
+import DossierView from '@/chronicle/shared/DossierView';
+import AppSurface from '@/chronicle/shared/AppSurface';
+import type { DossierAdapter, DossierSourceRecord } from '@/chronicle/shared/dossierModel';
 
 const record = (id: string, title: string): DossierSourceRecord => ({
   id,
@@ -38,9 +38,9 @@ const adapter = (): DossierAdapter => ({
 const renderSurface = () =>
   render(
     <MemoryRouter>
-      <V2Surface>
+      <AppSurface>
         <DossierView adapter={adapter()} />
-      </V2Surface>
+      </AppSurface>
     </MemoryRouter>,
   );
 

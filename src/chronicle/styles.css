@@ -839,7 +839,7 @@
   }
 }
 
-/* Production V2 surface (src/v2/shared/V2Surface.tsx).
+/* Production V2 surface (src/v2/shared/AppSurface.tsx).
    Mirrors the preview shell's `.proto-main` metrics so a production-backed V2
    screen has the same page padding, width and bottom-nav clearance. */
 .proto-root.proto-surface {

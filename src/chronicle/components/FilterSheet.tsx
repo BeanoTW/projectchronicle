@@ -7,7 +7,7 @@ import {
   emptyFilters,
   activeFilterCount,
 } from '../filters';
-import { typeLabel, type AttachmentType } from '../media/media';
+import { typeLabel, type AttachmentType } from '../media/mediaCore';
 
 interface Props {
   open: boolean;

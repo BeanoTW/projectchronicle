@@ -8,41 +8,28 @@ import {
   SettingsSection,
   SettingsToggle,
   SettingsDeferred,
-} from '@/v2/shared/SettingsView';
-import V2Surface from '@/v2/shared/V2Surface';
+} from '@/chronicle/shared/SettingsView';
+import AppSurface from '@/chronicle/shared/AppSurface';
 import {
   clearCaptureDrafts,
   clearUserScopedState,
   registerTransientReset,
   syncActiveUser,
-} from '@/v2/shared/sessionCleanup';
-import { productionDraftKey } from '@/v2/shared/captureModel';
-import { notebookUiState, resetNotebookUiState } from '@/v2/shared/notebookUiState';
-import { FLAG_DEFAULTS, isFeatureEnabled, clearFeatureOverrides, setFeatureOverride } from '@/lib/featureFlags';
+} from '@/chronicle/shared/sessionCleanup';
+import { productionDraftKey } from '@/chronicle/shared/captureModel';
+import { notebookUiState, resetNotebookUiState } from '@/chronicle/shared/notebookUiState';
 
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
-  clearFeatureOverrides();
 });
 
-describe('Settings route flag', () => {
-  it('is off by default in production so V1 settings remain the baseline', () => {
-    expect(FLAG_DEFAULTS.v2Settings).toBe(false);
-  });
 
-  it('can be switched on independently', () => {
-    setFeatureOverride('v2Settings', true);
-    expect(isFeatureEnabled('v2Settings')).toBe(true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(isFeatureEnabled('v2Notebook'));
-  });
-});
-
-describe('V2 shell settings access', () => {
+describe('App shell settings access', () => {
   it('every V2 surface exposes a secondary settings control', () => {
     render(
       <MemoryRouter>
-        <V2Surface><p>Notebook</p></V2Surface>
+        <AppSurface><p>Notebook</p></AppSurface>
       </MemoryRouter>,
     );
     const btn = screen.getByTestId('v2-settings-control');
@@ -52,15 +39,15 @@ describe('V2 shell settings access', () => {
   it('hides the control on the settings screen itself', () => {
     render(
       <MemoryRouter>
-        <V2Surface hideSettingsControl><p>Settings</p></V2Surface>
+        <AppSurface hideSettingsControl><p>Settings</p></AppSurface>
       </MemoryRouter>,
     );
     expect(screen.queryByTestId('v2-settings-control')).toBeNull();
   });
 
   it('does not reintroduce a Support primary navigation destination', async () => {
-    const V2BottomNav = (await import('@/components/chronicle/V2BottomNav')).default;
-    render(<MemoryRouter><V2BottomNav /></MemoryRouter>);
+    const AppBottomNav = (await import('@/components/chronicle/AppBottomNav')).default;
+    render(<MemoryRouter><AppBottomNav /></MemoryRouter>);
     expect(screen.getByLabelText('Notebook')).toBeTruthy();
     expect(screen.getByLabelText('Capture')).toBeTruthy();
     expect(screen.getByLabelText('My Record')).toBeTruthy();
@@ -150,12 +137,6 @@ describe('user-specific state clearing', () => {
     sessionStorage.setItem(productionDraftKey('user-a'), 'draft');
     expect(syncActiveUser('user-a')).toBe(false);
     expect(sessionStorage.getItem(productionDraftKey('user-a'))).toBe('draft');
-  });
-
-  it('leaves device-local feature flags untouched (no user information)', () => {
-    setFeatureOverride('v2Settings', true);
-    clearUserScopedState();
-    expect(isFeatureEnabled('v2Settings')).toBe(true);
   });
 
   it('registered resets can be removed again', () => {

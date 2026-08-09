@@ -72,9 +72,3 @@ export async function prepareEvidenceImages(
   return map;
 }
 
-/** Loads image blobs from the V2 preview database. Preview-only. */
-export const previewLoadBlob: LoadBlob = async (mediaId) => {
-  const { v2DB } = await import('../db');
-  const row = await v2DB.media.get(mediaId);
-  return row?.blob ?? null;
-};

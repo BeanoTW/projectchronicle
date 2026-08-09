@@ -13,7 +13,7 @@ import {
   type DossierConfig,
   type DossierSourceMedia,
   type DossierSourceRecord,
-} from '@/v2/shared/dossierModel';
+} from '@/chronicle/shared/dossierModel';
 import {
   inclusionToExcluded,
   mapInclusion,
@@ -21,14 +21,7 @@ import {
   toDossierSourceMedia,
   toDossierSourceRecords,
   ORIGINAL_EVIDENCE_WINDOW_MS,
-} from '@/v2/shared/productionDossierAdapter';
-import {
-  FLAG_DEFAULTS,
-  clearFeatureOverrides,
-  isFeatureEnabled,
-  setFeatureOverride,
-  setAllV2Override,
-} from '@/lib/featureFlags';
+} from '@/chronicle/shared/productionDossierAdapter';
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
 
@@ -304,32 +297,6 @@ describe('document model', () => {
 
 /* ---------- Feature flag independence ---------- */
 
-describe('v2Dossier feature flag', () => {
-  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
-  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
-
-  it('defaults off so V1 Export stays the default route', () => {
-    expect(FLAG_DEFAULTS.v2Dossier).toBe(false);   // V1 remains the public default
-    expect(isFeatureEnabled('v2Dossier')).toBe(false);
-  });
-
-  it('can be enabled and rolled back independently of the other V2 flags', () => {
-    setFeatureOverride('v2Dossier', true);
-    expect(isFeatureEnabled('v2Dossier')).toBe(true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-    expect(isFeatureEnabled('v2Entry')).toBe(false);
-    expect(isFeatureEnabled('v2Capture')).toBe(false);
-
-    setFeatureOverride('v2Notebook', true);
-    setFeatureOverride('v2Dossier', false);
-    expect(isFeatureEnabled('v2Notebook')).toBe(true);
-    expect(isFeatureEnabled('v2Dossier')).toBe(false);
-
-    clearFeatureOverrides();
-    setAllV2Override(false);
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-  });
-});
 
 /* ---------- Source isolation ---------- */
 
@@ -343,10 +310,10 @@ describe('source isolation', () => {
 
   it('shared dossier modules never import Dexie, Supabase or production hooks', () => {
     for (const f of [
-      'src/v2/shared/dossierModel.ts',
-      'src/v2/shared/DossierView.tsx',
-      'src/v2/shared/DossierConfigureView.tsx',
-      'src/v2/shared/DossierPreviewView.tsx',
+      'src/chronicle/shared/dossierModel.ts',
+      'src/chronicle/shared/DossierView.tsx',
+      'src/chronicle/shared/DossierConfigureView.tsx',
+      'src/chronicle/shared/DossierPreviewView.tsx',
     ]) {
       const src = imports(f);
       expect(src).not.toMatch(/dexie|supabase|@\/hooks\//i);
@@ -355,12 +322,12 @@ describe('source isolation', () => {
   });
 
   it('the production dossier adapter never imports the preview database', () => {
-    const src = imports('src/v2/shared/productionDossierAdapter.ts');
+    const src = imports('src/chronicle/shared/productionDossierAdapter.ts');
     expect(src).not.toMatch(/chronicle_prototype|v2\/db|from '\.\.\/db'|dexie/i);
   });
 
   it('the shared exporters take a storage-agnostic blob loader', () => {
-    for (const f of ['src/v2/dossier/exportPdf.ts', 'src/v2/dossier/exportDocx.ts']) {
+    for (const f of ['src/chronicle/dossier/exportPdf.ts', 'src/chronicle/dossier/exportDocx.ts']) {
       const src = imports(f);
       expect(src).toMatch(/loadBlob\?: LoadBlob/);
       expect(src).not.toMatch(/dexie|supabase/i);

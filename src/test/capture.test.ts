@@ -5,11 +5,7 @@ import {
   canSealCapture, captureIsDirty, parsePeople, productionDraftKey,
   PREVIEW_DRAFT_KEY, describeFailures,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure,
-} from '@/v2/shared/captureModel';
-import {
-  FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,
-  setAllV2Override,
-} from '@/lib/featureFlags';
+} from '@/chronicle/shared/captureModel';
 
 /* ---------------- Seal validation ---------------- */
 
@@ -53,44 +49,6 @@ describe('review details parsing', () => {
 
 /* ---------------- Feature flags ---------------- */
 
-describe('v2Capture feature flag', () => {
-  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
-  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
-
-  it('defaults off so V1 capture remains the fallback', () => {
-    expect(FLAG_DEFAULTS.v2Capture).toBe(false);   // V1 remains the public default
-    expect(isFeatureEnabled('v2Capture')).toBe(false);
-  });
-
-  it('is independent of the notebook, entry and dossier flags', () => {
-    setFeatureOverride('v2Capture', true);
-    expect(isFeatureEnabled('v2Capture')).toBe(true);
-    expect(isFeatureEnabled('v2Notebook')).toBe(false);
-    expect(isFeatureEnabled('v2Entry')).toBe(false);
-    expect(isFeatureEnabled('v2Dossier')).toBe(false);
-  });
-
-  it('supports every documented flag combination', () => {
-    const combos: Array<[boolean, boolean, boolean]> = [
-      [false, false, false], [false, true, false], [true, false, false],
-      [true, true, false], [true, false, true], [true, true, true],
-    ];
-    for (const [capture, notebook, entry] of combos) {
-      setFeatureOverride('v2Capture', capture);
-      setFeatureOverride('v2Notebook', notebook);
-      setFeatureOverride('v2Entry', entry);
-      expect(isFeatureEnabled('v2Capture')).toBe(capture);
-      expect(isFeatureEnabled('v2Notebook')).toBe(notebook);
-      expect(isFeatureEnabled('v2Entry')).toBe(entry);
-    }
-  });
-
-  it('restores V1 capture with one configuration change', () => {
-    setFeatureOverride('v2Capture', true);
-    setFeatureOverride('v2Capture', null);
-    expect(isFeatureEnabled('v2Capture')).toBe(false);
-  });
-});
 
 /* ---------------- Adapter contract (fake adapter, mirrors the real ones) ---------------- */
 
@@ -202,12 +160,12 @@ describe('source isolation', () => {
       .join('\n');
 
   it('the production adapter never imports the preview database', () => {
-    const src = imports('src/v2/shared/productionCaptureAdapter.ts');
+    const src = imports('src/chronicle/shared/productionCaptureAdapter.ts');
     expect(src).not.toMatch(/chronicle_prototype|v2\/db|from '\.\.\/db'|dexie/i);
   });
 
   it('shared capture views never import Dexie, Supabase or production hooks', () => {
-    for (const f of ['src/v2/shared/CaptureView.tsx', 'src/v2/shared/ReviewView.tsx', 'src/v2/shared/captureModel.ts']) {
+    for (const f of ['src/chronicle/shared/CaptureView.tsx', 'src/chronicle/shared/ReviewView.tsx', 'src/chronicle/shared/captureModel.ts']) {
       const src = imports(f);
       expect(src).not.toMatch(/dexie|supabase|@\/hooks\//i);
       expect(src).not.toMatch(/from '\.\.\/db'|from '\.\.\/media\/media'/);

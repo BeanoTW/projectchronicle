@@ -9,12 +9,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useIncident, useUpdateIncident } from '@/hooks/useIncidents';
 import { useFollowUpNotes, useCreateFollowUpNote } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
-import EntryView, { type SharedEntryView } from '@/v2/shared/EntryView';
-import RecordHistoryView from '@/v2/shared/RecordHistoryView';
-import { toHistoryItems, wordingWasChanged } from '@/v2/shared/recordHistoryModel';
+import EntryView, { type SharedEntryView } from '@/chronicle/shared/EntryView';
+import RecordHistoryView from '@/chronicle/shared/RecordHistoryView';
+import { toHistoryItems, wordingWasChanged } from '@/chronicle/shared/recordHistoryModel';
 import { useEditHistory } from '@/hooks/useEditHistory';
 import { usePrivacy } from '@/contexts/PrivacyContext';
-import { useOwnNavigationV2 } from '@/components/chronicle/NavigationOwnership';
 
 const EvidenceList = ({ incidentId }: { incidentId: string }) => {
   const { data: files } = useEvidence(incidentId);
@@ -51,7 +50,6 @@ const EvidenceList = ({ incidentId }: { incidentId: string }) => {
 
 const EntryScreenV2 = () => {
   // V2 owns navigation on this surface; the legacy V1 bottom nav is not mounted.
-  useOwnNavigationV2();
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: incident, isLoading } = useIncident(id);
