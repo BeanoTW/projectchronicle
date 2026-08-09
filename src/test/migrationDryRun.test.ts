@@ -5,6 +5,7 @@ import { planMigration, WARNING_CLASS } from '@/v2/model/migrationPlan';
 import { buildScaleDataset } from '@/v2/model/fixtures/scaleDataset';
 
 const snapshot = buildScaleDataset(1000);
+const ids = new Set(snapshot.incidents.map(i => i.id));
 
 describe('Phase 8 — migration dry run', () => {
   it('inspects every record and maps all that are valid', () => {
@@ -27,7 +28,7 @@ describe('Phase 8 — migration dry run', () => {
     expect(byField.get('created_at → sealed_at')).toBe(report.counts.records_migrated);
     expect(byField.get('original_created_at → captured_at')).toBe(report.counts.records_migrated);
     // evidence references: every parented file is linked, none silently dropped
-    const parented = snapshot.evidence.filter(e => e.incident_id && e.incident_id.startsWith('rec-')).length;
+    const parented = snapshot.evidence.filter(e => e.incident_id && ids.has(e.incident_id)).length;
     expect(report.counts.media_linked).toBe(parented);
     const orphans = snapshot.evidence.length - parented;
     expect(report.warnings.filter(w => w.code === 'orphan_attachment')).toHaveLength(orphans);
@@ -35,8 +36,8 @@ describe('Phase 8 — migration dry run', () => {
 
   it('carries daily records, incomplete records and clarifications', () => {
     const { report } = planMigration(snapshot);
-    expect(report.counts.clarifications_created).toBe(snapshot.notes.filter(n => n.incident_id.startsWith('rec-')).length);
-    expect(report.counts.history_events_created).toBe(snapshot.history.filter(h => h.incident_id.startsWith('rec-')).length);
+    expect(report.counts.clarifications_created).toBe(snapshot.notes.filter(n => ids.has(n.incident_id)).length);
+    expect(report.counts.history_events_created).toBe(snapshot.history.filter(h => ids.has(h.incident_id)).length);
     // empty narratives are migrated as details-only, with a warning, never dropped
     const empties = snapshot.incidents.filter(i => !(i.raw_narrative ?? '').trim()).length;
     expect(report.warnings.filter(w => w.code === 'empty_narrative')).toHaveLength(empties);
