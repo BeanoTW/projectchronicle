@@ -34,7 +34,7 @@ import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
 import ExportRoute from "./routes/ExportRoute";
-import SettingsScreen from "./pages/SettingsScreen";
+import SettingsRoute from "./routes/SettingsRoute";
 import RecordDetailRoute from "./routes/RecordDetailRoute";
 import ReviewScreen from "./pages/ReviewScreen";
 import NotFound from "./pages/NotFound";
@@ -136,7 +136,7 @@ const App = () => (
             <Route path="/support" element={<ProtectedRoute><AppLayout><SupportScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/rights" element={<Navigate to="/support" replace />} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><ExportRoute /></AppLayout></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><RecordDetailRoute /></AppLayout></ProtectedRoute>} />
             <Route path="/review" element={<ProtectedRoute><AppLayout><ReviewScreen /></AppLayout></ProtectedRoute>} />
 
