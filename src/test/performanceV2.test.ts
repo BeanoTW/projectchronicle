@@ -9,7 +9,7 @@ import { buildScaleDataset } from '@/v2/model/fixtures/scaleDataset';
 import { toNotebookRecords } from '@/v2/shared/productionNotebookAdapter';
 import { toDossierSourceMedia, toDossierSourceRecords } from '@/v2/shared/productionDossierAdapter';
 import { buildDossierFromSource, defaultDossierConfig } from '@/v2/shared/dossierModel';
-import { defaultFilters } from '@/v2/filters';
+import { emptyFilters as defaultFilters } from '@/v2/filters';
 import { monthCounts, recordMatchesFilters, recordMatchesSearch, sortByRecency } from '@/v2/shared/notebookModel';
 import { planMigration } from '@/v2/model/migrationPlan';
 
