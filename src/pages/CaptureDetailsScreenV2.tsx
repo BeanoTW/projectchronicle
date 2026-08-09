@@ -47,7 +47,7 @@ const CaptureDetailsScreenV2 = () => {
           onSkip={() => navigate(`/incident/${incident.id}`)}
         />
       </div>
-    </div>
+    </V2Surface>
   );
 };
 
