@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { analytics } from '@/lib/analytics/analytics';
-import { clearUserScopedState, syncActiveUser } from '@/v2/shared/sessionCleanup';
+import { clearUserScopedState, syncActiveUser } from '@/chronicle/shared/sessionCleanup';
 
 interface AuthContextType {
   user: User | null;

@@ -1,37 +1,23 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useFullV2 } from '@/hooks/useFeatureFlag';
 import { Settings, Home } from 'lucide-react';
 import {
   TimelineIcon,
-  CalendarIcon,
   RecordIcon,
   MyRecordIcon,
   SupportIcon,
 } from './NavIcons';
 
-const navItems = [
+const items = [
   { path: '/home', label: 'Home', Icon: Home as any, isLucide: true },
-  { path: '/timeline', label: 'Timeline', Icon: TimelineIcon },
-  { path: '/calendar', label: 'Calendar', Icon: CalendarIcon },
-  { path: '/record', label: 'Record', Icon: RecordIcon, primary: true },
-  { path: '/my-record', label: 'My Record', Icon: MyRecordIcon },
+  { path: '/timeline', label: 'Notebook', Icon: TimelineIcon },
+  { path: '/record', label: 'Capture', Icon: RecordIcon, primary: true },
+  { path: '/export', label: 'My Record', Icon: MyRecordIcon },
   { path: '/support', label: 'Support', Icon: SupportIcon },
 ];
 
 const DesktopSideNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const fullV2 = useFullV2();
-  // Full V2 navigation reads Notebook · Capture · My Record.
-  // Labels and destinations converge; existing URLs stay valid for deep links.
-  const items = fullV2
-    ? navItems.map(i =>
-        i.path === '/timeline' ? { ...i, label: 'Notebook' }
-        : i.path === '/record' ? { ...i, label: 'Capture' }
-        : i.path === '/my-record' ? { ...i, path: '/export' }
-        : i,
-      )
-    : navItems;
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
