@@ -192,16 +192,21 @@ describe('capture adapter contract', () => {
 /* ---------------- Source isolation ---------------- */
 
 describe('source isolation', () => {
-  const read = (p: string) => readFileSync(p, 'utf8');
+  /** Source with comments stripped — prose mentions are fine, imports are not. */
+  const imports = (p: string) =>
+    readFileSync(p, 'utf8')
+      .split('\n')
+      .filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*'))
+      .join('\n');
 
   it('the production adapter never imports the preview database', () => {
-    const src = read('src/v2/shared/productionCaptureAdapter.ts');
+    const src = imports('src/v2/shared/productionCaptureAdapter.ts');
     expect(src).not.toMatch(/chronicle_prototype|v2\/db|from '\.\.\/db'|dexie/i);
   });
 
   it('shared capture views never import Dexie, Supabase or production hooks', () => {
     for (const f of ['src/v2/shared/CaptureView.tsx', 'src/v2/shared/ReviewView.tsx', 'src/v2/shared/captureModel.ts']) {
-      const src = read(f);
+      const src = imports(f);
       expect(src).not.toMatch(/dexie|supabase|@\/hooks\//i);
       expect(src).not.toMatch(/from '\.\.\/db'|from '\.\.\/media\/media'/);
     }
