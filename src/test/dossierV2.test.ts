@@ -26,7 +26,8 @@ import {
   FLAG_DEFAULTS,
   clearFeatureOverrides,
   isFeatureEnabled,
-  setFeatureOverride,
+  setFeatureOverride,,
+  setAllV2Override,
 } from '@/lib/featureFlags';
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
@@ -304,10 +305,11 @@ describe('document model', () => {
 /* ---------- Feature flag independence ---------- */
 
 describe('v2Dossier feature flag', () => {
-  beforeEach(() => clearFeatureOverrides());
+  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
+  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
 
   it('defaults off so V1 Export stays the default route', () => {
-    expect(FLAG_DEFAULTS.v2Dossier).toBe(false);
+    expect(FLAG_DEFAULTS.v2Dossier).toBe(false);   // V1 remains the public default
     expect(isFeatureEnabled('v2Dossier')).toBe(false);
   });
 

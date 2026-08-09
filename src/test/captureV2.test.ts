@@ -7,7 +7,8 @@ import {
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure,
 } from '@/v2/shared/captureModel';
 import {
-  FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,
+  FLAG_DEFAULTS, isFeatureEnabled, setFeatureOverride, clearFeatureOverrides,,
+  setAllV2Override,
 } from '@/lib/featureFlags';
 
 /* ---------------- Seal validation ---------------- */
@@ -53,10 +54,11 @@ describe('review details parsing', () => {
 /* ---------------- Feature flags ---------------- */
 
 describe('v2Capture feature flag', () => {
-  beforeEach(() => clearFeatureOverrides());
+  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
+  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
 
   it('defaults off so V1 capture remains the fallback', () => {
-    expect(FLAG_DEFAULTS.v2Capture).toBe(false);
+    expect(FLAG_DEFAULTS.v2Capture).toBe(false);   // V1 remains the public default
     expect(isFeatureEnabled('v2Capture')).toBe(false);
   });
 

@@ -13,7 +13,8 @@ import {
   FLAG_DEFAULTS,
   isFeatureEnabled,
   setFeatureOverride,
-  clearFeatureOverrides,
+  clearFeatureOverrides,,
+  setAllV2Override,
 } from '@/lib/featureFlags';
 import type { LocalIncident } from '@/local/db';
 
@@ -144,10 +145,11 @@ describe('notebook filtering', () => {
 });
 
 describe('v2Notebook feature flag', () => {
-  beforeEach(() => clearFeatureOverrides());
+  // Phase 8: tester hosts default to V2, so tests pin an explicit V1 baseline.
+  beforeEach(() => { clearFeatureOverrides(); setAllV2Override(false); });
 
   it('defaults off so V1 Timeline is served', () => {
-    expect(FLAG_DEFAULTS.v2Notebook).toBe(false);
+    expect(FLAG_DEFAULTS.v2Notebook).toBe(false);   // V1 remains the public default
     expect(isFeatureEnabled('v2Notebook')).toBe(false);
   });
 
@@ -164,6 +166,6 @@ describe('v2Notebook feature flag', () => {
   it('rolls back with one configuration change', () => {
     setFeatureOverride('v2Notebook', true);
     setFeatureOverride('v2Notebook', null);
-    expect(isFeatureEnabled('v2Notebook')).toBe(FLAG_DEFAULTS.v2Notebook);
+    expect(isFeatureEnabled('v2Notebook')).toBe(false);
   });
 });
