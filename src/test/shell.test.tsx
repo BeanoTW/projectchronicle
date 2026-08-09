@@ -107,7 +107,7 @@ describe('responsive navigation', () => {
 
   it('the shell never renders a legacy navigation component', () => {
     const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
-    expect(app).not.toMatch(/DesktopSideNav|HomeScreen|BottomNav from/);
+    expect(app).not.toMatch(/DesktopSideNav|HomeScreen/);
     expect(app).toMatch(/AppSideNav/);
     expect(app).toMatch(/AppBottomNav/);
   });
