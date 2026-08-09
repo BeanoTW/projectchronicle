@@ -28,7 +28,35 @@ export const FLAG_LABELS: Record<FeatureFlag, string> = {
 const STORAGE_KEY = 'chronicle.flags';
 const FLAG_NAMES = Object.keys(FLAG_DEFAULTS) as FeatureFlag[];
 
+/**
+ * Phase 7 convenience override: turns every V2 route on (or off) at once for
+ * development and release testing. It never removes flag independence — an
+ * individual override always wins over it:
+ *
+ *   individual override  >  v2All override  >  FLAG_DEFAULTS
+ *
+ *   ?ff=v2All:1                — full V2 mode
+ *   ?ff=v2All:1,v2Dossier:0    — full V2 except the dossier
+ *   ?ff=reset                  — back to defaults
+ */
+export const ALL_KEY = 'v2All';
+
 const isFlag = (v: string): v is FeatureFlag => (FLAG_NAMES as string[]).includes(v);
+
+const readRaw = (): Record<string, unknown> => {
+  if (typeof localStorage === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+};
+
+const readAllOverride = (): boolean | undefined => {
+  const v = readRaw()[ALL_KEY];
+  return typeof v === 'boolean' ? v : undefined;
+};
 
 const readOverrides = (): Partial<Record<FeatureFlag, boolean>> => {
   if (typeof localStorage === 'undefined') return {};
