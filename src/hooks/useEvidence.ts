@@ -41,9 +41,27 @@ export const useUploadEvidence = () => {
 
   return useMutation({
     mutationFn: async ({ file, incidentId, description }: { file: File; incidentId?: string; description?: string }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Single enforcement point. The capture picker validates too, but the
+      // Attachments library and Evidence screen upload straight from a file
+      // input, so the limit has to live here or it can be bypassed.
+      let existingCount = 0;
+      if (incidentId) {
+        const { count } = await supabase
+          .from('evidence_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('incident_id', incidentId);
+        existingCount = count ?? 0;
+      }
+      assertUploadAllowed(file, existingCount);
+
       const uniqueId = crypto.randomUUID();
-      const ext = file.name.split('.').pop() || 'bin';
-      const filePath = `${user!.id}/${uniqueId}.${ext}`;
+      // Only a sanitised extension is taken from the user's filename, so the
+      // name can never influence the storage path.
+      const filePath = `${user.id}/${uniqueId}.${safeExtension(file.name)}`;
+
 
       // Compute SHA-256 BEFORE uploading so a failed hash blocks the insert
       // and we never end up with a stored file lacking integrity metadata.
