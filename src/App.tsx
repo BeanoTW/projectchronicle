@@ -16,6 +16,8 @@ import AppBottomNav from "@/components/chronicle/AppBottomNav";
 
 import AppSideNav from "@/components/chronicle/AppSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
+import ThemeLabSwitcher from "@/components/chronicle/ThemeLabSwitcher";
+import ScrollRestoration from "@/components/chronicle/ScrollRestoration";
 import UpdateBanner from "@/components/chronicle/UpdateBanner";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import LoginScreen from "./pages/LoginScreen";
@@ -108,6 +110,8 @@ const App = () => (
         <UpdateBanner />
         <AttachmentUnlockDialog />
         <BrowserRouter>
+          <ScrollRestoration />
+          <ThemeLabSwitcher />
           <Routes>
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
