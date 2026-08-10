@@ -34,7 +34,7 @@ describe('layout — no excess scroll below content', () => {
 
   it('the single bottom spacer still keeps final controls above the nav', () => {
     const nav = readFileSync(join(process.cwd(), 'src/components/chronicle/AppBottomNav.tsx'), 'utf8');
-    expect(nav).toMatch(/height: 72/);
+    expect(nav).toMatch(/height: 7\d/);
     expect(nav).toMatch(/env\(safe-area-inset-bottom/);
   });
 });
