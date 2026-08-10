@@ -19,7 +19,9 @@ describe('layout — no excess scroll below content', () => {
   it('viewport height is claimed only by the true page roots', () => {
     // A blanket `.proto-root { min-height: 100dvh }` stacked viewport heights
     // for every nested .proto-root (surface, bottom nav, side rail).
-    const rootBlock = css.slice(css.indexOf('.proto-root {'), css.indexOf('.proto-serif'));
+    const rootBlock = css
+      .slice(css.indexOf('.proto-root {'), css.indexOf('.proto-serif'))
+      .replace(/\/\*[\s\S]*?\*\//g, '');
     expect(rootBlock).not.toMatch(/min-height:\s*100dvh/);
     expect(css).toMatch(/\.proto-root\.proto-shell\s*\{[^}]*min-height:\s*100dvh/);
   });
