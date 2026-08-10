@@ -6,6 +6,7 @@ import {
 import type { DossierConfig, DossierDocumentModel } from '../shared/dossierModel';
 import { safeFileName } from '../shared/dossierModel';
 import { prepareEvidenceImages, type LoadBlob } from './evidenceImages';
+import { deliverBlob, type Delivery } from './deliver';
 
 const body = (text: string, opts: Partial<{ size: number; bold: boolean; italics: boolean; color: string; indent: number; after: number }> = {}) =>
   new Paragraph({
@@ -34,7 +35,7 @@ export async function exportDossierDocx(
   cfg: DossierConfig,
   loadBlob?: LoadBlob,
   onProgress?: (done: number, total: number) => void,
-) {
+): Promise<Delivery> {
   const children: Paragraph[] = [];
   const images = await prepareEvidenceImages(doc, loadBlob, onProgress);
 
@@ -206,10 +207,5 @@ export async function exportDossierDocx(
   });
 
   const blob = await Packer.toBlob(wordDocument);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${safeFileName(doc.title)}.docx`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return deliverBlob(blob, `${safeFileName(doc.title)}.docx`);
 }
