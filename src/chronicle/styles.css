@@ -1309,3 +1309,146 @@
 @media (prefers-reduced-motion: reduce) {
   .proto-root.proto-auth * { animation: none !important; transition: none !important; }
 }
+
+/* ── Temporary palette laboratory ────────────────────────────────────────
+   Four candidate colour systems for evaluation. Selected by a
+   `data-palette` attribute on <html>, written only by the developer-only
+   theme switcher (src/lib/themeLab.ts). No attribute = the current shipping
+   palette, untouched. Every direction is expressed purely as the shared
+   token set, so components never carry palette values. */
+
+/* A — Refined Paper: notebook character without the vintage cream. */
+:root[data-palette="refined-paper"] .proto-root {
+  --p-paper: #faf8f5;
+  --p-paper-2: #f1eee8;
+  --p-ink: #1a1917;
+  --p-ink-2: #4b4a46;
+  --p-muted: #75736c;
+  --p-line: #e3dfd7;
+  --p-brass: #86682f;
+  --p-brass-soft: #a9863f;
+  --p-accent-bg: #f0e9dc;
+  --p-danger: #8a3a2b;
+}
+:root.dark[data-palette="refined-paper"] .proto-root {
+  --p-paper: #131313;
+  --p-paper-2: #1c1c1b;
+  --p-ink: #ecebe7;
+  --p-ink-2: #c4c1ba;
+  --p-muted: #8f8c84;
+  --p-line: #2d2d2b;
+  --p-brass: #c9a667;
+  --p-brass-soft: #b08e4e;
+  --p-accent-bg: #262421;
+  --p-danger: #e0897a;
+}
+
+/* B — Slate & Sage: professional neutrals, one desaturated green. */
+:root[data-palette="slate-sage"] .proto-root {
+  --p-paper: #fbfaf8;
+  --p-paper-2: #f1f1ee;
+  --p-ink: #1e2224;
+  --p-ink-2: #464d50;
+  --p-muted: #6f7679;
+  --p-line: #e0e2de;
+  --p-brass: #4e6853;
+  --p-brass-soft: #5e7a63;
+  --p-accent-bg: #e8ede7;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="slate-sage"] .proto-root {
+  --p-paper: #121415;
+  --p-paper-2: #1b1e1f;
+  --p-ink: #e8ebea;
+  --p-ink-2: #c0c6c5;
+  --p-muted: #8a9190;
+  --p-line: #2a2e2f;
+  --p-brass: #93b297;
+  --p-brass-soft: #7b9a80;
+  --p-accent-bg: #212724;
+  --p-danger: #e08a80;
+}
+
+/* C — Ink & Blue: contemporary, trustworthy, quiet blue accent. */
+:root[data-palette="ink-blue"] .proto-root {
+  --p-paper: #fafbfc;
+  --p-paper-2: #f0f2f5;
+  --p-ink: #16191f;
+  --p-ink-2: #434952;
+  --p-muted: #6d747e;
+  --p-line: #dfe3e8;
+  --p-brass: #3a5c85;
+  --p-brass-soft: #4b6d95;
+  --p-accent-bg: #e6ecf3;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="ink-blue"] .proto-root {
+  --p-paper: #101215;
+  --p-paper-2: #191c21;
+  --p-ink: #e7eaef;
+  --p-ink-2: #bfc5ce;
+  --p-muted: #878e99;
+  --p-line: #282c33;
+  --p-brass: #86a8cf;
+  --p-brass-soft: #6b8fb8;
+  --p-accent-bg: #1e2530;
+  --p-danger: #e08a80;
+}
+
+/* D — Modern Chronicle: neutral graphite record surface with a single
+   muted clay accent. Archival and serious, but not stationery pastiche. */
+:root[data-palette="modern"] .proto-root {
+  --p-paper: #f8f8f7;
+  --p-paper-2: #eeeeec;
+  --p-ink: #141516;
+  --p-ink-2: #45474a;
+  --p-muted: #71747a;
+  --p-line: #e0e0dd;
+  --p-brass: #8f5b45;
+  --p-brass-soft: #a3705a;
+  --p-accent-bg: #f0e7e2;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="modern"] .proto-root {
+  --p-paper: #111213;
+  --p-paper-2: #1a1b1d;
+  --p-ink: #eceded;
+  --p-ink-2: #c1c3c6;
+  --p-muted: #8a8d92;
+  --p-line: #2a2c2e;
+  --p-brass: #c98a6e;
+  --p-brass-soft: #b0765c;
+  --p-accent-bg: #26201d;
+  --p-danger: #e08a80;
+}
+
+/* Developer-only palette switcher. */
+.proto-themelab {
+  position: fixed;
+  left: 12px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--p-line, #ddd);
+  background: var(--p-paper, #fff);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.16);
+  font-family: 'Epilogue', system-ui, sans-serif;
+}
+@media (min-width: 1024px) { .proto-themelab { bottom: 16px; } }
+.proto-themelab-title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--p-muted, #777); }
+.proto-themelab-row { display: flex; gap: 4px; }
+.proto-themelab button {
+  border: 1px solid var(--p-line, #ddd);
+  background: transparent;
+  color: var(--p-ink, #111);
+  border-radius: 7px;
+  font-size: 12px;
+  padding: 6px 9px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.proto-themelab button[data-active="true"] { background: var(--p-accent-bg, #eee); border-color: var(--p-brass, #888); font-weight: 600; }
