@@ -12,6 +12,7 @@ import {
 } from './dossierModel';
 import { exportDossierPdf } from '../dossier/exportPdf';
 import { exportDossierDocx } from '../dossier/exportDocx';
+import { isEmbedded, printReport, type Delivery } from '../dossier/deliver';
 import DossierConfigureView, { type ConfigureRow } from './DossierConfigureView';
 import DossierPreviewView from './DossierPreviewView';
 import { useIsWide } from './useMediaQuery';
@@ -41,6 +42,11 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  /* Set when a file was generated but the browser may have suppressed the
+     download (embedded preview frames, in-app webviews, some mobile browsers).
+     The manual link below is the user's escape hatch. */
+  const [fallback, setFallback] = useState<Delivery | null>(null);
+  const [printNote, setPrintNote] = useState<string | null>(null);
 
   const { records, media } = adapter;
 
@@ -97,14 +103,21 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
     setBusy(kind);
     setError(null);
     setProgress(null);
+    setFallback(null);
+    setPrintNote(null);
     try {
       // Rebuild immediately before writing so the export matches what is on screen.
       const fresh = buildDossierFromSource(records, cfg, media);
       const onProgress = (done: number, total: number) => setProgress({ done, total });
-      if (kind === 'pdf') await exportDossierPdf(fresh, cfg, adapter.loadBlob, onProgress);
-      else await exportDossierDocx(fresh, cfg, adapter.loadBlob, onProgress);
-    } catch {
+      const delivery = kind === 'pdf'
+        ? await exportDossierPdf(fresh, cfg, adapter.loadBlob, onProgress)
+        : await exportDossierDocx(fresh, cfg, adapter.loadBlob, onProgress);
+      // Offer the manual link whenever the download may not have reached the
+      // device — we cannot observe a suppressed download directly.
+      if (delivery.status === 'blocked' || isEmbedded()) setFallback(delivery);
+    } catch (err) {
       // Exports are read-only: a failure never changes a record.
+      if (import.meta.env.DEV) console.error('[my-record] export failed', kind, err);
       setError('The document could not be generated. Your records are unchanged — please try again.');
     } finally {
       setBusy(null);
@@ -156,18 +169,43 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
       {(wide || tab === 'preview') && (
         <div>
           <div className="proto-noprint proto-exportbar">
-            <button className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
+            <button type="button" className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
               onClick={() => runExport('pdf')}>
               {busy === 'pdf' ? 'Preparing…' : 'Export PDF report'}
             </button>
-            <button className="proto-btn" disabled={!canExport || busy !== null}
+            <button type="button" className="proto-btn" disabled={!canExport || busy !== null}
               onClick={() => runExport('docx')}>
               {busy === 'docx' ? 'Preparing…' : 'Export Word report'}
             </button>
-            <button className="proto-btn" data-variant="ghost" disabled={!canExport || busy !== null} onClick={() => window.print()}>
+            <button type="button" className="proto-btn" data-variant="ghost" disabled={!canExport || busy !== null}
+              onClick={() => {
+                setError(null);
+                setFallback(null);
+                const result = printReport();
+                if (result === 'nothing-to-print') {
+                  setError('There is nothing to print yet. Open Preview report so the document is on screen.');
+                } else if (result === 'blocked') {
+                  setPrintNote('This browser blocked printing here. Open Chronicle in its own browser tab and try again.');
+                } else {
+                  setPrintNote('If no print dialog appeared, printing is blocked in this embedded view — open Chronicle in its own browser tab.');
+                }
+              }}>
               Print
             </button>
           </div>
+
+          {fallback && (
+            <p className="proto-help proto-noprint" style={{ marginBottom: 10 }} aria-live="polite">
+              Your report is ready. If the download did not start,{' '}
+              <a href={fallback.url} download={fallback.filename} target="_blank" rel="noopener noreferrer">
+                open {fallback.filename}
+              </a>.
+            </p>
+          )}
+
+          {printNote && (
+            <p className="proto-help proto-noprint" style={{ marginBottom: 10 }} aria-live="polite">{printNote}</p>
+          )}
 
           {busy && (
             <p className="proto-help proto-noprint" style={{ marginBottom: 10 }} aria-live="polite">
