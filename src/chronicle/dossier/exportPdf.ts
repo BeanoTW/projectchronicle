@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import type { DossierConfig, DossierDocumentModel } from '../shared/dossierModel';
 import { safeFileName } from '../shared/dossierModel';
 import { prepareEvidenceImages, type LoadBlob } from './evidenceImages';
+import { deliverBlob, type Delivery } from './deliver';
 
 const M = 56;          // margin (pt) ≈ 20mm
 const LEAD = 14;       // body line height
@@ -13,7 +14,7 @@ export async function exportDossierPdf(
   cfg: DossierConfig,
   loadBlob?: LoadBlob,
   onProgress?: (done: number, total: number) => void,
-) {
+): Promise<Delivery> {
   const images = await prepareEvidenceImages(doc, loadBlob, onProgress);
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = pdf.internal.pageSize.getWidth();
