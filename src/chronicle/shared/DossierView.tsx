@@ -183,7 +183,9 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
                 setFallback(null);
                 const result = printReport();
                 if (result === 'nothing-to-print') {
-                  setError('There is nothing to print yet. Open Preview report so the document is on screen.');
+                  setError(previewWithheld
+                    ? 'The report is not on screen while Privacy Shield is on, so it cannot be printed. Turn the shield off in Settings, or export a file instead.'
+                    : 'There is nothing to print yet. Open Preview report so the document is on screen.');
                 } else if (result === 'blocked') {
                   setPrintNote('This browser blocked printing here. Open Chronicle in its own browser tab and try again.');
                 } else {
