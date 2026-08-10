@@ -48,9 +48,9 @@ describe('App shell settings access', () => {
   it('does not reintroduce a Support primary navigation destination', async () => {
     const AppBottomNav = (await import('@/components/chronicle/AppBottomNav')).default;
     render(<MemoryRouter><AppBottomNav /></MemoryRouter>);
-    expect(screen.getByLabelText('Notebook')).toBeTruthy();
-    expect(screen.getByLabelText('Capture')).toBeTruthy();
-    expect(screen.getByLabelText('My Record')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Notebook' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Capture' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'My Record' })).toBeTruthy();
     expect(screen.queryByLabelText('Support')).toBeNull();
     expect(screen.queryByLabelText('Calendar')).toBeNull();
   });
