@@ -110,6 +110,8 @@ const App = () => (
         <UpdateBanner />
         <AttachmentUnlockDialog />
         <BrowserRouter>
+          <ScrollRestoration />
+          <ThemeLabSwitcher />
           <Routes>
             <Route path="/" element={<PublicRoute><WelcomeScreen /></PublicRoute>} />
             <Route path="/login" element={<PublicRoute><LoginScreen /></PublicRoute>} />
