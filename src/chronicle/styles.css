@@ -1422,6 +1422,115 @@
   --p-danger: #e08a80;
 }
 
+/* ── Round 2: green accents on different neutral families ──────────────
+   Follow-up trial to direction B. Same green-forward idea, but each option
+   pairs the green with a different neutral base so the accent reads
+   differently. Token-only, exactly like round 1. */
+
+/* E — Green & Slate: true cool slate neutrals, clear considered green. */
+:root[data-palette="green-slate"] .proto-root {
+  --p-paper: #f9fafb;
+  --p-paper-2: #eef1f4;
+  --p-ink: #171c20;
+  --p-ink-2: #414a51;
+  --p-muted: #6b757c;
+  --p-line: #dde2e6;
+  --p-brass: #2f6b52;
+  --p-brass-soft: #3d8163;
+  --p-accent-bg: #e4eee9;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="green-slate"] .proto-root {
+  --p-paper: #101315;
+  --p-paper-2: #191d20;
+  --p-ink: #e8ecee;
+  --p-ink-2: #bdc5ca;
+  --p-muted: #869197;
+  --p-line: #272c30;
+  --p-brass: #64b592;
+  --p-brass-soft: #4f9a7a;
+  --p-accent-bg: #17251f;
+  --p-danger: #e08a80;
+}
+
+/* F — Graphite & Emerald: neutral graphite base, brighter emerald accent. */
+:root[data-palette="graphite-emerald"] .proto-root {
+  --p-paper: #f8f8f8;
+  --p-paper-2: #eeefef;
+  --p-ink: #141516;
+  --p-ink-2: #454749;
+  --p-muted: #71747a;
+  --p-line: #e0e1e1;
+  --p-brass: #10715a;
+  --p-brass-soft: #1b8a6e;
+  --p-accent-bg: #e2f0eb;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="graphite-emerald"] .proto-root {
+  --p-paper: #111213;
+  --p-paper-2: #1a1b1d;
+  --p-ink: #eceded;
+  --p-ink-2: #c1c3c6;
+  --p-muted: #8a8d92;
+  --p-line: #2a2c2e;
+  --p-brass: #46c39c;
+  --p-brass-soft: #35a583;
+  --p-accent-bg: #142521;
+  --p-danger: #e08a80;
+}
+
+/* G — Stone & Olive: warm stone paper with a dry olive green. */
+:root[data-palette="stone-olive"] .proto-root {
+  --p-paper: #faf9f6;
+  --p-paper-2: #f0eee8;
+  --p-ink: #1b1a17;
+  --p-ink-2: #4a4842;
+  --p-muted: #77746c;
+  --p-line: #e2dfd7;
+  --p-brass: #5b6535;
+  --p-brass-soft: #6f7b42;
+  --p-accent-bg: #ecedde;
+  --p-danger: #8a3a2b;
+}
+:root.dark[data-palette="stone-olive"] .proto-root {
+  --p-paper: #131312;
+  --p-paper-2: #1c1c1a;
+  --p-ink: #eceae5;
+  --p-ink-2: #c3c0b9;
+  --p-muted: #8e8b83;
+  --p-line: #2c2c29;
+  --p-brass: #a8b872;
+  --p-brass-soft: #8d9c5c;
+  --p-accent-bg: #21231a;
+  --p-danger: #e0897a;
+}
+
+/* H — Midnight & Green: deepest slate-navy neutrals, green accent. */
+:root[data-palette="midnight-green"] .proto-root {
+  --p-paper: #f7f9fa;
+  --p-paper-2: #eaeef1;
+  --p-ink: #121820;
+  --p-ink-2: #3c4652;
+  --p-muted: #66717d;
+  --p-line: #d9dfe5;
+  --p-brass: #216b55;
+  --p-brass-soft: #2f8267;
+  --p-accent-bg: #e0edea;
+  --p-danger: #8b3a34;
+}
+:root.dark[data-palette="midnight-green"] .proto-root {
+  --p-paper: #0d1117;
+  --p-paper-2: #151b23;
+  --p-ink: #e6ebf1;
+  --p-ink-2: #b9c2cd;
+  --p-muted: #7f8b98;
+  --p-line: #222a34;
+  --p-brass: #58c39b;
+  --p-brass-soft: #44a582;
+  --p-accent-bg: #13231f;
+  --p-danger: #e08a80;
+}
+
 /* Developer-only palette switcher. */
 .proto-themelab {
   position: fixed;
