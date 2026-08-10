@@ -1629,3 +1629,19 @@
   color: var(--p-brass);
 }
 .proto-sidenav .proto-sidenav-action:focus-visible { outline: 2px solid var(--p-brass); outline-offset: 2px; }
+
+/* Tablet (640–1023px): the bar becomes a deliberate centred pill rather than a
+   stretched phone bar, and stops before the desktop rail takes over at 1024px. */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .proto-root .proto-bottomnav {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(520px, calc(100% - 32px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 12px;
+    border: 1px solid var(--p-line);
+    border-radius: 18px;
+    box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.5);
+  }
+}
