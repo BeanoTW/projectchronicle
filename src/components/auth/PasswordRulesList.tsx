@@ -1,27 +1,18 @@
-import { Check, Circle } from 'lucide-react';
 import { evaluatePassword } from '@/lib/passwordPolicy';
 
 interface Props {
   password: string;
 }
 
+/** Chronicle-styled password checklist. Used by Sign up and Reset password. */
 const PasswordRulesList = ({ password }: Props) => {
   const { results } = evaluatePassword(password);
   return (
-    <ul className="space-y-1 mt-1.5" aria-label="Password requirements">
+    <ul className="proto-trust" aria-label="Password requirements" style={{ marginTop: 8 }}>
       {results.map(({ rule, ok }) => (
-        <li
-          key={rule.id}
-          className={`flex items-center gap-2 text-[12px] transition-colors ${
-            ok ? 'text-primary' : 'text-muted-foreground/70'
-          }`}
-        >
-          {ok ? (
-            <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-          ) : (
-            <Circle className="h-3 w-3" strokeWidth={2} />
-          )}
+        <li key={rule.id} style={{ color: ok ? 'var(--p-brass)' : 'var(--p-muted)' }}>
           <span>{rule.label}</span>
+          <span className="sr-only">{ok ? ' — met' : ' — not met'}</span>
         </li>
       ))}
     </ul>
