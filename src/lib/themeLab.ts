@@ -33,6 +33,9 @@ export const PALETTES: { id: PaletteId; label: string; note: string }[] = [
 
 const STORAGE_KEY = 'chronicle.paletteLab';
 
+/** Shipping default palette. */
+export const DEFAULT_PALETTE: PaletteId = 'midnight-green';
+
 const isPaletteId = (v: unknown): v is PaletteId =>
   typeof v === 'string' && PALETTES.some(p => p.id === v);
 
@@ -43,7 +46,7 @@ export const readPalette = (): PaletteId => {
   } catch {
     // ignore
   }
-  return 'current';
+  return DEFAULT_PALETTE;
 };
 
 /** Applies the palette to <html>. Never writes application data. */
@@ -56,8 +59,7 @@ export const applyPalette = (id: PaletteId) => {
 export const setPalette = (id: PaletteId) => {
   applyPalette(id);
   try {
-    if (id === 'current') localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(STORAGE_KEY, id);
   } catch {
     // ignore
   }
