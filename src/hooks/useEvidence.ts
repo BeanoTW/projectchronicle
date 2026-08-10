@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { computeSha256, deriveCaptureDate } from '@/lib/attachments/integrity';
 import { analytics } from '@/lib/analytics/analytics';
+import {
+  assertUploadAllowed,
+  safeDisplayName,
+  safeExtension,
+} from '@/lib/uploadPolicy';
 import type { Tables } from '@/integrations/supabase/types';
 
 export type EvidenceFile = Tables<'evidence_files'>;
@@ -10,9 +15,15 @@ export type EvidenceFile = Tables<'evidence_files'>;
 export const useEvidence = (incidentId?: string) => {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['evidence', incidentId ?? 'all'],
+    queryKey: ['evidence', user?.id ?? 'anon', incidentId ?? 'all'],
     queryFn: async () => {
-      let query = supabase.from('evidence_files').select('*').order('upload_date', { ascending: false });
+      // Ownership is enforced by RLS; the explicit filter is defence in depth
+      // and keeps the query honest if a policy is ever relaxed.
+      let query = supabase
+        .from('evidence_files')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('upload_date', { ascending: false });
       if (incidentId) query = query.eq('incident_id', incidentId);
       const { data, error } = await query;
       if (error) throw error;
@@ -22,15 +33,34 @@ export const useEvidence = (incidentId?: string) => {
   });
 };
 
+
 export const useUploadEvidence = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ file, incidentId, description }: { file: File; incidentId?: string; description?: string }) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // Single enforcement point. The capture picker validates too, but the
+      // Attachments library and Evidence screen upload straight from a file
+      // input, so the limit has to live here or it can be bypassed.
+      let existingCount = 0;
+      if (incidentId) {
+        const { count } = await supabase
+          .from('evidence_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('incident_id', incidentId);
+        existingCount = count ?? 0;
+      }
+      assertUploadAllowed(file, existingCount);
+
       const uniqueId = crypto.randomUUID();
-      const ext = file.name.split('.').pop() || 'bin';
-      const filePath = `${user!.id}/${uniqueId}.${ext}`;
+      // Only a sanitised extension is taken from the user's filename, so the
+      // name can never influence the storage path.
+      const filePath = `${user.id}/${uniqueId}.${safeExtension(file.name)}`;
+
 
       // Compute SHA-256 BEFORE uploading so a failed hash blocks the insert
       // and we never end up with a stored file lacking integrity metadata.
@@ -47,7 +77,7 @@ export const useUploadEvidence = () => {
         .insert({
           user_id: user!.id,
           incident_id: incidentId || null,
-          file_name: file.name,
+          file_name: safeDisplayName(file.name),
           file_type: file.type.startsWith('image/') ? 'Photo' : file.type === 'application/pdf' ? 'Document' : 'Other',
           file_path: filePath,
           mime_type: file.type,
