@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { computeSha256, deriveCaptureDate } from '@/lib/attachments/integrity';
 import { analytics } from '@/lib/analytics/analytics';
 import {
-  MAX_ATTACHMENTS_PER_RECORD,
   assertUploadAllowed,
   safeDisplayName,
   safeExtension,
@@ -78,7 +77,7 @@ export const useUploadEvidence = () => {
         .insert({
           user_id: user!.id,
           incident_id: incidentId || null,
-          file_name: file.name,
+          file_name: safeDisplayName(file.name),
           file_type: file.type.startsWith('image/') ? 'Photo' : file.type === 'application/pdf' ? 'Document' : 'Other',
           file_path: filePath,
           mime_type: file.type,
