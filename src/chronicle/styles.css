@@ -843,12 +843,12 @@
   }
 }
 
-/* Production V2 surface (src/v2/shared/AppSurface.tsx).
-   Mirrors the preview shell's `.proto-main` metrics so a production-backed V2
-   screen has the same page padding, width and bottom-nav clearance. */
+/* Production surface (src/chronicle/shared/AppSurface.tsx).
+   Bottom-nav clearance is owned solely by the spacer inside AppBottomNav, so
+   this surface only carries ordinary page padding. Keeping both produced
+   duplicate ~200px of dead space under every screen. */
 .proto-root.proto-surface {
-  padding: 16px;
-  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  padding: 16px 16px 24px;
   max-width: 560px;
   margin: 0 auto;
 }
