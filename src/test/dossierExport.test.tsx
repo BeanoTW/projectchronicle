@@ -6,8 +6,7 @@
 // current report model, never submits or navigates, and that empty/filtered
 // states are handled safely.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { DossierAdapter, DossierSourceRecord } from '@/chronicle/shared/dossierModel';
 
@@ -53,9 +52,14 @@ const renderView = (records = [record('1'), record('2')], withheld: string | nul
     </MemoryRouter>,
   );
 
-const openPreview = async (user: ReturnType<typeof userEvent.setup>) => {
-  const tab = screen.queryByRole('button', { name: 'Preview report' });
-  if (tab) await user.click(tab);
+const click = async (name: string | RegExp) => {
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name }));
+  });
+};
+
+const openPreview = async () => {
+  await click('Preview report');
 };
 
 describe('My Record export delivery', () => {
@@ -65,10 +69,9 @@ describe('My Record export delivery', () => {
   });
 
   it('PDF button generates with the current report model', async () => {
-    const user = userEvent.setup();
     renderView();
-    await openPreview(user);
-    await user.click(screen.getByRole('button', { name: /Export PDF report/ }));
+    await openPreview();
+    await click(/Export PDF report/);
     await waitFor(() => expect(pdfSpy).toHaveBeenCalledTimes(1));
     const [doc, cfg] = pdfSpy.mock.calls[0] as unknown as [{ records: unknown[] }, unknown];
     expect(doc.records.length).toBe(2);
@@ -77,17 +80,15 @@ describe('My Record export delivery', () => {
   });
 
   it('Word button generates a DOCX from the same model', async () => {
-    const user = userEvent.setup();
     renderView();
-    await openPreview(user);
-    await user.click(screen.getByRole('button', { name: /Export Word report/ }));
+    await openPreview();
+    await click(/Export Word report/);
     await waitFor(() => expect(docxSpy).toHaveBeenCalledTimes(1));
     const [doc] = docxSpy.mock.calls[0] as unknown as [{ records: unknown[] }];
     expect(doc.records.length).toBe(2);
   });
 
   it('Print invokes the print path against the rendered report', async () => {
-    const user = userEvent.setup();
     const printSpy = vi.fn();
     // Printing happens in a cloned iframe; stub its window print.
     const origCreate = document.createElement.bind(document);
@@ -102,17 +103,16 @@ describe('My Record export delivery', () => {
     }) as typeof document.createElement);
 
     renderView();
-    await openPreview(user);
+    await openPreview();
     expect(document.getElementById('proto-doc')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Print' }));
+    await click('Print');
     await waitFor(() => expect(printSpy).toHaveBeenCalled(), { timeout: 2000 });
     vi.restoreAllMocks();
   });
 
   it('export buttons are plain buttons that cannot submit a form', async () => {
-    const user = userEvent.setup();
     renderView();
-    await openPreview(user);
+    await openPreview();
     ['Export PDF report', 'Export Word report', 'Print'].forEach(name => {
       const btn = screen.getByRole('button', { name: new RegExp(name) }) as HTMLButtonElement;
       expect(btn.type).toBe('button');
@@ -120,12 +120,11 @@ describe('My Record export delivery', () => {
   });
 
   it('disables export when nothing is included, and never generates', async () => {
-    const user = userEvent.setup();
     renderView([record('1', false)]);
-    await openPreview(user);
+    await openPreview();
     const btn = screen.getByRole('button', { name: /Export PDF report/ }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
-    await user.click(btn);
+    await act(async () => { fireEvent.click(btn); });
     expect(pdfSpy).not.toHaveBeenCalled();
   });
 });
