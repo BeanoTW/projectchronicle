@@ -8,7 +8,16 @@
 // This mechanism is intentionally temporary: remove this file, the switcher
 // component and the `[data-palette=...]` blocks once a direction is chosen.
 
-export type PaletteId = 'current' | 'refined-paper' | 'slate-sage' | 'ink-blue' | 'modern';
+export type PaletteId =
+  | 'current'
+  | 'refined-paper'
+  | 'slate-sage'
+  | 'ink-blue'
+  | 'modern'
+  | 'green-slate'
+  | 'graphite-emerald'
+  | 'stone-olive'
+  | 'midnight-green';
 
 export const PALETTES: { id: PaletteId; label: string; note: string }[] = [
   { id: 'current', label: 'Current', note: 'Shipping paper / ink / brass' },
@@ -16,6 +25,10 @@ export const PALETTES: { id: PaletteId; label: string; note: string }[] = [
   { id: 'slate-sage', label: 'B · Slate & Sage', note: 'Neutral slate with a desaturated sage accent' },
   { id: 'ink-blue', label: 'C · Ink & Blue', note: 'Cool neutrals with a muted blue accent' },
   { id: 'modern', label: 'D · Modern Chronicle', note: 'Graphite neutrals with a muted clay accent' },
+  { id: 'green-slate', label: 'E · Green & Slate', note: 'Cool slate neutrals with a clear considered green' },
+  { id: 'graphite-emerald', label: 'F · Graphite & Emerald', note: 'Neutral graphite with a brighter emerald accent' },
+  { id: 'stone-olive', label: 'G · Stone & Olive', note: 'Warm stone paper with a dry olive green' },
+  { id: 'midnight-green', label: 'H · Midnight & Green', note: 'Deep slate-navy neutrals with a green accent' },
 ];
 
 const STORAGE_KEY = 'chronicle.paletteLab';
