@@ -12,7 +12,11 @@
   --p-danger: #8a3a2b;
   background: var(--p-paper);
   color: var(--p-ink);
-  min-height: 100dvh;
+  /* NOTE: no global min-height here. `.proto-root` is applied to nested
+     elements (surface, bottom-nav wrapper, side rail), so a blanket
+     `min-height: 100dvh` stacked viewport heights inside the shell and
+     produced a large blank scroll region. Only the true page roots
+     (`.proto-shell`, `.proto-auth`) claim the viewport height. */
   font-family: 'Epilogue', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
