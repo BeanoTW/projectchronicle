@@ -65,8 +65,7 @@
 }
 
 .proto-root .proto-main {
-  padding: 16px;
-  padding-bottom: 128px; /* room for bottom nav + capture FAB */
+  padding: 16px 16px 24px;
   max-width: 560px;
   margin: 0 auto;
 }
