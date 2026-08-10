@@ -542,7 +542,7 @@
 :root.dark .proto-root .proto-sheet { background: var(--p-paper); }
 :root.dark .proto-root .proto-sheet-foot { background: var(--p-paper); }
 :root.dark .proto-root .proto-clar,
-:root.dark .proto-root .proto-preview { background: #1c1a16; }
+:root.dark .proto-root .proto-preview { background: var(--p-paper-2); }
 
 /* ============================================================
    Dossier document preview + print layout (V2-scoped)
@@ -634,7 +634,7 @@
 .proto-root .proto-doc-appitem:last-child { border-bottom: none; }
 .proto-root .proto-doc-history { margin: 0; padding-left: 18px; font-size: 13px; color: var(--p-ink-2); }
 
-:root.dark .proto-root .proto-page { background: #1c1a16; }
+:root.dark .proto-root .proto-page { background: var(--p-paper-2); }
 
 /* ---------------- Print: A4, black and white, sensible breaks -------------- */
 @page {
@@ -1066,8 +1066,8 @@
 .proto-sidenav .proto-sidenav-status[data-on="true"] { color: var(--p-brass); }
 .proto-sidenav .proto-sidenav-status[data-on="true"] .proto-sidenav-dot { background: var(--p-brass); border-color: var(--p-brass); }
 
-:root.dark .proto-root.proto-sidenav { background: #17150f; }
-:root.dark .proto-sidenav .proto-sidenav-item[data-active="true"] { background: #241f16; }
+:root.dark .proto-root.proto-sidenav { background: var(--p-paper-2); }
+:root.dark .proto-sidenav .proto-sidenav-item[data-active="true"] { background: var(--p-accent-bg); }
 
 /* Surface widths: reading column on mobile, intentional desktop canvas. */
 @media (min-width: 1024px) {
@@ -1302,9 +1302,9 @@
 }
 
 :root.dark .proto-root .proto-preview,
-:root.dark .proto-root .proto-preview-card { background: #1c1a16; }
+:root.dark .proto-root .proto-preview-card { background: var(--p-paper-2); }
 :root.dark .proto-root .proto-formerror { background: #2a1a16; border-color: #5b3227; color: #f0c8bd; }
-:root.dark .proto-root .proto-formnote { background: #1c1a16; }
+:root.dark .proto-root .proto-formnote { background: var(--p-paper-2); }
 
 @media (prefers-reduced-motion: reduce) {
   .proto-root.proto-auth * { animation: none !important; transition: none !important; }
