@@ -89,9 +89,10 @@ describe('palette laboratory', () => {
     document.documentElement.removeAttribute('data-palette');
   });
 
-  it('exposes four candidate directions plus the current palette', () => {
+  it('exposes the candidate directions plus the current palette', () => {
     expect(PALETTES.map(p => p.id)).toEqual([
       'current', 'refined-paper', 'slate-sage', 'ink-blue', 'modern',
+      'green-slate', 'graphite-emerald', 'stone-olive', 'midnight-green',
     ]);
   });
 
