@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { computeSha256, deriveCaptureDate } from '@/lib/attachments/integrity';
 import { analytics } from '@/lib/analytics/analytics';
+import {
+  MAX_ATTACHMENTS_PER_RECORD,
+  assertUploadAllowed,
+  safeDisplayName,
+  safeExtension,
+} from '@/lib/uploadPolicy';
 import type { Tables } from '@/integrations/supabase/types';
 
 export type EvidenceFile = Tables<'evidence_files'>;
@@ -10,9 +16,15 @@ export type EvidenceFile = Tables<'evidence_files'>;
 export const useEvidence = (incidentId?: string) => {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ['evidence', incidentId ?? 'all'],
+    queryKey: ['evidence', user?.id ?? 'anon', incidentId ?? 'all'],
     queryFn: async () => {
-      let query = supabase.from('evidence_files').select('*').order('upload_date', { ascending: false });
+      // Ownership is enforced by RLS; the explicit filter is defence in depth
+      // and keeps the query honest if a policy is ever relaxed.
+      let query = supabase
+        .from('evidence_files')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('upload_date', { ascending: false });
       if (incidentId) query = query.eq('incident_id', incidentId);
       const { data, error } = await query;
       if (error) throw error;
@@ -21,6 +33,7 @@ export const useEvidence = (incidentId?: string) => {
     enabled: !!user,
   });
 };
+
 
 export const useUploadEvidence = () => {
   const queryClient = useQueryClient();
