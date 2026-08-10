@@ -96,7 +96,7 @@ describe('My Record export delivery', () => {
       const el = origCreate(tag);
       if (tag === 'iframe') {
         Object.defineProperty(el, 'contentWindow', {
-          get: () => ({ focus: () => {}, print: printSpy }),
+          get: () => ({ focus: () => {}, print: printSpy, close: () => {} }),
         });
       }
       return el;
