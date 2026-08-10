@@ -284,10 +284,10 @@
 :root.dark .proto-root .proto-input,
 :root.dark .proto-root .proto-textarea,
 :root.dark .proto-root .proto-entry,
-:root.dark .proto-root .proto-viewswitch { background: #1c1a16; color: var(--p-ink); }
-:root.dark .proto-root .proto-btn { background: #1c1a16; color: var(--p-ink); }
-:root.dark .proto-root .proto-btn[data-variant="primary"] { background: var(--p-brass); color: #14120f; border-color: var(--p-brass); }
-:root.dark .proto-root .proto-fab { background: var(--p-brass); color: #14120f; }
+:root.dark .proto-root .proto-viewswitch { background: var(--p-paper-2); color: var(--p-ink); }
+:root.dark .proto-root .proto-btn { background: var(--p-paper-2); color: var(--p-ink); }
+:root.dark .proto-root .proto-btn[data-variant="primary"] { background: var(--p-brass); color: var(--p-paper); border-color: var(--p-brass); }
+:root.dark .proto-root .proto-fab { background: var(--p-brass); color: var(--p-paper); }
 
 /* ---------- Phase 2: filters, month view, clarifications, dossier ---------- */
 
