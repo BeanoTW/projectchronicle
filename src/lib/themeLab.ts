@@ -59,8 +59,7 @@ export const applyPalette = (id: PaletteId) => {
 export const setPalette = (id: PaletteId) => {
   applyPalette(id);
   try {
-    if (id === 'current') localStorage.removeItem(STORAGE_KEY);
-    else localStorage.setItem(STORAGE_KEY, id);
+    localStorage.setItem(STORAGE_KEY, id);
   } catch {
     // ignore
   }
