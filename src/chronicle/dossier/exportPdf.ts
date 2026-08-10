@@ -203,5 +203,5 @@ export async function exportDossierPdf(
     pdf.text(`Generated ${doc.generatedLabel}`, M, H - M + 6);
   }
 
-  pdf.save(`${safeFileName(doc.title)}.pdf`);
+  return deliverBlob(pdf.output('blob'), `${safeFileName(doc.title)}.pdf`);
 }
