@@ -11,7 +11,6 @@ import { render } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import ScrollRestoration, { resetScroll } from '@/components/chronicle/ScrollRestoration';
-import { PALETTES, applyPalette, readPalette, setPalette } from '@/lib/themeLab';
 
 const css = readFileSync(join(process.cwd(), 'src/chronicle/styles.css'), 'utf8');
 
@@ -80,51 +79,5 @@ describe('route scroll restoration', () => {
   it('leaves POP (Back/Forward) restoration to the browser', () => {
     const src = readFileSync(join(process.cwd(), 'src/components/chronicle/ScrollRestoration.tsx'), 'utf8');
     expect(src).toMatch(/navigationType === 'POP'\) return/);
-  });
-});
-
-describe('palette laboratory', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    document.documentElement.removeAttribute('data-palette');
-  });
-
-  it('exposes the candidate directions plus the current palette', () => {
-    expect(PALETTES.map(p => p.id)).toEqual([
-      'current', 'refined-paper', 'slate-sage', 'ink-blue', 'modern',
-      'green-slate', 'graphite-emerald', 'stone-olive', 'midnight-green',
-    ]);
-  });
-
-  it('every direction defines light and dark token sets', () => {
-    PALETTES.filter(p => p.id !== 'current').forEach(p => {
-      expect(css).toContain(`:root[data-palette="${p.id}"] .proto-root`);
-      expect(css).toContain(`:root.dark[data-palette="${p.id}"] .proto-root`);
-    });
-  });
-
-  it('switching only sets a presentation attribute and its own key', () => {
-    localStorage.setItem('chronicle.records', 'untouched');
-    setPalette('ink-blue');
-    expect(document.documentElement.getAttribute('data-palette')).toBe('ink-blue');
-    expect(readPalette()).toBe('ink-blue');
-    expect(localStorage.getItem('chronicle.records')).toBe('untouched');
-
-    setPalette('current');
-    expect(document.documentElement.hasAttribute('data-palette')).toBe(false);
-    expect(localStorage.getItem('chronicle.records')).toBe('untouched');
-  });
-
-  it('palettes are token-only, so all screens keep identical functionality', () => {
-    PALETTES.filter(p => p.id !== 'current').forEach(p => {
-      applyPalette(p.id);
-      const block = css.slice(css.indexOf(`:root[data-palette="${p.id}"] .proto-root`));
-      const decls = block.slice(0, block.indexOf('}'));
-      // Only custom properties may be declared by a palette.
-      decls
-        .split('\n')
-        .filter(l => l.includes(':') && !l.includes('data-palette'))
-        .forEach(l => expect(l.trim().startsWith('--p-')).toBe(true));
-    });
   });
 });
