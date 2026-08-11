@@ -41,10 +41,25 @@ export interface LocalMeta {
   value: string;
 }
 
+/**
+ * Rows belonging to a signed-out account that are NOT safely backed up.
+ * They are moved out of the live tables at an account boundary so a second
+ * account on the same device can never read them, and restored when their
+ * owner signs back in. See `src/local/accountBoundary.ts`.
+ */
+export interface QuarantinedRow {
+  key: string;                       // `${kind}:${rowId}`
+  owner_user_id: string;
+  kind: 'incident' | 'note';
+  stored_at: string;
+  payload: LocalIncident | LocalFollowUpNote;
+}
+
 class ChronicleDB extends Dexie {
   incidents!: Table<LocalIncident, string>;
   follow_up_notes!: Table<LocalFollowUpNote, string>;
   meta!: Table<LocalMeta, string>;
+  quarantine!: Table<QuarantinedRow, string>;
 
   constructor() {
     super('chronicle_local');
@@ -58,6 +73,10 @@ class ChronicleDB extends Dexie {
     // strictly need to, but bumping the version triggers any future reindex.
     this.version(2).stores({
       incidents: 'id, owner_user_id, sync_state, incident_date, record_date, updated_at',
+    });
+    // v3 — account-boundary quarantine store.
+    this.version(3).stores({
+      quarantine: 'key, owner_user_id, kind',
     });
   }
 }

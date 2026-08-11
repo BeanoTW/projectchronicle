@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.2";
 
+import { readJsonBody, boundedString, boundedStringArray, boundedObjectArray, genericError } from "../_shared/requestGuards.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -35,7 +37,14 @@ serve(async (req) => {
   if (auth instanceof Response) return auth;
 
   try {
-    const { narrative } = await req.json();
+    const parsed = await readJsonBody(req, corsHeaders);
+    if (!parsed.ok) return parsed.response;
+    const narrative = boundedString(parsed.body.narrative, 50_000);
+    if (!narrative) {
+      return new Response(JSON.stringify({ error: "A narrative is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -180,9 +189,6 @@ RULES:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("detect-multi-incident error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return genericError("detect-multi-incident", e, corsHeaders);
   }
 });

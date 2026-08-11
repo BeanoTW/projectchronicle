@@ -13,6 +13,8 @@ import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
 import AppBottomNav from "@/components/chronicle/AppBottomNav";
+import { AppErrorBoundary, ScreenErrorBoundary } from "@/components/ErrorBoundary";
+import { authRedirectFor, nextOrDefault } from "@/lib/authNext";
 
 import AppSideNav from "@/components/chronicle/AppSideNav";
 import AuthDebugPanel from "@/components/chronicle/AuthDebugPanel";
@@ -53,11 +55,12 @@ const queryClient = new QueryClient();
 
 // One canonical shell for every account. Desktop gets a persistent left rail,
 // mobile keeps the accepted bottom bar. Same routes, same screens.
+// The screen-level boundary means one broken record cannot take out navigation.
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="proto-root proto-shell" data-testid="app-shell">
     <AppSideNav />
     <div className="proto-shell-main">
-      {children}
+      <ScreenErrorBoundary>{children}</ScreenErrorBoundary>
       <AppBottomNav />
     </div>
     <AuthDebugPanel />
@@ -72,8 +75,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     // Preserve the intended destination; PublicRoute honours a safe `next`.
     const intended = window.location.pathname + window.location.search;
-    const next = intended && intended !== '/' ? `?next=${encodeURIComponent(intended)}` : '';
-    return <Navigate to={`/${next}`} replace />;
+    return <Navigate to={authRedirectFor(intended)} replace />;
   }
   if (isLockConfigured && isLocked) return <LockGate />;
   return <>{children}</>;
@@ -82,15 +84,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
-  if (user) {
-    const next = new URLSearchParams(window.location.search).get('next');
-    const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
-    if (safeNext) {
-      window.location.replace(safeNext);
-      return null;
-    }
-    return <Navigate to="/timeline" replace />;
-  }
+  if (user) return <Navigate to={nextOrDefault()} replace />;
   return <>{children}</>;
 };
 
@@ -108,6 +102,7 @@ const App = () => (
         <Sonner />
         <UpdateBanner />
         <AttachmentUnlockDialog />
+        <AppErrorBoundary>
         <BrowserRouter>
           <ScrollRestoration />
           <Routes>
@@ -157,6 +152,7 @@ const App = () => (
 
           </Routes>
         </BrowserRouter>
+        </AppErrorBoundary>
       </TooltipProvider>
       </AttachmentRevealProvider>
       </DevModeProvider>

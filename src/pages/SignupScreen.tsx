@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthShell from '@/chronicle/shared/AuthShell';
+import { nextOrDefault, withNext } from '@/lib/authNext';
 import PasswordRulesList from '@/components/auth/PasswordRulesList';
 import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
 
@@ -46,7 +47,7 @@ const SignupScreen = () => {
       setNotice('Check your email to confirm your account, then log in.');
       return;
     }
-    navigate('/timeline', { replace: true });
+    navigate(nextOrDefault(), { replace: true });
   };
 
   return (
@@ -119,7 +120,7 @@ const SignupScreen = () => {
         </p>
 
         <div className="proto-authlinks">
-          <button type="button" className="proto-linkbtn" onClick={() => navigate('/login')}>
+          <button type="button" className="proto-linkbtn" onClick={() => navigate(withNext('/login'))}>
             Already have an account? Log in
           </button>
         </div>
