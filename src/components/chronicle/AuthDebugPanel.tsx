@@ -10,6 +10,21 @@ import DevAnalyticsPanel from './DevAnalyticsPanel';
 type PanelState = 'expanded' | 'collapsed' | 'closed';
 const STORAGE_KEY = 'chronicle.devPanel.state';
 
+/**
+ * Raw backend errors can carry table names, constraint identifiers and even
+ * record wording. The panel shows a category instead.
+ */
+const summariseSyncError = (raw: string | null | undefined): string => {
+  if (!raw) return 'none';
+  const msg = raw.toLowerCase();
+  if (msg.includes('failed to fetch') || msg.includes('network')) return 'network unavailable';
+  if (msg.includes('jwt') || msg.includes('401') || msg.includes('unauthor')) return 'session expired';
+  if (msg.includes('row-level security') || msg.includes('permission') || msg.includes('403')) return 'permission denied';
+  if (msg.includes('conflict') || msg.includes('version')) return 'version conflict';
+  if (msg.includes('timeout')) return 'timed out';
+  return 'upload rejected';
+};
+
 const AuthDebugPanel = () => {
   const { devMode, toggleDevMode } = useDevMode();
   const { user, session, loading } = useAuth();
@@ -137,7 +152,7 @@ const AuthDebugPanel = () => {
         <p>Pending backup: <span className="text-foreground">{pendingCount}</span></p>
         <p>Last sync attempt: <span className="text-foreground">{lastSyncAttemptAt ?? 'never'}</span></p>
         <p>Last sync result: <span className="text-foreground">{lastSyncResult ? `${lastSyncResult.succeeded}/${lastSyncResult.attempted} ok, ${lastSyncResult.failed} failed` : 'n/a'}</span></p>
-        <p>Last sync error: <span className="text-foreground">{lastSyncResult?.lastError ?? 'none'}</span></p>
+        <p>Last sync error: <span className="text-foreground">{summariseSyncError(lastSyncResult?.lastError)}</span></p>
         <div className="flex gap-2 mt-1.5">
           <button
             onClick={() => retrySyncNow()}

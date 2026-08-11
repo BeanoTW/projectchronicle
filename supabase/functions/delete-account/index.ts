@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("[delete-account] unexpected", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Unable to delete your account right now. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

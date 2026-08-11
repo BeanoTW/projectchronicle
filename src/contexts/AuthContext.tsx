@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { analytics } from '@/lib/analytics/analytics';
-import { clearUserScopedState, syncActiveUser } from '@/chronicle/shared/sessionCleanup';
+import { clearUserScopedState, syncActiveUser, getLastActiveUser } from '@/chronicle/shared/sessionCleanup';
+import { applyAccountBoundary, quarantineUserData, countUnsyncedFor } from '@/local/accountBoundary';
 
 interface AuthContextType {
   user: User | null;
@@ -11,7 +12,18 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: Error | null; alreadyExists?: boolean; needsConfirmation?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null; reason?: 'email_not_confirmed' | 'invalid_credentials' | 'other' | null }>;
   signOut: () => Promise<void>;
+  /** Records not yet safely backed up for the active account. */
+  unsyncedCount: () => Promise<number>;
 }
+
+/**
+ * Auth diagnostics never reach a production console: an email address or user
+ * id in the browser log is readable by anything running on the page and by
+ * anyone looking over the user's shoulder.
+ */
+const devLog = (message: string, detail?: Record<string, unknown>) => {
+  if (import.meta.env.DEV) console.info(`[auth] ${message}`, detail ?? '');
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -26,8 +38,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // always renders quickly even if the auth network call hangs.
     const settle = (s: Session | null) => {
       // Account switch on a shared device must never surface the previous
-      // user's drafts or transient screen state.
-      syncActiveUser(s?.user?.id ?? null);
+      // user's drafts, transient screen state, or locally cached records.
+      const previous = getLastActiveUser();
+      const nextId = s?.user?.id ?? null;
+      syncActiveUser(nextId);
+      if ((previous || '') !== (nextId || '')) {
+        // Backed-up rows are deleted locally; anything not safely backed up is
+        // moved to quarantine so it is neither readable nor lost.
+        void applyAccountBoundary(previous, nextId).catch(() => { /* non-fatal */ });
+      }
       setSession(s);
       setUser(s?.user ?? null);
       setLoading(false);
@@ -35,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.info('[auth] state change', { event, hasSession: !!session, userId: session?.user?.id });
+      devLog('state change', { event, hasSession: !!session });
       settle(session);
     });
 
@@ -53,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    console.info('[auth] signUp attempt', { email: normalizedEmail });
+    devLog('signUp attempt');
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password, // never trim/transform passwords
@@ -68,12 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       Array.isArray(data.user.identities) &&
       data.user.identities.length === 0;
     const needsConfirmation = !error && !!data?.user && !data.session;
-    console.info('[auth] signUp result', {
-      ok: !error,
-      alreadyExists,
-      needsConfirmation,
-      errorMessage: error?.message,
-    });
+    devLog('signUp result', { ok: !error, alreadyExists, needsConfirmation });
     if (!error && !alreadyExists) {
       analytics.track('account_created', { needs_confirmation: needsConfirmation });
     }
@@ -82,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
-    console.info('[auth] signIn attempt', { email: normalizedEmail });
+    devLog('signIn attempt');
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password, // never trim/transform passwords
@@ -100,36 +114,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         reason = 'other';
       }
     }
-    console.info('[auth] signIn result', {
-      ok: !error,
-      hasSession: !!data?.session,
-      userId: data?.user?.id,
-      reason,
-      errorMessage: error?.message,
-    });
+    devLog('signIn result', { ok: !error, hasSession: !!data?.session, reason });
     if (!error && data?.session) analytics.track('login_completed');
     return { error: error as Error | null, reason };
   };
 
   const signOut = async () => {
+    const uid = user?.id ?? null;
     // Clear any in-memory unlock session so a re-login starts locked.
     try {
       // Lazy import to avoid a circular module dep with LockContext.
       const { clearLastUnlockedAt } = await import('@/lib/lock/lockStorage');
-      const { data } = await supabase.auth.getSession();
-      const uid = data.session?.user?.id;
       if (uid) clearLastUnlockedAt(uid);
     } catch { /* noop */ }
     // Clear user-specific transient UI state and capture drafts. Canonical
     // records are never deleted on sign out.
     clearUserScopedState();
+    // Remove this account's cached record content from the live local store.
+    // Backed-up rows are dropped (recoverable); unsynced rows are quarantined.
+    if (uid) {
+      try { await quarantineUserData(uid); } catch { /* non-fatal */ }
+    }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     analytics.reset();
   };
 
+  /** How many of this account's records are not yet safely backed up. */
+  const unsyncedCount = async () => {
+    if (!user?.id) return 0;
+    try { return await countUnsyncedFor(user.id); } catch { return 0; }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut, unsyncedCount }}>
       {children}
     </AuthContext.Provider>
   );

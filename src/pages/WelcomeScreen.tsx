@@ -3,6 +3,7 @@
 // explanation of the workflow.
 import { Link, useNavigate } from 'react-router-dom';
 import AuthShell from '@/chronicle/shared/AuthShell';
+import { withNext } from '@/lib/authNext';
 
 const STEPS = [
   ['Capture', 'Record something while it is fresh.'],
@@ -59,11 +60,11 @@ const WelcomeScreen = () => {
           type="button"
           className="proto-btn"
           data-variant="primary"
-          onClick={() => navigate('/signup')}
+          onClick={() => navigate(withNext('/signup'))}
         >
           Create account
         </button>
-        <button type="button" className="proto-btn" onClick={() => navigate('/login')}>
+        <button type="button" className="proto-btn" onClick={() => navigate(withNext('/login'))}>
           Log in
         </button>
       </div>

@@ -28,3 +28,18 @@ export const withNext = (
   const next = currentNext(search);
   return next ? `${path}?next=${encodeURIComponent(next)}` : path;
 };
+
+/** Default landing surface when there is no safe return-to target. */
+export const DEFAULT_AFTER_AUTH = '/timeline';
+
+/** Where to send a user after successful authentication. */
+export const nextOrDefault = (
+  search = typeof window === 'undefined' ? '' : window.location.search,
+): string => currentNext(search) ?? DEFAULT_AFTER_AUTH;
+
+/** Builds the signed-out landing URL that remembers where the user was going. */
+export const authRedirectFor = (intended: string): string => {
+  const safe = safeNextPath(intended);
+  return safe && safe !== '/' ? `/?next=${encodeURIComponent(safe)}` : '/';
+};
+

@@ -16,11 +16,25 @@ const DevModeContext = createContext<DevModeContextType>({
 });
 
 // Explicit allowlist — do NOT use role-based access for the dev panel.
-// Add tester emails here to grant access in production builds.
-const DEV_ALLOWLIST = [
-  'project.chronicle88@gmail.com',
-  'beanotarren@gmail.com',
-];
+//
+// Addresses are stored as SHA-256 hashes of the lowercased email so the
+// production bundle does not publish real personal email addresses. This is
+// obscurity, not authorisation: the panel exposes no data the signed-in user
+// cannot already see, and every privileged action stays behind RLS.
+const DEV_ALLOWLIST_HASHES = new Set([
+  // project.chronicle88@gmail.com
+  '53b3447fc60f1ec5057151bceca08a31463ff6750946409c80ce92dd37acd8f7',
+  // beanotarren@gmail.com
+  '8aba9fe0f2d1725d2b02734755fecf74461dbf71270519efdcee23947b41f1a8',
+]);
+
+const sha256Hex = async (value: string): Promise<string> => {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
 
 const isDevEnvironment = import.meta.env.DEV === true;
 
@@ -29,8 +43,19 @@ export const DevModeProvider = ({ children }: { children: React.ReactNode }) => 
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const email = user?.email?.toLowerCase() ?? null;
-  const isDevUser = !!email && DEV_ALLOWLIST.map(e => e.toLowerCase()).includes(email);
+  const [isDevUser, setIsDevUser] = useState(false);
+
+  const email = user?.email?.trim().toLowerCase() ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!email) { setIsDevUser(false); return; }
+    sha256Hex(email)
+      .then(hash => { if (!cancelled) setIsDevUser(DEV_ALLOWLIST_HASHES.has(hash)); })
+      .catch(() => { if (!cancelled) setIsDevUser(false); });
+    return () => { cancelled = true; };
+  }, [email]);
+
   const canAccessDevPanel = isDevEnvironment || isDevUser;
 
   const toggleDevMode = useCallback(() => {

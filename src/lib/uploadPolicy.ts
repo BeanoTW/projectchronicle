@@ -72,7 +72,10 @@ export const formatLimit = (bytes: number): string =>
  * the object lands.
  */
 export const safeExtension = (fileName: string): string => {
-  const last = fileName.split('.').pop() ?? '';
+  const base = fileName.split(/[\\/]/).pop() ?? '';
+  // No dot means no extension — never fall back to the name itself.
+  if (!base.includes('.')) return 'bin';
+  const last = base.split('.').pop() ?? '';
   const cleaned = last.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
   return cleaned || 'bin';
 };

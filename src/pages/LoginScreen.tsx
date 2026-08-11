@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import AuthShell from '@/chronicle/shared/AuthShell';
+import { nextOrDefault, withNext } from '@/lib/authNext';
 
 const LoginScreen = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const nextParam = searchParams.get('next');
-  const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
+  const target = nextOrDefault();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,8 +36,7 @@ const LoginScreen = () => {
       return;
     }
     // Return the user to the route they originally attempted; otherwise Notebook.
-    if (safeNext) window.location.href = safeNext;
-    else navigate('/timeline', { replace: true });
+    navigate(target, { replace: true });
   };
 
   return (
@@ -90,10 +88,10 @@ const LoginScreen = () => {
         </button>
 
         <div className="proto-authlinks">
-          <button type="button" className="proto-linkbtn" onClick={() => navigate('/forgot-password')}>
+          <button type="button" className="proto-linkbtn" onClick={() => navigate(withNext('/forgot-password'))}>
             Forgotten password
           </button>
-          <button type="button" className="proto-linkbtn" onClick={() => navigate('/signup')}>
+          <button type="button" className="proto-linkbtn" onClick={() => navigate(withNext('/signup'))}>
             Create account
           </button>
         </div>

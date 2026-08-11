@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.2";
 
+import { readJsonBody, boundedStringArray, boundedObjectArray, genericError } from "../_shared/requestGuards.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -35,7 +37,17 @@ serve(async (req) => {
   if (auth instanceof Response) return auth;
 
   try {
-    const { incidents, patterns } = await req.json();
+    // Narratives are built from client-supplied records, so both the number of
+    // records and the total body size are capped before anything reaches the model.
+    const parsed = await readJsonBody(req, corsHeaders, 200_000);
+    if (!parsed.ok) return parsed.response;
+    const incidents = boundedObjectArray<Record<string, unknown>>(parsed.body.incidents, 200);
+    const patterns = boundedStringArray(parsed.body.patterns, 100, 1_000);
+    if (incidents.length === 0) {
+      return new Response(JSON.stringify({ error: "At least one record is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -138,9 +150,6 @@ RULES:
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-case-narrative error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return genericError("generate-case-narrative", e, corsHeaders);
   }
 });

@@ -34,7 +34,7 @@ const SettingsScreen = () => {
   // Settings is part of the V2 shell, so V2 owns navigation here too.
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
+  const { user, signOut, unsyncedCount } = useAuth();
   const { mode, setMode } = useTheme();
   const { enabled: shielded, setEnabled: setShielded } = usePrivacy();
   const { data: incidents } = useIncidents();
@@ -67,8 +67,17 @@ const SettingsScreen = () => {
       // Clear user-specific transient UI state and drafts BEFORE the session
       // ends, so nothing can be shown to the next account on this device.
       clearUserScopedState();
+      // Warn plainly if anything is only on this device: sign-out moves those
+      // records out of the live store (they are restored when you sign back
+      // in on this device) so a second account cannot read them.
+      const pending = await unsyncedCount();
       await signOut();
-      toast({ title: 'Signed out' });
+      toast({
+        title: 'Signed out',
+        description: pending > 0
+          ? `${pending} ${pending === 1 ? 'record is' : 'records are'} saved only on this device. They are kept safely and will reappear when you sign in again here.`
+          : undefined,
+      });
       navigate('/login', { replace: true });
     } catch (e) {
       setSignOutError(
