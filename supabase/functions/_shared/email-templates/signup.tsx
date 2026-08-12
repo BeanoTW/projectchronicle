@@ -48,7 +48,7 @@ export const SignupEmail = ({
           ) by clicking the button below:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Confirm email address
         </Button>
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.
