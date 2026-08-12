@@ -18,7 +18,7 @@ const ForgotPasswordScreen = () => {
     if (!email.trim()) { setError('Enter your email address.'); return; }
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: authRedirectUrl('/reset-password'),
     });
     setLoading(false);
     if (err) {
