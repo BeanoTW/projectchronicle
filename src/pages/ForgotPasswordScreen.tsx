@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AuthShell from '@/chronicle/shared/AuthShell';
+import { authRedirectUrl } from '@/lib/authSite';
 
 const ForgotPasswordScreen = () => {
   const navigate = useNavigate();
