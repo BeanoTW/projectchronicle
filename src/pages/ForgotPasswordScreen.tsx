@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AuthShell from '@/chronicle/shared/AuthShell';
+import { authRedirectUrl } from '@/lib/authSite';
 
 const ForgotPasswordScreen = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const ForgotPasswordScreen = () => {
     if (!email.trim()) { setError('Enter your email address.'); return; }
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: authRedirectUrl('/reset-password'),
     });
     setLoading(false);
     if (err) {
