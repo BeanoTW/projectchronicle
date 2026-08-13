@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import AuthShell from '@/chronicle/shared/AuthShell';
 import PasswordRulesList from '@/components/auth/PasswordRulesList';
-import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
+import {
+  evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES,
+  canSubmitPassword, checkPasswordBreached, messageForAuthPasswordError,
+} from '@/lib/passwordPolicy';
+import { usePasswordBreachCheck } from '@/hooks/usePasswordBreachCheck';
 
 type ResetState = 'verifying' | 'ready' | 'invalid' | 'timeout' | 'done';
 
@@ -36,6 +40,10 @@ const ResetPasswordScreen = () => {
   }, []);
 
   const passwordCheck = evaluatePassword(password);
+  const breach = usePasswordBreachCheck(password);
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const matchState = confirmPassword.length === 0 ? 'idle' : mismatch ? 'mismatch' : 'match';
+  const submitBlocked = loading || !canSubmitPassword(password, breach) || mismatch || confirmPassword.length === 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,11 +51,21 @@ const ResetPasswordScreen = () => {
     setError(null);
     if (!passwordCheck.valid) { setError(messageForFailedRule(passwordCheck.failedRule?.id)); return; }
     if (password !== confirmPassword) { setError(PASSWORD_MESSAGES.mismatch); return; }
+    if (breach === 'breached') { setError(PASSWORD_MESSAGES.breached); return; }
     setLoading(true);
+    if (breach !== 'safe') {
+      const verdict = await checkPasswordBreached(password);
+      if (verdict === 'breached') {
+        setLoading(false);
+        setError(PASSWORD_MESSAGES.breached);
+        return;
+      }
+    }
     const { error: err } = await supabase.auth.updateUser({ password });
     if (err) {
       setLoading(false);
-      setError(err.message || 'Could not update your password. Please try again.');
+      setError(messageForAuthPasswordError(err as { message?: string; code?: string })
+        ?? 'Could not update your password. Please try again.');
       return;
     }
     // Clear the recovery session so the user re-authenticates with the new password.
@@ -118,7 +136,9 @@ const ResetPasswordScreen = () => {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
-          <div id="password-rules"><PasswordRulesList password={password} /></div>
+          <div id="password-rules">
+            <PasswordRulesList password={password} breach={breach} match={matchState} />
+          </div>
         </div>
 
         <div className="proto-field">
@@ -133,8 +153,8 @@ const ResetPasswordScreen = () => {
           />
         </div>
 
-        <button type="submit" className="proto-btn" data-variant="primary" disabled={loading} style={{ width: '100%' }}>
-          {loading ? 'Updating…' : 'Update password'}
+        <button type="submit" className="proto-btn" data-variant="primary" disabled={submitBlocked} style={{ width: '100%' }}>
+          {loading ? 'Updating…' : breach === 'checking' ? 'Checking password…' : 'Update password'}
         </button>
       </form>
     </AuthShell>

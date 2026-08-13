@@ -4,7 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import AuthShell from '@/chronicle/shared/AuthShell';
 import { nextOrDefault, withNext } from '@/lib/authNext';
 import PasswordRulesList from '@/components/auth/PasswordRulesList';
-import { evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES } from '@/lib/passwordPolicy';
+import {
+  evaluatePassword, messageForFailedRule, PASSWORD_MESSAGES,
+  canSubmitPassword, checkPasswordBreached, messageForAuthPasswordError,
+} from '@/lib/passwordPolicy';
+import { usePasswordBreachCheck } from '@/hooks/usePasswordBreachCheck';
 
 const SignupScreen = () => {
   const navigate = useNavigate();
@@ -18,7 +22,10 @@ const SignupScreen = () => {
   const [notice, setNotice] = useState<string | null>(null);
 
   const passwordCheck = evaluatePassword(password);
+  const breach = usePasswordBreachCheck(password);
   const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const matchState = confirmPassword.length === 0 ? 'idle' : mismatch ? 'mismatch' : 'match';
+  const submitBlocked = loading || !canSubmitPassword(password, breach) || mismatch || !email.trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,15 +35,25 @@ const SignupScreen = () => {
     if (!email.trim()) { setError('Enter your email address.'); return; }
     if (!passwordCheck.valid) { setError(messageForFailedRule(passwordCheck.failedRule?.id)); return; }
     if (password !== confirmPassword) { setError(PASSWORD_MESSAGES.mismatch); return; }
+    if (breach === 'breached') { setError(PASSWORD_MESSAGES.breached); return; }
 
     setLoading(true);
+    // Final authoritative pre-submit check: covers the case where the live
+    // check has not finished or was unavailable while typing.
+    if (breach !== 'safe') {
+      const verdict = await checkPasswordBreached(password);
+      if (verdict === 'breached') {
+        setLoading(false);
+        setError(PASSWORD_MESSAGES.breached);
+        return;
+      }
+    }
     const { error: err, alreadyExists, needsConfirmation } = await signUp(email.trim(), password);
     setLoading(false);
 
     if (err) {
-      const msg = err.message?.toLowerCase() ?? '';
-      const weak = msg.includes('weak') || msg.includes('pwned') || msg.includes('breach') || msg.includes('compromis');
-      setError(weak ? PASSWORD_MESSAGES.doesNotMeet : err.message || 'Could not create your account. Please try again.');
+      const passwordMessage = messageForAuthPasswordError(err as { message?: string; code?: string });
+      setError(passwordMessage ?? 'Could not create your account. Please try again.');
       return;
     }
     if (alreadyExists) {
@@ -92,7 +109,9 @@ const SignupScreen = () => {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
-          <div id="password-rules"><PasswordRulesList password={password} /></div>
+          <div id="password-rules">
+            <PasswordRulesList password={password} breach={breach} match={matchState} />
+          </div>
         </div>
 
         <div className="proto-field">
@@ -110,8 +129,8 @@ const SignupScreen = () => {
           {mismatch && <p className="proto-field-error" role="alert">{PASSWORD_MESSAGES.mismatch}</p>}
         </div>
 
-        <button type="submit" className="proto-btn" data-variant="primary" disabled={loading} style={{ width: '100%' }}>
-          {loading ? 'Creating account…' : 'Create account'}
+        <button type="submit" className="proto-btn" data-variant="primary" disabled={submitBlocked} style={{ width: '100%' }}>
+          {loading ? 'Creating account…' : breach === 'checking' ? 'Checking password…' : 'Create account'}
         </button>
 
         <p className="proto-help" style={{ marginTop: 12 }}>
