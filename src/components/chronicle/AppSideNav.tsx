@@ -9,6 +9,7 @@ import { usePrivacy } from '@/contexts/PrivacyContext';
 import '@/chronicle/styles.css';
 
 const primary = [
+  { path: '/home', label: 'Home', hint: 'Everything at a glance' },
   { path: '/timeline', label: 'Notebook', hint: 'Browse and find records' },
   { path: '/export', label: 'My Record', hint: 'Assemble and export' },
 ];
@@ -22,13 +23,14 @@ const AppSideNav = () => {
   const isActive = (p: string) => {
     if (p === '/timeline') return path === '/timeline' || path.startsWith('/incident/');
     if (p === '/export') return path === '/export' || path === '/my-record';
+    if (p === '/home') return path === '/home';
     return path === p;
   };
   const captureActive = path.startsWith('/record');
 
   return (
     <aside className="proto-root proto-sidenav" aria-label="Primary" data-testid="app-side-nav">
-      <button className="proto-sidenav-brand" onClick={() => navigate('/timeline')}>
+      <button className="proto-sidenav-brand" onClick={() => navigate('/home')}>
         <span className="proto-serif">Chronicle</span>
         <span className="proto-sidenav-sub">A chronological record</span>
       </button>

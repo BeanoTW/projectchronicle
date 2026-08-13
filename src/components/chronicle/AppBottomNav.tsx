@@ -1,7 +1,7 @@
 // Canonical mobile navigation.
 //
-// Model: two persistent destinations (Notebook, My Record) with Capture as the
-// primary *action* seated between them. Capture is not a browsing destination,
+// Model: three persistent destinations (Home, Notebook, My Record) with Capture
+// as the primary *action* seated at the centre. Capture is not a browsing destination,
 // so it is expressed as a raised, filled action inside the bar rather than as
 // a third equal tab or a detached floating button.
 //
@@ -14,6 +14,7 @@ const AppBottomNav = () => {
   const navigate = useNavigate();
   const path = location.pathname;
 
+  const homeActive = path === '/home';
   const notebookActive = path === '/timeline' || path.startsWith('/incident/');
   const captureActive = path.startsWith('/record');
   const recordActive = path === '/export' || path === '/my-record';
@@ -23,6 +24,20 @@ const AppBottomNav = () => {
       {/* Keeps content clear of the fixed bar. */}
       <div aria-hidden style={{ height: 76, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} />
       <nav className="proto-bottomnav" aria-label="Primary">
+        <button
+          type="button"
+          className="proto-navtab"
+          data-active={homeActive}
+          aria-current={homeActive ? 'page' : undefined}
+          onClick={() => navigate('/home')}
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+            <path d="M4 10.5 12 4l8 6.5" />
+            <path d="M6.5 9.5V20h11V9.5" />
+          </svg>
+          <span>Home</span>
+        </button>
+
         <button
           type="button"
           className="proto-navtab"
@@ -65,6 +80,20 @@ const AppBottomNav = () => {
             <path d="M10 13h5M10 16.5h3" />
           </svg>
           <span>My Record</span>
+        </button>
+
+        <button
+          type="button"
+          className="proto-navtab"
+          data-active={path === '/settings'}
+          aria-current={path === '/settings' ? 'page' : undefined}
+          onClick={() => navigate('/settings')}
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.4 6.4l1.4 1.4M16.2 16.2l1.4 1.4M17.6 6.4l-1.4 1.4M7.8 16.2l-1.4 1.4" />
+          </svg>
+          <span>Settings</span>
         </button>
       </nav>
     </div>
