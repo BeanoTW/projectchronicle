@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { nextOrDefault } from '@/lib/authNext';
 
 type CallbackState = 'processing' | 'success' | 'error' | 'timeout';
 
@@ -13,6 +14,9 @@ const AuthCallbackScreen = () => {
   const [state, setState] = useState<CallbackState>('processing');
   const [flowType, setFlowType] = useState<string>('unknown');
   const [errorMessage, setErrorMessage] = useState('');
+  // Intended destination carried through the email round-trip. Validated by
+  // `nextOrDefault`, which only ever returns a real internal Chronicle route.
+  const destination = nextOrDefault();
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -62,7 +66,7 @@ const AuthCallbackScreen = () => {
           if (session?.user) {
             if (session.user.email_confirmed_at) {
               setState('success');
-              setTimeout(() => navigate('/home', { replace: true }), 1500);
+              setTimeout(() => navigate(destination, { replace: true }), 1500);
             } else {
               setErrorMessage('Email verification could not be confirmed. Try signing in.');
               setState('error');
@@ -73,7 +77,7 @@ const AuthCallbackScreen = () => {
               if (session?.user?.email_confirmed_at) {
                 subscription.unsubscribe();
                 setState('success');
-                setTimeout(() => navigate('/home', { replace: true }), 1500);
+                setTimeout(() => navigate(destination, { replace: true }), 1500);
               }
             });
             // Timeout will handle if nothing happens
@@ -86,14 +90,14 @@ const AuthCallbackScreen = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setState('success');
-          setTimeout(() => navigate('/home', { replace: true }), 1000);
+          setTimeout(() => navigate(destination, { replace: true }), 1000);
         } else {
           // Wait briefly for auth state
           const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
               subscription.unsubscribe();
               setState('success');
-              setTimeout(() => navigate('/home', { replace: true }), 1000);
+              setTimeout(() => navigate(destination, { replace: true }), 1000);
             }
           });
         }
@@ -105,7 +109,7 @@ const AuthCallbackScreen = () => {
 
     handleCallback();
     return () => clearTimeout(timeout);
-  }, [navigate]);
+  }, [navigate, destination]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6">
