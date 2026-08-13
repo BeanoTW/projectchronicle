@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { analytics } from '@/lib/analytics/analytics';
 import { clearUserScopedState, syncActiveUser, getLastActiveUser } from '@/chronicle/shared/sessionCleanup';
 import { authRedirectUrl } from '@/lib/authSite';
+import { callbackPathWithNext } from '@/lib/authNext';
 import { applyAccountBoundary, quarantineUserData, countUnsyncedFor } from '@/local/accountBoundary';
 
 interface AuthContextType {
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password, // never trim/transform passwords
-      options: { emailRedirectTo: authRedirectUrl('/auth/callback') },
+      options: { emailRedirectTo: authRedirectUrl(callbackPathWithNext()) },
     });
     // Supabase quirk: when an account already exists, the API returns success
     // but `identities` is an empty array. Detect this so the UI can guide the

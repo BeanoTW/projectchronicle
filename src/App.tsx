@@ -26,6 +26,7 @@ import SignupScreen from "./pages/SignupScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import AuthCallbackScreen from "./pages/AuthCallbackScreen";
+import HomeScreen from "./pages/HomeScreen";
 import CaptureScreen from "./pages/CaptureScreen";
 import CaptureDetailsScreen from "./pages/CaptureDetailsScreen";
 import NotebookScreen from "./pages/NotebookScreen";
@@ -113,7 +114,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordScreen />} />
             <Route path="/auth/callback" element={<AuthCallbackScreen />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsentScreen />} />
-            <Route path="/home" element={<Navigate to="/timeline" replace />} />
+            <Route path="/home" element={<ProtectedRoute><AppLayout><HomeScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record" element={<ProtectedRoute><AppLayout><CaptureScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/record/details/:id" element={<ProtectedRoute><AppLayout><CaptureDetailsScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/timeline" element={<ProtectedRoute><AppLayout><NotebookScreen /></AppLayout></ProtectedRoute>} />

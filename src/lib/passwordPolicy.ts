@@ -1,7 +1,17 @@
 // Single source of truth for password rules used across Sign up, Reset, and Change.
-// The visible UI checklist is the ONLY validation enforced. No hidden backend
-// checks (HIBP / common-password rejection) are applied.
-// All messages are predefined — never generated dynamically.
+//
+// The real, enforced policy has two parts:
+//   1. Composition rules checked locally (length, letter, number).
+//   2. Compromised-password protection enforced by the auth backend: a password
+//      that appears in known public breach corpora is rejected outright.
+//
+// (2) used to be invisible in the UI, which meant the checklist could show all
+// green and the account creation still fail. The checklist now includes the
+// breach rule, checked live against the Have I Been Pwned range API using
+// k-anonymity: only the first five characters of the SHA-1 hash ever leave the
+// device, and the full password never does.
+//
+// All messages are predefined — never generated dynamically, never raw backend text.
 
 export interface PasswordRule {
   id: string;
@@ -14,6 +24,11 @@ export const PASSWORD_RULES: PasswordRule[] = [
   { id: 'letter', label: 'Contains a letter', test: (p) => /[A-Za-z]/.test(p) },
   { id: 'number', label: 'Contains a number', test: (p) => /\d/.test(p) },
 ];
+
+/** Live status of the compromised-password check. */
+export type BreachStatus = 'idle' | 'checking' | 'safe' | 'breached' | 'unavailable';
+
+export const BREACH_RULE_LABEL = 'Not found in a known data breach';
 
 export interface PasswordEvaluation {
   valid: boolean;
@@ -37,6 +52,9 @@ export const PASSWORD_MESSAGES = {
   needsLetter: 'Password must contain at least one letter.',
   needsNumber: 'Password must contain at least one number.',
   mismatch: 'Passwords do not match.',
+  breached:
+    'This password has appeared in a known data breach, so it cannot be used. Choose a password you have not used anywhere else.',
+  checking: 'Checking your password. This takes a moment.',
   // Fallback for any unexpected backend rejection — keep aligned with UI rules.
   doesNotMeet: 'Please meet the password requirements above.',
 } as const;
@@ -48,4 +66,72 @@ export function messageForFailedRule(ruleId: string | undefined): string {
     case 'number': return PASSWORD_MESSAGES.needsNumber;
     default: return PASSWORD_MESSAGES.tooShort;
   }
+}
+
+/**
+ * Maps an auth error to a human-readable message. Raw backend text is never
+ * surfaced for password problems, and nothing about the checking mechanism is
+ * exposed.
+ */
+export function messageForAuthPasswordError(error: { message?: string; code?: string } | null): string | null {
+  if (!error) return null;
+  const code = (error.code ?? '').toLowerCase();
+  const msg = (error.message ?? '').toLowerCase();
+  const weak =
+    code === 'weak_password' ||
+    msg.includes('weak') || msg.includes('pwned') || msg.includes('breach') || msg.includes('compromis') ||
+    msg.includes('easy to guess');
+  if (weak) return PASSWORD_MESSAGES.breached;
+  return null;
+}
+
+const sha1Hex = async (value: string): Promise<string | null> => {
+  const subtle = typeof crypto !== 'undefined' ? crypto.subtle : undefined;
+  if (!subtle) return null;
+  const bytes = new TextEncoder().encode(value);
+  const digest = await subtle.digest('SHA-1', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
+};
+
+const breachCache = new Map<string, BreachStatus>();
+
+/**
+ * Checks a password against the public breach corpus using k-anonymity.
+ * Returns 'unavailable' (never a blocking failure) when the check cannot run —
+ * the backend remains the authority in that case.
+ */
+export async function checkPasswordBreached(password: string, signal?: AbortSignal): Promise<BreachStatus> {
+  if (!password) return 'idle';
+  const cached = breachCache.get(password);
+  if (cached) return cached;
+  try {
+    const hash = await sha1Hex(password);
+    if (!hash) return 'unavailable';
+    const prefix = hash.slice(0, 5);
+    const suffix = hash.slice(5);
+    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+      signal,
+      headers: { 'Add-Padding': 'true' },
+    });
+    if (!res.ok) return 'unavailable';
+    const body = await res.text();
+    const found = body.split('\n').some(line => {
+      const [hashSuffix, count] = line.trim().split(':');
+      return hashSuffix === suffix && Number(count ?? 0) > 0;
+    });
+    const status: BreachStatus = found ? 'breached' : 'safe';
+    breachCache.set(password, status);
+    return status;
+  } catch {
+    return 'unavailable';
+  }
+}
+
+/** True when the form may be submitted: composition met and not known-breached. */
+export function canSubmitPassword(pw: string, breach: BreachStatus): boolean {
+  if (!evaluatePassword(pw).valid) return false;
+  return breach !== 'breached' && breach !== 'checking';
 }
