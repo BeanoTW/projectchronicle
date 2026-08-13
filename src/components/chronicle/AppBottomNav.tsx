@@ -82,19 +82,6 @@ const AppBottomNav = () => {
           <span>My Record</span>
         </button>
 
-        <button
-          type="button"
-          className="proto-navtab"
-          data-active={path === '/settings'}
-          aria-current={path === '/settings' ? 'page' : undefined}
-          onClick={() => navigate('/settings')}
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.4 6.4l1.4 1.4M16.2 16.2l1.4 1.4M17.6 6.4l-1.4 1.4M7.8 16.2l-1.4 1.4" />
-          </svg>
-          <span>Settings</span>
-        </button>
       </nav>
     </div>
   );
