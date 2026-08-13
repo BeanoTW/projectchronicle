@@ -87,10 +87,9 @@ describe('obsolete client state cleanup', () => {
 describe('responsive navigation', () => {
   it('desktop rail exposes exactly the canonical destinations', () => {
     render(<MemoryRouter initialEntries={['/timeline']}><AppSideNav /></MemoryRouter>);
-    ['Notebook', 'New record', 'My Record', 'Settings'].forEach(label => {
+    ['Home', 'Notebook', 'New record', 'My Record', 'Settings'].forEach(label => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
-    expect(screen.queryByText('Home')).toBeNull();
   });
 
   it('mobile bar is hidden at the desktop breakpoint and vice versa', () => {
@@ -107,7 +106,7 @@ describe('responsive navigation', () => {
 
   it('the shell never renders a legacy navigation component', () => {
     const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
-    expect(app).not.toMatch(/DesktopSideNav|HomeScreen/);
+    expect(app).not.toMatch(/DesktopSideNav/);
     expect(app).toMatch(/AppSideNav/);
     expect(app).toMatch(/AppBottomNav/);
   });
@@ -117,6 +116,7 @@ describe('canonical routes', () => {
   const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
 
   it.each([
+    ['/home', 'HomeScreen'],
     ['/timeline', 'NotebookScreen'],
     ['/record', 'CaptureScreen'],
     ['/record/details/:id', 'CaptureDetailsScreen'],
@@ -131,7 +131,7 @@ describe('canonical routes', () => {
   });
 
   it('retired surfaces map to canonical screens', () => {
-    ['/home', '/calendar', '/my-record', '/v2/*', '/prototype/*'].forEach(p => {
+    ['/calendar', '/my-record', '/v2/*', '/prototype/*'].forEach(p => {
       const line = app.split('\n').find(l => l.includes(`path="${p}"`));
       expect(line).toContain('Navigate');
     });

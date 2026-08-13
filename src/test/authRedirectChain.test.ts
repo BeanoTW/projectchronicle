@@ -3,7 +3,12 @@ import {
   safeNextPath, currentNext, withNext, nextOrDefault, authRedirectFor,
   callbackPathWithNext, DEFAULT_AFTER_AUTH,
 } from '@/lib/authNext';
-import { authRedirectUrl, PRODUCTION_ORIGIN } from '@/lib/authSite';
+import { authSiteOrigin, PRODUCTION_ORIGIN } from '@/lib/authSite';
+
+// jsdom runs on localhost, where auth links intentionally stay local. Build the
+// production URL the way the app does, with the production host supplied.
+const emailUrl = (path: string) =>
+  `${authSiteOrigin('https://www.projectchronicle.app', 'www.projectchronicle.app')}${path}`;
 
 describe('safe next destinations', () => {
   it('accepts real internal Chronicle routes', () => {
@@ -35,7 +40,7 @@ describe('redirect chain', () => {
   it('signup → confirmation email callback carries next on the production origin', () => {
     const path = callbackPathWithNext('?next=%2Fincident%2Fabc');
     expect(path).toBe('/auth/callback?next=%2Fincident%2Fabc');
-    expect(authRedirectUrl(path)).toBe(`${PRODUCTION_ORIGIN}/auth/callback?next=%2Fincident%2Fabc`);
+    expect(emailUrl(path)).toBe(`${PRODUCTION_ORIGIN}/auth/callback?next=%2Fincident%2Fabc`);
   });
 
   it('callback → intended route', () => {
@@ -51,7 +56,7 @@ describe('redirect chain', () => {
   });
 
   it('never emits an off-origin absolute URL from an unsafe next', () => {
-    const url = authRedirectUrl(callbackPathWithNext('?next=https%3A%2F%2Fevil.example'));
+    const url = emailUrl(callbackPathWithNext('?next=https%3A%2F%2Fevil.example'));
     expect(url.startsWith(PRODUCTION_ORIGIN)).toBe(true);
   });
 });

@@ -45,9 +45,9 @@ describe('auth return-to-target', () => {
     expect(currentNext('?next=%2F%2Fevil.example')).toBeNull();
   });
 
-  it('falls back to the Notebook when there is no valid target', () => {
-    expect(nextOrDefault('')).toBe('/timeline');
-    expect(nextOrDefault('?next=https%3A%2F%2Fevil.example')).toBe('/timeline');
+  it('falls back to Home when there is no valid target', () => {
+    expect(nextOrDefault('')).toBe('/home');
+    expect(nextOrDefault('?next=https%3A%2F%2Fevil.example')).toBe('/home');
     expect(nextOrDefault('?next=%2Fincident%2Fabc')).toBe('/incident/abc');
   });
 
