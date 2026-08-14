@@ -73,7 +73,7 @@ export const RecordIcon = ({ active, ...p }: Props) => (
   </svg>
 );
 
-/** My Record — document with structured lines and one green accent line. */
+/** Chronicle — document with structured lines and one green accent line. */
 export const MyRecordIcon = ({ active, ...p }: Props) => (
   <svg {...base(active)} {...p}>
     {/* Document with folded corner */}

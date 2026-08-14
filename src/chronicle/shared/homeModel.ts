@@ -28,7 +28,7 @@ export interface HomeAttention {
 
 export interface HomeState {
   recordCount: number;
-  /** Records currently included in My Record (production flag: !excluded_from_rep). */
+  /** Records currently included in Chronicle (production flag: !excluded_from_rep). */
   inMyRecordCount: number;
   latest: HomeLatestRecord | null;
   /** Records added in the last 7 days — context for "where you left off", not a statistic. */

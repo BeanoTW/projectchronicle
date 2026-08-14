@@ -33,7 +33,7 @@ const CategoryBadge = ({ category, subtype, showIcon = true }: CategoryBadgeProp
   );
 };
 
-/** Render category as a label line above incident title (for Timeline, My Record) */
+/** Render category as a label line above incident title (for Timeline, Chronicle) */
 export function CategoryLabel({ category, subtype }: CategoryBadgeProps) {
   const display = displayCategory(category);
   const showSubtype = subtype && subtype !== 'Unclassified' && subtype !== 'Not sure yet' && subtype !== 'Other' && subtype !== category;

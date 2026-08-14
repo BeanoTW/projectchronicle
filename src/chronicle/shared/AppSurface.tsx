@@ -8,7 +8,7 @@
 // data source.
 //
 // Phase 9: the surface also carries the shell's secondary control — a compact
-// top-right Settings entry point, subordinate to Notebook / Capture / My Record.
+// top-right Settings entry point, subordinate to Notebook / Capture / Chronicle.
 import type { ReactNode } from 'react';
 import SettingsControl from '@/components/chronicle/SettingsControl';
 import '../styles.css';

@@ -1,4 +1,4 @@
-// Canonical My Record route.
+// Canonical Chronicle route.
 //
 // Real production data only:
 //   - useIncidents         (local-first records)
