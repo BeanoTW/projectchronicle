@@ -27,7 +27,7 @@ describe('Home state', () => {
     expect(s.attention).toHaveLength(0);
   });
 
-  it('surfaces the most recent record and My Record inclusion', () => {
+  it('surfaces the most recent record and Chronicle inclusion', () => {
     const s = buildHomeState({
       incidents: [
         rec({ id: 'old', original_created_at: '2026-07-01T09:00:00.000Z' }),

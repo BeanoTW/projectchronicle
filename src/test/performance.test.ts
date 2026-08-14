@@ -1,6 +1,6 @@
 // Phase 8 — V2 performance harness.
 //
-// Measures the pure data paths behind Notebook, Entry, My Record and the
+// Measures the pure data paths behind Notebook, Entry, Chronicle and the
 // report at 100 / 1,000 / 5,000 records. Timings are printed so a run can be
 // compared over time; assertions guard only against order-of-magnitude
 // regressions so the suite stays stable on slower CI machines.
@@ -70,15 +70,15 @@ describe('Phase 8 — V2 performance at scale', () => {
       expect(load).toBeLessThan(4000);
     });
 
-    it(`My Record and report generation stay responsive at ${size} records`, () => {
+    it(`Chronicle and report generation stay responsive at ${size} records`, () => {
       const data = buildScaleDataset(size);
       const records = toDossierSourceRecords({ incidents: asIncidents(data), notes: asNotes(data) });
       const media = toDossierSourceMedia(asEvidence(data), asIncidents(data));
 
-      time(`My Record configure load (${size})`, () => {
+      time(`Chronicle configure load (${size})`, () => {
         records.filter(r => r.in_dossier).length;
       });
-      time(`My Record inclusion toggle (${size})`, () => {
+      time(`Chronicle inclusion toggle (${size})`, () => {
         const next = records.map(r => (r.id === records[0].id ? { ...r, in_dossier: !r.in_dossier } : r));
         expect(next).toHaveLength(records.length);
       });

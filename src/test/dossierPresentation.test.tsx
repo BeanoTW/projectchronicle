@@ -1,4 +1,4 @@
-// Phase 8 regression — My Record (Dossier) presentation is source-agnostic.
+// Phase 8 regression — Chronicle (Dossier) presentation is source-agnostic.
 //
 // All V2 product styles are scoped under `.proto-root`. The preview shell
 // supplies that ancestor; production routes must supply it via `AppSurface`.
@@ -44,7 +44,7 @@ const renderSurface = () =>
     </MemoryRouter>,
   );
 
-describe('My Record shared presentation', () => {
+describe('Chronicle shared presentation', () => {
   it('renders the V2 style root so scoped styles apply on production routes', () => {
     const { container } = renderSurface();
     const surface = container.querySelector('.proto-root.proto-surface');

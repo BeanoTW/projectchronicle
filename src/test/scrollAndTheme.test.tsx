@@ -69,7 +69,7 @@ describe('route scroll restoration', () => {
         <ScrollRestoration />
         <Routes>
           <Route path="/timeline" element={<Probe to="/export" />} />
-          <Route path="/export" element={<div>My Record</div>} />
+          <Route path="/export" element={<div>Chronicle</div>} />
         </Routes>
       </MemoryRouter>,
     );
