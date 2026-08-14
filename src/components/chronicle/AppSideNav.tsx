@@ -31,7 +31,7 @@ const AppSideNav = () => {
   return (
     <aside className="proto-root proto-sidenav" aria-label="Primary" data-testid="app-side-nav">
       <button className="proto-sidenav-brand" onClick={() => navigate('/home')}>
-        <span className="proto-serif">Chronicle</span>
+        <span className="proto-serif">Project Chronicle</span>
         <span className="proto-sidenav-sub">A chronological record</span>
       </button>
 
