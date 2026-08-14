@@ -11,7 +11,7 @@ import '@/chronicle/styles.css';
 const primary = [
   { path: '/home', label: 'Home', hint: 'Everything at a glance' },
   { path: '/timeline', label: 'Notebook', hint: 'Browse and find records' },
-  { path: '/export', label: 'My Record', hint: 'Assemble and export' },
+  { path: '/export', label: 'Chronicle', hint: 'Records you have brought together' },
 ];
 
 const AppSideNav = () => {

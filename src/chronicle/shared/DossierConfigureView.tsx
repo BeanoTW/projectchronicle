@@ -83,7 +83,7 @@ const DossierConfigureView = ({
         </div>
         <p className="proto-help">
           Organisational details cover the event date, category, context and people recorded.
-          These settings change how the report reads, not which records belong to My Record.
+          These settings change how the report reads, not which records belong to your Chronicle.
         </p>
       </section>
 
@@ -164,7 +164,7 @@ const DossierConfigureView = ({
         )}
         <p className="proto-help">
           Scope decides which included records appear in this document. It never adds or removes
-          records from My Record itself.
+          records from your Chronicle itself.
         </p>
       </section>
 
@@ -195,7 +195,7 @@ const DossierConfigureView = ({
       </section>
 
       <p className="proto-help">
-        {totalMembers} record{totalMembers === 1 ? '' : 's'} in My Record
+        {totalMembers} record{totalMembers === 1 ? '' : 's'} in your Chronicle
         {hiddenByFilters > 0 ? ` · ${hiddenByFilters} outside the current scope` : ''}
         {includedInDocument === 1 ? ' · this report contains a single record' : ''}.
       </p>

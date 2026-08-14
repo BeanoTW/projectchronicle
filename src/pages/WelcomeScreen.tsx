@@ -8,7 +8,7 @@ import { withNext } from '@/lib/authNext';
 const STEPS = [
   ['Capture', 'Record something while it is fresh.'],
   ['Notebook', 'Keep everything organised chronologically.'],
-  ['My Record', 'Bring together the entries you may later need.'],
+  ['Chronicle', 'Bring together the entries you may later need.'],
   ['Report', 'Create a clear PDF or Word record when you are ready.'],
 ];
 
@@ -85,7 +85,7 @@ const WelcomeScreen = () => {
         <li>Anything you clarify later is kept separate from the original entry.</li>
         <li>Photos, documents and voice notes can be attached to a record.</li>
         <li>Privacy controls let you hide names and wording on screen.</li>
-        <li>Records can be organised into My Record and exported as a report.</li>
+        <li>Chosen records can be brought together into your Chronicle and exported as a report.</li>
       </ul>
     </AuthShell>
   );

@@ -142,7 +142,7 @@ const FilterSheet = ({ open, value, categories, people, showEvidence = true, sho
           </section>
 
           <section className="proto-fgroup">
-            <h3 className="proto-flabel">My Record</h3>
+            <h3 className="proto-flabel">Chronicle</h3>
             <div className="proto-chipwrap">
               {([
                 ['any', 'Any'],

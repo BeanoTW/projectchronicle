@@ -1,6 +1,6 @@
 // Canonical mobile navigation.
 //
-// Model: three persistent destinations (Home, Notebook, My Record) with Capture
+// Model: three persistent destinations (Home, Notebook, Chronicle) with Capture
 // as the primary *action* seated at the centre. Capture is not a browsing destination,
 // so it is expressed as a raised, filled action inside the bar rather than as
 // a third equal tab or a detached floating button.
@@ -79,7 +79,7 @@ const AppBottomNav = () => {
             <path d="M14 3.5v4h4" />
             <path d="M10 13h5M10 16.5h3" />
           </svg>
-          <span>My Record</span>
+          <span>Chronicle</span>
         </button>
 
       </nav>

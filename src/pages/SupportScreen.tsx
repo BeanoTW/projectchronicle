@@ -5,7 +5,7 @@ const APP_SECTIONS = [
   { title: 'Record', primary: 'Capture events in your own words', secondary: 'This is the foundation of your record' },
   { title: 'Timeline', primary: 'View events in chronological order', secondary: 'See how situations develop over time' },
   { title: 'Calendar', primary: 'Navigate your record by date', secondary: 'Identify when activity occurred' },
-  { title: 'My Record', primary: 'View your entries as a structured summary', secondary: 'This is your record in a format ready for review' },
+  { title: 'Chronicle', primary: 'Bring chosen records together', secondary: 'The records you have selected, ready to generate a report from' },
   { title: 'Export', primary: 'Turn your record into a document for sharing', secondary: 'Includes dates, entries, and recorded details exactly as entered' },
 ];
 

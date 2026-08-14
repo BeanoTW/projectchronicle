@@ -24,7 +24,7 @@ interface Props {
 const FIRST_USE_STEPS: Array<[string, string]> = [
   ['Capture', 'Write or speak what happened, in your own words.'],
   ['Notebook', 'Every record is kept in date order, exactly as you wrote it.'],
-  ['My Record', 'Bring selected records together and export a clear report.'],
+  ['Chronicle', 'Bring chosen records together and generate a report from them.'],
 ];
 
 const HomeView = ({
@@ -124,7 +124,7 @@ const HomeView = ({
             </button>
 
             <button type="button" className="proto-home-tile" onClick={onOpenMyRecord} data-testid="home-myrecord-tile">
-              <span className="proto-home-tile-name">My Record</span>
+              <span className="proto-home-tile-name">Chronicle</span>
               <span className="proto-home-tile-value">
                 {recordCount === 0
                   ? 'Nothing to include yet'
