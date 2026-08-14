@@ -24,7 +24,7 @@ interface Props {
 const FIRST_USE_STEPS: Array<[string, string]> = [
   ['Capture', 'Write or speak what happened, in your own words.'],
   ['Notebook', 'Every record is kept in date order, exactly as you wrote it.'],
-  ['My Record', 'Bring selected records together and export a clear report.'],
+  ['Chronicle', 'Bring chosen records together and generate a report from them.'],
 ];
 
 const HomeView = ({
@@ -106,7 +106,7 @@ const HomeView = ({
                   {latest.recordedAt ? ` · recorded ${formatHomeTimestamp(latest.recordedAt)}` : ''}
                 </span>
                 <span className="proto-chip" data-tone={latest.inMyRecord ? 'brass' : undefined}>
-                  {latest.inMyRecord ? 'In My Record' : 'Not in My Record'}
+                  {latest.inMyRecord ? 'In Chronicle' : 'Not in Chronicle'}
                 </span>
               </button>
             </section>
@@ -124,18 +124,18 @@ const HomeView = ({
             </button>
 
             <button type="button" className="proto-home-tile" onClick={onOpenMyRecord} data-testid="home-myrecord-tile">
-              <span className="proto-home-tile-name">My Record</span>
+              <span className="proto-home-tile-name">Chronicle</span>
               <span className="proto-home-tile-value">
                 {recordCount === 0
                   ? 'Nothing to include yet'
                   : `${inMyRecordCount} of ${recordCount} included`}
               </span>
-              <span className="proto-home-tile-hint">Assemble and export a report</span>
+              <span className="proto-home-tile-hint">Records you have brought together</span>
             </button>
           </div>
 
-          <section className="proto-home-card proto-home-quiet" aria-label="Chronicle principles">
-            <h2 className="proto-home-card-title">What Chronicle does</h2>
+          <section className="proto-home-card proto-home-quiet" aria-label="How your records are kept">
+            <h2 className="proto-home-card-title">How your records are kept</h2>
             <ul className="proto-trust">
               <li>Records are kept exactly as you wrote them.</li>
               <li>Clarifications are stored separately from the original.</li>

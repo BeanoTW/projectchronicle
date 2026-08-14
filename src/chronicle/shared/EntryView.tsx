@@ -100,7 +100,7 @@ const EntryView = ({
               {clarifications.length} clarification{clarifications.length === 1 ? '' : 's'}
             </span>
           )}
-          {entry.in_dossier && <span className="proto-chip" data-tone="brass">In My Record</span>}
+          {entry.in_dossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
         </div>
 
         {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
@@ -207,7 +207,7 @@ const EntryView = ({
             onClick={() => { void onToggleDossier(); }}
             style={{ width: '100%' }}
           >
-            {entry.in_dossier ? 'Remove from My Record' : 'Add to My Record'}
+            {entry.in_dossier ? 'Remove from Chronicle' : 'Add to Chronicle'}
           </button>
         </div>
         </div>

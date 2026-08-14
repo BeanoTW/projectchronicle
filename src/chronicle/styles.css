@@ -71,7 +71,7 @@
 }
 
 /* ── Canonical mobile navigation ──────────────────────────────────────
-   Two destinations (Notebook, My Record) with Capture seated between them as
+   Two destinations (Notebook, Chronicle) with Capture seated between them as
    the primary action. Colours come from palette tokens only. */
 .proto-root .proto-bottomnav {
   position: fixed;
@@ -1024,7 +1024,7 @@
 }
 
 /* ── Phase 11 — canonical app shell (one design system, two presentations) ──
-   Mobile: single column + bottom bar (Notebook · Capture · My Record).
+   Mobile: single column + bottom bar (Notebook · Capture · Chronicle).
    Desktop (>=1024px): persistent left rail, wider intentional layouts.
    The same routes and screens render in both. */
 
@@ -1151,7 +1151,7 @@
   .proto-root .proto-capture .proto-textarea { min-height: 320px; font-size: 16px; }
 }
 
-/* My Record — configuration left, live report preview right. */
+/* Chronicle — configuration left, live report preview right. */
 @media (min-width: 1200px) {
   .proto-root .proto-split {
     display: grid;

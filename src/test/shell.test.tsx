@@ -87,8 +87,8 @@ describe('obsolete client state cleanup', () => {
 describe('responsive navigation', () => {
   it('desktop rail exposes exactly the canonical destinations', () => {
     render(<MemoryRouter initialEntries={['/timeline']}><AppSideNav /></MemoryRouter>);
-    ['Home', 'Notebook', 'New record', 'My Record', 'Settings'].forEach(label => {
-      expect(screen.getByText(label)).toBeInTheDocument();
+    ['Home', 'Notebook', 'New record', 'Chronicle', 'Settings'].forEach(label => {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     });
   });
 

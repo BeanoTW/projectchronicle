@@ -67,7 +67,7 @@ export const buildScaleDataset = (count: number, seed = 42): ScaleDataset => {
       created_at: createdAt,
       updated_at: createdAt,
       original_created_at: createdAt,
-      excluded_from_rep: i % 3 !== 0,          // ~1/3 in My Record
+      excluded_from_rep: i % 3 !== 0,          // ~1/3 in Chronicle
       people_involved: [PEOPLE[i % PEOPLE.length], ...(i % 5 === 0 ? [PEOPLE[(i + 2) % PEOPLE.length]] : [])],
       witnesses: i % 9 === 0 ? [PEOPLE[(i + 1) % PEOPLE.length]] : [],
       record_method: i % 6 === 0 ? 'voice' : 'text',

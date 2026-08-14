@@ -1,4 +1,4 @@
-// Regression coverage for My Record delivery (Print / PDF / Word).
+// Regression coverage for Chronicle delivery (Print / PDF / Word).
 //
 // These export paths previously appeared to "do nothing": generation succeeded
 // but the browser silently dropped the anchor download and window.print().
@@ -62,7 +62,7 @@ const openPreview = async () => {
   await click('Preview report');
 };
 
-describe('My Record export delivery', () => {
+describe('Chronicle export delivery', () => {
   beforeEach(() => {
     pdfSpy.mockClear();
     docxSpy.mockClear();

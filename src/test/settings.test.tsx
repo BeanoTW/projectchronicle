@@ -50,7 +50,7 @@ describe('App shell settings access', () => {
     render(<MemoryRouter><AppBottomNav /></MemoryRouter>);
     expect(screen.getByRole('button', { name: 'Notebook' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Capture' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'My Record' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Chronicle' })).toBeTruthy();
     expect(screen.queryByLabelText('Support')).toBeNull();
     expect(screen.queryByLabelText('Calendar')).toBeNull();
   });

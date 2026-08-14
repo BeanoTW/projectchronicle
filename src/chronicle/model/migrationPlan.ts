@@ -4,7 +4,7 @@
 // pass a snapshot in, a report comes out. The V1 store is never touched.
 //
 // Terminology note: "dossier" below is the INTERNAL/legacy name for what the
-// product now calls "My Record". Persistence fields are intentionally unchanged.
+// product now calls "Chronicle". Persistence fields are intentionally unchanged.
 
 import { emptyReport, planRecord, type MigrationReport, type MigrationWarning, type V1IncidentLike } from './migration';
 
@@ -129,7 +129,7 @@ export const planMigration = (
     if (row.category) inc(transformed, 'category → details.category_id');
     if (row.incident_date || row.record_date) inc(transformed, 'incident_date|record_date → details.event_date');
     if (row.incident_time) inc(transformed, 'incident_time → details.event_time');
-    inc(transformed, 'excluded_from_rep → dossier (My Record) membership');
+    inc(transformed, 'excluded_from_rep → dossier (Chronicle) membership');
 
     // ---- people (normalised + de-duplicated per owner) ----
     const names = [...(row.people_involved ?? []), ...(row.witnesses ?? [])]

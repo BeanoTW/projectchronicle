@@ -1,6 +1,6 @@
 // Phase 9 — secondary shell control for full V2 mode.
 //
-// The accepted primary navigation (Notebook · Capture · My Record) is not
+// The accepted primary navigation (Notebook · Capture · Chronicle) is not
 // changed. Account/settings is reached from a compact top-right control that is
 // present on every V2 surface, visually subordinate to the core navigation.
 import { useInRouterContext, useNavigate } from 'react-router-dom';

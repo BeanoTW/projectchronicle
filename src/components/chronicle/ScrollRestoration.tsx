@@ -38,7 +38,7 @@ const ScrollRestoration = () => {
     if (navigationType === 'POP') return; // Back/Forward keeps its position.
     resetScroll();
     // The shell container mounts with the route; run once more after paint so
-    // late-mounting screens (Notebook lists, My Record panes) also start top.
+    // late-mounting screens (Notebook lists, Chronicle panes) also start top.
     const raf = requestAnimationFrame(resetScroll);
     return () => cancelAnimationFrame(raf);
   }, [pathname, search, navigationType]);
