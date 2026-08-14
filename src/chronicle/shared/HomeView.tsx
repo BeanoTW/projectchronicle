@@ -106,7 +106,7 @@ const HomeView = ({
                   {latest.recordedAt ? ` · recorded ${formatHomeTimestamp(latest.recordedAt)}` : ''}
                 </span>
                 <span className="proto-chip" data-tone={latest.inMyRecord ? 'brass' : undefined}>
-                  {latest.inMyRecord ? 'In My Record' : 'Not in My Record'}
+                  {latest.inMyRecord ? 'In Chronicle' : 'Not in Chronicle'}
                 </span>
               </button>
             </section>

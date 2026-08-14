@@ -146,8 +146,8 @@ const FilterSheet = ({ open, value, categories, people, showEvidence = true, sho
             <div className="proto-chipwrap">
               {([
                 ['any', 'Any'],
-                ['included', 'In My Record'],
-                ['excluded', 'Not in My Record'],
+                ['included', 'In Chronicle'],
+                ['excluded', 'Not in Chronicle'],
               ] as Array<[DossierStatus, string]>).map(([v, label]) => (
                 <button
                   key={v}

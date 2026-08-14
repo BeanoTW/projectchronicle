@@ -24,7 +24,7 @@ const WelcomeScreen = () => {
         <div className="proto-preview" aria-label="Example of a Chronicle notebook">
           <p className="proto-preview-head">Notebook</p>
           {[
-            { meta: '12 Mar · 08:41', chip: 'In My Record' },
+            { meta: '12 Mar · 08:41', chip: 'In Chronicle' },
             { meta: '9 Mar · 17:05', chip: '2 attachments' },
             { meta: '2 Mar · 12:20', chip: 'Clarification added' },
           ].map(row => (

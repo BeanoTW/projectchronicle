@@ -79,7 +79,7 @@ export const buildChips = (f: NotebookFilters): ActiveChip[] => {
   if (f.dossier !== 'any')
     chips.push({
       key: 'dossier',
-      label: f.dossier === 'included' ? 'In My Record' : 'Not in My Record',
+      label: f.dossier === 'included' ? 'In Chronicle' : 'Not in Chronicle',
       remove: cur => ({ ...cur, dossier: 'any' as DossierStatus }),
     });
   f.recordTypes.forEach(t =>
