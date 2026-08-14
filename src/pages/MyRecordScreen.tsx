@@ -109,7 +109,7 @@ const MyRecordScreen = () => {
             : null
         }
         onOpenRecord={id => navigate(`/incident/${id}`)}
-        intro="The records you have chosen to bring together, in chronological order. Your report is generated from them — original wording is never altered."
+        intro="Your Notebook holds everything you have recorded. Your Chronicle holds the records you have chosen to bring together — a report is generated from them, and your original wording is never altered."
       />
     </AppSurface>
   );

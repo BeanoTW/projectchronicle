@@ -27,7 +27,7 @@ const PasswordRulesList = ({ password, breach = 'idle', match = 'idle' }: Props)
 
   const breachLabel =
     breach === 'checking' ? 'Checking against known data breaches…'
-    : breach === 'breached' ? 'This password has appeared in a data breach'
+    : breach === 'breached' ? 'This password has appeared in a known data breach. Please choose a stronger one.'
     : breach === 'unavailable' ? 'Breach check unavailable — it will be checked when you continue'
     : BREACH_RULE_LABEL;
 

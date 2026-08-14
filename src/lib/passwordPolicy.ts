@@ -53,7 +53,7 @@ export const PASSWORD_MESSAGES = {
   needsNumber: 'Password must contain at least one number.',
   mismatch: 'Passwords do not match.',
   breached:
-    'This password has appeared in a known data breach, so it cannot be used. Choose a password you have not used anywhere else.',
+    'This password has appeared in a known data breach. Please choose a stronger one.',
   checking: 'Checking your password. This takes a moment.',
   // Fallback for any unexpected backend rejection — keep aligned with UI rules.
   doesNotMeet: 'Please meet the password requirements above.',

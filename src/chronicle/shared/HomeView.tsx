@@ -130,12 +130,12 @@ const HomeView = ({
                   ? 'Nothing to include yet'
                   : `${inMyRecordCount} of ${recordCount} included`}
               </span>
-              <span className="proto-home-tile-hint">Assemble and export a report</span>
+              <span className="proto-home-tile-hint">Records you have brought together</span>
             </button>
           </div>
 
-          <section className="proto-home-card proto-home-quiet" aria-label="Chronicle principles">
-            <h2 className="proto-home-card-title">What Chronicle does</h2>
+          <section className="proto-home-card proto-home-quiet" aria-label="How your records are kept">
+            <h2 className="proto-home-card-title">How your records are kept</h2>
             <ul className="proto-trust">
               <li>Records are kept exactly as you wrote them.</li>
               <li>Clarifications are stored separately from the original.</li>
