@@ -343,3 +343,83 @@ export const getLastBackupAt = async (userId: string): Promise<string | null> =>
 export const getLastRestoreAt = async (userId: string): Promise<string | null> => {
   return await getMeta(META_KEYS.lastRestoreAt(userId));
 };
+
+/* ------------------------------------------------------------------ *
+ * Canonical incident presence (evidence linking)
+ *
+ * Records are local-first, so a sealed incident may not yet exist as a row in
+ * the server database. `evidence_files.incident_id` is a real foreign key, so
+ * inserting evidence before the incident row exists fails at the database
+ * level. This helper guarantees the canonical incident row exists server-side
+ * — using the SAME canonical id as the local record — before any evidence
+ * insert that references it. The foreign key stays fully enforced.
+ * ------------------------------------------------------------------ */
+
+export class IncidentNotSyncedError extends Error {
+  readonly code = 'incident_not_synced';
+  readonly userSafe = true as const;
+  constructor(message: string, readonly detail?: string) {
+    super(message);
+    this.name = 'IncidentNotSyncedError';
+  }
+}
+
+const NOT_READY_MESSAGE =
+  "We couldn't save this attachment yet because the record is still being prepared. Your record is safe. Please try again in a moment.";
+
+// De-duplicates concurrent pushes for the same record (multi-file capture,
+// double taps) so repeated calls never race into duplicate work.
+const presenceInFlight = new Map<string, Promise<void>>();
+
+const pushIncident = async (userId: string, incidentId: string): Promise<void> => {
+  // Already on the server? Nothing to do. RLS scopes this read to the owner,
+  // so another account's row can never satisfy the check.
+  const existing = await supabase
+    .from('incidents')
+    .select('id')
+    .eq('id', incidentId)
+    .maybeSingle();
+  if (existing.data?.id) return;
+
+  const local = await localDB.incidents.get(incidentId);
+  if (!local || local.owner_user_id !== userId) {
+    throw new IncidentNotSyncedError(NOT_READY_MESSAGE, 'local record missing or owned by another account');
+  }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new IncidentNotSyncedError(NOT_READY_MESSAGE, 'offline');
+  }
+
+  const { data, error } = await supabase.rpc('sync_upsert_incident', {
+    _row: stripLocalIncident(local) as never,
+    _expected_version: null as never,
+  });
+  if (error) throw new IncidentNotSyncedError(NOT_READY_MESSAGE, error.message);
+  const resp = data as SyncUpsertResponse | null;
+  if (!resp || resp.status !== 'ok') {
+    throw new IncidentNotSyncedError(NOT_READY_MESSAGE, resp?.status ?? 'no response');
+  }
+
+  const serverVersion = resp.row?.version ?? local.version ?? 1;
+  const backupOn = await isBackupEnabled();
+  await localDB.incidents.update(incidentId, {
+    version: serverVersion,
+    cloud_version: serverVersion,
+    ...(backupOn
+      ? { sync_state: 'backed_up' as const, last_sync_error: null, last_sync_attempt_at: new Date().toISOString() }
+      : {}),
+  });
+};
+
+/**
+ * Ensures the canonical incident row exists in the server database.
+ * Throws `IncidentNotSyncedError` (user-safe message) when it cannot be
+ * guaranteed, so callers queue/retry instead of attempting an invalid insert.
+ */
+export const ensureIncidentOnServer = async (userId: string, incidentId: string): Promise<void> => {
+  const key = `${userId}:${incidentId}`;
+  const running = presenceInFlight.get(key);
+  if (running) return running;
+  const task = pushIncident(userId, incidentId).finally(() => presenceInFlight.delete(key));
+  presenceInFlight.set(key, task);
+  return task;
+};
