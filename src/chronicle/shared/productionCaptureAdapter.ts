@@ -11,18 +11,20 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateIncident, useUpdateIncident } from '@/hooks/useIncidents';
 import { useUploadEvidence } from '@/hooks/useEvidence';
+import { toSafeAttachmentMessage, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
+
 import {
   productionDraftKey,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure, type ReviewDetails,
 } from './captureModel';
 
+// Internal database/storage detail must never reach the user; every failure is
+// mapped to a calm, safe message (diagnostics stay in dev-only logging).
 const failureMessage = (e: unknown): string => {
-  const msg = (e as Error)?.message ?? '';
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return 'This device is offline, so the file could not be uploaded yet. Your record is safe — retry when you are back online.';
-  }
-  return msg || 'That file could not be uploaded. Your record itself was saved.';
+  logAttachmentDiagnostic('capture media', e);
+  return toSafeAttachmentMessage(e);
 };
+
 
 export const useProductionCaptureAdapter = (): CaptureAdapter => {
   const { user } = useAuth();

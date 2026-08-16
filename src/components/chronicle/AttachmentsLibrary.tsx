@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, useLinkEvidenceToIncident, type EvidenceFile } from '@/hooks/useEvidence';
+import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
   const deleteEvidence = useDeleteEvidence();
+  const linkEvidence = useLinkEvidenceToIncident();
   const isTranscriptSource = useIsTranscriptSource();
   const { gateActive, requestReveal } = useAttachmentReveal();
   const { toast } = useToast();
@@ -58,21 +60,20 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
     try {
       await uploadEvidence.mutateAsync({ file });
       toast({ title: 'Attachment uploaded', description: 'You can link it to a record now or later.' });
-    } catch {
-      toast({ title: 'Upload failed', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Attachment not saved', description: toSafeAttachmentMessage(err), variant: 'destructive' });
     }
   };
 
   const handleLink = async (evidenceId: string, incidentId: string) => {
     try {
-      const { error } = await supabase.from('evidence_files').update({ incident_id: incidentId }).eq('id', evidenceId);
-      if (error) throw error;
+      await linkEvidence.mutateAsync({ evidenceId, incidentId });
       toast({ title: 'Linked to record' });
       setLinkingId(null);
       setSelectedIncidentId('');
       refetch();
-    } catch {
-      toast({ title: 'Failed to link', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Could not link this attachment', description: toSafeAttachmentMessage(err), variant: 'destructive' });
     }
   };
 

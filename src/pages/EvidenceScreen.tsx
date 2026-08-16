@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useEvidence, useUploadEvidence } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident } from '@/hooks/useEvidence';
+import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
@@ -55,6 +56,7 @@ const EvidenceScreen = () => {
   const { data: allEvidence = [], isLoading, refetch } = useEvidence();
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
+  const linkEvidence = useLinkEvidenceToIncident();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { gateActive, requestReveal } = useAttachmentReveal();
@@ -79,21 +81,20 @@ const EvidenceScreen = () => {
     try {
       await uploadEvidence.mutateAsync({ file });
       toast({ title: 'Attachment uploaded', description: 'Link it to a record to strengthen your documentation.' });
-    } catch {
-      toast({ title: 'Upload failed', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Attachment not saved', description: toSafeAttachmentMessage(err), variant: 'destructive' });
     }
   };
 
   const handleLinkEvidence = async (evidenceId: string, incidentId: string) => {
     try {
-      const { error } = await supabase.from('evidence_files').update({ incident_id: incidentId }).eq('id', evidenceId);
-      if (error) throw error;
+      await linkEvidence.mutateAsync({ evidenceId, incidentId });
       toast({ title: 'Attachment linked to record' });
       setLinkingId(null);
       setSelectedIncidentId('');
       refetch();
-    } catch {
-      toast({ title: 'Failed to link', variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Could not link this attachment', description: toSafeAttachmentMessage(err), variant: 'destructive' });
     }
   };
 

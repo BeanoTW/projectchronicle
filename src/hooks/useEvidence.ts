@@ -7,7 +7,11 @@ import {
   assertUploadAllowed,
   safeDisplayName,
   safeExtension,
+  MAX_ATTACHMENTS_PER_RECORD,
 } from '@/lib/uploadPolicy';
+import { ensureIncidentOnServer } from '@/local/syncEngine';
+import { EVIDENCE_MESSAGES, markUserSafe, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
+
 import type { Tables } from '@/integrations/supabase/types';
 
 export type EvidenceFile = Tables<'evidence_files'>;
@@ -40,7 +44,7 @@ export const useUploadEvidence = () => {
 
   return useMutation({
     mutationFn: async ({ file, incidentId, description }: { file: File; incidentId?: string; description?: string }) => {
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw markUserSafe(new Error(EVIDENCE_MESSAGES.signedOut), 'not_authenticated');
 
       // Single enforcement point. The capture picker validates too, but the
       // Attachments library and Evidence screen upload straight from a file
@@ -54,23 +58,56 @@ export const useUploadEvidence = () => {
           .eq('incident_id', incidentId);
         existingCount = count ?? 0;
       }
-      assertUploadAllowed(file, existingCount);
+      try {
+        assertUploadAllowed(file, existingCount);
+      } catch (e) {
+        throw markUserSafe(e as Error, 'rejected_by_policy');
+      }
+
+      // Compute SHA-256 BEFORE uploading so a failed hash blocks the insert
+      // and we never end up with a stored file lacking integrity metadata.
+      // It also acts as the idempotency key for retries.
+      const fileHash = await computeSha256(file);
+      const captureDate = deriveCaptureDate(file);
+
+      // Idempotency: a retry (or a double tap) of the same file against the
+      // same target must not create a second row or a second storage object.
+      const dupQuery = supabase
+
+        .from('evidence_files')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('file_hash', fileHash);
+      const { data: existingRows } = await (incidentId
+        ? dupQuery.eq('incident_id', incidentId)
+        : dupQuery.is('incident_id', null));
+      if (existingRows && existingRows.length > 0) {
+        return existingRows[0] as EvidenceFile;
+      }
+
+      // The canonical incident row must exist server-side before an
+      // evidence row can reference it (real foreign key, kept enforced).
+      if (incidentId) {
+        try {
+          await ensureIncidentOnServer(user.id, incidentId);
+        } catch (e) {
+          logAttachmentDiagnostic('incident presence', e);
+          throw e;
+        }
+      }
 
       const uniqueId = crypto.randomUUID();
       // Only a sanitised extension is taken from the user's filename, so the
       // name can never influence the storage path.
       const filePath = `${user.id}/${uniqueId}.${safeExtension(file.name)}`;
 
-
-      // Compute SHA-256 BEFORE uploading so a failed hash blocks the insert
-      // and we never end up with a stored file lacking integrity metadata.
-      const fileHash = await computeSha256(file);
-      const captureDate = deriveCaptureDate(file);
-
       const { error: uploadError } = await supabase.storage
         .from('evidence')
         .upload(filePath, file, { upsert: false });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        logAttachmentDiagnostic('storage upload', uploadError);
+        throw markUserSafe(new Error(EVIDENCE_MESSAGES.generic), 'storage_failed');
+      }
 
       const { data: inserted, error: dbError } = await supabase
         .from('evidence_files')
@@ -88,7 +125,12 @@ export const useUploadEvidence = () => {
         })
         .select()
         .single();
-      if (dbError) throw dbError;
+      if (dbError) {
+        logAttachmentDiagnostic('evidence insert', dbError);
+        // Never leave an orphan storage object behind when the row fails.
+        await supabase.storage.from('evidence').remove([filePath]).catch(() => {});
+        throw markUserSafe(new Error(EVIDENCE_MESSAGES.generic), 'insert_failed');
+      }
       analytics.track('attachment_added', {
         file_kind: file.type.startsWith('image/') ? 'image' : file.type === 'application/pdf' ? 'pdf' : 'other',
         linked_to_incident: !!incidentId,
@@ -100,6 +142,54 @@ export const useUploadEvidence = () => {
     },
   });
 };
+
+/**
+ * Links an existing (library) attachment to a specific incident.
+ *
+ * Guarantees the canonical incident row exists server-side first, so the
+ * foreign key can never be violated. RLS scopes both sides to the owner, so
+ * cross-account linking is impossible.
+ */
+export const useLinkEvidenceToIncident = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ evidenceId, incidentId }: { evidenceId: string; incidentId: string | null }) => {
+      if (!user) throw markUserSafe(new Error(EVIDENCE_MESSAGES.signedOut), 'not_authenticated');
+
+      if (incidentId) {
+        const { count } = await supabase
+          .from('evidence_files')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('incident_id', incidentId);
+        if ((count ?? 0) >= MAX_ATTACHMENTS_PER_RECORD) {
+          throw markUserSafe(
+            new Error(`This record already has the maximum of ${MAX_ATTACHMENTS_PER_RECORD} attachments.`),
+            'limit_reached',
+          );
+        }
+        await ensureIncidentOnServer(user.id, incidentId);
+      }
+
+      const { error } = await supabase
+        .from('evidence_files')
+        .update({ incident_id: incidentId })
+        .eq('id', evidenceId)
+        .eq('user_id', user.id);
+      if (error) {
+        logAttachmentDiagnostic('evidence link', error);
+        throw markUserSafe(new Error(EVIDENCE_MESSAGES.generic), 'link_failed');
+      }
+      return { evidenceId, incidentId };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evidence'] });
+    },
+  });
+};
+
 
 /**
  * Check whether an attachment is referenced as the source for any transcript.
