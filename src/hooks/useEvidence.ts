@@ -68,15 +68,8 @@ export const useUploadEvidence = () => {
 
       // Idempotency: a retry (or a double tap) of the same file against the
       // same target must not create a second row or a second storage object.
-      const { data: duplicate } = await supabase
-        .from('evidence_files')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('file_hash', fileHash)
-        .is('incident_id', incidentId ? null : null as never)
-        .limit(0);
-      void duplicate;
       const dupQuery = supabase
+
         .from('evidence_files')
         .select('*')
         .eq('user_id', user.id)
