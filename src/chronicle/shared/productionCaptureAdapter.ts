@@ -11,6 +11,8 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateIncident, useUpdateIncident } from '@/hooks/useIncidents';
 import { useUploadEvidence } from '@/hooks/useEvidence';
+import { toSafeAttachmentMessage, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
+
 import {
   productionDraftKey,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure, type ReviewDetails,
