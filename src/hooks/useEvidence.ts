@@ -7,7 +7,11 @@ import {
   assertUploadAllowed,
   safeDisplayName,
   safeExtension,
+  MAX_ATTACHMENTS_PER_RECORD,
 } from '@/lib/uploadPolicy';
+import { ensureIncidentOnServer } from '@/local/syncEngine';
+import { EVIDENCE_MESSAGES, markUserSafe, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
+
 import type { Tables } from '@/integrations/supabase/types';
 
 export type EvidenceFile = Tables<'evidence_files'>;
