@@ -6,7 +6,6 @@
 //
 // It owns no data access. All reads/writes arrive through props so production
 // writes stay behind the existing production interfaces.
-import SettingsControl from '@/components/chronicle/SettingsControl';
 import { useState, type ReactNode } from 'react';
 import '../styles.css';
 
@@ -220,8 +219,6 @@ const EntryView = ({
   return (
     <div className="proto-root">
       <div className="proto-main">
-        {/* Phase 9 — secondary shell control, same as every other V2 surface. */}
-        <SettingsControl />
         {body}
       </div>
     </div>

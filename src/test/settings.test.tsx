@@ -26,33 +26,13 @@ beforeEach(() => {
 
 
 describe('App shell settings access', () => {
-  it('every V2 surface exposes a secondary settings control', () => {
+  it('the page surface no longer carries its own settings pill', () => {
     render(
       <MemoryRouter>
         <AppSurface><p>Notebook</p></AppSurface>
       </MemoryRouter>,
     );
-    const btn = screen.getByTestId('v2-settings-control');
-    expect(btn).toHaveAttribute('aria-label', 'Settings and account');
-  });
-
-  it('hides the control on the settings screen itself', () => {
-    render(
-      <MemoryRouter>
-        <AppSurface hideSettingsControl><p>Settings</p></AppSurface>
-      </MemoryRouter>,
-    );
     expect(screen.queryByTestId('v2-settings-control')).toBeNull();
-  });
-
-  it('does not reintroduce a Support primary navigation destination', async () => {
-    const AppBottomNav = (await import('@/components/chronicle/AppBottomNav')).default;
-    render(<MemoryRouter><AppBottomNav /></MemoryRouter>);
-    expect(screen.getByRole('button', { name: 'Notebook' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Capture' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Chronicle' })).toBeTruthy();
-    expect(screen.queryByLabelText('Support')).toBeNull();
-    expect(screen.queryByLabelText('Calendar')).toBeNull();
   });
 });
 

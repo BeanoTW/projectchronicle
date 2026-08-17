@@ -25,17 +25,20 @@ describe('layout — no excess scroll below content', () => {
     expect(css).toMatch(/\.proto-root\.proto-shell\s*\{[^}]*min-height:\s*100dvh/);
   });
 
-  it('bottom-nav clearance is not duplicated by the page surface', () => {
+  it('capture clearance is not duplicated by the page surface', () => {
     const surface = css.slice(css.indexOf('.proto-root.proto-surface {'));
     const block = surface.slice(0, surface.indexOf('}'));
     expect(block).not.toMatch(/env\(safe-area-inset-bottom/);
     expect(block).not.toMatch(/padding-bottom:\s*calc\(1\d\dpx/);
   });
 
-  it('the single bottom spacer still keeps final controls above the nav', () => {
-    const nav = readFileSync(join(process.cwd(), 'src/components/chronicle/AppBottomNav.tsx'), 'utf8');
-    expect(nav).toMatch(/height: 7\d/);
-    expect(nav).toMatch(/env\(safe-area-inset-bottom/);
+  it('the only bottom clearance is the floating Capture spacer', () => {
+    const fab = readFileSync(join(process.cwd(), 'src/components/chronicle/CaptureFab.tsx'), 'utf8');
+    expect(fab).toMatch(/proto-fab-spacer/);
+    const spacer = css.slice(css.indexOf('.proto-root .proto-fab-spacer {'));
+    const block = spacer.slice(0, spacer.indexOf('}'));
+    expect(block).toMatch(/env\(safe-area-inset-bottom/);
+    expect(block).toMatch(/height: calc\(8\dpx/);
   });
 });
 
