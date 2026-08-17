@@ -9,11 +9,15 @@ import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AppSideNav from '@/components/chronicle/AppSideNav';
-import AppBottomNav from '@/components/chronicle/AppBottomNav';
+import CaptureFab from '@/components/chronicle/CaptureFab';
 import { cleanupObsoleteClientState } from '@/lib/clientStateCleanup';
 
 vi.mock('@/contexts/PrivacyContext', () => ({
   usePrivacy: () => ({ enabled: false }),
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { email: 'tester@example.com' }, signOut: vi.fn() }),
 }));
 
 const SRC = join(process.cwd(), 'src');
@@ -87,28 +91,28 @@ describe('obsolete client state cleanup', () => {
 describe('responsive navigation', () => {
   it('desktop rail exposes exactly the canonical destinations', () => {
     render(<MemoryRouter initialEntries={['/timeline']}><AppSideNav /></MemoryRouter>);
-    ['Home', 'Notebook', 'New record', 'Chronicle', 'Settings'].forEach(label => {
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-    });
+    ['Home', 'Notebook', 'New record', 'Chronicle', 'Attachments', 'Settings', 'Support', 'Sign out']
+      .forEach(label => {
+        expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      });
   });
 
-  it('mobile bar is hidden at the desktop breakpoint and vice versa', () => {
-    const { container: bar } = render(
-      <MemoryRouter initialEntries={['/timeline']}><AppBottomNav /></MemoryRouter>,
-    );
-    // Bottom bar disappears exactly where the rail appears (lg / 1024px).
-    expect(bar.querySelector('[data-testid="v2-bottom-nav"]')?.className).toContain('lg:hidden');
-
+  it('the rail is hidden below the tablet breakpoint and the Capture action above it', () => {
     const railCss = readFileSync(join(SRC, 'chronicle/styles.css'), 'utf8');
     expect(railCss).toMatch(/\.proto-root\.proto-sidenav \{ display: none; \}/);
+    expect(railCss).toMatch(/@media \(min-width: 768px\)/);
     expect(railCss).toMatch(/@media \(min-width: 1024px\)/);
+    render(<MemoryRouter initialEntries={['/timeline']}><CaptureFab /></MemoryRouter>);
+    expect(screen.getByTestId('capture-fab')).toBeTruthy();
   });
 
   it('the shell never renders a legacy navigation component', () => {
     const app = readFileSync(join(SRC, 'App.tsx'), 'utf8');
     expect(app).not.toMatch(/DesktopSideNav/);
+    expect(app).not.toMatch(/AppBottomNav/);
     expect(app).toMatch(/AppSideNav/);
-    expect(app).toMatch(/AppBottomNav/);
+    expect(app).toMatch(/AppDrawer/);
+    expect(app).toMatch(/CaptureFab/);
   });
 });
 

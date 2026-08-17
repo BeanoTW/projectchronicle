@@ -12,7 +12,8 @@ import { LockProvider, useLock } from "@/contexts/LockContext";
 import { AttachmentRevealProvider } from "@/contexts/AttachmentRevealContext";
 import LockGate from "@/components/chronicle/LockGate";
 import AttachmentUnlockDialog from "@/components/chronicle/AttachmentUnlockDialog";
-import AppBottomNav from "@/components/chronicle/AppBottomNav";
+import AppDrawer from "@/components/chronicle/AppDrawer";
+import CaptureFab from "@/components/chronicle/CaptureFab";
 import { AppErrorBoundary, ScreenErrorBoundary } from "@/components/ErrorBoundary";
 import { authRedirectFor, nextOrDefault } from "@/lib/authNext";
 
@@ -54,15 +55,18 @@ import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 
 const queryClient = new QueryClient();
 
-// One canonical shell for every account. Desktop gets a persistent left rail,
-// mobile keeps the accepted bottom bar. Same routes, same screens.
+// One canonical shell for every account and every authenticated screen.
+//   mobile  → top-left menu + slide-out drawer + floating Capture action
+//   >=768px → persistent navigation rail (compact), full rail at >=1024px
+// Same routes, same screens, one navigation model (navModel.tsx).
 // The screen-level boundary means one broken record cannot take out navigation.
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="proto-root proto-shell" data-testid="app-shell">
     <AppSideNav />
     <div className="proto-shell-main">
+      <AppDrawer />
       <ScreenErrorBoundary>{children}</ScreenErrorBoundary>
-      <AppBottomNav />
+      <CaptureFab />
     </div>
     <AuthDebugPanel />
   </div>

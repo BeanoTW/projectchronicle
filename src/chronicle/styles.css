@@ -71,100 +71,191 @@
 }
 
 /* ── Canonical mobile navigation ──────────────────────────────────────
-   Two destinations (Notebook, Chronicle) with Capture seated between them as
-   the primary action. Colours come from palette tokens only. */
-.proto-root .proto-bottomnav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: var(--p-paper);
-  border-top: 1px solid var(--p-line);
-  display: grid;
-  grid-template-columns: 1fr 1fr auto 1fr;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-  z-index: 30;
-}
-.proto-root .proto-navtab {
-  position: relative;
-  background: transparent;
-  border: 0;
-  color: var(--p-muted);
-  font-size: 11.5px;
-  letter-spacing: 0.01em;
-  padding: 10px 6px 8px;
-  min-height: 56px;
+   Navigation recedes: a quiet app bar with a menu control, a slide-out drawer
+   for destinations, and one persistent Capture action. Tokens only. */
+.proto-root .proto-appbar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  min-width: 0;
-  border-radius: 12px;
+  gap: 6px;
+  padding: 6px 8px;
+  padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  background: var(--p-paper);
+  border-bottom: 1px solid var(--p-line);
 }
-.proto-root .proto-navtab:active { background: var(--p-accent-bg); }
-.proto-root .proto-navtab[data-active="true"] {
-  color: var(--p-ink);
-  font-weight: 600;
-}
-.proto-root .proto-navtab[data-active="true"]::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 22%;
-  right: 22%;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--p-brass);
-}
-.proto-root .proto-navaction { display: flex; justify-content: center; }
-.proto-root .proto-captureseat {
+.proto-root .proto-appbar-menu {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--p-ink);
+  cursor: pointer;
+}
+.proto-root .proto-appbar-menu:active { background: var(--p-accent-bg); }
+.proto-root .proto-appbar-brand {
+  border: 0;
+  background: transparent;
+  color: var(--p-ink);
+  padding: 4px 6px;
+  min-height: 44px;
+  font-size: 18px;
+  cursor: pointer;
+}
+.proto-root .proto-appbar-menu:focus-visible,
+.proto-root .proto-appbar-brand:focus-visible {
+  outline: 2px solid var(--p-brass);
+  outline-offset: 2px;
+}
+@media (min-width: 768px) {
+  .proto-root .proto-appbar { display: none; }
+}
+
+/* Drawer */
+.proto-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 15, 15, 0.45);
+  backdrop-filter: blur(2px);
+  animation: proto-drawer-fade 160ms ease;
+}
+.proto-root.proto-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 61;
+  width: min(86vw, 320px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 14px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--p-paper);
+  border-right: 1px solid var(--p-line);
+  box-shadow: 0 0 40px -12px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
+  animation: proto-drawer-in 200ms cubic-bezier(0.22, 0.7, 0.3, 1);
+  transition: transform 140ms ease;
+}
+@keyframes proto-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes proto-drawer-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .proto-root.proto-drawer, .proto-drawer-overlay { animation: none; transition: none; }
+}
+.proto-drawer .proto-drawer-head { position: relative; padding: 2px 6px 10px; border-bottom: 1px solid var(--p-line); }
+.proto-drawer .proto-drawer-title { font-size: 22px; margin: 0; }
+.proto-drawer .proto-drawer-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+}
+.proto-drawer .proto-drawer-close {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--p-ink-2);
+  cursor: pointer;
+}
+.proto-drawer .proto-drawer-list { display: flex; flex-direction: column; gap: 2px; }
+.proto-drawer .proto-drawer-divider { height: 1px; background: var(--p-line); margin: 8px 6px; }
+.proto-drawer .proto-drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
   min-height: 48px;
-  padding: 0 16px;
-  margin-top: -12px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  color: var(--p-ink-2);
+  cursor: pointer;
+}
+.proto-drawer .proto-drawer-item:active { background: var(--p-accent-bg); }
+.proto-drawer .proto-drawer-item[data-active="true"] {
+  background: var(--p-accent-bg);
+  border-color: var(--p-line);
+  color: var(--p-ink);
+}
+.proto-drawer .proto-drawer-item[data-active="true"] .proto-drawer-label { font-weight: 600; }
+.proto-drawer .proto-drawer-icon { display: inline-flex; color: inherit; }
+.proto-drawer .proto-drawer-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.proto-drawer .proto-drawer-label { font-size: 15px; }
+.proto-drawer .proto-drawer-hint { font-size: 11px; color: var(--p-muted); }
+.proto-drawer .proto-drawer-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-line);
+}
+.proto-drawer .proto-drawer-status { display: flex; align-items: center; gap: 7px; padding: 0 12px; font-size: 11.5px; color: var(--p-muted); }
+.proto-drawer .proto-drawer-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--p-line); border: 1px solid var(--p-muted); }
+.proto-drawer .proto-drawer-status[data-on="true"] { color: var(--p-brass); }
+.proto-drawer .proto-drawer-status[data-on="true"] .proto-drawer-dot { background: var(--p-brass); border-color: var(--p-brass); }
+.proto-drawer .proto-drawer-account { display: flex; flex-direction: column; gap: 1px; padding: 0 12px; margin: 0; }
+.proto-drawer .proto-drawer-email { font-size: 13px; color: var(--p-ink); overflow-wrap: anywhere; }
+.proto-drawer .proto-drawer-signout {
+  min-height: 44px;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--p-ink);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.proto-drawer button:focus-visible { outline: 2px solid var(--p-brass); outline-offset: 2px; }
+
+/* Persistent Capture action (mobile / compact widths) */
+.proto-root .proto-fabwrap { display: block; }
+.proto-root .proto-fab-spacer {
+  height: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+.proto-root .proto-fabwrap[data-hidden="true"] .proto-fab-spacer { height: env(safe-area-inset-bottom, 0px); }
+.proto-root .proto-fab-capture {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 20px;
   border: 1px solid var(--p-brass);
   border-radius: 999px;
   background: var(--p-brass);
   color: var(--p-paper);
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
-  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.65);
   transition: transform 120ms ease;
 }
-.proto-root .proto-captureseat:active { transform: scale(0.97); }
-.proto-root .proto-captureseat[data-active="true"] {
-  background: var(--p-accent-bg);
-  color: var(--p-brass);
+.proto-root .proto-fab-capture:active { transform: scale(0.97); }
+.proto-root .proto-fab-capture:focus-visible { outline: 2px solid var(--p-ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .proto-root .proto-fab-capture { transition: none; }
 }
-.proto-root .proto-bottomnav button:focus-visible {
-  outline: 2px solid var(--p-brass);
-  outline-offset: 2px;
-}
-
-/* Capture FAB */
-.proto-root .proto-fab {
-  position: fixed;
-  right: 16px;
-  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
-  z-index: 40;
-  background: var(--p-ink);
-  color: var(--p-paper);
-  border: 0;
-  border-radius: 999px;
-  padding: 14px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* The rail owns Capture from 768px up. */
+@media (min-width: 768px) {
+  .proto-root .proto-fabwrap { display: none; }
 }
 
 /* Inputs / buttons */
@@ -327,7 +418,9 @@
 :root.dark .proto-root .proto-viewswitch { background: var(--p-paper-2); color: var(--p-ink); }
 :root.dark .proto-root .proto-btn { background: var(--p-paper-2); color: var(--p-ink); }
 :root.dark .proto-root .proto-btn[data-variant="primary"] { background: var(--p-brass); color: var(--p-paper); border-color: var(--p-brass); }
-:root.dark .proto-root .proto-fab { background: var(--p-brass); color: var(--p-paper); }
+:root.dark .proto-root .proto-fab-capture { background: var(--p-brass); color: var(--p-paper); }
+:root.dark .proto-root.proto-drawer { background: var(--p-paper); }
+:root.dark .proto-drawer .proto-drawer-item[data-active="true"] { background: var(--p-accent-bg); }
 
 /* ---------- Phase 2: filters, month view, clarifications, dossier ---------- */
 
@@ -698,8 +791,10 @@
   .proto-noprint, .proto-root .proto-noprint,
   .proto-root .proto-banner,
   .proto-root .proto-topbar,
-  .proto-root .proto-bottomnav,
-  .proto-root .proto-fab { display: none !important; }
+  .proto-root .proto-appbar,
+  .proto-root .proto-sidenav,
+  .proto-root .proto-fabwrap,
+  .proto-root .proto-fab-capture { display: none !important; }
 
   .proto-root .proto-page {
     background: #fff !important;
@@ -902,33 +997,6 @@
 .proto-root .proto-selectrow > span { min-width: 0; flex: 1; }
 
 /* ── Phase 9 — Settings surface + secondary shell control ─────────────── */
-.proto-root .proto-set-control {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 4px;
-}
-.proto-root .proto-set-controlbtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--p-line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--p-ink-2);
-  font-size: 13px;
-  cursor: pointer;
-}
-.proto-root .proto-set-controlbtn:hover { background: rgba(0, 0, 0, 0.04); }
-.proto-root .proto-set-controlbtn:focus-visible,
-.proto-root .proto-set-linkrow:focus-visible,
-.proto-root .proto-set-choice:focus-visible,
-.proto-root .proto-set-switch:focus-visible {
-  outline: 2px solid var(--p-brass);
-  outline-offset: 2px;
-}
-.proto-root .proto-set-controllabel { font-size: 13px; }
 
 .proto-root .proto-set-section { margin-top: 22px; }
 .proto-root .proto-set-sectitle {
@@ -1036,25 +1104,59 @@
 
 .proto-root.proto-sidenav { display: none; }
 
-@media (min-width: 1024px) {
+/* Tablet and up: the drawer becomes a persistent rail. 768–1023px is a compact
+   icon rail so record content keeps the width; 1024px+ opens it fully. */
+@media (min-width: 768px) {
   .proto-root.proto-shell {
     display: grid;
-    grid-template-columns: 264px minmax(0, 1fr);
+    grid-template-columns: 84px minmax(0, 1fr);
     align-items: stretch;
   }
   .proto-root.proto-sidenav {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
     position: sticky;
     top: 0;
     height: 100dvh;
-    padding: 24px 16px;
+    padding: 18px 10px;
     border-right: 1px solid var(--p-line);
     background: var(--p-paper-2);
     min-height: 0;
+    overflow-y: auto;
   }
   .proto-shell .proto-shell-main { height: 100dvh; overflow-y: auto; }
+
+  /* Compact rail: icons + short labels only. */
+  .proto-sidenav .proto-sidenav-hint,
+  .proto-sidenav .proto-sidenav-sub,
+  .proto-sidenav .proto-sidenav-account,
+  .proto-sidenav .proto-sidenav-status,
+  .proto-sidenav .proto-sidenav-actionlabel { display: none; }
+  .proto-sidenav .proto-sidenav-brand { padding: 0 0 8px; align-items: center; }
+  .proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 15px; text-align: center; line-height: 1.15; }
+  .proto-sidenav .proto-sidenav-item { flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; text-align: center; }
+  .proto-sidenav .proto-sidenav-label { font-size: 11px; }
+  .proto-sidenav .proto-sidenav-action { min-height: 48px; padding: 0; }
+  .proto-sidenav .proto-sidenav-signout { font-size: 11px; padding: 8px 4px; }
+}
+
+@media (min-width: 1024px) {
+  .proto-root.proto-shell { grid-template-columns: 264px minmax(0, 1fr); }
+  .proto-root.proto-sidenav { gap: 18px; padding: 24px 16px; }
+  .proto-sidenav .proto-sidenav-hint,
+  .proto-sidenav .proto-sidenav-sub,
+  .proto-sidenav .proto-sidenav-account,
+  .proto-sidenav .proto-sidenav-actionlabel { display: block; }
+  .proto-sidenav .proto-sidenav-status { display: flex; }
+  .proto-sidenav .proto-sidenav-brand { padding: 6px 10px 14px; align-items: flex-start; }
+  .proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 22px; text-align: left; }
+  .proto-sidenav .proto-sidenav-item { flex-direction: row; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; }
+  .proto-sidenav .proto-sidenav-icon { display: inline-flex; color: inherit; }
+.proto-sidenav .proto-sidenav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.proto-sidenav .proto-sidenav-label { font-size: 14px; }
+  .proto-sidenav .proto-sidenav-action { padding: 0 14px; }
+  .proto-sidenav .proto-sidenav-signout { font-size: 13px; padding: 10px 12px; }
 }
 
 .proto-sidenav .proto-sidenav-brand {
@@ -1074,9 +1176,10 @@
 .proto-sidenav .proto-sidenav-list { display: flex; flex-direction: column; gap: 4px; }
 .proto-sidenav .proto-sidenav-item {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 10px;
   width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
   border: 1px solid transparent;
   border-radius: 10px;
@@ -1105,6 +1208,18 @@
 }
 .proto-sidenav .proto-sidenav-status[data-on="true"] { color: var(--p-brass); }
 .proto-sidenav .proto-sidenav-status[data-on="true"] .proto-sidenav-dot { background: var(--p-brass); border-color: var(--p-brass); }
+.proto-sidenav .proto-sidenav-account { display: flex; flex-direction: column; gap: 1px; padding: 0 12px; margin: 0; }
+.proto-sidenav .proto-sidenav-email { font-size: 12.5px; color: var(--p-ink); overflow-wrap: anywhere; }
+.proto-sidenav .proto-sidenav-signout {
+  min-height: 40px;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--p-ink);
+  cursor: pointer;
+}
+.proto-sidenav .proto-sidenav-signout:hover { background: rgba(0,0,0,0.035); }
+.proto-sidenav .proto-sidenav-signout:focus-visible { outline: 2px solid var(--p-brass); outline-offset: 2px; }
 
 :root.dark .proto-root.proto-sidenav { background: var(--p-paper-2); }
 :root.dark .proto-sidenav .proto-sidenav-item[data-active="true"] { background: var(--p-accent-bg); }
@@ -1116,7 +1231,6 @@
     padding: 32px 32px 56px;
   }
   /* The rail owns Settings on desktop; the compact gear is mobile-only. */
-  .proto-root .proto-set-control { display: none; }
 }
 @media (min-width: 1440px) {
   .proto-root.proto-surface { max-width: 1080px; }
@@ -1381,7 +1495,6 @@
 
 /* Desktop owns Settings in the sidebar, so the surface control is redundant. */
 @media (min-width: 1024px) {
-  .proto-root .proto-set-control { display: none; }
 }
 
 /* Desktop sidebar primary action. */
@@ -1406,22 +1519,6 @@
   color: var(--p-brass);
 }
 .proto-sidenav .proto-sidenav-action:focus-visible { outline: 2px solid var(--p-brass); outline-offset: 2px; }
-
-/* Tablet (640–1023px): the bar becomes a deliberate centred pill rather than a
-   stretched phone bar, and stops before the desktop rail takes over at 1024px. */
-@media (min-width: 640px) and (max-width: 1023px) {
-  .proto-root .proto-bottomnav {
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    width: min(520px, calc(100% - 32px));
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    padding: 6px 12px;
-    border: 1px solid var(--p-line);
-    border-radius: 18px;
-    box-shadow: 0 12px 30px -18px rgba(0, 0, 0, 0.5);
-  }
-}
 
 /* ---------------------------------------------------------------------------
    Home — control centre.

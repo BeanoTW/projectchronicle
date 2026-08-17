@@ -1,32 +1,45 @@
-// Canonical desktop navigation (>= 1024px).
+// Persistent navigation rail (>= 768px).
 //
-// Desktop is treated as a real desktop application: a persistent sidebar with
-// Chronicle identity, one prominent New record action (Capture is an action,
-// not a browsing destination), the two real destinations, and account/settings
-// plus Privacy Shield state at the foot.
+// Same navigation model as the mobile drawer (src/components/chronicle/navModel.tsx),
+// two presentations:
+//   768–1023px  compact icon rail (tablet)
+//   >= 1024px   full rail with hints, account identity and Sign out
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { captureAction, destinations, isDestinationActive, navIcon } from './navModel';
 import '@/chronicle/styles.css';
-
-const primary = [
-  { path: '/home', label: 'Home', hint: 'Everything at a glance' },
-  { path: '/timeline', label: 'Notebook', hint: 'Browse and find records' },
-  { path: '/export', label: 'Chronicle', hint: 'Records you have brought together' },
-];
 
 const AppSideNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
   const { enabled: shielded } = usePrivacy();
+  const { user, signOut } = useAuth();
 
-  const isActive = (p: string) => {
-    if (p === '/timeline') return path === '/timeline' || path.startsWith('/incident/');
-    if (p === '/export') return path === '/export' || path === '/my-record';
-    if (p === '/home') return path === '/home';
-    return path === p;
+  const captureActive = captureAction.matches(path);
+  const primary = destinations.filter(d => d.group === 'primary');
+  const secondary = destinations.filter(d => d.group === 'secondary');
+
+  const item = ({ path: p, label, hint }: (typeof destinations)[number]) => {
+    const active = isDestinationActive(destinations.find(d => d.path === p)!, path);
+    return (
+      <button
+        key={p}
+        className="proto-sidenav-item"
+        data-active={active}
+        aria-current={active ? 'page' : undefined}
+        onClick={() => navigate(p)}
+        title={label}
+      >
+        <span className="proto-sidenav-icon" aria-hidden>{navIcon(p)}</span>
+        <span className="proto-sidenav-text">
+          <span className="proto-sidenav-label">{label}</span>
+          <span className="proto-sidenav-hint">{hint}</span>
+        </span>
+      </button>
+    );
   };
-  const captureActive = path.startsWith('/record');
 
   return (
     <aside className="proto-root proto-sidenav" aria-label="Primary" data-testid="app-side-nav">
@@ -40,42 +53,28 @@ const AppSideNav = () => {
         className="proto-sidenav-action"
         data-active={captureActive}
         aria-current={captureActive ? 'page' : undefined}
-        onClick={() => navigate('/record')}
+        onClick={() => navigate(captureAction.path)}
       >
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
           <path d="M12 5.5v13M5.5 12h13" />
         </svg>
-        <span>New record</span>
+        <span className="proto-sidenav-actionlabel">{captureAction.desktopLabel}</span>
       </button>
 
-      <nav className="proto-sidenav-list">
-        {primary.map(({ path: p, label, hint }) => (
-          <button
-            key={p}
-            className="proto-sidenav-item"
-            data-active={isActive(p)}
-            aria-current={isActive(p) ? 'page' : undefined}
-            onClick={() => navigate(p)}
-          >
-            <span className="proto-sidenav-label">{label}</span>
-            <span className="proto-sidenav-hint">{hint}</span>
-          </button>
-        ))}
-      </nav>
+      <nav className="proto-sidenav-list">{primary.map(item)}</nav>
 
       <div className="proto-sidenav-foot">
+        <nav className="proto-sidenav-list">{secondary.map(item)}</nav>
         <div className="proto-sidenav-status" data-on={shielded}>
           <span className="proto-sidenav-dot" aria-hidden />
           {shielded ? 'Privacy Shield on' : 'Privacy Shield off'}
         </div>
-        <button
-          className="proto-sidenav-item"
-          data-active={path === '/settings'}
-          aria-current={path === '/settings' ? 'page' : undefined}
-          onClick={() => navigate('/settings')}
-        >
-          <span className="proto-sidenav-label">Settings</span>
-          <span className="proto-sidenav-hint">Account, privacy, data</span>
+        <p className="proto-sidenav-account" data-testid="rail-account">
+          <span className="proto-sidenav-hint">Signed in as</span>
+          <span className="proto-sidenav-email">{user?.email ?? 'this device'}</span>
+        </p>
+        <button type="button" className="proto-sidenav-signout" onClick={() => void signOut()}>
+          Sign out
         </button>
       </div>
     </aside>

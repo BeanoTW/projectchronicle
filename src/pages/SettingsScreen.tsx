@@ -116,7 +116,7 @@ const SettingsScreen = () => {
   };
 
   return (
-    <AppSurface hideSettingsControl>
+    <AppSurface>
       <div className="proto-page" data-testid="v2-settings">
         <h1 className="proto-h1">Settings</h1>
         <p className="proto-help">Your account, appearance, privacy and data.</p>
