@@ -175,17 +175,18 @@ const DossierConfigureView = ({
 
         {filtersActive && (
           <button className="proto-btn" data-variant="ghost" style={{ marginTop: 10 }}
+            data-testid="chronicle-clear-filters"
             onClick={() => set({ from: null, to: null, category: null, person: null })}>
-            Clear scope filters
+            Clear filters
           </button>
         )}
         <p className="proto-help">
-          Scope decides which included records appear in this document. It never adds or removes
+          Filters decide which included records appear in this document. They never add or remove
           records from your Chronicle itself.
         </p>
       </section>
 
-      <section className="proto-fgroup">
+      <section className="proto-fgroup" data-guide="chronicle-records">
         <h2 className="proto-flabel">Records</h2>
         {totalRecords === 0 ? (
           <div className="proto-empty">No records yet.</div>
