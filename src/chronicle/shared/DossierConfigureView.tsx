@@ -63,7 +63,7 @@ const DossierConfigureView = ({
         </div>
       </section>
 
-      <section className="proto-fgroup">
+      <section className="proto-fgroup" data-guide="chronicle-options">
         <h2 className="proto-flabel">What the report contains</h2>
         <div className="proto-chipwrap">
           <button className="proto-selchip" data-on={cfg.includeDetails}
