@@ -37,7 +37,8 @@ const DossierConfigureView = ({
   supportsHistory = true, supportsEvidence = true, busyId = null,
 }: Props) => {
   const set = (patch: Partial<DossierConfig>) => onChange({ ...cfg, ...patch });
-  const filtersActive = !!(cfg.from || cfg.to || cfg.category || cfg.person);
+  const activeFilterCount = [cfg.from, cfg.to, cfg.category, cfg.person].filter(Boolean).length;
+  const filtersActive = activeFilterCount > 0;
 
   return (
     <div className="proto-noprint">
@@ -119,8 +120,24 @@ const DossierConfigureView = ({
         </section>
       )}
 
-      <section className="proto-fgroup">
-        <h2 className="proto-flabel">Scope</h2>
+      <section className="proto-fgroup" data-guide="chronicle-filters" data-filters-active={filtersActive}>
+        <div className="proto-filterhead">
+          <h2 className="proto-flabel proto-filterhead-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M4 5.5h16l-6.2 7.2V19l-3.6-2v-4.3z" />
+            </svg>
+            Filter records
+          </h2>
+          {filtersActive && (
+            <span className="proto-filterbadge" data-testid="chronicle-filter-count">
+              {activeFilterCount} active {activeFilterCount === 1 ? 'filter' : 'filters'}
+            </span>
+          )}
+        </div>
+        <p className="proto-help" style={{ marginBottom: 8 }}>
+          Filters help you find records. They never change your saved records.
+        </p>
         <div className="proto-daterow">
           <label>
             <span className="proto-help">From</span>
