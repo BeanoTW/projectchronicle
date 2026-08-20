@@ -12,6 +12,10 @@ import { useAllFollowUpNotes } from '@/hooks/useFollowUpNotes';
 import { useEvidence } from '@/hooks/useEvidence';
 import { supabase } from '@/integrations/supabase/client';
 import DossierView from '@/chronicle/shared/DossierView';
+import GuidanceTour from '@/chronicle/guidance/GuidanceTour';
+import ChronicleHelp from '@/components/chronicle/ChronicleHelp';
+import { chronicleTourSteps } from '@/chronicle/guidance/tours';
+import { useGuidance } from '@/chronicle/guidance/useGuidance';
 import AppSurface from '@/chronicle/shared/AppSurface';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import type { DossierAdapter, DossierEvidenceItem } from '@/chronicle/shared/dossierModel';
@@ -29,6 +33,10 @@ const MyRecordScreen = () => {
   const { data: notes } = useAllFollowUpNotes();
   const evidenceQuery = useEvidence();
   const updateIncident = useUpdateIncident();
+
+  /* First visit to Chronicle offers the walkthrough once; it is replayable at
+     any time from the permanent help control. */
+  const guidance = useGuidance('chronicle_intro_completed', !isLoading);
 
   const evidence = useMemo(() => evidenceQuery.data ?? [], [evidenceQuery.data]);
 
@@ -103,6 +111,7 @@ const MyRecordScreen = () => {
     <AppSurface>
       <DossierView
         adapter={adapter}
+        helpControl={<ChronicleHelp onReplay={guidance.replay} />}
         previewWithheld={
           shielded
             ? 'Privacy Shield is on, so the report is not shown on screen. Exported and printed copies are complete and unchanged — turn the shield off in Settings to preview here.'
@@ -110,6 +119,14 @@ const MyRecordScreen = () => {
         }
         onOpenRecord={id => navigate(`/incident/${id}`)}
         intro="Your Notebook holds everything you have recorded. Your Chronicle holds the records you have chosen to bring together — a report is generated from them, and your original wording is never altered."
+      />
+      <GuidanceTour
+        steps={chronicleTourSteps}
+        open={guidance.open}
+        label="How Chronicle works"
+        onEnd={guidance.end}
+        finalNote="You can reopen this from “How Chronicle works” at any time."
+        testId="chronicle-guidance"
       />
     </AppSurface>
   );
