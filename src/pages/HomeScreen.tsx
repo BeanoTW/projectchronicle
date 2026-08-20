@@ -7,6 +7,11 @@ import { usePrivacy } from '@/contexts/PrivacyContext';
 import AppSurface from '@/chronicle/shared/AppSurface';
 import HomeView from '@/chronicle/shared/HomeView';
 import { buildHomeState } from '@/chronicle/shared/homeModel';
+import GuidanceTour from '@/chronicle/guidance/GuidanceTour';
+import { appTourSteps, APP_TOUR_FINAL_NOTE } from '@/chronicle/guidance/tours';
+import { useGuidance } from '@/chronicle/guidance/useGuidance';
+import { isNewAccount } from '@/chronicle/guidance/guidanceModel';
+import { useAuth } from '@/contexts/AuthContext';
 import '@/chronicle/styles.css';
 
 const HomeScreen = () => {
@@ -14,6 +19,14 @@ const HomeScreen = () => {
   const { data: incidents, isLoading } = useIncidents();
   const { backupEnabled } = useBackup();
   const privacy = usePrivacy();
+  const { user } = useAuth();
+
+  /* Only a genuinely new, empty account is offered the introduction, and only
+     once. Established accounts are never interrupted. Guidance is presentation
+     only: it never touches routing, authentication or records. */
+  const eligible =
+    !isLoading && !!user && isNewAccount(user.created_at, (incidents ?? []).length);
+  const guidance = useGuidance('app_intro_completed', eligible);
 
   const state = useMemo(
     () => buildHomeState({ incidents: incidents ?? [], backupEnabled }),
@@ -40,6 +53,15 @@ const HomeScreen = () => {
           onNavigate={path => navigate(path)}
         />
       </div>
+      <GuidanceTour
+        steps={appTourSteps}
+        open={guidance.open}
+        label="Introduction to Project Chronicle"
+        onEnd={guidance.end}
+        finalNote={APP_TOUR_FINAL_NOTE}
+        finalAction={{ label: 'Start recording', onClick: () => navigate('/record') }}
+        testId="app-guidance"
+      />
     </AppSurface>
   );
 };
