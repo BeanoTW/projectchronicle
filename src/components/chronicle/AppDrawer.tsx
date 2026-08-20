@@ -54,6 +54,7 @@ const AppDrawer = () => {
       key={to}
       type="button"
       className="proto-drawer-item"
+      data-guide={`nav-${to.replace(/^\//, '')}`}
       data-active={active}
       aria-current={active ? 'page' : undefined}
       onClick={() => go(to)}

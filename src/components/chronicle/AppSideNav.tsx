@@ -27,6 +27,7 @@ const AppSideNav = () => {
       <button
         key={p}
         className="proto-sidenav-item"
+        data-guide={`nav-${p.replace(/^\//, '')}`}
         data-active={active}
         aria-current={active ? 'page' : undefined}
         onClick={() => navigate(p)}
@@ -51,6 +52,7 @@ const AppSideNav = () => {
       <button
         type="button"
         className="proto-sidenav-action"
+        data-guide="nav-capture"
         data-active={captureActive}
         aria-current={captureActive ? 'page' : undefined}
         onClick={() => navigate(captureAction.path)}
