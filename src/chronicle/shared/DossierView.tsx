@@ -1,7 +1,7 @@
 // Phase 6D — shared Dossier orchestrator (Configure + Preview + exports).
 // Source-agnostic: all data, persistence and blob access arrive via a
 // `DossierAdapter`. No Dexie, Supabase or production hooks are imported here.
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   buildDossierFromSource,
   defaultDossierConfig,
@@ -30,9 +30,14 @@ interface Props {
    * shield is a display filter, not a redaction of the record.
    */
   previewWithheld?: string | null;
+  /**
+   * Optional secondary help affordance (e.g. "? How Chronicle works"). Rendered
+   * beneath the intro so it never competes with report or export actions.
+   */
+  helpControl?: ReactNode;
 }
 
-const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro, previewWithheld = null }: Props) => {
+const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEvidence = true, intro, previewWithheld = null, helpControl }: Props) => {
   const [cfg, setCfg] = useState<DossierConfig>(defaultDossierConfig);
   const [tab, setTab] = useState<'configure' | 'preview'>('configure');
   // Desktop shows configuration and the live report side by side; mobile keeps
@@ -136,9 +141,11 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
             'The records you have chosen to bring together, in chronological order. A report is generated from them. Original wording is never altered.'}
         </p>
 
+        {helpControl}
+
         <div className="proto-viewswitch proto-splittabs" style={{ width: '100%', marginBottom: 14 }} role="group" aria-label="Chronicle view">
           <button style={{ flex: 1 }} data-active={tab === 'configure'} onClick={() => setTab('configure')}>Configure</button>
-          <button style={{ flex: 1 }} data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview report</button>
+          <button style={{ flex: 1 }} data-guide="chronicle-preview-tab" data-active={tab === 'preview'} onClick={() => setTab('preview')}>Preview report</button>
         </div>
 
         {adapter.loading && <p className="proto-help" style={{ marginBottom: 10 }}>Loading records…</p>}
@@ -167,7 +174,7 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
         </div>
       )}
       {(wide || tab === 'preview') && (
-        <div>
+        <div data-guide="chronicle-preview">
           <div className="proto-noprint proto-exportbar">
             <button type="button" className="proto-btn" data-variant="primary" disabled={!canExport || busy !== null}
               onClick={() => runExport('pdf')}>
