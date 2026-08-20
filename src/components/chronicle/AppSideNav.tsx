@@ -52,6 +52,7 @@ const AppSideNav = () => {
       <button
         type="button"
         className="proto-sidenav-action"
+        data-guide="nav-capture"
         data-active={captureActive}
         aria-current={captureActive ? 'page' : undefined}
         onClick={() => navigate(captureAction.path)}
