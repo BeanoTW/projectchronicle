@@ -1594,3 +1594,175 @@
   .proto-root .proto-home-capture-title { font-size: 19px; }
   .proto-root .proto-home-tiles { grid-template-columns: 1fr; }
 }
+
+/* ------------------------------------------------------------------ *
+ * Contextual guidance (spotlight tour) + Chronicle filter head + help
+ * Token-driven, so light and dark modes follow the same palette.
+ * ------------------------------------------------------------------ */
+
+.proto-root.proto-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: transparent;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.proto-guide .proto-guide-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 14, 0.44);
+  pointer-events: auto;
+}
+
+:root.dark .proto-guide .proto-guide-scrim { background: rgba(0, 0, 0, 0.58); }
+
+/* Subtle spotlight: a soft ring plus a large shadow that darkens everything
+   outside the target without a second scrim layer. */
+.proto-guide .proto-guide-spot {
+  position: fixed;
+  border-radius: 12px;
+  border: 1.5px solid var(--p-brass-soft);
+  box-shadow: 0 0 0 9999px rgba(20, 18, 14, 0.44), 0 0 0 3px rgba(180, 138, 58, 0.25);
+  pointer-events: none;
+  transition: top 160ms ease, left 160ms ease, width 160ms ease, height 160ms ease;
+}
+
+:root.dark .proto-guide .proto-guide-spot {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.58), 0 0 0 3px rgba(180, 138, 58, 0.3);
+}
+
+.proto-guide .proto-guide-card {
+  position: fixed;
+  z-index: 121;
+  max-width: calc(100vw - 24px);
+  box-sizing: border-box;
+  background: var(--p-paper);
+  color: var(--p-ink);
+  border: 1px solid var(--p-line);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 14px 40px rgba(20, 18, 14, 0.24);
+  pointer-events: auto;
+  outline: none;
+  transition: top 160ms ease, left 160ms ease;
+}
+
+.proto-guide .proto-guide-card:focus-visible {
+  box-shadow: 0 14px 40px rgba(20, 18, 14, 0.24), 0 0 0 3px rgba(180, 138, 58, 0.45);
+}
+
+.proto-guide .proto-guide-count {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--p-muted);
+  margin: 0 0 4px;
+}
+
+.proto-guide .proto-guide-title {
+  font-family: 'Instrument Serif', 'Cormorant', Georgia, serif;
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0 0 6px;
+  color: var(--p-ink);
+}
+
+.proto-guide .proto-guide-body {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--p-ink-2);
+}
+
+.proto-guide .proto-guide-final {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 8px 0 0;
+  color: var(--p-brass);
+}
+
+.proto-guide .proto-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.proto-guide .proto-guide-actions .proto-btn { min-height: 44px; }
+
+@media (max-width: 380px) {
+  .proto-guide .proto-guide-card { padding: 12px; }
+  .proto-guide .proto-guide-title { font-size: 18px; }
+  .proto-guide .proto-guide-actions .proto-btn { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-guide .proto-guide-card,
+  .proto-guide .proto-guide-spot { transition: none; }
+}
+
+/* Chronicle — filter section head */
+.proto-root .proto-filterhead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.proto-root .proto-filterhead-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.proto-root .proto-filterbadge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--p-brass-soft);
+  background: var(--p-accent-bg);
+  color: var(--p-brass);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Chronicle — permanent, secondary help control */
+.proto-root .proto-helpblock { margin: -4px 0 12px; }
+
+.proto-root .proto-helplink {
+  background: none;
+  border: none;
+  padding: 6px 0;
+  min-height: 44px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--p-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.proto-root .proto-helplink:hover { color: var(--p-ink-2); }
+
+.proto-root .proto-helppanel {
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  background: var(--p-paper-2);
+  padding: 12px;
+  margin-top: 6px;
+}
+
+.proto-root .proto-helplist {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--p-ink-2);
+}
