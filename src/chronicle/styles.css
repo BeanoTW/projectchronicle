@@ -1093,7 +1093,7 @@
 
 /* ── Phase 11 — canonical app shell (one design system, two presentations) ──
    Mobile: single column + bottom bar (Notebook · Capture · Chronicle).
-   Desktop (>=1024px): persistent left rail, wider intentional layouts.
+   Desktop (>=1152px): persistent left rail, wider intentional layouts.
    The same routes and screens render in both. */
 
 .proto-root.proto-shell {
