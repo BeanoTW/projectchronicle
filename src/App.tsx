@@ -56,8 +56,9 @@ import OAuthConsentScreen from "./pages/OAuthConsentScreen";
 const queryClient = new QueryClient();
 
 // One canonical shell for every account and every authenticated screen.
-//   mobile  → top-left menu + slide-out drawer + floating Capture action
-//   >=768px → persistent navigation rail (compact), full rail at >=1024px
+//   <1152px  → top-left menu + slide-out drawer + floating Capture action
+//   >=1152px → persistent full navigation rail (branding, hints, account)
+
 // Same routes, same screens, one navigation model (navModel.tsx).
 // The screen-level boundary means one broken record cannot take out navigation.
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
