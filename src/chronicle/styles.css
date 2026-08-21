@@ -1224,7 +1224,15 @@
 :root.dark .proto-root.proto-sidenav { background: var(--p-paper-2); }
 :root.dark .proto-sidenav .proto-sidenav-item[data-active="true"] { background: var(--p-accent-bg); }
 
-/* Surface widths: reading column on mobile, intentional desktop canvas. */
+/* Surface widths: reading column on mobile, wider composition on tablet,
+   intentional desktop canvas once the rail appears. */
+@media (min-width: 768px) {
+  .proto-root.proto-surface {
+    max-width: 720px;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
 @media (min-width: 1024px) {
   .proto-root.proto-surface {
     max-width: 960px;
