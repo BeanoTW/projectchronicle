@@ -253,8 +253,8 @@
 @media (prefers-reduced-motion: reduce) {
   .proto-root .proto-fab-capture { transition: none; }
 }
-/* The rail owns Capture from 768px up. */
-@media (min-width: 768px) {
+/* The rail owns Capture from the desktop breakpoint up. */
+@media (min-width: 1152px) {
   .proto-root .proto-fabwrap { display: none; }
 }
 
