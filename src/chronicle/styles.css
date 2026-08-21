@@ -1104,12 +1104,13 @@
 
 .proto-root.proto-sidenav { display: none; }
 
-/* Tablet and up: the drawer becomes a persistent rail. 768–1023px is a compact
-   icon rail so record content keeps the width; 1024px+ opens it fully. */
-@media (min-width: 768px) {
+/* Navigation stays drawer-based until the full rail AND a genuinely useful
+   workspace fit side by side (264px rail + ~880px content = 1152px). Below
+   that, page content still uses the extra tablet width. */
+@media (min-width: 1152px) {
   .proto-root.proto-shell {
     display: grid;
-    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-columns: 264px minmax(0, 1fr);
     align-items: stretch;
   }
   .proto-root.proto-sidenav {
@@ -1119,44 +1120,43 @@
     position: sticky;
     top: 0;
     height: 100dvh;
-    padding: 18px 10px;
+    padding: 20px 14px;
     border-right: 1px solid var(--p-line);
     background: var(--p-paper-2);
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--p-line) transparent;
   }
+  .proto-root.proto-sidenav::-webkit-scrollbar { width: 6px; }
+  .proto-root.proto-sidenav::-webkit-scrollbar-track { background: transparent; }
+  .proto-root.proto-sidenav::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+  }
+  .proto-root.proto-sidenav::-webkit-scrollbar-thumb:hover,
+  .proto-root.proto-sidenav::-webkit-scrollbar-thumb:active { background: rgba(0, 0, 0, 0.24); }
+  .proto-root.proto-sidenav::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+  :root.dark .proto-root.proto-sidenav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); }
+  :root.dark .proto-root.proto-sidenav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+
   .proto-shell .proto-shell-main { height: 100dvh; overflow-y: auto; }
 
-  /* Compact rail: icons + short labels only. */
-  .proto-sidenav .proto-sidenav-hint,
-  .proto-sidenav .proto-sidenav-sub,
-  .proto-sidenav .proto-sidenav-account,
-  .proto-sidenav .proto-sidenav-status,
-  .proto-sidenav .proto-sidenav-actionlabel { display: none; }
-  .proto-sidenav .proto-sidenav-brand { padding: 0 0 8px; align-items: center; }
-  .proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 15px; text-align: center; line-height: 1.15; }
-  .proto-sidenav .proto-sidenav-item { flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; text-align: center; }
-  .proto-sidenav .proto-sidenav-label { font-size: 11px; }
-  .proto-sidenav .proto-sidenav-action { min-height: 48px; padding: 0; }
-  .proto-sidenav .proto-sidenav-signout { font-size: 11px; padding: 8px 4px; }
-}
-
-@media (min-width: 1024px) {
-  .proto-root.proto-shell { grid-template-columns: 264px minmax(0, 1fr); }
-  .proto-root.proto-sidenav { gap: 18px; padding: 24px 16px; }
   .proto-sidenav .proto-sidenav-hint,
   .proto-sidenav .proto-sidenav-sub,
   .proto-sidenav .proto-sidenav-account,
   .proto-sidenav .proto-sidenav-actionlabel { display: block; }
   .proto-sidenav .proto-sidenav-status { display: flex; }
-  .proto-sidenav .proto-sidenav-brand { padding: 6px 10px 14px; align-items: flex-start; }
-  .proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 22px; text-align: left; }
-  .proto-sidenav .proto-sidenav-item { flex-direction: row; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; }
+  .proto-sidenav .proto-sidenav-brand { padding: 2px 10px 10px; align-items: flex-start; }
+  .proto-sidenav .proto-sidenav-brand .proto-serif { font-size: 21px; text-align: left; }
+  .proto-sidenav .proto-sidenav-item { flex-direction: row; align-items: center; gap: 10px; padding: 8px 12px; text-align: left; }
   .proto-sidenav .proto-sidenav-icon { display: inline-flex; color: inherit; }
-.proto-sidenav .proto-sidenav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.proto-sidenav .proto-sidenav-label { font-size: 14px; }
+  .proto-sidenav .proto-sidenav-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .proto-sidenav .proto-sidenav-label { font-size: 14px; }
   .proto-sidenav .proto-sidenav-action { padding: 0 14px; }
-  .proto-sidenav .proto-sidenav-signout { font-size: 13px; padding: 10px 12px; }
+  .proto-sidenav .proto-sidenav-signout { font-size: 13px; padding: 8px 12px; }
+  .proto-sidenav .proto-sidenav-foot { gap: 6px; padding-top: 10px; }
 }
 
 .proto-sidenav .proto-sidenav-brand {
