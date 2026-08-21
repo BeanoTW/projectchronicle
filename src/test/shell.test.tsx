@@ -97,11 +97,11 @@ describe('responsive navigation', () => {
       });
   });
 
-  it('the rail is hidden below the tablet breakpoint and the Capture action above it', () => {
+  it('the rail is hidden below the desktop breakpoint and the Capture action above it', () => {
     const railCss = readFileSync(join(SRC, 'chronicle/styles.css'), 'utf8');
     expect(railCss).toMatch(/\.proto-root\.proto-sidenav \{ display: none; \}/);
-    expect(railCss).toMatch(/@media \(min-width: 768px\)/);
-    expect(railCss).toMatch(/@media \(min-width: 1024px\)/);
+    expect(railCss).toMatch(/@media \(min-width: 1152px\) \{\n\s*\.proto-root \.proto-fabwrap \{ display: none; \}/);
+    expect(railCss).toMatch(/@media \(min-width: 1152px\) \{\n\s*\.proto-root\.proto-shell \{/);
     render(<MemoryRouter initialEntries={['/timeline']}><CaptureFab /></MemoryRouter>);
     expect(screen.getByTestId('capture-fab')).toBeTruthy();
   });
