@@ -112,7 +112,7 @@
   outline: 2px solid var(--p-brass);
   outline-offset: 2px;
 }
-@media (min-width: 768px) {
+@media (min-width: 1152px) {
   .proto-root .proto-appbar { display: none; }
 }
 
