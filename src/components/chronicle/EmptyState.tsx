@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import ChronicleMark from '@/chronicle/brand/ChronicleMark';
 
 interface EmptyStateProps {
   icon: ReactNode;
@@ -11,7 +12,8 @@ interface EmptyStateProps {
 
 const EmptyState = ({ icon, heading, body, actionLabel, onAction }: EmptyStateProps) => (
   <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-    <div className="text-muted-foreground/40 mb-5">{icon}</div>
+    <ChronicleMark size={34} className="mb-4 opacity-70" aria-hidden />
+    <div className="text-muted-foreground/35 mb-4 scale-75" aria-hidden>{icon}</div>
     <h3 className="text-[15px] font-semibold text-foreground mb-2">{heading}</h3>
     <p className="text-[13px] text-muted-foreground max-w-xs leading-relaxed">{body}</p>
     {actionLabel && onAction && (
