@@ -121,8 +121,16 @@ const EvidenceScreen = () => {
   };
 
   const requestDeleteEvidence = async (evidence: EvidenceFile) => {
-    const isSource = await isTranscriptSource(evidence.id);
-    setPendingDelete({ evidence, isSource });
+    try {
+      const isSource = await isTranscriptSource(evidence.id);
+      setPendingDelete({ evidence, isSource });
+    } catch (err) {
+      toast({
+        title: 'Could not prepare this attachment for deletion',
+        description: toSafeAttachmentMessage(err),
+        variant: 'destructive',
+      });
+    }
   };
 
   const confirmDeleteEvidence = async () => {
