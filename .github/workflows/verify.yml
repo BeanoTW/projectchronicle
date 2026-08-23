@@ -1,0 +1,31 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # Baseline debt: package-lock.json is stale and lovable-tagger 1.1.13
+      # declares Vite <8 while Chronicle already uses Vite 8. Install from the
+      # manifest without mutating the lockfile so CI can exercise tests/build.
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --package-lock=false
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build
