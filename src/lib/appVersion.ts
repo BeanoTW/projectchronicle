@@ -2,11 +2,12 @@
 // users should refresh into. The build hash from Vite (import.meta.env) gives
 // per-build differentiation for SW update detection.
 
-export const APP_VERSION = '1.6.1';
+export const APP_VERSION = '1.6.2';
 
 // Short, neutral, trust-focused notes shown in the "What changed" panel.
 // Keep entries terse — bullet style.
 export const RELEASE_NOTES: string[] = [
+  'The final generic system screens now use Chronicle’s finished paper-and-ink design.',
   'Updates are now detected on launch, reconnect and return, with a reliable Update button.',
   'Backup & recovery now has one clear centre for status, manual backup, restore and conflict review.',
   'Attachment deletion now uses confirmation, transcript warnings and stronger ownership checks.',
