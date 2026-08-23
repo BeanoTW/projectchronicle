@@ -20,11 +20,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      # Pre-existing baseline: lovable-tagger 1.1.13 declares Vite <8 while
-      # Chronicle already runs Vite 8. Preserve that install state in CI so
-      # verification reaches the tests/build instead of changing dependencies.
+      # Baseline debt: package-lock.json is stale and lovable-tagger 1.1.13
+      # declares Vite <8 while Chronicle already uses Vite 8. Install from the
+      # manifest without mutating the lockfile so CI can exercise tests/build.
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps --package-lock=false
       - name: Test
         run: npm test
       - name: Build
