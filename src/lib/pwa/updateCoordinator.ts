@@ -73,10 +73,12 @@ export const setUpdateChecker = (nextChecker: UpdateChecker) => {
 export const requestAppUpdateCheck = async () => {
   if (checker) {
     await checker();
-    return;
+    return true;
   }
   const registration = await navigator.serviceWorker?.getRegistration();
-  await registration?.update();
+  if (!registration) return false;
+  await registration.update();
+  return true;
 };
 
 export const activatePendingUpdate = async (releaseId: string) => {
