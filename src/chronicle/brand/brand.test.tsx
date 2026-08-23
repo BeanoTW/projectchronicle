@@ -9,8 +9,9 @@ import { CHRONICLE_MARK, CHRONICLE_MARK_VIEWBOX } from './markGeometry';
 describe('Chronicle brand', () => {
   it('keeps the Bound Record geometry stable', () => {
     expect(CHRONICLE_MARK_VIEWBOX).toBe('0 0 64 64');
-    expect(CHRONICLE_MARK.nodes).toEqual([19.5, 32, 44.5]);
-    expect(CHRONICLE_MARK.page).toContain('54 18');
+    expect(CHRONICLE_MARK.stitches).toEqual([23, 36, 49]);
+    expect(CHRONICLE_MARK.front).toContain('44.5V56');
+    expect(CHRONICLE_MARK.back).toContain('51.5V49.5');
   });
 
   it('renders a decorative mark without exposing duplicate accessible text', () => {
