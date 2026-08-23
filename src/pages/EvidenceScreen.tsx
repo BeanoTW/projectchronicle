@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock, Pencil, Check, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident, useRenameEvidence } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident, useRenameEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
 import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
 import PageHeader from '@/components/chronicle/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
 import { displayTitle } from '@/lib/displayTitle';
 import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 import { attachmentDisplayName, hasCustomAttachmentName } from '@/lib/attachmentName';
+import DeleteAttachmentDialog from '@/components/chronicle/DeleteAttachmentDialog';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -56,11 +56,14 @@ const EvidenceScreen = () => {
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
   const { data: allEvidence = [], isLoading, refetch } = useEvidence();
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
   const linkEvidence = useLinkEvidenceToIncident();
   const renameEvidence = useRenameEvidence();
+  const deleteEvidence = useDeleteEvidence();
+  const isTranscriptSource = useIsTranscriptSource();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { gateActive, requestReveal } = useAttachmentReveal();
@@ -117,15 +120,24 @@ const EvidenceScreen = () => {
     }
   };
 
-  const handleRemoveEvidence = async (evidenceId: string, filePath: string) => {
+  const requestDeleteEvidence = async (evidence: EvidenceFile) => {
+    const isSource = await isTranscriptSource(evidence.id);
+    setPendingDelete({ evidence, isSource });
+  };
+
+  const confirmDeleteEvidence = async () => {
+    if (!pendingDelete) return;
+    const { evidence } = pendingDelete;
+    setPendingDelete(null);
     try {
-      await supabase.storage.from('evidence').remove([filePath]);
-      const { error } = await supabase.from('evidence_files').delete().eq('id', evidenceId);
-      if (error) throw error;
-      toast({ title: 'Attachment removed' });
-      refetch();
-    } catch {
-      toast({ title: 'Failed to remove', variant: 'destructive' });
+      await deleteEvidence.mutateAsync({ evidence });
+      toast({ title: 'Attachment deleted' });
+    } catch (err) {
+      toast({
+        title: 'Could not delete this attachment',
+        description: toSafeAttachmentMessage(err),
+        variant: 'destructive',
+      });
     }
   };
 
@@ -285,7 +297,7 @@ const EvidenceScreen = () => {
                       <Pencil className="h-3 w-3" /> Rename
                     </button>
                     <button
-                      onClick={() => handleRemoveEvidence(ev.id, ev.file_path)}
+                      onClick={() => { void requestDeleteEvidence(ev); }}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive active:scale-[0.97] transition-all"
                     >
                       <Trash2 className="h-3 w-3" /> Remove
@@ -332,6 +344,14 @@ const EvidenceScreen = () => {
           );
         })}
       </div>
+
+      <DeleteAttachmentDialog
+        open={!!pendingDelete}
+        fileName={pendingDelete?.evidence ? attachmentDisplayName(pendingDelete.evidence) : undefined}
+        isTranscriptSource={!!pendingDelete?.isSource}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => { void confirmDeleteEvidence(); }}
+      />
 
       {previewFile && (
         <EvidencePreview
