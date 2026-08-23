@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import ChronicleMark from './ChronicleMark';
 import ChronicleLockup from './ChronicleLockup';
 import ChronicleEmptyState from './ChronicleEmptyState';
+import ChroniclePageHeader from './ChroniclePageHeader';
 import { CHRONICLE_MARK, CHRONICLE_MARK_VIEWBOX } from './markGeometry';
 
 describe('Chronicle brand', () => {
@@ -28,6 +29,13 @@ describe('Chronicle brand', () => {
     render(<ChronicleLockup subtitle="The bound record" />);
     expect(screen.getByText('Chronicle')).toBeInTheDocument();
     expect(screen.getByText('The bound record')).toBeInTheDocument();
+  });
+
+  it('anchors signed-in pages with a Chronicle masthead', () => {
+    const { container } = render(<ChroniclePageHeader title="Notebook" subtitle="Every record, in order" />);
+    expect(screen.getByRole('heading', { name: 'Notebook' })).toBeInTheDocument();
+    expect(screen.getByText('Chronicle')).toBeInTheDocument();
+    expect(container.querySelector('.proto-brandhead-stamp')).toBeInTheDocument();
   });
 
   it('renders branded empty-state content as status by default', () => {
