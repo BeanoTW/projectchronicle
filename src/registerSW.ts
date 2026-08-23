@@ -1,14 +1,12 @@
 /**
- * Service worker registration with strict guards.
+ * Service worker registration with strict guards and explicit update control.
  *
- * Never registers in:
- * - dev mode
- * - iframes (Lovable preview)
- * - lovable preview hosts
- *
- * Actively unregisters any pre-existing SW in those contexts so stale caches
- * from earlier visits cannot pollute the editor preview.
+ * Production checks on launch, reconnect, returning to the app and hourly.
+ * A newly installed worker waits until the user chooses Update, preventing
+ * open capture forms in other tabs from being reloaded without warning.
  */
+import { APP_VERSION } from '@/lib/appVersion';
+import { announceUpdate } from '@/lib/pwa/updateCoordinator';
 
 const isInIframe = (() => {
   try {
@@ -20,66 +18,82 @@ const isInIframe = (() => {
 
 const host = window.location.hostname;
 const isPreviewHost =
-  host.includes("id-preview--") ||
-  host.includes("lovableproject.com") ||
-  host.includes("lovable.app") && host.includes("id-preview--");
+  host.includes('id-preview--') ||
+  host.includes('lovableproject.com') ||
+  host.includes('lovable.app') && host.includes('id-preview--');
 
-const isLocalhost = host === "localhost" || host === "127.0.0.1";
+const isLocalhost = host === 'localhost' || host === '127.0.0.1';
 
 const shouldRegister =
   import.meta.env.PROD && !isInIframe && !isPreviewHost && !isLocalhost;
 
+const UPDATE_INTERVAL_MS = 60 * 60 * 1000;
+
 export async function registerServiceWorker() {
-  if (!("serviceWorker" in navigator)) return;
+  if (!('serviceWorker' in navigator)) return;
 
   if (!shouldRegister) {
-    // Clean up any SW that might have been registered previously in this scope.
     try {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(registration => registration.unregister()));
     } catch {
-      /* no-op */
+      // Preview cleanup is best-effort.
     }
     return;
   }
 
   try {
-    const { registerSW } = await import("virtual:pwa-register");
-    let reloadingForUpdate = false;
+    const { registerSW } = await import('virtual:pwa-register');
 
-    // When a newly activated worker takes control, reload exactly once so the
-    // page and its controller always come from the same release.
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (reloadingForUpdate) return;
-      reloadingForUpdate = true;
-      window.location.reload();
-    });
-
-    const reload = registerSW({
+    const updateSW = registerSW({
       immediate: true,
-      onRegisteredSW(_swUrl, registration) {
-        if (registration) {
-          // Check immediately on every launch, then periodically while open.
-          // This prevents an installed Chronicle tab from waiting an hour
-          // before learning that a newer branded shell is available.
-          registration.update().catch(() => {});
-          setInterval(() => registration.update().catch(() => {}), 5 * 60 * 1000);
-        }
+      registrationOptions: {
+        // Never reuse an HTTP-cached worker script when checking for a release.
+        updateViaCache: 'none',
+      },
+      onRegisteredSW(swUrl, registration) {
+        if (!registration) return;
+
+        let checking = false;
+        const checkForUpdate = async () => {
+          if (checking || registration.installing || navigator.onLine === false) return;
+          checking = true;
+          try {
+            // The no-store request catches stale hosting/CDN responses before
+            // asking the browser to run its service-worker update algorithm.
+            const response = await fetch(swUrl, {
+              cache: 'no-store',
+              headers: {
+                'cache': 'no-store',
+                'cache-control': 'no-cache',
+              },
+            });
+            if (response.ok) await registration.update();
+          } catch {
+            // A failed check changes no caches and will retry at the next trigger.
+          } finally {
+            checking = false;
+          }
+        };
+
+        void checkForUpdate();
+        window.setInterval(() => { void checkForUpdate(); }, UPDATE_INTERVAL_MS);
+        window.addEventListener('online', checkForUpdate);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') void checkForUpdate();
+        });
       },
       onNeedRefresh() {
-        console.info("[Chronicle] New version available — reload to update.");
-        // Non-blocking: dispatch an event so UpdateBanner can offer Refresh.
-        window.dispatchEvent(
-          new CustomEvent("chronicle:update-available", {
-            detail: { reload: () => reload(true) },
-          }),
-        );
+        announceUpdate(APP_VERSION, () => updateSW(true));
       },
       onOfflineReady() {
-        console.info("[Chronicle] App shell cached. Ready for offline boot.");
+        console.info('[Chronicle] App shell cached. Ready for offline use.');
+      },
+      onRegisterError(error) {
+        console.warn('[Chronicle] Service worker registration failed:', error);
       },
     });
-  } catch (err) {
-    console.warn("[Chronicle] SW registration skipped:", err);
+  } catch (error) {
+    console.warn('[Chronicle] Service worker registration skipped:', error);
   }
 }
