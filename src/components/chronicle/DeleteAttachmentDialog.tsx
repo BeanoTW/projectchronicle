@@ -15,6 +15,7 @@ interface DeleteAttachmentDialogProps {
   isTranscriptSource: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  busy?: boolean;
 }
 
 /**
@@ -28,9 +29,10 @@ const DeleteAttachmentDialog = ({
   isTranscriptSource,
   onCancel,
   onConfirm,
+  busy = false,
 }: DeleteAttachmentDialogProps) => {
   return (
-    <AlertDialog open={open} onOpenChange={(o) => { if (!o) onCancel(); }}>
+    <AlertDialog open={open} onOpenChange={(o) => { if (!o && !busy) onCancel(); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
@@ -52,9 +54,13 @@ const DeleteAttachmentDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>
-            {isTranscriptSource ? 'Delete anyway' : 'Delete'}
+          <AlertDialogCancel onClick={onCancel} disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={busy}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {busy ? 'Deleting…' : isTranscriptSource ? 'Delete anyway' : 'Delete'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
