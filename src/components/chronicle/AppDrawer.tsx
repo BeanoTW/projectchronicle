@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import ChronicleLockup from '@/chronicle/brand/ChronicleLockup';
 import { destinations, isDestinationActive, navIcon } from './navModel';
 import '@/chronicle/styles.css';
 
@@ -22,7 +23,6 @@ const AppDrawer = () => {
   const startX = useRef<number | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // A destination change always dismisses the drawer, including Back/Forward.
   useEffect(() => { setOpen(false); }, [path]);
 
   const go = useCallback((to: string) => {
@@ -30,8 +30,6 @@ const AppDrawer = () => {
     if (to !== path) navigate(to);
   }, [navigate, path]);
 
-  // Swipe left to dismiss. Pure presentation: the panel follows the finger and
-  // snaps back if the gesture is too small.
   const onTouchStart = (e: React.TouchEvent) => { startX.current = e.touches[0].clientX; };
   const onTouchMove = (e: React.TouchEvent) => {
     if (startX.current === null || !panelRef.current) return;
@@ -77,8 +75,8 @@ const AppDrawer = () => {
             </svg>
           </button>
         </Dialog.Trigger>
-        <button type="button" className="proto-appbar-brand" onClick={() => go('/home')}>
-          <span className="proto-serif">Project Chronicle</span>
+        <button type="button" className="proto-appbar-brand" onClick={() => go('/home')} aria-label="Chronicle home">
+          <ChronicleLockup compact markSize={25} />
         </button>
       </header>
 
@@ -95,8 +93,12 @@ const AppDrawer = () => {
           onTouchEnd={onTouchEnd}
         >
           <div className="proto-drawer-head">
-            <Dialog.Title className="proto-serif proto-drawer-title">Project Chronicle</Dialog.Title>
-            <Dialog.Description className="proto-drawer-sub">A chronological record</Dialog.Description>
+            <Dialog.Title asChild>
+              <ChronicleLockup subtitle="A chronological record" />
+            </Dialog.Title>
+            <Dialog.Description className="proto-drawer-sub" style={{ marginTop: 8 }}>
+              Capture events. Build the record.
+            </Dialog.Description>
             <Dialog.Close asChild>
               <button type="button" className="proto-drawer-close" aria-label="Close navigation menu">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
