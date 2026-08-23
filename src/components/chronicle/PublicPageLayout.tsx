@@ -42,11 +42,11 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
       </Helmet>
 
       <header className="border-b border-border/60">
-        <div className="max-w-5xl mx-auto px-5 lg:px-8 py-4 lg:py-5 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-5 lg:px-8 py-4 lg:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <Link to="/" className="text-foreground/90" aria-label="Chronicle home" style={publicBrandTokens}>
             <ChronicleLockup compact markSize={28} />
           </Link>
-          <nav className="flex items-center gap-5 lg:gap-7 text-[12.5px] lg:text-[13.5px] text-muted-foreground">
+          <nav className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 sm:gap-5 lg:gap-7 text-[12.5px] lg:text-[13.5px] text-muted-foreground">
             <Link to="/how-it-works" className="hover:text-foreground">How it works</Link>
             <Link to="/guides" className="hover:text-foreground">Guides</Link>
             <Link to="/faq" className="hover:text-foreground">FAQ</Link>
@@ -57,7 +57,7 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
 
       <main className="max-w-3xl lg:max-w-4xl mx-auto px-5 lg:px-8 py-10 sm:py-14 lg:py-20">
         <article className="prose prose-neutral max-w-none
-                            prose-headings:font-medium prose-headings:tracking-[-0.01em]
+                            prose-headings:font-medium prose-headings:tracking-[-0.01em] prose-headings:text-foreground
                             prose-h1:text-[34px] sm:prose-h1:text-[40px] lg:prose-h1:text-[52px] prose-h1:leading-[1.1]
                             prose-h2:text-[22px] sm:prose-h2:text-[24px] lg:prose-h2:text-[28px] prose-h2:mt-10 lg:prose-h2:mt-14 prose-h2:mb-3
                             prose-h3:text-[17px] lg:prose-h3:text-[19px] prose-h3:mt-7 prose-h3:mb-2
