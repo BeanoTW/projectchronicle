@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2, Pencil, Check, X } from 'lucide-react';
+import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2, Pencil, Check } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, useLinkEvidenceToIncident, useRenameEvidence, type EvidenceFile } from '@/hooks/useEvidence';
