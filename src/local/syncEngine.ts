@@ -211,7 +211,7 @@ export const getConflictCount = async (userId: string): Promise<number> => {
 // We re-arm the row at the server's current version so the next push wins.
 export const resolveConflictKeepLocal = async (incidentId: string): Promise<void> => {
   const row = await localDB.incidents.get(incidentId);
-  if (!row) return;
+  if (!row) throw new Error('The conflicting local record could not be found.');
   await localDB.incidents.update(incidentId, {
     sync_state: 'queued',
     last_sync_error: null,
@@ -224,9 +224,9 @@ export const resolveConflictKeepLocal = async (incidentId: string): Promise<void
 // Resolve a conflict by discarding local edits and pulling cloud version.
 export const resolveConflictKeepCloud = async (incidentId: string): Promise<void> => {
   const row = await localDB.incidents.get(incidentId);
-  if (!row) return;
+  if (!row) throw new Error('The conflicting local record could not be found.');
   const { data, error } = await supabase.from('incidents').select('*').eq('id', incidentId).maybeSingle();
-  if (error || !data) return;
+  if (error || !data) throw new Error('The cloud copy could not be loaded.');
   const ts = new Date().toISOString();
   await localDB.incidents.put({
     ...(data as LocalIncident),
