@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // App-shell precache only: built JS/CSS/HTML + manifest/icons/fonts.
         globPatterns: ["**/*.{js,css,html,ico,svg,png,webmanifest,woff,woff2}"],
-        cacheId: "chronicle-v2",
+        cacheId: "chronicle-v3",
         // Allow large bundled assets (e.g. logo PNG) to be precached.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA fallback: offline navigations resolve to index.html so React
@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => ({
         runtimeCaching: [],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: false, // safer: wait for next reload to activate new SW
+        skipWaiting: true, // activate the fresh shell so new tabs cannot reopen stale code
       },
     }),
   ].filter(Boolean),
