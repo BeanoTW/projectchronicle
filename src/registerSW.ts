@@ -6,7 +6,7 @@
  * open capture forms in other tabs from being reloaded without warning.
  */
 import { APP_VERSION } from '@/lib/appVersion';
-import { announceUpdate } from '@/lib/pwa/updateCoordinator';
+import { announceUpdate, setUpdateChecker } from '@/lib/pwa/updateCoordinator';
 
 const isInIframe = (() => {
   try {
@@ -76,6 +76,7 @@ export async function registerServiceWorker() {
           }
         };
 
+        setUpdateChecker(checkForUpdate);
         void checkForUpdate();
         window.setInterval(() => { void checkForUpdate(); }, UPDATE_INTERVAL_MS);
         window.addEventListener('online', checkForUpdate);
