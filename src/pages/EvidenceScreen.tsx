@@ -351,6 +351,7 @@ const EvidenceScreen = () => {
         isTranscriptSource={!!pendingDelete?.isSource}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => { void confirmDeleteEvidence(); }}
+        busy={deleteEvidence.isPending}
       />
 
       {previewFile && (
