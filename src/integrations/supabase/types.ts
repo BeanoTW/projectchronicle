@@ -173,6 +173,7 @@ export type Database = {
         Row: {
           capture_date: string | null
           description: string | null
+          display_name: string | null
           evidence_ref_number: number | null
           file_hash: string | null
           file_name: string
@@ -188,6 +189,7 @@ export type Database = {
         Insert: {
           capture_date?: string | null
           description?: string | null
+          display_name?: string | null
           evidence_ref_number?: number | null
           file_hash?: string | null
           file_name: string
@@ -203,6 +205,7 @@ export type Database = {
         Update: {
           capture_date?: string | null
           description?: string | null
+          display_name?: string | null
           evidence_ref_number?: number | null
           file_hash?: string | null
           file_name?: string
