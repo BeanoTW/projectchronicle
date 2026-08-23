@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ChronicleLogo from '@/components/chronicle/ChronicleLogo';
+import AuthShell from '@/chronicle/shared/AuthShell';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { nextOrDefault } from '@/lib/authNext';
@@ -111,69 +111,106 @@ const AuthCallbackScreen = () => {
     return () => clearTimeout(timeout);
   }, [navigate, destination]);
 
+  const callbackTitle =
+    state === 'processing'
+      ? flowType === 'recovery'
+        ? 'Preparing password reset'
+        : flowType === 'verification'
+          ? 'Confirming your email'
+          : 'Completing sign-in'
+      : state === 'success'
+        ? flowType === 'verification'
+          ? 'Email verified'
+          : 'Signed in'
+        : state === 'timeout'
+          ? 'This is taking longer than expected'
+          : flowType === 'recovery'
+            ? 'Reset link could not be used'
+            : flowType === 'verification'
+              ? 'Email could not be verified'
+              : 'Sign-in could not be completed';
+
+  const callbackLede =
+    state === 'processing'
+      ? 'Chronicle is securely checking the link.'
+      : state === 'success'
+        ? 'Everything is ready. Taking you back to your record.'
+        : 'Your Chronicle data has not been changed.';
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6">
-      <ChronicleLogo size={48} />
+    <AuthShell title={callbackTitle} lede={callbackLede}>
+      <div className="mt-7">
+        {state === 'processing' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="rounded-xl border border-border bg-card/70 px-4 py-4"
+            role="status"
+          >
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+              <p className="text-[13px] text-muted-foreground">Please keep this page open.</p>
+            </div>
+          </motion.div>
+        )}
 
-      {state === 'processing' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-8 flex flex-col items-center">
-          <Loader2 className="h-6 w-6 text-primary animate-spin mb-3" />
-          <p className="text-[14px] text-foreground font-medium">
-            {flowType === 'recovery' ? 'Preparing password reset…' :
-             flowType === 'verification' ? 'Confirming your email…' :
-             'Completing sign-in…'}
-          </p>
-        </motion.div>
-      )}
+        {state === 'success' && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-4"
+            role="status"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-6 w-6 shrink-0 text-primary" />
+              <p className="text-[13px] text-foreground">Redirecting to Chronicle…</p>
+            </div>
+          </motion.div>
+        )}
 
-      {state === 'success' && (
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mt-8 flex flex-col items-center">
-          <CheckCircle2 className="h-8 w-8 text-primary mb-3" />
-          <p className="text-[14px] text-foreground font-medium">
-            {flowType === 'verification' ? 'Email verified' : 'Signed in'}
-          </p>
-          <p className="text-[12px] text-muted-foreground mt-1">Redirecting…</p>
-        </motion.div>
-      )}
-
-      {state === 'error' && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 flex flex-col items-center text-center max-w-[300px]">
-          <AlertTriangle className="h-8 w-8 text-destructive/70 mb-3" />
-          <p className="text-[14px] text-foreground font-medium mb-1">
-            {flowType === 'recovery' ? 'Invalid or expired reset link' :
-             flowType === 'verification' ? 'Verification failed' :
-             'Authentication failed'}
-          </p>
-          <p className="text-[12px] text-muted-foreground mb-4">{errorMessage}</p>
-          <div className="flex gap-2">
-            {flowType === 'recovery' && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/forgot-password')}>
-                Request new link
+        {state === 'error' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="proto-form">
+            <p className="proto-formerror" role="alert">
+              <span className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{errorMessage || 'The link may be invalid or expired.'}</span>
+              </span>
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {flowType === 'recovery' && (
+                <Button variant="outline" onClick={() => navigate('/forgot-password')}>
+                  Request new link
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => navigate('/login')}>
+                Back to sign in
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
-              Back to sign in
-            </Button>
-          </div>
-        </motion.div>
-      )}
+            </div>
+          </motion.div>
+        )}
 
-      {state === 'timeout' && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8 flex flex-col items-center text-center max-w-[300px]">
-          <RotateCcw className="h-8 w-8 text-muted-foreground mb-3" />
-          <p className="text-[14px] text-foreground font-medium mb-1">This is taking longer than expected</p>
-          <p className="text-[12px] text-muted-foreground mb-4">The link may be invalid or expired.</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Retry
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/login')}>
-              Back to sign in
-            </Button>
-          </div>
-        </motion.div>
-      )}
-    </div>
+        {state === 'timeout' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="proto-form">
+            <div className="rounded-xl border border-border bg-card/70 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <RotateCcw className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  The link may be invalid or expired. You can retry safely or return to sign in.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Retry
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/login')}>
+                Back to sign in
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </AuthShell>
   );
 };
 

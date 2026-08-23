@@ -1,5 +1,6 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import AuthShell from "@/chronicle/shared/AuthShell";
 
 const NotFound = () => {
   const location = useLocation();
@@ -9,15 +10,21 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90">
-          Return to Home
-        </a>
+    <AuthShell
+      title="Page not found"
+      lede="That address does not lead to a Chronicle page."
+      footer="Your records have not been affected."
+    >
+      <div className="proto-form">
+        <div className="rounded-xl border border-border bg-card/70 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Address checked</p>
+          <p className="mt-1 break-all text-[13px] text-foreground">{location.pathname}</p>
+        </div>
+        <Link className="proto-btn text-center" data-variant="primary" to="/">
+          Return to Chronicle
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   );
 };
 
