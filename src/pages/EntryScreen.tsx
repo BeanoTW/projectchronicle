@@ -14,6 +14,7 @@ import RecordHistoryView from '@/chronicle/shared/RecordHistoryView';
 import { toHistoryItems, wordingWasChanged } from '@/chronicle/shared/recordHistoryModel';
 import { useEditHistory } from '@/hooks/useEditHistory';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import { attachmentDisplayName, hasCustomAttachmentName } from '@/lib/attachmentName';
 
 const EvidenceList = ({ incidentId }: { incidentId: string }) => {
   const { data: files } = useEvidence(incidentId);
@@ -32,7 +33,14 @@ const EvidenceList = ({ incidentId }: { incidentId: string }) => {
               <span>{new Date(f.upload_date).toLocaleString()}</span>
               {f.evidence_ref_number != null && <span className="proto-chip">Ref {f.evidence_ref_number}</span>}
             </div>
-            <div style={{ fontSize: 14 }}>{shielded ? maskFilename(f.file_name) : f.file_name}</div>
+            <div style={{ fontSize: 14 }}>
+              {shielded ? maskFilename(attachmentDisplayName(f)) : attachmentDisplayName(f)}
+            </div>
+            {hasCustomAttachmentName(f) && (
+              <div className="proto-help" style={{ marginTop: 3, fontSize: 12 }}>
+                Original: {shielded ? maskFilename(f.file_name) : f.file_name}
+              </div>
+            )}
             {f.description && (
               <p className="proto-help" style={{ marginTop: 4 }}>
                 {shielded ? maskText(f.description) : f.description}

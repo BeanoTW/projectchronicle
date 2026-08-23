@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock } from 'lucide-react';
+import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock, Pencil, Check, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident, useRenameEvidence } from '@/hooks/useEvidence';
 import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
 import EmptyState from '@/components/chronicle/EmptyState';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
 import { displayTitle } from '@/lib/displayTitle';
 import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
+import { attachmentDisplayName, hasCustomAttachmentName } from '@/lib/attachmentName';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -53,10 +54,13 @@ const EvidenceScreen = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const { data: allEvidence = [], isLoading, refetch } = useEvidence();
   const { data: incidents = [] } = useIncidents();
   const uploadEvidence = useUploadEvidence();
   const linkEvidence = useLinkEvidenceToIncident();
+  const renameEvidence = useRenameEvidence();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { gateActive, requestReveal } = useAttachmentReveal();
@@ -64,12 +68,12 @@ const EvidenceScreen = () => {
   // Close any open preview if the reveal gate becomes active mid-session.
   useEffect(() => { if (gateActive) setPreviewFile(null); }, [gateActive]);
 
-  const openPreview = async (ev: { file_path: string; file_name: string; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
+  const openPreview = async (ev: { file_path: string; file_name: string; display_name: string | null; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
     if (gateActive) {
       const ok = await requestReveal();
       if (!ok) return;
     }
-    setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
+    setPreviewFile({ filePath: ev.file_path, fileName: attachmentDisplayName(ev), mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
   };
 
   const filtered = activeFilter === 'all' ? allEvidence : allEvidence.filter(e => e.file_type === activeFilter);
@@ -95,6 +99,21 @@ const EvidenceScreen = () => {
       refetch();
     } catch (err) {
       toast({ title: 'Could not link this attachment', description: toSafeAttachmentMessage(err), variant: 'destructive' });
+    }
+  };
+
+  const handleRenameEvidence = async (evidenceId: string) => {
+    try {
+      await renameEvidence.mutateAsync({ evidenceId, displayName: renameValue });
+      toast({ title: 'Attachment renamed' });
+      setRenamingId(null);
+      setRenameValue('');
+    } catch (err) {
+      toast({
+        title: 'Could not rename this attachment',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -168,6 +187,8 @@ const EvidenceScreen = () => {
       <div className="mx-5 space-y-2.5">
         {filtered.map((ev) => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
+          const displayName = attachmentDisplayName(ev);
+          const hasCustomName = hasCustomAttachmentName(ev);
           const linkedIncident = incidents.find(inc => inc.id === ev.incident_id);
           const isLinking = linkingId === ev.id;
           const accentClass = typeAccentClass[ev.file_type || ''] || 'evidence-accent-default';
@@ -193,7 +214,7 @@ const EvidenceScreen = () => {
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/8 text-primary border border-primary/12">
                         E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
                       </span>
-                      <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                      <p className="text-[13px] font-medium text-foreground truncate">{displayName}</p>
                     </div>
                     {linkedIncident ? (
                       <Badge variant="default" className="text-[10px] px-2 py-0.5 bg-primary/15 text-primary border-primary/20 hover:bg-primary/15 flex-shrink-0">
@@ -205,6 +226,9 @@ const EvidenceScreen = () => {
                       </Badge>
                     )}
                   </div>
+                  {hasCustomName && (
+                    <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate" title={ev.file_name}>Original: {ev.file_name}</p>
+                  )}
                   <p className="text-[11px] text-muted-foreground/60 mt-0.5">
                     {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')} · Stored securely
                   </p>
@@ -255,12 +279,53 @@ const EvidenceScreen = () => {
                       {gateActive ? 'Unlock to view' : 'View'}
                     </button>
                     <button
+                      onClick={() => { setRenamingId(ev.id); setRenameValue(displayName); }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary active:scale-[0.97] transition-all"
+                    >
+                      <Pencil className="h-3 w-3" /> Rename
+                    </button>
+                    <button
                       onClick={() => handleRemoveEvidence(ev.id, ev.file_path)}
                       className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive active:scale-[0.97] transition-all"
                     >
                       <Trash2 className="h-3 w-3" /> Remove
                     </button>
                   </div>
+                  {renamingId === ev.id && (
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.04] p-3" onClick={e => e.stopPropagation()}>
+                      <label htmlFor={`rename-${ev.id}`} className="block text-[11px] font-semibold text-foreground mb-1.5">Attachment name</label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          id={`rename-${ev.id}`}
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          maxLength={120}
+                          autoFocus
+                          className="h-9 flex-1 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && renameValue.trim()) handleRenameEvidence(ev.id);
+                            if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
+                          }}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleRenameEvidence(ev.id)}
+                            disabled={!renameValue.trim() || renameEvidence.isPending}
+                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-[12px] font-semibold text-primary-foreground disabled:opacity-50"
+                          >
+                            <Check className="h-3.5 w-3.5" /> {renameEvidence.isPending ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => { setRenamingId(null); setRenameValue(''); }}
+                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-[12px] font-medium text-muted-foreground"
+                          >
+                            <X className="h-3.5 w-3.5" /> Cancel
+                          </button>
+                        </div>
+                      </div>
+                      <p className="mt-1.5 text-[10px] text-muted-foreground">The original file and its integrity record will not change.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
