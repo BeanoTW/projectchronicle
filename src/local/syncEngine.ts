@@ -40,14 +40,14 @@ type SyncUpsertResponse =
   | { status: 'ok'; row: LocalIncident & { version: number; last_modified_at: string | null } }
   | { status: 'conflict'; server_version: number; server_last_modified_at: string | null; server_row: LocalIncident };
 
-export const syncNow = async (userId: string): Promise<SyncResult> => {
+export const syncNow = async (userId: string, options: { force?: boolean } = {}): Promise<SyncResult> => {
   if (inFlight) return inFlight;
 
   inFlight = (async (): Promise<SyncResult> => {
     const result: SyncResult = { attempted: 0, succeeded: 0, failed: 0, lastError: null };
     lastAttemptAt = new Date().toISOString();
 
-    if (!(await isBackupEnabled())) return result;
+    if (!(await isBackupEnabled()) && !options.force) return result;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       result.lastError = 'offline';
       return result;
