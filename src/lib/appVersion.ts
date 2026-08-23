@@ -2,11 +2,12 @@
 // users should refresh into. The build hash from Vite (import.meta.env) gives
 // per-build differentiation for SW update detection.
 
-export const APP_VERSION = '1.5.5';
+export const APP_VERSION = '1.5.6';
 
 // Short, neutral, trust-focused notes shown in the "What changed" panel.
 // Keep entries terse — bullet style.
 export const RELEASE_NOTES: string[] = [
+  'Give attachments clear names without changing the original evidence file.',
   'Installed Chronicle apps now use the new bound-folio launcher icon.',
   'Chronicle now checks for and activates app updates immediately.',
   'Daily record entries now appear in Timeline and Calendar.',
