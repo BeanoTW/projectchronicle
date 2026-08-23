@@ -45,12 +45,25 @@ export async function registerServiceWorker() {
 
   try {
     const { registerSW } = await import("virtual:pwa-register");
+    let reloadingForUpdate = false;
+
+    // When a newly activated worker takes control, reload exactly once so the
+    // page and its controller always come from the same release.
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      window.location.reload();
+    });
+
     const reload = registerSW({
       immediate: true,
       onRegisteredSW(_swUrl, registration) {
-        // Optional: poll for updates every hour
         if (registration) {
-          setInterval(() => registration.update().catch(() => {}), 60 * 60 * 1000);
+          // Check immediately on every launch, then periodically while open.
+          // This prevents an installed Chronicle tab from waiting an hour
+          // before learning that a newer branded shell is available.
+          registration.update().catch(() => {});
+          setInterval(() => registration.update().catch(() => {}), 5 * 60 * 1000);
         }
       },
       onNeedRefresh() {
