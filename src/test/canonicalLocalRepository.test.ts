@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ChronicleDB, type LocalIncident } from '@/local/db';
 import {
   CanonicalImmutableConflictError,
+  CanonicalLifecycleError,
   CanonicalRevisionConflictError,
   createCanonicalLocalRepository,
 } from '@/chronicle/model/canonicalLocalRepository';
@@ -124,7 +125,7 @@ describe('Phase 3 — canonical local repository', () => {
     expect(record?.sync.local_revision).toBe(1);
   });
 
-  it('appends clarifications, media and history idempotently but rejects id collisions', async () => {
+  it('appends clarifications, later media and history idempotently but rejects id collisions', async () => {
     await repository.seal(sealInput());
 
     const clarification: V2Clarification = {
@@ -159,5 +160,31 @@ describe('Phase 3 — canonical local repository', () => {
       .rejects.toBeInstanceOf(CanonicalImmutableConflictError);
     await expect(repository.appendHistory({ ...history, actor: 'system' }))
       .rejects.toBeInstanceOf(CanonicalImmutableConflictError);
+  });
+
+  it('cannot append media as original after the record has already been sealed', async () => {
+    await repository.seal(sealInput());
+    const media: V2Media = {
+      id: 'media-original', record_id: 'record-1', owner_id: 'owner-1', kind: 'image', role: 'original',
+      name: 'capture.jpg', mime: 'image/jpeg', size: 123, duration_ms: null, description: null,
+      added_at: sealedAt, inclusion: { state: 'included' }, storage: { location: 'local', ok: true },
+      content_hash: 'sha256-original', sync,
+    };
+
+    await expect(repository.appendMedia(media)).rejects.toBeInstanceOf(CanonicalImmutableConflictError);
+    expect(await db.canonical_media.count()).toBe(0);
+  });
+
+  it('refuses content mutations once a canonical record is archived', async () => {
+    const record = await repository.seal(sealInput());
+    await db.canonical_records.put({
+      ...record,
+      lifecycle: { state: 'archived', archived_at: changedAt, reason: 'Test archive' },
+    });
+
+    await expect(repository.updateDetails('owner-1', 'record-1', 0, { title: 'Should fail' }))
+      .rejects.toBeInstanceOf(CanonicalLifecycleError);
+    await expect(repository.setDossierMembership('owner-1', 'record-1', { state: 'not_included' }))
+      .rejects.toBeInstanceOf(CanonicalLifecycleError);
   });
 });
