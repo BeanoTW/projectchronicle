@@ -25,6 +25,7 @@ export class CanonicalNotFoundError extends Error {}
 export class CanonicalOwnershipError extends Error {}
 export class CanonicalRevisionConflictError extends Error {}
 export class CanonicalImmutableConflictError extends Error {}
+export class CanonicalLifecycleError extends Error {}
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -38,6 +39,13 @@ const localOnlySync = (previous?: SyncMetadata): SyncMetadata => ({
 const owned = (record: V2Record | undefined, ownerId: string, recordId: string): V2Record => {
   if (!record) throw new CanonicalNotFoundError(`Canonical record ${recordId} was not found.`);
   if (record.owner_id !== ownerId) throw new CanonicalOwnershipError('Canonical record belongs to another owner.');
+  return record;
+};
+
+const active = (record: V2Record): V2Record => {
+  if (record.lifecycle.state !== 'sealed') {
+    throw new CanonicalLifecycleError(`Canonical record is ${record.lifecycle.state} and cannot be changed.`);
+  }
   return record;
 };
 
@@ -129,7 +137,7 @@ export const createCanonicalLocalRepository = (
     });
 
     return db.transaction('rw', db.canonical_records, async () => {
-      const current = owned(await db.canonical_records.get(recordId), ownerId, recordId);
+      const current = active(owned(await db.canonical_records.get(recordId), ownerId, recordId));
       if (current.details.revision_count !== expectedRevision) {
         throw new CanonicalRevisionConflictError(
           `Expected details revision ${expectedRevision}, found ${current.details.revision_count}.`,
@@ -166,7 +174,7 @@ export const createCanonicalLocalRepository = (
     });
 
     await db.transaction('rw', db.canonical_records, db.canonical_clarifications, async () => {
-      const parent = owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id);
+      const parent = active(owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id));
       ensureChildIdentity(parent, value);
       const existing = await db.canonical_clarifications.get(value.id);
       if (existing) {
@@ -183,7 +191,7 @@ export const createCanonicalLocalRepository = (
     });
 
     await db.transaction('rw', db.canonical_records, async () => {
-      const current = owned(await db.canonical_records.get(recordId), ownerId, recordId);
+      const current = active(owned(await db.canonical_records.get(recordId), ownerId, recordId));
       const next: V2Record = {
         ...current,
         original: structuredClone(current.original),
@@ -198,8 +206,14 @@ export const createCanonicalLocalRepository = (
 
   async appendMedia(value: V2Media) {
     const validated = V2MediaSchema.parse(value);
+    if (validated.role === 'original') {
+      throw new CanonicalImmutableConflictError(
+        'Original media must be part of the seal operation; it cannot be appended after seal.',
+      );
+    }
+
     await db.transaction('rw', db.canonical_records, db.canonical_media, async () => {
-      const parent = owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id);
+      const parent = active(owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id));
       ensureChildIdentity(parent, validated);
       const existing = await db.canonical_media.get(validated.id);
       if (existing) {
