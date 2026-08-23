@@ -104,9 +104,9 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     const { evidence } = pendingDelete;
-    setPendingDelete(null);
     try {
       await deleteEvidence.mutateAsync({ evidence });
+      setPendingDelete(null);
       toast({ title: 'Attachment deleted' });
     } catch {
       toast({ title: 'Could not delete attachment. Please try again.', variant: 'destructive' });
