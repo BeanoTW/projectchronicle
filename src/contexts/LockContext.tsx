@@ -118,6 +118,36 @@ export const LockProvider = ({ children }: { children: React.ReactNode }) => {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [userId, pinConfigured, lockTimeoutMs]);
 
+  // Lock after genuine inactivity while Chronicle remains open. Activity resets
+  // the timer; background locking is handled separately above.
+  useEffect(() => {
+    if (!userId || !pinConfigured || isLocked) return;
+
+    let timer: number | undefined;
+    let lastStoredAt = 0;
+
+    const arm = () => {
+      window.clearTimeout(timer);
+      const now = Date.now();
+      // Keep the background/focus calculation aligned without writing on
+      // every individual pointer or key event.
+      if (now - lastStoredAt > 15_000) {
+        setLastUnlockedAt(userId, now);
+        lastStoredAt = now;
+      }
+      timer = window.setTimeout(() => setIsLocked(true), lockTimeoutMs);
+    };
+
+    const events: Array<keyof WindowEventMap> = ['pointerdown', 'keydown', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, arm, { passive: true }));
+    arm();
+
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach(event => window.removeEventListener(event, arm));
+    };
+  }, [userId, pinConfigured, isLocked, lockTimeoutMs]);
+
   const isLockConfigured = pinConfigured;
   const effectiveLocked = isLockConfigured && isLocked;
 
