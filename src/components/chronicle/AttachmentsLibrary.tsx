@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2 } from 'lucide-react';
+import { X, Paperclip, Plus, Image, FileText, Music, Mail, Link2, Trash2, FileLock2, Pencil, Check, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, useLinkEvidenceToIncident, type EvidenceFile } from '@/hooks/useEvidence';
+import { useEvidence, useUploadEvidence, useDeleteEvidence, useIsTranscriptSource, useLinkEvidenceToIncident, useRenameEvidence, type EvidenceFile } from '@/hooks/useEvidence';
 import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import EvidencePreview from './EvidencePreview';
 import DeleteAttachmentDialog from './DeleteAttachmentDialog';
 import { displayTitle } from '@/lib/displayTitle';
 import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
+import { attachmentDisplayName, hasCustomAttachmentName } from '@/lib/attachmentName';
 
 const typeIcons: Record<string, typeof FileText> = {
   Photo: Image, Screenshot: Image, Document: FileText, Audio: Music, Email: Mail, Other: FileText,
@@ -28,6 +29,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const uploadEvidence = useUploadEvidence();
   const deleteEvidence = useDeleteEvidence();
   const linkEvidence = useLinkEvidenceToIncident();
+  const renameEvidence = useRenameEvidence();
   const isTranscriptSource = useIsTranscriptSource();
   const { gateActive, requestReveal } = useAttachmentReveal();
   const { toast } = useToast();
@@ -36,6 +38,8 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [pendingDelete, setPendingDelete] = useState<{ evidence: EvidenceFile; isSource: boolean } | null>(null);
 
   // If the reveal gate becomes active while a preview is open, close it and
@@ -74,6 +78,21 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
       refetch();
     } catch (err) {
       toast({ title: 'Could not link this attachment', description: toSafeAttachmentMessage(err), variant: 'destructive' });
+    }
+  };
+
+  const handleRename = async (evidenceId: string) => {
+    try {
+      await renameEvidence.mutateAsync({ evidenceId, displayName: renameValue });
+      toast({ title: 'Attachment renamed' });
+      setRenamingId(null);
+      setRenameValue('');
+    } catch (err) {
+      toast({
+        title: 'Could not rename this attachment',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -135,6 +154,8 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
             ) : (
               allEvidence.map(ev => {
                 const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
+                const displayName = attachmentDisplayName(ev);
+                const hasCustomName = hasCustomAttachmentName(ev);
                 const isImage = ev.mime_type?.startsWith('image/');
                 const linked = incidents.find(inc => inc.id === ev.incident_id);
                 const isLinking = linkingId === ev.id;
@@ -149,7 +170,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                     const ok = await requestReveal();
                     if (!ok) return;
                   }
-                  setPreviewFile({ filePath: ev.file_path, fileName: ev.file_name, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
+                  setPreviewFile({ filePath: ev.file_path, fileName: displayName, mimeType: ev.mime_type, fileHash: ev.file_hash, captureDate: ev.capture_date, uploadDate: ev.upload_date, incidentId: ev.incident_id });
                 };
 
                 return (
@@ -175,10 +196,36 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                       </div>
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-foreground truncate">{ev.file_name}</p>
+                        <p className="text-[13px] font-medium text-foreground truncate">{displayName}</p>
+                        {hasCustomName && <p className="text-[10px] text-muted-foreground/45 truncate" title={ev.file_name}>Original: {ev.file_name}</p>}
                         <p className="text-[11px] text-muted-foreground/50 mt-0.5">
                           {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')}
                         </p>
+                        {renamingId === ev.id && (
+                          <div className="mt-2" onClick={e => e.stopPropagation()}>
+                            <label htmlFor={`library-rename-${ev.id}`} className="sr-only">Attachment name</label>
+                            <input
+                              id={`library-rename-${ev.id}`}
+                              value={renameValue}
+                              onChange={e => setRenameValue(e.target.value)}
+                              maxLength={120}
+                              autoFocus
+                              className="h-8 w-full rounded-lg border border-border bg-card px-2.5 text-[12px] outline-none focus:ring-2 focus:ring-primary/30"
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && renameValue.trim()) handleRename(ev.id);
+                                if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
+                              }}
+                            />
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <span role="button" tabIndex={0} onClick={() => handleRename(ev.id)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary cursor-pointer">
+                                <Check className="h-3 w-3" /> {renameEvidence.isPending ? 'Saving…' : 'Save'}
+                              </span>
+                              <span role="button" tabIndex={0} onClick={() => { setRenamingId(null); setRenameValue(''); }} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground cursor-pointer">
+                                <X className="h-3 w-3" /> Cancel
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         {linked ? (
                           <p className="text-[11px] text-primary mt-0.5 truncate">→ {displayTitle(linked)}</p>
                         ) : (
@@ -215,6 +262,13 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
                       </div>
                     </button>
                     <button
+                      onClick={() => { setRenamingId(ev.id); setRenameValue(displayName); }}
+                      aria-label="Rename attachment"
+                      className="p-2 rounded-lg text-muted-foreground/60 hover:text-primary hover:bg-primary/8 transition-colors active:scale-[0.95] flex-shrink-0"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
                       onClick={() => requestDelete(ev)}
                       aria-label="Delete attachment"
                       className="p-2 rounded-lg text-muted-foreground/60 hover:text-destructive hover:bg-destructive/8 transition-colors active:scale-[0.95] flex-shrink-0"
@@ -241,7 +295,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
           )}
           <DeleteAttachmentDialog
             open={!!pendingDelete}
-            fileName={pendingDelete?.evidence.file_name}
+            fileName={pendingDelete?.evidence ? attachmentDisplayName(pendingDelete.evidence) : undefined}
             isTranscriptSource={!!pendingDelete?.isSource}
             onCancel={() => setPendingDelete(null)}
             onConfirm={confirmDelete}
