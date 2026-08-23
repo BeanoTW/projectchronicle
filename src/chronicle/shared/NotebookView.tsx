@@ -5,6 +5,7 @@
 // incidents) adapters both render this component.
 import FilterSheet from '../components/FilterSheet';
 import MonthView from '../components/MonthView';
+import ChronicleEmptyState from '../brand/ChronicleEmptyState';
 import {
   activeFilterCount,
   buildChips,
@@ -164,13 +165,13 @@ const NotebookView = ({
           onOpenEntry={onOpenRecord}
         />
       ) : filtered.length === 0 ? (
-        <div className="proto-empty">
+        <ChronicleEmptyState>
           {sorted.length === 0
             ? emptyMessage
             : count > 0 || q
             ? 'No records match your search and filters.'
             : emptyMessage}
-        </div>
+        </ChronicleEmptyState>
       ) : (
         <div className="proto-list">
         {filtered.map(r => (
