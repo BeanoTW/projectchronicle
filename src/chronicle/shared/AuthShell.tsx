@@ -5,6 +5,7 @@
 // user sees uses the same paper/ink design system as Notebook, Capture and My
 // Record. No legacy hero imagery, gradients or glass styling.
 import type { ReactNode } from 'react';
+import ChronicleLockup from '../brand/ChronicleLockup';
 import '../styles.css';
 
 interface Props {
@@ -25,7 +26,9 @@ const AuthShell = ({ title, lede, children, aside, footer, wide }: Props) => (
   <div className="proto-root proto-auth" data-auth-shell="true">
     <div className={`proto-auth-grid${wide ? ' proto-auth-grid-wide' : ''}`}>
       <main className="proto-auth-panel">
-        <p className="proto-auth-brand">Chronicle</p>
+        <div className="proto-auth-brand" aria-label="Chronicle">
+          <ChronicleLockup compact markSize={28} />
+        </div>
         <h1 className="proto-h1 proto-auth-title">{title}</h1>
         {lede && <p className="proto-auth-lede">{lede}</p>}
         {children}
