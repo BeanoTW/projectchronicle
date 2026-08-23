@@ -97,8 +97,16 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
   };
 
   const requestDelete = async (ev: EvidenceFile) => {
-    const isSource = await isTranscriptSource(ev.id);
-    setPendingDelete({ evidence: ev, isSource });
+    try {
+      const isSource = await isTranscriptSource(ev.id);
+      setPendingDelete({ evidence: ev, isSource });
+    } catch (err) {
+      toast({
+        title: 'Could not prepare this attachment for deletion',
+        description: toSafeAttachmentMessage(err),
+        variant: 'destructive',
+      });
+    }
   };
 
   const confirmDelete = async () => {
