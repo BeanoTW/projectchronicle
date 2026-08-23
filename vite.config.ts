@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // App-shell precache only: built JS/CSS/HTML + manifest/icons/fonts.
         globPatterns: ["**/*.{js,css,html,ico,svg,png,webmanifest,woff,woff2}"],
-        cacheId: "chronicle-v3",
+        cacheId: "chronicle-v4",
         // Allow large bundled assets (e.g. logo PNG) to be precached.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA fallback: offline navigations resolve to index.html so React
