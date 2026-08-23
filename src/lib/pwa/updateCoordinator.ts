@@ -1,4 +1,5 @@
 type UpdateActivator = () => Promise<void>;
+type UpdateChecker = () => Promise<void>;
 type UpdateListener = (available: boolean) => void;
 
 const SNOOZE_KEY = 'chronicle-update-snoozed-release';
@@ -6,6 +7,7 @@ const CHANNEL_NAME = 'chronicle-app-updates';
 
 let pending = false;
 let activator: UpdateActivator | null = null;
+let checker: UpdateChecker | null = null;
 let channel: BroadcastChannel | null = null;
 const listeners = new Set<UpdateListener>();
 
@@ -63,6 +65,20 @@ export const snoozeUpdateForSession = (releaseId: string) => {
   notify(releaseId);
 };
 
+
+export const setUpdateChecker = (nextChecker: UpdateChecker) => {
+  checker = nextChecker;
+};
+
+export const requestAppUpdateCheck = async () => {
+  if (checker) {
+    await checker();
+    return;
+  }
+  const registration = await navigator.serviceWorker?.getRegistration();
+  await registration?.update();
+};
+
 export const activatePendingUpdate = async (releaseId: string) => {
   try {
     sessionStorage.removeItem(SNOOZE_KEY);
@@ -96,6 +112,7 @@ export const activatePendingUpdate = async (releaseId: string) => {
 export const resetUpdateCoordinatorForTests = () => {
   pending = false;
   activator = null;
+  checker = null;
   listeners.clear();
   channel?.close();
   channel = null;
