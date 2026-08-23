@@ -237,7 +237,13 @@ export const useIsTranscriptSource = () => {
       .eq('user_id', user.id)
       .eq('transcription_source_attachment_id', evidenceId)
       .limit(1);
-    if (error) return false;
+    if (error) {
+      logAttachmentDiagnostic('transcript source check', error);
+      throw markUserSafe(
+        new Error('Chronicle could not check whether this file is a transcript source. Nothing was deleted.'),
+        'transcript_check_failed',
+      );
+    }
     return (data?.length ?? 0) > 0;
   };
 };
