@@ -256,15 +256,22 @@ export const useDeleteEvidence = () => {
 
   return useMutation({
     mutationFn: async ({ evidence }: { evidence: EvidenceFile }) => {
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw markUserSafe(new Error(EVIDENCE_MESSAGES.signedOut), 'not_authenticated');
+      if (evidence.user_id !== user.id || !evidence.file_path.startsWith(`${user.id}/`)) {
+        throw markUserSafe(new Error('This attachment could not be deleted.'), 'not_owner');
+      }
 
       // Clear transcript provenance pointers on any incidents that referenced this file.
       // Transcript text in raw_narrative is intentionally preserved.
-      await supabase
+      const { error: provenanceError } = await supabase
         .from('incidents')
         .update({ transcription_source_attachment_id: null })
         .eq('user_id', user.id)
         .eq('transcription_source_attachment_id', evidence.id);
+      if (provenanceError) {
+        logAttachmentDiagnostic('transcript provenance clear', provenanceError);
+        throw markUserSafe(new Error('This attachment could not be deleted. Please try again.'), 'provenance_clear_failed');
+      }
 
       // Remove the underlying storage object first to avoid orphans.
       const { error: storageError } = await supabase.storage
@@ -272,14 +279,19 @@ export const useDeleteEvidence = () => {
         .remove([evidence.file_path]);
       // Storage 'not found' is acceptable (already gone) – do not abort row delete.
       if (storageError && !/not.?found/i.test(storageError.message)) {
-        throw storageError;
+        logAttachmentDiagnostic('evidence storage delete', storageError);
+        throw markUserSafe(new Error('This attachment could not be deleted. Please try again.'), 'storage_delete_failed');
       }
 
       const { error: dbError } = await supabase
         .from('evidence_files')
         .delete()
-        .eq('id', evidence.id);
-      if (dbError) throw dbError;
+        .eq('id', evidence.id)
+        .eq('user_id', user.id);
+      if (dbError) {
+        logAttachmentDiagnostic('evidence row delete', dbError);
+        throw markUserSafe(new Error('This attachment could not be deleted. Please try again.'), 'row_delete_failed');
+      }
 
       return evidence.id;
     },
