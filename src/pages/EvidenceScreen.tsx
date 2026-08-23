@@ -68,7 +68,7 @@ const EvidenceScreen = () => {
   // Close any open preview if the reveal gate becomes active mid-session.
   useEffect(() => { if (gateActive) setPreviewFile(null); }, [gateActive]);
 
-  const openPreview = async (ev: { file_path: string; file_name: string; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
+  const openPreview = async (ev: { file_path: string; file_name: string; display_name: string | null; mime_type: string | null; file_hash: string | null; capture_date: string | null; upload_date: string; incident_id: string | null }) => {
     if (gateActive) {
       const ok = await requestReveal();
       if (!ok) return;
