@@ -11,6 +11,7 @@ import {
 } from '@/lib/uploadPolicy';
 import { ensureIncidentOnServer } from '@/local/syncEngine';
 import { EVIDENCE_MESSAGES, markUserSafe, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
+import { normaliseAttachmentDisplayName } from '@/lib/attachmentName';
 
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -136,6 +137,36 @@ export const useUploadEvidence = () => {
         linked_to_incident: !!incidentId,
       });
       return inserted as EvidenceFile;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evidence'] });
+    },
+  });
+};
+
+/** Updates only the user-managed label; the original evidence metadata stays immutable. */
+export const useRenameEvidence = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ evidenceId, displayName }: { evidenceId: string; displayName: string }) => {
+      if (!user) throw markUserSafe(new Error(EVIDENCE_MESSAGES.signedOut), 'not_authenticated');
+      const display_name = normaliseAttachmentDisplayName(displayName);
+
+      const { data, error } = await supabase
+        .from('evidence_files')
+        .update({ display_name })
+        .eq('id', evidenceId)
+        .eq('user_id', user.id)
+        .select('id, display_name')
+        .single();
+
+      if (error) {
+        logAttachmentDiagnostic('evidence rename', error);
+        throw markUserSafe(new Error('This attachment could not be renamed. Please try again.'), 'rename_failed');
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['evidence'] });
