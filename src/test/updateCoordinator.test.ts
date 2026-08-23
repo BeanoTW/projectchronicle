@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   activatePendingUpdate,
   announceUpdate,
+  requestAppUpdateCheck,
   resetUpdateCoordinatorForTests,
+  setUpdateChecker,
   snoozeUpdateForSession,
   subscribeToUpdates,
 } from '@/lib/pwa/updateCoordinator';
@@ -37,6 +39,14 @@ describe('PWA update coordinator', () => {
     const newerListener = vi.fn();
     subscribeToUpdates('1.6.2', newerListener);
     expect(newerListener).toHaveBeenLastCalledWith(true);
+  });
+
+  it('runs the registered manual update checker', async () => {
+    const checker = vi.fn().mockResolvedValue(undefined);
+    setUpdateChecker(checker);
+
+    await expect(requestAppUpdateCheck()).resolves.toBe(true);
+    expect(checker).toHaveBeenCalledTimes(1);
   });
 
   it('activates the exact waiting update supplied by registration', async () => {
