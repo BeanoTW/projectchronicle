@@ -2,6 +2,7 @@
 // Paper-like document preview. Structure matches the PDF and DOCX exports exactly.
 // No Dexie, no Supabase, no production hooks: media URLs arrive via `useMediaUrl`.
 import type { DossierConfig, DossierDocumentModel, DossierEvidenceItem } from './dossierModel';
+import ChronicleLockup from '../brand/ChronicleLockup';
 
 type UseMediaUrl = (item: DossierEvidenceItem) => string | null;
 
@@ -43,6 +44,7 @@ const DossierPreviewView = ({ doc, cfg, onOpenRecord, useMediaUrl }: Props) => (
   <div className="proto-doc" id="proto-doc">
     {/* Cover */}
     <section className="proto-page proto-doc-cover">
+      <ChronicleLockup subtitle="A chronological record" markSize={38} style={{ marginBottom: 42 }} />
       <h1 className="proto-serif proto-doc-title">{doc.title}</h1>
       <p className="proto-doc-sub">{doc.rangeLabel}</p>
       <p className="proto-doc-sub">
