@@ -12,6 +12,7 @@ import {
 import { ensureIncidentOnServer } from '@/local/syncEngine';
 import { EVIDENCE_MESSAGES, markUserSafe, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
 import { normaliseAttachmentDisplayName } from '@/lib/attachmentName';
+import { evidenceBelongsToUser, storageObjectIsAlreadyMissing } from '@/lib/attachments/deletionSafety';
 
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -257,7 +258,7 @@ export const useDeleteEvidence = () => {
   return useMutation({
     mutationFn: async ({ evidence }: { evidence: EvidenceFile }) => {
       if (!user) throw markUserSafe(new Error(EVIDENCE_MESSAGES.signedOut), 'not_authenticated');
-      if (evidence.user_id !== user.id || !evidence.file_path.startsWith(`${user.id}/`)) {
+      if (!evidenceBelongsToUser(user.id, evidence)) {
         throw markUserSafe(new Error('This attachment could not be deleted.'), 'not_owner');
       }
 
@@ -278,7 +279,7 @@ export const useDeleteEvidence = () => {
         .from('evidence')
         .remove([evidence.file_path]);
       // Storage 'not found' is acceptable (already gone) – do not abort row delete.
-      if (storageError && !/not.?found/i.test(storageError.message)) {
+      if (storageError && !storageObjectIsAlreadyMissing(storageError.message)) {
         logAttachmentDiagnostic('evidence storage delete', storageError);
         throw markUserSafe(new Error('This attachment could not be deleted. Please try again.'), 'storage_delete_failed');
       }
