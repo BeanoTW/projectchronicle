@@ -41,7 +41,16 @@ export async function exportDossierDocx(
 
   /* Cover */
   children.push(
-    new Paragraph({ spacing: { before: 2400, after: 240 }, alignment: AlignmentType.LEFT,
+    new Paragraph({
+      spacing: { before: 720, after: 40 },
+      children: [new TextRun({ text: 'CHRONICLE', size: 30, bold: true, color: '1F1C17', font: 'Arial' })],
+    }),
+    new Paragraph({
+      spacing: { after: 900 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '8A6A2B', space: 8 } },
+      children: [new TextRun({ text: 'A CHRONOLOGICAL RECORD', size: 15, color: '7A7367', font: 'Arial' })],
+    }),
+    new Paragraph({ spacing: { before: 900, after: 240 }, alignment: AlignmentType.LEFT,
       children: [new TextRun({ text: doc.title, size: 52, bold: true, font: 'Arial' })] }),
     body(doc.rangeLabel, { size: 24, color: '5A5A5A' }),
     body(`${doc.records.length} record${doc.records.length === 1 ? '' : 's'}`, { size: 24, color: '5A5A5A', after: 480 }),
@@ -104,7 +113,7 @@ export async function exportDossierDocx(
       r.evidence.forEach(e => {
         const img = e.type === 'image' ? images.get(e.id) : undefined;
         if (img) {
-          const maxW = 420; // points, keeps images inside A4 margins
+          const maxW = 420;
           const scale = Math.min(maxW / img.width, 320 / img.height, 1);
           try {
             children.push(new Paragraph({
@@ -172,10 +181,10 @@ export async function exportDossierDocx(
     },
     sections: [{
       properties: {
-        titlePage: true, // cover page carries no running header
+        titlePage: true,
         page: {
-          size: { width: 11906, height: 16838 }, // A4
-          margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, // 20mm
+          size: { width: 11906, height: 16838 },
+          margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 },
         },
       },
       headers: {
@@ -183,7 +192,7 @@ export async function exportDossierDocx(
         default: new Header({
           children: [new Paragraph({
             spacing: { after: 200 },
-            children: [new TextRun({ text: doc.title, size: 16, color: '8C8C8C', font: 'Arial' })],
+            children: [new TextRun({ text: `Chronicle · ${doc.title}`, size: 16, color: '8C8C8C', font: 'Arial' })],
           })],
         }),
       },
