@@ -2,6 +2,7 @@
 // Records live here first; cloud backup is optional and explicit.
 import Dexie, { type Table } from 'dexie';
 import type { Tables } from '@/integrations/supabase/types';
+import type { V2Clarification, V2Media, V2Record, V2RecordEvent } from '@/chronicle/model/schema';
 
 export type SyncState =
   | 'local_only'         // never attempted backup (backup OFF, or queued before activation)
@@ -55,14 +56,25 @@ export interface QuarantinedRow {
   payload: LocalIncident | LocalFollowUpNote;
 }
 
-class ChronicleDB extends Dexie {
+/**
+ * Phase 3 canonical stores are deliberately parallel to the legacy tables.
+ * Creating these empty stores does not migrate, rewrite or switch any existing
+ * Chronicle data. Production readers continue using the legacy tables until a
+ * later activation phase explicitly opts into canonical storage.
+ */
+export class ChronicleDB extends Dexie {
   incidents!: Table<LocalIncident, string>;
   follow_up_notes!: Table<LocalFollowUpNote, string>;
   meta!: Table<LocalMeta, string>;
   quarantine!: Table<QuarantinedRow, string>;
 
-  constructor() {
-    super('chronicle_local');
+  canonical_records!: Table<V2Record, string>;
+  canonical_clarifications!: Table<V2Clarification, string>;
+  canonical_media!: Table<V2Media, string>;
+  canonical_history!: Table<V2RecordEvent, string>;
+
+  constructor(name = 'chronicle_local') {
+    super(name);
     this.version(1).stores({
       incidents: 'id, owner_user_id, sync_state, incident_date, updated_at',
       follow_up_notes: 'id, owner_user_id, incident_id, sync_state, created_at',
@@ -77,6 +89,13 @@ class ChronicleDB extends Dexie {
     // v3 — account-boundary quarantine store.
     this.version(3).stores({
       quarantine: 'key, owner_user_id, kind',
+    });
+    // v4 — empty parallel canonical stores. No upgrade callback copies data.
+    this.version(4).stores({
+      canonical_records: 'id, owner_id, kind, updated_at',
+      canonical_clarifications: 'id, owner_id, record_id, kind, created_at',
+      canonical_media: 'id, owner_id, record_id, kind, role, added_at',
+      canonical_history: 'id, owner_id, record_id, action, at',
     });
   }
 }
