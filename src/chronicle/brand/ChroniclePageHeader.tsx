@@ -25,7 +25,7 @@ const ChroniclePageHeader = ({
     <div className="proto-brandhead-side">
       {actions && <div className="proto-brandhead-actions">{actions}</div>}
       <div className="proto-brandhead-stamp" aria-hidden="true">
-        <ChronicleMark size={44} />
+        <ChronicleMark size={38} />
         <span className="proto-brandhead-stampcopy">
           <span>Bound record</span>
           <small>Kept in order</small>
