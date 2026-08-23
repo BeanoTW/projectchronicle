@@ -2,6 +2,7 @@
 // Source-agnostic: all data, persistence and blob access arrive via a
 // `DossierAdapter`. No Dexie, Supabase or production hooks are imported here.
 import { useMemo, useState, type ReactNode } from 'react';
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import {
   buildDossierFromSource,
   defaultDossierConfig,
@@ -135,11 +136,14 @@ const DossierView = ({ adapter, onOpenRecord, supportsHistory = true, supportsEv
   return (
     <div>
       <div className="proto-noprint">
-        <h1 className="proto-h1">Chronicle</h1>
-        <p className="proto-help" style={{ marginBottom: 12 }}>
-          {intro ??
-            'The records you have chosen to bring together, in chronological order. A report is generated from them. Original wording is never altered.'}
-        </p>
+        <ChroniclePageHeader
+          title="Chronicle"
+          eyebrow="Records brought together"
+          subtitle={
+            intro ??
+            'The records you have chosen to bring together, in chronological order. A report is generated from them. Original wording is never altered.'
+          }
+        />
 
         {helpControl}
 
