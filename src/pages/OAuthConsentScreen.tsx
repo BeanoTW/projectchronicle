@@ -112,7 +112,7 @@ export default function OAuthConsentScreen() {
         </div>
       )}
 
-      {details && (
+      {!error && details && (
         <div className="proto-form">
           <section className="rounded-xl border border-border bg-card/70 px-4 py-4" aria-labelledby="connection-access">
             <p id="connection-access" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
