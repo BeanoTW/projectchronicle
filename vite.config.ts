@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
     mcpPlugin(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: null, // we register manually with iframe/preview guards
       devOptions: {
         enabled: false, // never run SW in dev / Lovable preview
@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         // App-shell precache only: built JS/CSS/HTML + manifest/icons/fonts.
         globPatterns: ["**/*.{js,css,html,ico,svg,png,webmanifest,woff,woff2}"],
-        cacheId: "chronicle-v5",
+        cacheId: "chronicle-v6",
         // Allow large bundled assets (e.g. logo PNG) to be precached.
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // SPA fallback: offline navigations resolve to index.html so React
@@ -61,8 +61,10 @@ export default defineConfig(({ mode }) => ({
         // No runtime caching of dynamic / authenticated data.
         runtimeCaching: [],
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true, // activate the fresh shell so new tabs cannot reopen stale code
+        // The user activates a waiting release from UpdateBanner. Existing tabs
+        // keep their current controller so drafts are never reloaded remotely.
+        clientsClaim: false,
+        skipWaiting: false
       },
     }),
   ].filter(Boolean),
