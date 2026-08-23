@@ -75,7 +75,20 @@ export interface MigrationPlanResult {
   report: MigrationReport;
   /** Deterministic per-record decisions, sorted by record id. */
   plans: Array<{ id: string; action: 'migrate' | 'skip_already_migrated' | 'skip_invalid' }>;
+  /** One deterministic outcome for every source row inspected by the planner. */
+  rowOutcomes: MigrationRowOutcome[];
   warningsByClass: Record<WarningClass, number>;
+}
+
+export type MigrationSource = 'incident' | 'note' | 'evidence' | 'history';
+export type MigrationRowDisposition = 'mapped' | 'retained_unlinked' | 'skipped' | 'reported';
+
+export interface MigrationRowOutcome {
+  source: MigrationSource;
+  source_id: string;
+  record_id: string | null;
+  disposition: MigrationRowDisposition;
+  reason: string;
 }
 
 const inc = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
@@ -97,6 +110,7 @@ export const planMigration = (
   const migratedIds = new Set<string>();
   const transformed = new Map<string, number>();
   const plans: MigrationPlanResult['plans'] = [];
+  const rowOutcomes: MigrationRowOutcome[] = [];
 
   const people = new Set<string>();
   let peopleMerged = 0;
@@ -109,16 +123,19 @@ export const planMigration = (
 
     if (action === 'skip_already_migrated') {
       report.counts.records_skipped_already_migrated += 1;
+      rowOutcomes.push({ source: 'incident', source_id: row.id, record_id: row.id, disposition: 'skipped', reason: 'already_migrated' });
       continue;
     }
     if (action === 'skip_invalid') {
       report.counts.records_skipped_invalid += 1;
       report.errors.push({ record_id: row.id, message: 'No created_at; record cannot be placed in time.' });
+      rowOutcomes.push({ source: 'incident', source_id: row.id, record_id: row.id, disposition: 'reported', reason: 'invalid_created_at' });
       continue;
     }
 
     report.counts.records_migrated += 1;
     migratedIds.add(row.id);
+    rowOutcomes.push({ source: 'incident', source_id: row.id, record_id: row.id, disposition: 'mapped', reason: 'record_mapped' });
 
     // ---- field transforms (counted, never guessed) ----
     inc(transformed, 'raw_narrative → original.text');
@@ -172,22 +189,32 @@ export const planMigration = (
   for (const n of [...snapshot.notes].sort((a, b) => a.id.localeCompare(b.id))) {
     if (!recordIds.has(n.incident_id)) {
       report.warnings.push({ record_id: n.incident_id, code: 'orphan_follow_up_note', detail: `Note ${n.id} has no parent record; not migrated.` });
+      rowOutcomes.push({ source: 'note', source_id: n.id, record_id: n.incident_id, disposition: 'reported', reason: 'orphan_parent' });
       continue;
     }
-    if (!migratedIds.has(n.incident_id)) continue;   // parent skipped → note follows the parent
+    if (!migratedIds.has(n.incident_id)) {
+      rowOutcomes.push({ source: 'note', source_id: n.id, record_id: n.incident_id, disposition: 'skipped', reason: 'parent_not_migrated' });
+      continue;
+    }
     report.counts.clarifications_created += 1;
     inc(transformed, 'follow_up_notes → V2Clarification');
+    rowOutcomes.push({ source: 'note', source_id: n.id, record_id: n.incident_id, disposition: 'mapped', reason: 'clarification_mapped' });
   }
 
   // ---- evidence (references only; bytes are never moved by the planner) ----
   for (const e of [...snapshot.evidence].sort((a, b) => a.id.localeCompare(b.id))) {
     if (!e.incident_id || !recordIds.has(e.incident_id)) {
       report.warnings.push({ record_id: e.incident_id, code: 'orphan_attachment', detail: `Evidence ${e.id} has no parent record; reference kept, not linked.` });
+      rowOutcomes.push({ source: 'evidence', source_id: e.id, record_id: e.incident_id, disposition: 'retained_unlinked', reason: 'orphan_reference_retained' });
       continue;
     }
-    if (!migratedIds.has(e.incident_id)) continue;
+    if (!migratedIds.has(e.incident_id)) {
+      rowOutcomes.push({ source: 'evidence', source_id: e.id, record_id: e.incident_id, disposition: 'skipped', reason: 'parent_not_migrated' });
+      continue;
+    }
     report.counts.media_linked += 1;
     inc(transformed, 'evidence_files → V2Media reference');
+    rowOutcomes.push({ source: 'evidence', source_id: e.id, record_id: e.incident_id, disposition: 'mapped', reason: 'media_reference_mapped' });
     if (!e.file_hash) {
       report.warnings.push({ record_id: e.incident_id, code: 'attachment_bytes_not_local', detail: `Evidence ${e.id} has no stored hash; reference migrated as-is.` });
     }
@@ -197,11 +224,16 @@ export const planMigration = (
   for (const h of [...snapshot.history].sort((a, b) => a.id.localeCompare(b.id))) {
     if (!recordIds.has(h.incident_id)) {
       report.warnings.push({ record_id: h.incident_id, code: 'orphan_edit_history', detail: `History ${h.id} has no parent record; not replayed.` });
+      rowOutcomes.push({ source: 'history', source_id: h.id, record_id: h.incident_id, disposition: 'reported', reason: 'orphan_parent' });
       continue;
     }
-    if (!migratedIds.has(h.incident_id)) continue;
+    if (!migratedIds.has(h.incident_id)) {
+      rowOutcomes.push({ source: 'history', source_id: h.id, record_id: h.incident_id, disposition: 'skipped', reason: 'parent_not_migrated' });
+      continue;
+    }
     report.counts.history_events_created += 1;
     inc(transformed, 'edit_history → V2RecordEvent');
+    rowOutcomes.push({ source: 'history', source_id: h.id, record_id: h.incident_id, disposition: 'mapped', reason: 'history_event_mapped' });
   }
 
   report.fields_transformed = Array.from(transformed.entries())
@@ -210,10 +242,11 @@ export const planMigration = (
 
   report.warnings.sort((a, b) => `${a.record_id}${a.code}${a.detail}`.localeCompare(`${b.record_id}${b.code}${b.detail}`));
   report.unmapped.sort((a, b) => `${a.record_id}${a.field}`.localeCompare(`${b.record_id}${b.field}`));
+  rowOutcomes.sort((a, b) => `${a.source}:${a.source_id}`.localeCompare(`${b.source}:${b.source_id}`));
   report.finished_at = now;
 
   const warningsByClass: Record<WarningClass, number> = { safe: 0, requires_handling: 0, blocker: 0 };
   report.warnings.forEach(w => { warningsByClass[WARNING_CLASS[w.code]] += 1; });
 
-  return { report, plans, warningsByClass };
+  return { report, plans, rowOutcomes, warningsByClass };
 };
