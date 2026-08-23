@@ -27,12 +27,34 @@ const ChronicleMark = ({ size = 28, label, style, ...props }: ChronicleMarkProps
       style={mergedStyle}
       {...props}
     >
-      <path d={CHRONICLE_MARK.page} stroke="var(--p-ink, currentColor)" strokeWidth="3" strokeLinejoin="round" />
-      <path d={CHRONICLE_MARK.fold} stroke="var(--p-ink, currentColor)" strokeWidth="3" strokeLinejoin="round" />
-      <path d={CHRONICLE_MARK.spine} stroke="var(--p-brass, currentColor)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={CHRONICLE_MARK.timeline} stroke="var(--p-brass, currentColor)" strokeWidth="2.4" strokeLinecap="round" />
-      {CHRONICLE_MARK.nodes.map(y => (
-        <circle key={y} cx="11.5" cy={y} r="3.2" fill="var(--p-paper, white)" stroke="var(--p-brass, currentColor)" strokeWidth="2.4" />
+      <path
+        d={CHRONICLE_MARK.back}
+        stroke="var(--p-ink, currentColor)"
+        strokeOpacity="0.5"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d={CHRONICLE_MARK.front}
+        stroke="var(--p-ink, currentColor)"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d={CHRONICLE_MARK.spine}
+        stroke="var(--p-brass, currentColor)"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+      {CHRONICLE_MARK.stitches.map(y => (
+        <path
+          key={y}
+          d={`M9.5 ${y}H21.5`}
+          stroke="var(--p-brass, currentColor)"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+        />
       ))}
     </svg>
   );

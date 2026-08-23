@@ -1825,9 +1825,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
-  min-width: 158px;
-  padding: 8px 11px 8px 10px;
+  gap: 11px;
+  min-width: 172px;
+  padding: 10px 13px 10px 12px;
   overflow: hidden;
   color: var(--p-ink);
   background: color-mix(in srgb, var(--p-paper) 74%, var(--p-paper-2) 26%);
@@ -1839,7 +1839,7 @@
   content: "";
   align-self: stretch;
   width: 2px;
-  margin: 1px 1px 1px -10px;
+  margin: 1px 1px 1px -12px;
   border-radius: 0 2px 2px 0;
   background: color-mix(in srgb, var(--p-brass) 72%, transparent);
 }
@@ -1848,7 +1848,7 @@
   flex-direction: column;
   gap: 4px;
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: 0.01em;
   line-height: 0.95;
   white-space: nowrap;
@@ -1856,7 +1856,7 @@
 .proto-root .proto-brandhead-stampcopy small {
   color: var(--p-muted);
   font-family: 'Epilogue', system-ui, sans-serif;
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 650;
   letter-spacing: 0.14em;
   line-height: 1;
@@ -1875,10 +1875,10 @@
   .proto-root .proto-brandhead-side { gap: 8px; }
   .proto-root .proto-brandhead-stamp {
     min-width: 0;
-    padding: 6px;
+    padding: 7px;
     border-radius: 9px;
   }
   .proto-root .proto-brandhead-stamp::before { display: none; }
-  .proto-root .proto-brandhead-stamp svg { width: 30px; height: 30px; }
+  .proto-root .proto-brandhead-stamp svg { width: 34px; height: 34px; }
   .proto-root .proto-brandhead-stampcopy { display: none; }
 }
