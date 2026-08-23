@@ -65,8 +65,40 @@ export async function exportDossierPdf(
     rule(2, 10);
   };
 
+  // Compact vector rendition of the shared “Bound Record” mark. Keeping it
+  // primitive means exported PDFs retain the brand without raster assets.
+  const brandMark = (x: number, top: number, scale = 0.55) => {
+    const sx = (n: number) => x + n * scale;
+    const sy = (n: number) => top + n * scale;
+    pdf.setLineCap('round');
+    pdf.setLineJoin('round');
+    pdf.setLineWidth(2 * scale);
+    pdf.setDrawColor(31, 28, 23);
+    pdf.line(sx(18), sy(7.5), sx(43.5), sy(7.5));
+    pdf.line(sx(43.5), sy(7.5), sx(54), sy(18));
+    pdf.line(sx(54), sy(18), sx(54), sy(56.5));
+    pdf.line(sx(54), sy(56.5), sx(18), sy(56.5));
+    pdf.line(sx(18), sy(56.5), sx(18), sy(7.5));
+    pdf.line(sx(43.5), sy(7.5), sx(43.5), sy(18));
+    pdf.line(sx(43.5), sy(18), sx(54), sy(18));
+    pdf.setDrawColor(138, 106, 43);
+    pdf.line(sx(18), sy(15.5), sx(11.5), sy(15.5));
+    pdf.line(sx(11.5), sy(15.5), sx(11.5), sy(48.5));
+    pdf.line(sx(11.5), sy(48.5), sx(18), sy(48.5));
+    [19.5, 32, 44.5].forEach(n => pdf.circle(sx(11.5), sy(n), 2.5 * scale, 'S'));
+  };
+
   /* ---------- Cover ---------- */
-  y = H * 0.28;
+  brandMark(M, 78, 0.7);
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(15);
+  pdf.setTextColor(31, 28, 23);
+  pdf.text('CHRONICLE', M + 52, 104);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7.5);
+  pdf.setTextColor(122, 115, 103);
+  pdf.text('A CHRONOLOGICAL RECORD', M + 52, 117);
+  y = H * 0.34;
   text(doc.title, { size: 24, style: 'bold', gap: 10 });
   text(doc.rangeLabel, { size: 12, color: [90, 90, 90], gap: 4 });
   text(`${doc.records.length} record${doc.records.length === 1 ? '' : 's'}`, { size: 12, color: [90, 90, 90], gap: 24 });
@@ -104,7 +136,7 @@ export async function exportDossierPdf(
 
   doc.records.forEach((r, i) => {
     if (i > 0) y += 14;
-    need(120); // keep a record heading with the start of its text
+    need(120);
     text(r.heading, { size: 13, style: 'bold', gap: 2 });
     if (r.title) text(r.title, { size: 11, style: 'italic', gap: 2 });
     text(`Sealed ${r.sealedLabel}`, { size: 8.5, color: [120, 120, 120], gap: 6 });
@@ -196,7 +228,7 @@ export async function exportDossierPdf(
     pdf.setFont('helvetica', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(140);
-    pdf.text(doc.title, M, M - 22);
+    pdf.text(`Chronicle · ${doc.title}`, M, M - 22);
     pdf.setDrawColor(220);
     pdf.setLineWidth(0.5);
     pdf.line(M, M - 16, W - M, M - 16);
