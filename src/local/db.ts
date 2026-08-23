@@ -2,7 +2,14 @@
 // Records live here first; cloud backup is optional and explicit.
 import Dexie, { type Table } from 'dexie';
 import type { Tables } from '@/integrations/supabase/types';
-import type { V2Clarification, V2Media, V2Record, V2RecordEvent } from '@/chronicle/model/schema';
+import type {
+  V2Clarification,
+  V2Media,
+  V2Person,
+  V2Record,
+  V2RecordEvent,
+  V2RecordRelationship,
+} from '@/chronicle/model/schema';
 
 export type SyncState =
   | 'local_only'         // never attempted backup (backup OFF, or queued before activation)
@@ -22,10 +29,10 @@ export type LocalIncident = Tables<'incidents'> & {
   sync_state: SyncState;
   last_sync_attempt_at: string | null;
   last_sync_error: string | null;
-  local_updated_at: string;            // bumped on any local write so sync can detect dirtiness
+  local_updated_at: string;
   conflict_detected_at?: string | null;
   cloud_last_modified_at?: string | null;
-  cloud_version?: number | null;       // server version observed at conflict time
+  cloud_version?: number | null;
 };
 
 export type LocalFollowUpNote = Tables<'follow_up_notes'> & {
@@ -36,20 +43,13 @@ export type LocalFollowUpNote = Tables<'follow_up_notes'> & {
   local_updated_at: string;
 };
 
-// Per-device key/value metadata (e.g. hydration completion per account).
 export interface LocalMeta {
   key: string;
   value: string;
 }
 
-/**
- * Rows belonging to a signed-out account that are NOT safely backed up.
- * They are moved out of the live tables at an account boundary so a second
- * account on the same device can never read them, and restored when their
- * owner signs back in. See `src/local/accountBoundary.ts`.
- */
 export interface QuarantinedRow {
-  key: string;                       // `${kind}:${rowId}`
+  key: string;
   owner_user_id: string;
   kind: 'incident' | 'note';
   stored_at: string;
@@ -57,10 +57,8 @@ export interface QuarantinedRow {
 }
 
 /**
- * Phase 3 canonical stores are deliberately parallel to the legacy tables.
- * Creating these empty stores does not migrate, rewrite or switch any existing
- * Chronicle data. Production readers continue using the legacy tables until a
- * later activation phase explicitly opts into canonical storage.
+ * Canonical stores remain parallel to the legacy tables. Schema upgrades only
+ * create stores/indexes; no upgrade callback copies or rewrites V1 data.
  */
 export class ChronicleDB extends Dexie {
   incidents!: Table<LocalIncident, string>;
@@ -72,6 +70,8 @@ export class ChronicleDB extends Dexie {
   canonical_clarifications!: Table<V2Clarification, string>;
   canonical_media!: Table<V2Media, string>;
   canonical_history!: Table<V2RecordEvent, string>;
+  canonical_people!: Table<V2Person, string>;
+  canonical_relationships!: Table<V2RecordRelationship, string>;
 
   constructor(name = 'chronicle_local') {
     super(name);
@@ -80,29 +80,28 @@ export class ChronicleDB extends Dexie {
       follow_up_notes: 'id, owner_user_id, incident_id, sync_state, created_at',
       meta: 'key',
     });
-    // v2 — adds record_date for daily records (separate canonical event date).
-    // The schema string only needs to change if we want to index it. We don't
-    // strictly need to, but bumping the version triggers any future reindex.
     this.version(2).stores({
       incidents: 'id, owner_user_id, sync_state, incident_date, record_date, updated_at',
     });
-    // v3 — account-boundary quarantine store.
     this.version(3).stores({
       quarantine: 'key, owner_user_id, kind',
     });
-    // v4 — empty parallel canonical stores. No upgrade callback copies data.
     this.version(4).stores({
       canonical_records: 'id, owner_id, kind, updated_at',
       canonical_clarifications: 'id, owner_id, record_id, kind, created_at',
       canonical_media: 'id, owner_id, record_id, kind, role, added_at',
       canonical_history: 'id, owner_id, record_id, action, at',
     });
+    // v5 — entity identity required for a lossless canonical migration.
+    this.version(5).stores({
+      canonical_people: 'id, owner_id, normalised_name, display_name, merged_into_id',
+      canonical_relationships: 'id, owner_id, record_id, entity_type, entity_id, created_at, removed_at',
+    });
   }
 }
 
 export const localDB = new ChronicleDB();
 
-// ---------- Meta helpers ----------
 export const META_KEYS = {
   backupEnabled: 'backup_enabled',
   hydratedFor: (userId: string) => `hydrated_for:${userId}`,
