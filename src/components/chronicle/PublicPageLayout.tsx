@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import ChronicleLockup from '@/chronicle/brand/ChronicleLockup';
 
 interface PublicPageLayoutProps {
   title: string;
@@ -11,6 +12,13 @@ interface PublicPageLayoutProps {
 }
 
 const BASE = 'https://projectchronicle.app';
+
+const publicBrandTokens = {
+  '--p-ink': 'hsl(var(--foreground))',
+  '--p-brass': 'hsl(var(--primary))',
+  '--p-paper': 'hsl(var(--background))',
+  '--p-muted': 'hsl(var(--muted-foreground))',
+} as CSSProperties;
 
 const PublicPageLayout = ({ title, description, path, jsonLd, children }: PublicPageLayoutProps) => {
   const url = `${BASE}${path}`;
@@ -34,13 +42,9 @@ const PublicPageLayout = ({ title, description, path, jsonLd, children }: Public
       </Helmet>
 
       <header className="border-b border-border/60">
-        <div className="max-w-5xl mx-auto px-5 lg:px-8 py-4 lg:py-5 flex items-center justify-between">
-          <Link
-            to="/"
-            className="font-serif tracking-[0.18em] text-[15px] lg:text-[17px] text-foreground/80"
-            style={{ fontFamily: 'Urbanist, system-ui, sans-serif', fontWeight: 500 }}
-          >
-            PROJECT&nbsp;CHRONICLE
+        <div className="max-w-5xl mx-auto px-5 lg:px-8 py-4 lg:py-5 flex items-center justify-between gap-4">
+          <Link to="/" className="text-foreground/90" aria-label="Chronicle home" style={publicBrandTokens}>
+            <ChronicleLockup compact markSize={28} />
           </Link>
           <nav className="flex items-center gap-5 lg:gap-7 text-[12.5px] lg:text-[13.5px] text-muted-foreground">
             <Link to="/how-it-works" className="hover:text-foreground">How it works</Link>
