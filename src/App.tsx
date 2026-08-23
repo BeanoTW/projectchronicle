@@ -35,6 +35,7 @@ import MyRecordScreen from "./pages/MyRecordScreen";
 import EvidenceScreen from "./pages/EvidenceScreen";
 import SupportScreen from "./pages/SupportScreen";
 import SettingsScreen from "./pages/SettingsScreen";
+import BackupRecoveryScreen from "./pages/BackupRecoveryScreen";
 import EntryScreen from "./pages/EntryScreen";
 import NotFound from "./pages/NotFound";
 import GuidesIndex from "./pages/guides/GuidesIndex";
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/rights" element={<Navigate to="/support" replace />} />
             <Route path="/export" element={<ProtectedRoute><AppLayout><MyRecordScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsScreen /></AppLayout></ProtectedRoute>} />
+            <Route path="/settings/backup" element={<ProtectedRoute><AppLayout><BackupRecoveryScreen /></AppLayout></ProtectedRoute>} />
             <Route path="/incident/:id" element={<ProtectedRoute><AppLayout><EntryScreen /></AppLayout></ProtectedRoute>} />
 
             {/* Public marketing & content surfaces (indexable, no auth) */}

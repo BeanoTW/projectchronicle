@@ -191,7 +191,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) return;
     // One-shot push: queue any local-only records, then sync.
     await promoteAllLocalToQueued(user.id);
-    const res = await syncNow(user.id);
+    const res = await syncNow(user.id, { force: true });
     await refreshDiagnostics();
     await refreshCloudCount();
     if (res.failed > 0) {
