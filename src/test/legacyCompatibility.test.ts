@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { projectLegacyIncident, projectLegacyIncidents } from '@/chronicle/model/legacyCompatibility';
+import {
+  inspectLegacyIncidents,
+  projectLegacyIncident,
+  projectLegacyIncidents,
+} from '@/chronicle/model/legacyCompatibility';
 import { V2RecordSchema } from '@/chronicle/model/contracts';
 import type { LocalIncident } from '@/local/db';
 
@@ -50,6 +54,23 @@ describe('Phase 2 — legacy compatibility projection', () => {
   it('refuses a corrupt required creation timestamp instead of inventing one', () => {
     expect(() => projectLegacyIncident(row({ created_at: 'not-a-date' })))
       .toThrow(/no valid created_at/i);
+  });
+
+  it('reports a corrupt row without hiding valid neighbours', () => {
+    const report = inspectLegacyIncidents([
+      row({ id: 'good-b' }),
+      row({ id: 'bad', created_at: 'not-a-date' }),
+      row({ id: 'good-a' }),
+    ], 'owner-1');
+
+    expect(report.inspected).toBe(3);
+    expect(report.records.map(item => item.id)).toEqual(['good-a', 'good-b']);
+    expect(report.issues).toEqual([
+      expect.objectContaining({ record_id: 'bad', code: 'projection_failed' }),
+    ]);
+    expect(() => projectLegacyIncidents([
+      row({ id: 'good' }), row({ id: 'bad', created_at: 'not-a-date' }),
+    ], 'owner-1')).toThrow(/bad/);
   });
 
   it('uses the daily record date and canonical daily kind', () => {
