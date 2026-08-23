@@ -27,6 +27,7 @@ import {
 import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
 import { clearUserScopedState } from '@/chronicle/shared/sessionCleanup';
 import { APP_VERSION } from '@/lib/appVersion';
+import { requestAppUpdateCheck } from '@/lib/pwa/updateCoordinator';
 import { APP_LOCK_TIMEOUT_OPTIONS, validateLockPinSetup } from '@/lib/lock/lockSettings';
 import '@/chronicle/styles.css';
 
@@ -59,6 +60,7 @@ const SettingsScreen = () => {
   const [pinError, setPinError] = useState<string | null>(null);
   const [savingPin, setSavingPin] = useState(false);
   const [changingBiometric, setChangingBiometric] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -145,6 +147,28 @@ const SettingsScreen = () => {
       });
     } finally {
       setChangingBackup(false);
+    }
+  };
+
+
+  const handleCheckForUpdates = async () => {
+    setCheckingUpdate(true);
+    try {
+      const checked = await requestAppUpdateCheck();
+      toast({
+        title: checked ? 'Update check complete' : 'Update check unavailable here',
+        description: checked
+          ? 'If a newer Chronicle release is ready, the Update button will appear at the top of the app.'
+          : 'Update checks run in the published app and installed Chronicle, not in preview mode.',
+      });
+    } catch {
+      toast({
+        title: 'Could not check for updates',
+        description: 'Check your connection and try again. Your current Chronicle remains available.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCheckingUpdate(false);
     }
   };
 
@@ -409,7 +433,22 @@ const SettingsScreen = () => {
           <SettingsLinkRow label="How Chronicle works" onClick={() => navigate('/how-it-works')} />
           <SettingsLinkRow label="Privacy policy" onClick={() => navigate('/privacy')} />
           <SettingsLinkRow label="About Chronicle" onClick={() => navigate('/about')} />
-          <SettingsRow label="App version" value={APP_VERSION} />
+          <SettingsRow
+            label="App version"
+            value={APP_VERSION}
+            help="Chronicle also checks automatically on launch, reconnect and return."
+            action={
+              <button
+                type="button"
+                className="proto-btn"
+                disabled={checkingUpdate}
+                onClick={() => { void handleCheckForUpdates(); }}
+                data-testid="check-for-updates"
+              >
+                {checkingUpdate ? 'Checking…' : 'Check for updates'}
+              </button>
+            }
+          />
         </SettingsSection>
         </div>
 
