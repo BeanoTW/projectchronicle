@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme, type ThemeMode } from '@/contexts/ThemeContext';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useBackup } from '@/contexts/BackupContext';
+import { useLock } from '@/contexts/LockContext';
 import { useIncidents } from '@/hooks/useIncidents';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ import {
 import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
 import { clearUserScopedState } from '@/chronicle/shared/sessionCleanup';
 import { APP_VERSION } from '@/lib/appVersion';
+import { APP_LOCK_TIMEOUT_OPTIONS, validateLockPinSetup } from '@/lib/lock/lockSettings';
 import '@/chronicle/styles.css';
 
 export const PRIVACY_SHIELD_COPY =
@@ -37,6 +39,10 @@ const SettingsScreen = () => {
   const { toast } = useToast();
   const { user, signOut, unsyncedCount } = useAuth();
   const { mode, setMode } = useTheme();
+  const {
+    isLockConfigured, biometricSupported, biometricEnabled, lockTimeoutMs,
+    setPin, removeLock, enableBiometric, disableBiometric, setTimeout: setLockTimeout, lockNow,
+  } = useLock();
   const { enabled: shielded, setEnabled: setShielded } = usePrivacy();
   const { data: incidents } = useIncidents();
   const {
@@ -46,6 +52,13 @@ const SettingsScreen = () => {
 
   const [shieldGateOpen, setShieldGateOpen] = useState(false);
   const [changingBackup, setChangingBackup] = useState(false);
+  const [pinSheetOpen, setPinSheetOpen] = useState(false);
+  const [removeLockOpen, setRemoveLockOpen] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [savingPin, setSavingPin] = useState(false);
+  const [changingBiometric, setChangingBiometric] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -62,6 +75,63 @@ const SettingsScreen = () => {
     if (lastBackupAt) return 'Backed up earlier';
     return 'Waiting to back up';
   }, [backupEnabled, conflictCount, online, syncStatus, lastBackupAt]);
+
+  const openPinSheet = () => {
+    setNewPin('');
+    setConfirmPin('');
+    setPinError(null);
+    setPinSheetOpen(true);
+  };
+
+  const handleSavePin = async () => {
+    const validationError = validateLockPinSetup(newPin, confirmPin);
+    if (validationError) {
+      setPinError(validationError);
+      return;
+    }
+    setSavingPin(true);
+    setPinError(null);
+    try {
+      await setPin(newPin);
+      setPinSheetOpen(false);
+      setNewPin('');
+      setConfirmPin('');
+      toast({
+        title: isLockConfigured ? 'App lock PIN changed' : 'App lock turned on',
+        description: 'This PIN protects Chronicle on this device only.',
+      });
+    } catch {
+      setPinError('The PIN could not be saved. Please try again.');
+    } finally {
+      setSavingPin(false);
+    }
+  };
+
+  const handleBiometricChange = async (enabled: boolean) => {
+    setChangingBiometric(true);
+    try {
+      if (enabled) await enableBiometric();
+      else disableBiometric();
+      toast({ title: enabled ? 'Biometric unlock turned on' : 'Biometric unlock turned off' });
+    } catch {
+      toast({
+        title: 'Biometric unlock could not be changed',
+        description: 'Your PIN still works and no lock settings were removed.',
+        variant: 'destructive',
+      });
+    } finally {
+      setChangingBiometric(false);
+    }
+  };
+
+  const handleRemoveLock = () => {
+    removeLock();
+    setRemoveLockOpen(false);
+    toast({
+      title: 'App lock removed',
+      description: 'Your Chronicle account and records are unchanged.',
+    });
+  };
 
   const handleBackupChange = async (enabled: boolean) => {
     setChangingBackup(true);
@@ -220,6 +290,62 @@ const SettingsScreen = () => {
           />
         </SettingsSection>
 
+        {/* SECURITY */}
+        <SettingsSection
+          title="App lock"
+          description="Protect Chronicle on this device with a PIN and, where supported, your device biometric."
+        >
+          <SettingsRow
+            label="PIN lock"
+            value={isLockConfigured ? 'On' : 'Off'}
+            help={isLockConfigured ? 'Required after Chronicle has been inactive.' : 'Your account password does not automatically lock an open app.'}
+            action={
+              <button type="button" className="proto-btn" onClick={openPinSheet}>
+                {isLockConfigured ? 'Change PIN' : 'Set up'}
+              </button>
+            }
+          />
+          <SettingsToggle
+            label="Biometric unlock"
+            help={
+              !biometricSupported
+                ? 'Biometric unlock is not available in this browser or on this device.'
+                : 'Use your phone, tablet or computer biometric instead of entering the PIN.'
+            }
+            checked={biometricEnabled}
+            disabled={!isLockConfigured || !biometricSupported || changingBiometric}
+            testId="v2-biometric-unlock"
+            onChange={v => { void handleBiometricChange(v); }}
+          />
+          {isLockConfigured && (
+            <SettingsChoice<string>
+              legend="Lock automatically"
+              help="Chronicle locks after it has been in the background or inactive for this long."
+              value={String(lockTimeoutMs)}
+              options={APP_LOCK_TIMEOUT_OPTIONS.map(option => ({ ...option }))}
+              onChange={value => setLockTimeout(Number(value))}
+            />
+          )}
+          {isLockConfigured && (
+            <>
+              <SettingsRow
+                label="Lock Chronicle now"
+                help="Return to the PIN screen immediately."
+                action={<button type="button" className="proto-btn" onClick={lockNow}>Lock now</button>}
+              />
+              <div className="proto-set-row">
+                <button
+                  type="button"
+                  className="proto-btn proto-set-fullbtn proto-set-danger"
+                  onClick={() => setRemoveLockOpen(true)}
+                >
+                  Remove app lock
+                </button>
+              </div>
+            </>
+          )}
+        </SettingsSection>
+
         {/* RECORDING */}
         <SettingsSection title="Recording">
           <SettingsRow
@@ -283,6 +409,88 @@ const SettingsScreen = () => {
         </div>
 
       </div>
+
+      {pinSheetOpen && (
+        <div className="proto-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="app-lock-pin-title">
+          <div className="proto-sheet">
+            <div className="proto-sheet-head">
+              <strong id="app-lock-pin-title">{isLockConfigured ? 'Change app lock PIN' : 'Set up app lock'}</strong>
+            </div>
+            <div className="proto-sheet-body">
+              <p className="proto-help">
+                Choose 4 to 6 numbers. The PIN is stored only on this device and is separate from your Chronicle password.
+              </p>
+              <label className="proto-flabel" htmlFor="app-lock-pin">New PIN</label>
+              <input
+                id="app-lock-pin"
+                className="proto-input"
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                pattern="[0-9]*"
+                minLength={4}
+                maxLength={6}
+                value={newPin}
+                onChange={event => { setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(null); }}
+                autoFocus
+              />
+              <label className="proto-flabel" htmlFor="app-lock-pin-confirm">Confirm PIN</label>
+              <input
+                id="app-lock-pin-confirm"
+                className="proto-input"
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                pattern="[0-9]*"
+                minLength={4}
+                maxLength={6}
+                value={confirmPin}
+                onChange={event => { setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6)); setPinError(null); }}
+                onKeyDown={event => { if (event.key === 'Enter') void handleSavePin(); }}
+              />
+              {pinError && <p className="proto-set-error" role="alert">{pinError}</p>}
+            </div>
+            <div className="proto-sheet-foot">
+              <button
+                type="button"
+                className="proto-btn"
+                onClick={() => setPinSheetOpen(false)}
+                disabled={savingPin}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="proto-btn"
+                data-variant="primary"
+                onClick={() => { void handleSavePin(); }}
+                disabled={savingPin}
+              >
+                {savingPin ? 'Saving…' : isLockConfigured ? 'Change PIN' : 'Turn on app lock'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {removeLockOpen && (
+        <div className="proto-sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="remove-app-lock-title">
+          <div className="proto-sheet">
+            <div className="proto-sheet-head">
+              <strong id="remove-app-lock-title">Remove app lock?</strong>
+            </div>
+            <div className="proto-sheet-body">
+              <p className="proto-help">
+                Chronicle will stop asking for a PIN or biometric on this device. Your account, records and cloud backup are not removed.
+              </p>
+            </div>
+            <div className="proto-sheet-foot">
+              <button type="button" className="proto-btn" onClick={() => setRemoveLockOpen(false)}>Keep app lock</button>
+              <button type="button" className="proto-btn proto-set-danger" onClick={handleRemoveLock}>Remove app lock</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <PrivacyShieldDisableGate
         open={shieldGateOpen}
