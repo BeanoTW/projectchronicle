@@ -41,9 +41,11 @@ const SettingsScreen = () => {
   const { data: incidents } = useIncidents();
   const {
     backupEnabled, online, localCount, cloudCount, conflictCount, lastBackupAt, syncStatus,
+    setBackupEnabled,
   } = useBackup();
 
   const [shieldGateOpen, setShieldGateOpen] = useState(false);
+  const [changingBackup, setChangingBackup] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -60,6 +62,21 @@ const SettingsScreen = () => {
     if (lastBackupAt) return 'Backed up earlier';
     return 'Waiting to back up';
   }, [backupEnabled, conflictCount, online, syncStatus, lastBackupAt]);
+
+  const handleBackupChange = async (enabled: boolean) => {
+    setChangingBackup(true);
+    try {
+      await setBackupEnabled(enabled);
+    } catch {
+      toast({
+        title: enabled ? 'Could not turn on cloud backup' : 'Could not turn off cloud backup',
+        description: 'Your records have not been changed. Please check your connection and try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setChangingBackup(false);
+    }
+  };
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -178,6 +195,14 @@ const SettingsScreen = () => {
             checked={shielded}
             testId="v2-privacy-shield"
             onChange={v => (v ? setShielded(true) : setShieldGateOpen(true))}
+          />
+          <SettingsToggle
+            label="Cloud backup"
+            help="Keep an account-linked cloud copy so your records can be restored if this device is lost or reset."
+            checked={backupEnabled}
+            disabled={!user || changingBackup}
+            testId="v2-cloud-backup"
+            onChange={v => { void handleBackupChange(v); }}
           />
           <SettingsRow
             label="Where your records live"
