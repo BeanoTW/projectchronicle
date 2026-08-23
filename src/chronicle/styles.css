@@ -266,7 +266,7 @@
   border: 1px solid var(--p-line);
   border-radius: 8px;
   padding: 12px 14px;
-  font-size: 16px;
+  font-size: 15px;
   color: var(--p-ink);
   font-family: inherit;
 }
@@ -1848,7 +1848,7 @@
   flex-direction: column;
   gap: 4px;
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 15px;
+  font-size: 16px;
   letter-spacing: 0.01em;
   line-height: 0.95;
   white-space: nowrap;
