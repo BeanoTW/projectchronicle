@@ -299,6 +299,7 @@ const AttachmentsLibrary = ({ open, onClose }: AttachmentsLibraryProps) => {
             isTranscriptSource={!!pendingDelete?.isSource}
             onCancel={() => setPendingDelete(null)}
             onConfirm={confirmDelete}
+            busy={deleteEvidence.isPending}
           />
         </motion.div>
       )}
