@@ -9,6 +9,7 @@
 // Desktop uses the extra width as a two-column control centre rather than a
 // stretched phone screen.
 import type { HomeState } from './homeModel';
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import { formatHomeDate, formatHomeTimestamp } from './homeModel';
 
 interface Props {
@@ -34,16 +35,17 @@ const HomeView = ({
 
   return (
     <div className="proto-home" data-testid="home-view">
-      <header className="proto-home-head">
-        <h1 className="proto-h1">Home</h1>
-        <p className="proto-help">
-          {loading
+      <ChroniclePageHeader
+        title="Home"
+        eyebrow="Your bound record"
+        subtitle={
+          loading
             ? 'Loading your record…'
             : isFirstUse
             ? 'Chronicle keeps a clear, dated record of what happened.'
-            : `${recordCount} ${recordCount === 1 ? 'record' : 'records'} kept${recentCount > 0 ? ` · ${recentCount} added in the last 7 days` : ''}`}
-        </p>
-      </header>
+            : `${recordCount} ${recordCount === 1 ? 'record' : 'records'} kept${recentCount > 0 ? ` · ${recentCount} added in the last 7 days` : ''}`
+        }
+      />
 
       <div className="proto-home-grid">
         <div className="proto-home-col">
