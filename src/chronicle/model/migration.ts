@@ -91,10 +91,10 @@ export const FIELD_MAPPING = [
   { from: 'incidents.raw_narrative', to: 'V2Record.original.text', rule: 'copied byte-for-byte, never trimmed or reflowed' },
   { from: 'incidents.original_created_at | created_at', to: 'V2Record.captured_at', rule: 'first non-null wins' },
   { from: 'incidents.created_at', to: 'V2Record.sealed_at', rule: 'V1 had no seal concept; creation time is the closest honest equivalent' },
-  { from: 'incidents.record_type', to: 'V2Record.kind', rule: "'daily' → 'daily', everything else → 'incident'" },
+  { from: 'incidents.record_type', to: 'V2Record.kind', rule: "'daily' or legacy 'daily_record' → 'daily', everything else → 'incident'" },
   { from: 'incidents.title', to: 'details.title', rule: 'copied; null stays null (no generated titles)' },
   { from: 'incidents.category / subtype', to: 'details.category_id', rule: 'slugified against the V2 category table; unmatched values are kept as user categories and warned' },
-  { from: 'incidents.incident_date / record_date', to: 'details.event_date', rule: 'record_date wins for daily records; missing dates warn and stay null' },
+  { from: 'incidents.incident_date / record_date', to: 'details.event_date', rule: "record_date wins for daily records; valid values become { kind: 'exact' }; missing dates warn and stay null" },
   { from: 'incidents.incident_time', to: 'details.event_time', rule: 'kept if it parses as HH:MM, otherwise moved to unmapped with a warning' },
   { from: 'incidents.people_involved + witnesses', to: 'V2Person + details.person_ids', rule: 'normalised names de-duplicated per owner; witness status recorded as a role note, never a separate concept' },
   { from: 'incidents.excluded_from_rep', to: 'V2Record.dossier', rule: "true → { state: 'excluded' }, false → { state: 'not_included' } (V1 had no explicit inclusion)" },
@@ -102,7 +102,7 @@ export const FIELD_MAPPING = [
   { from: 'incidents.ai_summary', to: 'unmapped', rule: 'not carried over — V2 does not present generated text as record content' },
   { from: 'follow_up_notes.note_type', to: 'V2Clarification.kind', rule: "'Outcome' → 'outcome', 'Update'/'Meeting' → 'follow_up', anything else → 'clarification'" },
   { from: 'follow_up_notes.created_at', to: 'V2Clarification.created_at', rule: 'preserved exactly; ordering is by this value' },
-  { from: 'evidence_files.*', to: 'V2Media', rule: "role = 'original' when upload_date <= record sealed_at, otherwise 'later'" },
+  { from: 'evidence_files.*', to: 'V2Media', rule: "role = 'legacy_unresolved' unless source history proves the file was present at seal or added later; timing proximity is not proof" },
   { from: 'evidence_files.file_hash', to: 'V2Media.content_hash', rule: 'copied when present; never recomputed during migration' },
   { from: 'edit_history.*', to: 'V2RecordEvent', rule: "action 'details_updated' with actor from edit_source; original text edits are recorded but never replayed" },
 ] as const;
@@ -141,7 +141,8 @@ export const planRecord = (
   if (text.trim().length === 0) {
     warnings.push({ record_id: row.id, code: 'empty_narrative', detail: 'No original wording; migrated as a record with details only.' });
   }
-  const eventDate = row.record_type === 'daily' ? (row.record_date ?? row.incident_date) : row.incident_date;
+  const isDaily = row.record_type === 'daily' || row.record_type === 'daily_record';
+  const eventDate = isDaily ? (row.record_date ?? row.incident_date) : row.incident_date;
   if (!eventDate) {
     warnings.push({ record_id: row.id, code: 'missing_incident_date', detail: 'No usable event date; details.event_date left null.' });
   }

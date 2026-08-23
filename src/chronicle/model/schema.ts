@@ -17,7 +17,10 @@ export type Iso = string; // ISO-8601 timestamp, always UTC
 export type IsoDate = string; // YYYY-MM-DD
 export type Uuid = string;
 
-export const V2_SCHEMA_VERSION = 1;
+/** Stable versions used by adapters, migrations and rebuildable derivations. */
+export const V2_SCHEMA_VERSION = 2;
+export const CANONICAL_CONTRACT_VERSION = 1;
+export const DERIVATION_CONTRACT_VERSION = 1;
 
 /* ---------------------------------------------------------------- record */
 
@@ -34,13 +37,13 @@ export type RecordKind = 'incident' | 'daily';
 export type CaptureSource = 'written' | 'voice' | 'written_and_voice' | 'imported_v1';
 
 export interface V2Record {
-  id: Uuid;                       // stable; reused from V1 `incidents.id` on migration
-  owner_id: Uuid;                 // auth user id
-  kind: RecordKind;
-  schema_version: number;
+  readonly id: Uuid;              // stable; reused from V1 `incidents.id` on migration
+  readonly owner_id: Uuid;        // auth user id
+  readonly kind: RecordKind;
+  readonly schema_version: number;
 
   /** Immutable original. Never edited, never rewritten. */
-  original: OriginalContent;
+  readonly original: OriginalContent;
 
   /** Everything the user may revise later without touching `original`. */
   details: OrganisationalDetails;
@@ -48,9 +51,9 @@ export interface V2Record {
   lifecycle: RecordLifecycle;
   dossier: DossierMembership;
 
-  captured_at: Iso;               // when composition began
-  sealed_at: Iso;                 // when the record became immutable
-  created_at: Iso;
+  readonly captured_at: Iso;      // when composition began
+  readonly sealed_at: Iso;        // when the record became immutable
+  readonly created_at: Iso;
   updated_at: Iso;                // details/membership changes only
 
   sync: SyncMetadata;
@@ -58,13 +61,22 @@ export interface V2Record {
 
 export interface OriginalContent {
   /** Exact wording as typed. Empty string only when capture was voice-only. */
-  text: string;
-  source: CaptureSource;
+  readonly text: string;
+  readonly source: CaptureSource;
   /** Ids of media rows with role 'original'. */
-  media_ids: Uuid[];
+  readonly media_ids: readonly Uuid[];
   /** Set once, at seal. */
-  sealed_at: Iso;
+  readonly sealed_at: Iso;
 }
+
+export type EventDaypart = 'morning' | 'afternoon' | 'evening' | 'night';
+
+/** The user's claim about when something happened; never derived precision. */
+export type EventDateValue =
+  | { kind: 'exact'; date: IsoDate }
+  | { kind: 'approximate'; date: IsoDate; daypart: EventDaypart | null }
+  | { kind: 'range'; start: IsoDate; end: IsoDate }
+  | { kind: 'unknown' };
 
 /** User-supplied context added at or after seal. Freely correctable. */
 export interface OrganisationalDetails {
@@ -73,7 +85,7 @@ export interface OrganisationalDetails {
   context: string | null;         // e.g. workplace, education
   person_ids: Uuid[];
   location: string | null;
-  event_date: IsoDate | null;
+  event_date: EventDateValue | null;
   event_time: string | null;      // HH:MM local as entered
   /** Correction trail for these fields; the original is never touched. */
   revision_count: number;
@@ -103,8 +115,8 @@ export interface V2Clarification {
 /* ------------------------------------------------------------------ media */
 
 export type MediaKind = 'voice' | 'image' | 'document' | 'audio' | 'video' | 'other';
-/** `original` = present at seal. `later` = appended afterwards. */
-export type MediaRole = 'original' | 'later';
+/** Legacy role remains unresolved unless Chronicle can prove when it joined. */
+export type MediaRole = 'original' | 'later' | 'legacy_unresolved';
 
 /** Inclusion is a state, not a boolean: excluded evidence stays visible. */
 export type MediaInclusion =
@@ -158,6 +170,74 @@ export interface V2Person {
   role_note: string | null;
   created_at: Iso;
   merged_into_id: Uuid | null;    // soft merge; never destroys the original row
+}
+
+export interface V2Organisation {
+  id: Uuid;
+  owner_id: Uuid;
+  display_name: string;
+  normalised_name: string;
+  note: string | null;
+  created_at: Iso;
+  merged_into_id: Uuid | null;
+}
+
+export type RelationshipEntityType = 'person' | 'organisation';
+export type RelationshipSource = 'user' | 'accepted_proposal' | 'migration';
+
+/** Optional link; canonical records remain authoritative and are never copied. */
+export interface V2RecordRelationship {
+  id: Uuid;
+  owner_id: Uuid;
+  record_id: Uuid;
+  entity_type: RelationshipEntityType;
+  entity_id: Uuid;
+  role_note: string | null;
+  source: RelationshipSource;
+  created_at: Iso;
+  removed_at: Iso | null;
+}
+
+/* -------------------------------------------------------------- proposals */
+
+export type ProposalKind = 'category' | 'context' | 'event_date' | 'person' | 'organisation';
+export type ProposalSource = {
+  helper: string;
+  helper_version: string;
+  model: string | null;
+};
+export type ProposalState =
+  | { state: 'proposed' }
+  | { state: 'accepted'; resolved_at: Iso; accepted_value: unknown }
+  | { state: 'dismissed'; resolved_at: Iso }
+  | { state: 'superseded'; resolved_at: Iso; superseded_by_id: Uuid };
+
+/** Proposed values have no authority until a user accepts them. */
+export interface V2Proposal {
+  id: Uuid;
+  owner_id: Uuid;
+  record_id: Uuid;
+  kind: ProposalKind;
+  proposed_value: unknown;
+  source: ProposalSource;
+  created_at: Iso;
+  state: ProposalState;
+}
+
+/* ------------------------------------------------------- derived objects */
+
+export type DerivedObjectKind = 'search_index' | 'embedding' | 'entity_candidates' | 'ranking_cache';
+
+/** Disposable machine output. It can be rebuilt and never owns record truth. */
+export interface V2DerivedObject<T = unknown> {
+  id: Uuid;
+  owner_id: Uuid;
+  record_id: Uuid;
+  kind: DerivedObjectKind;
+  source_record_version: number;
+  derivation_version: number;
+  created_at: Iso;
+  value: T;
 }
 
 export interface V2Category {
