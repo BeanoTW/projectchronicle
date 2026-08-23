@@ -117,13 +117,12 @@ const EvidenceScreen = () => {
   if (allEvidence.length === 0) {
     return (
       <div className="min-h-screen bg-background pb-24">
-        <div className="px-5 pt-8 flex items-center justify-between">
-          <h1>Attachments</h1>
+        <PageHeader title="Attachments" subtitle="Files linked to your records">
           <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-[12px] font-medium rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-transform">
             <Plus className="h-3.5 w-3.5" /> Upload
             <input type="file" className="hidden" onChange={handleUpload} />
           </label>
-        </div>
+        </PageHeader>
         <EmptyState
           icon={<Paperclip className="h-10 w-10" />}
           heading="No attachments added yet"
@@ -135,7 +134,7 @@ const EvidenceScreen = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Attachments">
+      <PageHeader title="Attachments" subtitle="Files linked to your records">
         <label className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-[12px] font-semibold rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-all duration-150 hover:shadow-[var(--shadow-card-hover)]">
           <Plus className="h-3.5 w-3.5" /> Upload
           <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />

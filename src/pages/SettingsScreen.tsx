@@ -14,6 +14,7 @@ import { useIncidents } from '@/hooks/useIncidents';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import AppSurface from '@/chronicle/shared/AppSurface';
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import {
   SettingsChoice,
   SettingsDeferred,
@@ -118,8 +119,11 @@ const SettingsScreen = () => {
   return (
     <AppSurface>
       <div className="proto-page" data-testid="v2-settings">
-        <h1 className="proto-h1">Settings</h1>
-        <p className="proto-help">Your account, appearance, privacy and data.</p>
+        <ChroniclePageHeader
+          title="Settings"
+          eyebrow="Record controls"
+          subtitle="Your account, appearance, privacy and data."
+        />
 
         <div className="proto-settings-grid">
         {/* ACCOUNT */}

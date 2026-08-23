@@ -1774,3 +1774,98 @@
   line-height: 1.55;
   color: var(--p-ink-2);
 }
+
+
+/* Branded page masthead — gives every signed-in surface a shared Chronicle frame. */
+.proto-root .proto-brandhead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  min-height: 92px;
+  margin: 0 0 20px;
+  padding: 2px 0 18px;
+  border-bottom: 1px solid var(--p-line);
+}
+.proto-root .proto-brandhead::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 72px;
+  height: 2px;
+  background: var(--p-brass);
+}
+.proto-root .proto-brandhead-copy { min-width: 0; }
+.proto-root .proto-brandhead-kicker {
+  margin: 0 0 5px;
+  color: var(--p-brass-soft);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.proto-root .proto-brandhead .proto-h1 { margin: 0; font-size: 31px; }
+.proto-root .proto-brandhead-subtitle { margin-top: 6px; max-width: 620px; }
+.proto-root .proto-brandhead-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.proto-root .proto-brandhead-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.proto-root .proto-brandhead-stamp {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 174px;
+  padding: 10px 13px 10px 11px;
+  color: var(--p-ink);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p-paper-2) 94%, var(--p-brass) 6%), var(--p-paper-2));
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--p-brass) 75%, transparent);
+}
+.proto-root .proto-brandhead-stampcopy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 16px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.proto-root .proto-brandhead-stampcopy small {
+  color: var(--p-muted);
+  font-family: 'Epilogue', system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (max-width: 639px) {
+  .proto-root .proto-brandhead {
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 0;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+  }
+  .proto-root .proto-brandhead .proto-h1 { font-size: 27px; }
+  .proto-root .proto-brandhead-side { gap: 8px; }
+  .proto-root .proto-brandhead-stamp {
+    min-width: 0;
+    padding: 8px;
+  }
+  .proto-root .proto-brandhead-stamp svg { width: 34px; height: 34px; }
+  .proto-root .proto-brandhead-stampcopy { display: none; }
+}

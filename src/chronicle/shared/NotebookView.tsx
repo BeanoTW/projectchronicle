@@ -4,6 +4,7 @@
 // It has no data access of its own: preview (Dexie) and production (local-first
 // incidents) adapters both render this component.
 import FilterSheet from '../components/FilterSheet';
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import MonthView from '../components/MonthView';
 import ChronicleEmptyState from '../brand/ChronicleEmptyState';
 import {
@@ -103,7 +104,7 @@ const NotebookView = ({
 
   return (
     <div>
-      <h1 className="proto-h1">{title}</h1>
+      <ChroniclePageHeader title={title} eyebrow="Chronological index" subtitle="Browse, filter and return to every record in order." />
       {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
       <div className="proto-toolbar">

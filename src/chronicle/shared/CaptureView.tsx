@@ -1,6 +1,7 @@
 // Phase 6C — source-agnostic capture view.
 // Persistence is entirely owned by the injected adapter. This file must not
 // import Dexie, Supabase, or production hooks.
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import { useEffect, useRef, useState } from 'react';
 import VoiceCapture, { type VoiceDraft } from '../media/VoiceCapture';
 import AttachmentPicker from '../media/AttachmentPicker';
@@ -222,11 +223,11 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
 
   return (
     <div className="proto-capture">
-      <h1 className="proto-h1">Capture</h1>
-      <p className="proto-help" style={{ marginBottom: 12 }}>
-        Write freely, speak, or both. You do not need a title, category or date. Chronicle will note
-        the time you sealed it.
-      </p>
+      <ChroniclePageHeader
+        title="Capture"
+        eyebrow="New bound entry"
+        subtitle="Write freely, speak, or both. Chronicle will note the time you sealed it."
+      />
       {notice && <p className="proto-media-error" role="status">{notice}</p>}
       {!online && (
         <p className="proto-help" role="status" style={{ marginBottom: 10 }}>
