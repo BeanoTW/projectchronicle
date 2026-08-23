@@ -288,6 +288,11 @@ const SettingsScreen = () => {
                 : `${cloudCount} record${cloudCount === 1 ? '' : 's'} in cloud backup.`
             }
           />
+          <SettingsLinkRow
+            label="Open Backup & recovery"
+            help="Check protection status, back up now, restore this device or review conflicting versions."
+            onClick={() => navigate('/settings/backup')}
+          />
         </SettingsSection>
 
         {/* SECURITY */}
