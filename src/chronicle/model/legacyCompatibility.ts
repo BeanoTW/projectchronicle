@@ -34,7 +34,7 @@ const eventDate = (row: LocalIncident): EventDateValue | null => {
   return validDate(raw) ? { kind: 'exact', date: raw } : null;
 };
 
-const sync = (row: LocalIncident, sealedAt: string, updatedAt: string): SyncMetadata => {
+const sync = (row: LocalIncident, updatedAt: string): SyncMetadata => {
   const lastAttempt = normaliseIso(row.last_sync_attempt_at);
   const remoteVersion = row.cloud_version ?? row.version ?? null;
   const localRevision = Math.max(0, row.version ?? 0);
@@ -97,15 +97,55 @@ export const projectLegacyIncident = (row: LocalIncident): V2Record => {
     sealed_at: sealedAt,
     created_at: sealedAt,
     updated_at: updatedAt,
-    sync: sync(row, sealedAt, updatedAt),
+    sync: sync(row, updatedAt),
   };
 
   return V2RecordSchema.parse(projected);
 };
 
-/** Owner-scoped, deterministic projection used by compatibility readers. */
-export const projectLegacyIncidents = (rows: readonly LocalIncident[], ownerId: string): readonly V2Record[] =>
-  rows
-    .filter(row => row.owner_user_id === ownerId)
-    .map(projectLegacyIncident)
-    .sort((a, b) => a.id.localeCompare(b.id));
+export interface LegacyProjectionIssue {
+  record_id: string;
+  code: 'projection_failed';
+  message: string;
+}
+
+export interface LegacyProjectionReport {
+  records: readonly V2Record[];
+  issues: readonly LegacyProjectionIssue[];
+  inspected: number;
+}
+
+/**
+ * Owner-scoped deterministic inspection. Bad rows are never silently lost:
+ * callers receive every successful projection plus an explicit issue for each
+ * rejected source row.
+ */
+export const inspectLegacyIncidents = (rows: readonly LocalIncident[], ownerId: string): LegacyProjectionReport => {
+  const owned = rows.filter(row => row.owner_user_id === ownerId).sort((a, b) => a.id.localeCompare(b.id));
+  const records: V2Record[] = [];
+  const issues: LegacyProjectionIssue[] = [];
+
+  for (const row of owned) {
+    try {
+      records.push(projectLegacyIncident(row));
+    } catch (error) {
+      issues.push({
+        record_id: row.id,
+        code: 'projection_failed',
+        message: error instanceof Error ? error.message : 'Unknown canonical projection failure.',
+      });
+    }
+  }
+
+  return { records, issues, inspected: owned.length };
+};
+
+/** Strict form used where partial reads are not acceptable. */
+export const projectLegacyIncidents = (rows: readonly LocalIncident[], ownerId: string): readonly V2Record[] => {
+  const report = inspectLegacyIncidents(rows, ownerId);
+  if (report.issues.length > 0) {
+    const ids = report.issues.map(issue => issue.record_id).join(', ');
+    throw new Error(`Canonical compatibility projection failed for: ${ids}`);
+  }
+  return report.records;
+};
