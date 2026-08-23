@@ -1,12 +1,11 @@
-// Persistent navigation rail (>= 768px).
+// Persistent navigation rail (>= 1152px).
 //
 // Same navigation model as the mobile drawer (src/components/chronicle/navModel.tsx),
-// two presentations:
-//   768–1023px  compact icon rail (tablet)
-//   >= 1024px   full rail with hints, account identity and Sign out
+// presented as a full desktop rail with branding, hints and account identity.
 import { useLocation, useNavigate } from 'react-router-dom';
 import { usePrivacy } from '@/contexts/PrivacyContext';
 import { useAuth } from '@/contexts/AuthContext';
+import ChronicleLockup from '@/chronicle/brand/ChronicleLockup';
 import { captureAction, destinations, isDestinationActive, navIcon } from './navModel';
 import '@/chronicle/styles.css';
 
@@ -44,9 +43,8 @@ const AppSideNav = () => {
 
   return (
     <aside className="proto-root proto-sidenav" aria-label="Primary" data-testid="app-side-nav">
-      <button className="proto-sidenav-brand" onClick={() => navigate('/home')}>
-        <span className="proto-serif">Project Chronicle</span>
-        <span className="proto-sidenav-sub">A chronological record</span>
+      <button className="proto-sidenav-brand" onClick={() => navigate('/home')} aria-label="Chronicle home">
+        <ChronicleLockup subtitle="A chronological record" />
       </button>
 
       <button
