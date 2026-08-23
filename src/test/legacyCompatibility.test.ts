@@ -20,7 +20,6 @@ const row = (patch: Record<string, unknown> = {}) => ({
   created_at: '2026-08-20T09:40:00.000Z',
   original_created_at: '2026-08-20T09:35:00.000Z',
   updated_at: '2026-08-20T10:00:00.000Z',
-  last_modified_at: '2026-08-20T10:00:00.000Z',
   local_updated_at: '2026-08-20T10:00:00.000Z',
   sync_state: 'local_only',
   last_sync_attempt_at: null,
@@ -46,6 +45,11 @@ describe('Phase 2 — legacy compatibility projection', () => {
     const projected = projectLegacyIncident(row({ incident_date: 'sometime in August', incident_time: 'morning-ish' }));
     expect(projected.details.event_date).toBeNull();
     expect(projected.details.event_time).toBeNull();
+  });
+
+  it('refuses a corrupt required creation timestamp instead of inventing one', () => {
+    expect(() => projectLegacyIncident(row({ created_at: 'not-a-date' })))
+      .toThrow(/no valid created_at/i);
   });
 
   it('uses the daily record date and canonical daily kind', () => {
