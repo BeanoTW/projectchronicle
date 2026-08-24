@@ -127,7 +127,7 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
         capturedAt: capturedAt.current,
         sealedAt,
         hasVoice: !!voice,
-        originalMediaIds: originalMedia.map(item => item.id),
+        media: originalMedia,
         recordType,
       });
     } catch (e) {

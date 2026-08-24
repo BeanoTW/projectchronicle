@@ -35,7 +35,7 @@ const input = (mediaIds: string[] = []): CaptureSealInput => ({
   capturedAt,
   sealedAt,
   hasVoice: false,
-  originalMediaIds: mediaIds,
+  media: mediaIds.map(id => ({ ...mediaItem(), id })),
   recordType: 'incident',
 });
 
@@ -82,6 +82,15 @@ describe('Phase 2 — immutable canonical Capture boundary', () => {
     expect(await db.canonical_records.count()).toBe(1);
   });
 
+  it('keeps a daily capture date without inventing an event time', async () => {
+    const adapter = createCanonicalCaptureAdapter(ownerId, store, async () => 'hash');
+    await adapter.createRecord({ ...input(), recordType: 'daily' });
+
+    const record = await store.get(ownerId, 'record-1');
+    expect(record?.details.event_date).toEqual({ kind: 'exact', date: '2026-08-23' });
+    expect(record?.details.event_time).toBeNull();
+  });
+
   it('rejects original replacement through the direct storage boundary', async () => {
     const adapter = createCanonicalCaptureAdapter(ownerId, store, async () => 'hash');
     await adapter.createRecord(input());
@@ -113,8 +122,8 @@ describe('Phase 2 — immutable canonical Capture boundary', () => {
     fail = false;
     expect(await adapter.saveMedia('record-1', [original])).toEqual([]);
     expect(await db.canonical_media.count()).toBe(1);
-    expect(await db.canonical_media_bytes.count()).toBe(1);
-    expect((await db.canonical_media_bytes.get(original.id))?.bytes.byteLength).toBe(original.blob.size);
+    expect(await db.canonical_blobs.count()).toBe(1);
+    expect((await db.canonical_blobs.get(original.id))?.bytes.byteLength).toBe(original.blob.size);
   });
 
   it('never allows a retry path to introduce a new original-media id', async () => {

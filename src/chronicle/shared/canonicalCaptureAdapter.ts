@@ -51,8 +51,8 @@ export const createCanonicalCaptureAdapter = (
 
   async createRecord(input) {
     if (!ownerId) throw new Error('Not signed in');
-    const originalMediaIds = [...new Set(input.originalMediaIds)];
-    if (originalMediaIds.length !== input.originalMediaIds.length || originalMediaIds.some(id => !id)) {
+    const originalMediaIds = [...new Set((input.media ?? []).map(item => item.id))];
+    if (originalMediaIds.length !== (input.media ?? []).length || originalMediaIds.some(id => !id)) {
       throw new Error('Capture media ids must be unique and non-empty.');
     }
     const hasWrittenWords = input.text.trim().length > 0;

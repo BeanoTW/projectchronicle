@@ -107,7 +107,9 @@ export const createCanonicalLocalRepository = (
           context: null,
           person_ids: [],
           location: null,
-          event_date: null,
+          event_date: input.kind === 'daily'
+            ? { kind: 'exact', date: input.sealed_at.slice(0, 10) }
+            : null,
           event_time: null,
           revision_count: 0,
         },
@@ -216,7 +218,7 @@ export const createCanonicalLocalRepository = (
       throw new CanonicalImmutableConflictError('Original media bytes do not match the committed size.');
     }
 
-    await db.transaction('rw', db.canonical_records, db.canonical_media, db.canonical_media_bytes, async () => {
+    await db.transaction('rw', db.canonical_records, db.canonical_media, db.canonical_blobs, async () => {
       const parent = active(owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id));
       ensureChildIdentity(parent, validated);
       if (!parent.original.media_ids.includes(validated.id)) {
@@ -227,26 +229,28 @@ export const createCanonicalLocalRepository = (
       }
 
       const existingMedia = await db.canonical_media.get(validated.id);
-      const existingBytes = await db.canonical_media_bytes.get(validated.id);
+      const existingBytes = await db.canonical_blobs.get(validated.id);
       if (existingMedia && !same(existingMedia, validated)) {
         throw new CanonicalImmutableConflictError('Original media id already has different metadata.');
       }
       if (existingBytes && (
         existingBytes.owner_id !== validated.owner_id
         || existingBytes.record_id !== validated.record_id
-        || existingBytes.content_hash !== validated.content_hash
+        || existingBytes.size !== bytes.byteLength
+        || existingBytes.mime !== validated.mime
       )) {
         throw new CanonicalImmutableConflictError('Original media id already has different bytes.');
       }
 
       if (!existingMedia) await db.canonical_media.add(validated);
       if (!existingBytes) {
-        await db.canonical_media_bytes.add({
+        await db.canonical_blobs.add({
           id: validated.id,
           owner_id: validated.owner_id,
           record_id: validated.record_id,
-          content_hash: validated.content_hash,
           bytes: bytes.slice(0),
+          mime: validated.mime,
+          size: bytes.byteLength,
           stored_at: clock(),
         });
       }

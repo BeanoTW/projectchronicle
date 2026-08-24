@@ -11,28 +11,22 @@ vi.mock('@/chronicle/model/canonicalActivation', async importOriginal => {
 
 const sealedAt = '2026-08-24T12:00:00.000Z';
 
-describe('Phase 10 — canonical relationships', () => {
+describe('Phase 10/11 — canonical relationships', () => {
   beforeEach(async () => {
-    await localDB.delete();
-    await localDB.open();
-    await canonicalLocalRepository.seal({
-      id: 'record-1', owner_id: 'owner-1', kind: 'incident',
-      original: { text: 'Original wording.', source: 'written', media_ids: [], sealed_at: sealedAt },
-      captured_at: sealedAt, sealed_at: sealedAt,
-    });
+    await localDB.delete(); await localDB.open();
+    await canonicalLocalRepository.seal({ id: 'record-1', owner_id: 'owner-1', kind: 'incident', original: { text: 'Original wording.', source: 'written', media_ids: [], sealed_at: sealedAt }, captured_at: sealedAt, sealed_at: sealedAt });
   });
+  afterEach(async () => { localDB.close(); await localDB.delete(); });
 
-  afterEach(async () => {
-    localDB.close();
-    await localDB.delete();
-  });
-
-  it('adds a relationship and audit history atomically without touching original wording', async () => {
+  it('adds a person relationship, audit history and person index without touching original wording', async () => {
     const relation = await canonicalRelationshipWriter.add('owner-1', 'record-1', 'person', 'person-1', 'Manager');
+    const record = await canonicalLocalRepository.get('owner-1', 'record-1');
     expect(relation.role_note).toBe('Manager');
     expect(await localDB.canonical_relationships.count()).toBe(1);
     expect(await localDB.canonical_history.count()).toBe(1);
-    expect((await canonicalLocalRepository.get('owner-1', 'record-1'))?.original.text).toBe('Original wording.');
+    expect(record?.details.person_ids).toEqual(['person-1']);
+    expect(record?.details.revision_count).toBe(1);
+    expect(record?.original.text).toBe('Original wording.');
   });
 
   it('is idempotent for an already-active entity relationship', async () => {
@@ -41,14 +35,24 @@ describe('Phase 10 — canonical relationships', () => {
     expect(second.id).toBe(first.id);
     expect(await localDB.canonical_relationships.count()).toBe(1);
     expect(await localDB.canonical_history.count()).toBe(1);
+    expect((await canonicalLocalRepository.get('owner-1', 'record-1'))?.details.revision_count).toBe(1);
   });
 
-  it('soft-removes a relationship and retains its historical row', async () => {
+  it('soft-removes a person relationship and removes the active person index while retaining history', async () => {
     const relation = await canonicalRelationshipWriter.add('owner-1', 'record-1', 'person', 'person-1');
     await canonicalRelationshipWriter.remove('owner-1', 'record-1', relation.id);
     const stored = await localDB.canonical_relationships.get(relation.id);
+    const record = await canonicalLocalRepository.get('owner-1', 'record-1');
     expect(stored?.removed_at).toBeTruthy();
     expect(await localDB.canonical_relationships.count()).toBe(1);
     expect(await localDB.canonical_history.count()).toBe(2);
+    expect(record?.details.person_ids).toEqual([]);
+    expect(record?.details.revision_count).toBe(2);
+    expect(record?.original.text).toBe('Original wording.');
+  });
+
+  it('does not put organisation relationships into the person index', async () => {
+    await canonicalRelationshipWriter.add('owner-1', 'record-1', 'organisation', 'org-1');
+    expect((await canonicalLocalRepository.get('owner-1', 'record-1'))?.details.person_ids).toEqual([]);
   });
 });
