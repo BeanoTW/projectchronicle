@@ -8,6 +8,7 @@ import EntryView, { type SharedEntryView } from '@/chronicle/shared/EntryView';
 import RecordHistoryView from '@/chronicle/shared/RecordHistoryView';
 import { CanonicalDetailsEditor } from '@/chronicle/shared/CanonicalDetailsEditor';
 import { CanonicalPeopleEditor } from '@/chronicle/shared/CanonicalPeopleEditor';
+import { CanonicalOrganisationEditor } from '@/chronicle/shared/CanonicalOrganisationEditor';
 import { toHistoryItems, wordingWasChanged } from '@/chronicle/shared/recordHistoryModel';
 import { canonicalEntryToSharedView, canonicalHistoryToItems } from '@/chronicle/shared/canonicalEntryAdapter';
 import { CanonicalEvidenceList } from '@/chronicle/shared/CanonicalEvidenceList';
@@ -101,6 +102,7 @@ const EntryScreenV2 = () => {
     notice={canonicalActive ? 'This record is using Chronicle’s audited canonical store.' : shielded ? 'Privacy Shield is on — names and wording are hidden on screen only. Your stored record and exports are unchanged.' : undefined}
     footerSlot={<>
       {canonicalActive && bundle && user?.id && <CanonicalPeopleEditor ownerId={user.id} recordId={bundle.record.id} people={bundle.people} relationships={bundle.relationships} onChanged={refreshCanonical} />}
+      {canonicalActive && bundle && user?.id && <CanonicalOrganisationEditor ownerId={user.id} recordId={bundle.record.id} organisations={bundle.organisations} relationships={bundle.relationships} onChanged={refreshCanonical} />}
       {canonicalActive && bundle && editingDetails && <CanonicalDetailsEditor details={bundle.record.details} onCancel={() => setEditingDetails(false)} onSave={async patch => { if (!user?.id) return; await canonicalEntryWriter.updateDetails(user.id, bundle.record, patch); await refreshCanonical(); setEditingDetails(false); }} />}
       <RecordHistoryView sealedAt={view.sealed_at} items={canonicalActive && bundle ? canonicalHistoryToItems(bundle) : toHistoryItems(legacyHistory ?? [])} originalWordingChanged={canonicalActive ? false : wordingWasChanged(legacyHistory ?? [])} loading={canonicalActive ? false : historyLoading} />
     </>}
