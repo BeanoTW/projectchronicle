@@ -9,7 +9,7 @@ export interface CaptureCapabilities {
 }
 export type CaptureRecordType = 'incident' | 'daily';
 export interface CaptureMediaItem {
-  /** Stable id allocated before seal so original media can be bound atomically to the record. */
+  /** Stable id allocated before seal so original media can later be bound atomically to the record. */
   id: string;
   kind: 'voice' | 'attachment';
   name: string;
@@ -25,8 +25,8 @@ export interface CaptureSealInput {
   sealedAt: string;
   hasVoice: boolean;
   recordType: CaptureRecordType;
-  /** Media present before the seal action. Adapters may atomically bind it as original media. */
-  media: readonly CaptureMediaItem[];
+  /** Optional until the production Capture view switches to atomic canonical sealing. */
+  media?: readonly CaptureMediaItem[];
 }
 export interface MediaFailure { item: CaptureMediaItem; message: string; }
 export interface ReviewDetails { category: string | null; context: string | null; people: string[]; eventDate: string | null; eventTime: string | null; }
@@ -34,7 +34,6 @@ export interface CaptureAdapter {
   capabilities: CaptureCapabilities;
   draftKey: string;
   createRecord(input: CaptureSealInput): Promise<{ recordId: string; sealedAt: string }>;
-  /** Legacy/remote adapters may persist media after record creation. Canonical local-first adapters may return [] because seal already stored it. */
   saveMedia(recordId: string, items: CaptureMediaItem[]): Promise<MediaFailure[]>;
   saveDetails(recordId: string, details: ReviewDetails): Promise<void>;
   detailsPath(recordId: string): string;
