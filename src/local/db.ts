@@ -9,7 +9,8 @@ export type LocalIncident = Tables<'incidents'> & { owner_user_id: string; sync_
 export type LocalFollowUpNote = Tables<'follow_up_notes'> & { owner_user_id: string; sync_state: SyncState; last_sync_attempt_at: string | null; last_sync_error: string | null; local_updated_at: string; };
 export interface LocalMeta { key: string; value: string; }
 export interface QuarantinedRow { key: string; owner_user_id: string; kind: 'incident' | 'note'; stored_at: string; payload: LocalIncident | LocalFollowUpNote; }
-export interface LocalCanonicalBlob { id: string; owner_id: string; record_id: string; blob: Blob; stored_at: string; }
+/** Raw media bytes are stored separately from evidence metadata. A Blob can be reconstructed losslessly from bytes + mime. */
+export interface LocalCanonicalBlob { id: string; owner_id: string; record_id: string; bytes: ArrayBuffer; mime: string; size: number; stored_at: string; }
 
 /** Canonical stores remain parallel to legacy tables. Upgrade callbacks never rewrite V1 data. */
 export class ChronicleDB extends Dexie {
