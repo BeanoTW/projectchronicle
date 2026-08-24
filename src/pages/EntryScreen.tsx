@@ -6,6 +6,7 @@ import { useEvidence } from '@/hooks/useEvidence';
 import { useEditHistory } from '@/hooks/useEditHistory';
 import EntryView, { type SharedEntryView } from '@/chronicle/shared/EntryView';
 import RecordHistoryView from '@/chronicle/shared/RecordHistoryView';
+import { CanonicalDetailsEditor } from '@/chronicle/shared/CanonicalDetailsEditor';
 import { toHistoryItems, wordingWasChanged } from '@/chronicle/shared/recordHistoryModel';
 import { canonicalEntryToSharedView, canonicalHistoryToItems } from '@/chronicle/shared/canonicalEntryAdapter';
 import { CanonicalEvidenceList } from '@/chronicle/shared/CanonicalEvidenceList';
@@ -36,6 +37,7 @@ const EntryScreenV2 = () => {
   const updateIncident = useUpdateIncident();
   const { data: legacyHistory, isLoading: historyLoading } = useEditHistory(id);
   const [bundle, setBundle] = useState<CanonicalEntryBundle | null | undefined>(undefined);
+  const [editingDetails, setEditingDetails] = useState(false);
 
   const refreshCanonical = useCallback(async () => {
     if (!user?.id || !id) { setBundle(null); return; }
@@ -44,6 +46,7 @@ const EntryScreenV2 = () => {
 
   useEffect(() => {
     let cancelled = false;
+    setEditingDetails(false);
     if (!user?.id || !id) { setBundle(null); return () => { cancelled = true; }; }
     setBundle(undefined);
     void readCanonicalEntryBundle(user.id, id).then(value => { if (!cancelled) setBundle(value); }).catch(() => { if (!cancelled) setBundle(null); });
@@ -89,10 +92,14 @@ const EntryScreenV2 = () => {
       if (canonicalActive && bundle && user?.id) { await canonicalEntryWriter.setChronicleMembership(user.id, bundle.record.id, !view.in_dossier); await refreshCanonical(); return; }
       if (legacyIncident) await updateIncident.mutateAsync({ id: legacyIncident.id, excluded_from_rep: !legacyIncident.excluded_from_rep });
     }}
+    onEditDetails={canonicalActive ? () => setEditingDetails(true) : undefined}
     allowMutations
     evidenceSlot={canonicalActive && bundle ? <CanonicalEvidenceList files={bundle.media} /> : legacyIncident ? <LegacyEvidenceList incidentId={legacyIncident.id} /> : undefined}
     notice={canonicalActive ? 'This record is using Chronicle’s audited canonical store.' : shielded ? 'Privacy Shield is on — names and wording are hidden on screen only. Your stored record and exports are unchanged.' : undefined}
-    footerSlot={<RecordHistoryView sealedAt={view.sealed_at} items={canonicalActive && bundle ? canonicalHistoryToItems(bundle) : toHistoryItems(legacyHistory ?? [])} originalWordingChanged={canonicalActive ? false : wordingWasChanged(legacyHistory ?? [])} loading={canonicalActive ? false : historyLoading} />}
+    footerSlot={<>
+      {canonicalActive && bundle && editingDetails && <CanonicalDetailsEditor details={bundle.record.details} onCancel={() => setEditingDetails(false)} onSave={async patch => { if (!user?.id) return; await canonicalEntryWriter.updateDetails(user.id, bundle.record, patch); await refreshCanonical(); setEditingDetails(false); }} />}
+      <RecordHistoryView sealedAt={view.sealed_at} items={canonicalActive && bundle ? canonicalHistoryToItems(bundle) : toHistoryItems(legacyHistory ?? [])} originalWordingChanged={canonicalActive ? false : wordingWasChanged(legacyHistory ?? [])} loading={canonicalActive ? false : historyLoading} />
+    </>}
   />;
 };
 export default EntryScreenV2;
