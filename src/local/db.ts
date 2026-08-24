@@ -56,6 +56,18 @@ export interface QuarantinedRow {
   payload: LocalIncident | LocalFollowUpNote;
 }
 
+/** Local bytes for canonical media. Metadata remains in `canonical_media`. */
+export interface CanonicalMediaBytes {
+  id: string;
+  owner_id: string;
+  record_id: string;
+  content_hash: string;
+  bytes: ArrayBuffer;
+  stored_at: string;
+}
+
+export class CanonicalStorageBoundaryError extends Error {}
+
 /**
  * Canonical stores remain parallel to the legacy tables. Schema upgrades only
  * create stores/indexes; no upgrade callback copies or rewrites V1 data.
@@ -69,6 +81,7 @@ export class ChronicleDB extends Dexie {
   canonical_records!: Table<V2Record, string>;
   canonical_clarifications!: Table<V2Clarification, string>;
   canonical_media!: Table<V2Media, string>;
+  canonical_media_bytes!: Table<CanonicalMediaBytes, string>;
   canonical_history!: Table<V2RecordEvent, string>;
   canonical_people!: Table<V2Person, string>;
   canonical_relationships!: Table<V2RecordRelationship, string>;
@@ -96,6 +109,34 @@ export class ChronicleDB extends Dexie {
     this.version(5).stores({
       canonical_people: 'id, owner_id, normalised_name, display_name, merged_into_id',
       canonical_relationships: 'id, owner_id, record_id, entity_type, entity_id, created_at, removed_at',
+    });
+    // v6 — retry-safe, offline storage for media committed at canonical seal.
+    this.version(6).stores({
+      canonical_media_bytes: 'id, owner_id, record_id, content_hash, stored_at',
+    });
+
+    const immutableRecordFields = new Set([
+      'id', 'owner_id', 'kind', 'schema_version', 'captured_at', 'sealed_at', 'created_at',
+    ]);
+    this.canonical_records.hook('updating', (changes, _key, previous) => {
+      for (const [field, next] of Object.entries(changes)) {
+        if (field === 'original' || field.startsWith('original.')) {
+          const previousValue = field === 'original'
+            ? previous.original
+            : field.slice('original.'.length).split('.').reduce<unknown>((value, part) => (
+              value && typeof value === 'object' ? (value as Record<string, unknown>)[part] : undefined
+            ), previous.original);
+          if (JSON.stringify(next) !== JSON.stringify(previousValue)) {
+            throw new CanonicalStorageBoundaryError('Sealed original content cannot be updated in storage.');
+          }
+        }
+        if (immutableRecordFields.has(field) && JSON.stringify(next) !== JSON.stringify(previous[field as keyof V2Record])) {
+          throw new CanonicalStorageBoundaryError(`Canonical ${field} cannot be updated in storage.`);
+        }
+      }
+    });
+    this.canonical_records.hook('deleting', () => {
+      throw new CanonicalStorageBoundaryError('Canonical records use lifecycle state and cannot be deleted directly.');
     });
   }
 }

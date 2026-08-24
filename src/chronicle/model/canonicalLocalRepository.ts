@@ -204,6 +204,55 @@ export const createCanonicalLocalRepository = (
     });
   },
 
+  async storeOriginalMedia(value: V2Media, bytes: ArrayBuffer) {
+    const validated = V2MediaSchema.parse(value);
+    if (validated.role !== 'original') {
+      throw new CanonicalImmutableConflictError('Only media committed at seal may use original-media recovery.');
+    }
+    if (!validated.content_hash) {
+      throw new CanonicalImmutableConflictError('Original media must have an integrity hash before storage.');
+    }
+    if (bytes.byteLength !== validated.size) {
+      throw new CanonicalImmutableConflictError('Original media bytes do not match the committed size.');
+    }
+
+    await db.transaction('rw', db.canonical_records, db.canonical_media, db.canonical_media_bytes, async () => {
+      const parent = active(owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id));
+      ensureChildIdentity(parent, validated);
+      if (!parent.original.media_ids.includes(validated.id)) {
+        throw new CanonicalImmutableConflictError('Original media id was not committed when the record was sealed.');
+      }
+      if (validated.added_at !== parent.sealed_at) {
+        throw new CanonicalImmutableConflictError('Original media timestamp must equal the record seal timestamp.');
+      }
+
+      const existingMedia = await db.canonical_media.get(validated.id);
+      const existingBytes = await db.canonical_media_bytes.get(validated.id);
+      if (existingMedia && !same(existingMedia, validated)) {
+        throw new CanonicalImmutableConflictError('Original media id already has different metadata.');
+      }
+      if (existingBytes && (
+        existingBytes.owner_id !== validated.owner_id
+        || existingBytes.record_id !== validated.record_id
+        || existingBytes.content_hash !== validated.content_hash
+      )) {
+        throw new CanonicalImmutableConflictError('Original media id already has different bytes.');
+      }
+
+      if (!existingMedia) await db.canonical_media.add(validated);
+      if (!existingBytes) {
+        await db.canonical_media_bytes.add({
+          id: validated.id,
+          owner_id: validated.owner_id,
+          record_id: validated.record_id,
+          content_hash: validated.content_hash,
+          bytes: bytes.slice(0),
+          stored_at: clock(),
+        });
+      }
+    });
+  },
+
   async appendMedia(value: V2Media) {
     const validated = V2MediaSchema.parse(value);
     if (validated.role === 'original') {

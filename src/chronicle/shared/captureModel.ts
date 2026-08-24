@@ -42,6 +42,8 @@ export interface CaptureSealInput {
   capturedAt: string;
   sealedAt: string;
   hasVoice: boolean;
+  /** Media ids present at seal. Bytes may complete afterwards through retry. */
+  originalMediaIds: string[];
   /** Defaults to 'incident' where the source does not offer a choice. */
   recordType: CaptureRecordType;
 }

@@ -118,14 +118,16 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
     setError(null);
 
     const sealedAt = new Date().toISOString();
+    const originalMedia = mediaItems();
     let created: { recordId: string; sealedAt: string };
     try {
       created = await adapter.createRecord({
         submissionId: submissionId.current,
-        text: text.trim(),
+        text,
         capturedAt: capturedAt.current,
         sealedAt,
         hasVoice: !!voice,
+        originalMediaIds: originalMedia.map(item => item.id),
         recordType,
       });
     } catch (e) {
@@ -141,9 +143,9 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
 
     let mediaFailures: MediaFailure[] = [];
     try {
-      mediaFailures = await adapter.saveMedia(created.recordId, mediaItems());
+      mediaFailures = await adapter.saveMedia(created.recordId, originalMedia);
     } catch (e) {
-      mediaFailures = mediaItems().map(item => ({ item, message: (e as Error)?.message ?? 'Could not be saved.' }));
+      mediaFailures = originalMedia.map(item => ({ item, message: (e as Error)?.message ?? 'Could not be saved.' }));
     }
 
     // Only clear the draft once the canonical record definitely exists.
@@ -151,7 +153,7 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
     setFailures(mediaFailures);
     if (mediaFailures.length) setError(describeFailures(mediaFailures));
     setSealedOffline(!online);
-    setSealed({ id: created.recordId, sealedAt: created.sealedAt, text: text.trim() });
+    setSealed({ id: created.recordId, sealedAt: created.sealedAt, text });
     setSealing(false);
   };
 
