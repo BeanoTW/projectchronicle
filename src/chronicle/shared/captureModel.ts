@@ -9,7 +9,7 @@ export interface CaptureCapabilities {
 }
 export type CaptureRecordType = 'incident' | 'daily';
 export interface CaptureMediaItem {
-  /** Stable id allocated before seal so original media can later be bound atomically to the record. */
+  /** Stable id allocated before seal so original media can be bound atomically to the record. */
   id: string;
   kind: 'voice' | 'attachment';
   name: string;
@@ -20,20 +20,30 @@ export interface CaptureMediaItem {
 }
 export interface CaptureSealInput {
   submissionId: string;
+  /** Exact user wording. Validation may trim to test emptiness; persistence must not. */
   text: string;
   capturedAt: string;
   sealedAt: string;
   hasVoice: boolean;
   recordType: CaptureRecordType;
-  /** Optional until the production Capture view switches to atomic canonical sealing. */
-  media?: readonly CaptureMediaItem[];
+  /** Everything present before seal, including voice. Canonical adapters may commit it atomically. */
+  media: readonly CaptureMediaItem[];
+}
+export type CaptureStorageState = 'local_only' | 'backup_pending' | 'backed_up';
+export interface CaptureCreateResult {
+  recordId: string;
+  sealedAt: string;
+  /** True when createRecord already committed the supplied media with the record. */
+  mediaStored?: boolean;
+  /** Honest status for the confirmation copy; absence preserves legacy behaviour. */
+  storageState?: CaptureStorageState;
 }
 export interface MediaFailure { item: CaptureMediaItem; message: string; }
 export interface ReviewDetails { category: string | null; context: string | null; people: string[]; eventDate: string | null; eventTime: string | null; }
 export interface CaptureAdapter {
   capabilities: CaptureCapabilities;
   draftKey: string;
-  createRecord(input: CaptureSealInput): Promise<{ recordId: string; sealedAt: string }>;
+  createRecord(input: CaptureSealInput): Promise<CaptureCreateResult>;
   saveMedia(recordId: string, items: CaptureMediaItem[]): Promise<MediaFailure[]>;
   saveDetails(recordId: string, details: ReviewDetails): Promise<void>;
   detailsPath(recordId: string): string;
