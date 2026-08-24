@@ -1,53 +1,59 @@
-// Phase 6C — production capture adapter.
-//
-// Writes go through the canonical production hooks only:
-//   - useCreateIncident  → local-first record creation (idempotent on the record id)
-//   - useUploadEvidence  → production evidence storage (same path as V1 capture)
-//   - useUpdateIncident  → optional review details
-//
-// This file must never import the preview (`chronicle_prototype`) database, and
-// must never write to Supabase directly from the UI.
-import { useMemo } from 'react';
+// Production capture adapter. The Phase 5 activation receipt is the cutover authority:
+// pre-activation accounts keep the existing V1 path; activated accounts never create shadow V1 rows.
+import { useMemo, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateIncident, useUpdateIncident } from '@/hooks/useIncidents';
 import { useUploadEvidence } from '@/hooks/useEvidence';
 import { toSafeAttachmentMessage, logAttachmentDiagnostic } from '@/lib/evidenceErrors';
-
+import { getCanonicalActivation } from '@/chronicle/model/canonicalActivation';
+import { canonicalCaptureRepository } from '@/chronicle/model/canonicalCaptureRepository';
+import { canonicalLocalRepository } from '@/chronicle/model/canonicalLocalRepository';
+import { canonicalEntryWriter } from '@/chronicle/model/canonicalEntryWriter';
+import { canonicalPersonWriter } from '@/chronicle/model/canonicalPersonWriter';
+import { canonicalRelationshipWriter } from '@/chronicle/model/canonicalRelationshipWriter';
 import {
   productionDraftKey,
   type CaptureAdapter, type CaptureMediaItem, type MediaFailure, type ReviewDetails,
 } from './captureModel';
 
-// Internal database/storage detail must never reach the user; every failure is
-// mapped to a calm, safe message (diagnostics stay in dev-only logging).
 const failureMessage = (e: unknown): string => {
   logAttachmentDiagnostic('capture media', e);
   return toSafeAttachmentMessage(e);
 };
-
 
 export const useProductionCaptureAdapter = (): CaptureAdapter => {
   const { user } = useAuth();
   const createIncident = useCreateIncident();
   const updateIncident = useUpdateIncident();
   const uploadEvidence = useUploadEvidence();
+  // Only used for navigation immediately after a successful canonical seal.
+  const canonicalIds = useRef(new Set<string>());
 
   return useMemo<CaptureAdapter>(() => ({
     capabilities: {
       voice: true,
       attachments: true,
-      storageCopy:
-        'Your written record is saved on this device first. Voice records and attachments are stored ' +
-        'in your private Chronicle storage, the same as the current record screen.',
+      storageCopy: 'Your record is saved on this device first. Chronicle reports cloud backup separately and never treats an unconfirmed upload as complete.',
       recordTypes: true,
-      voicePrivacyNote:
-        'Recording. When you seal, the audio is stored in your private Chronicle storage.',
+      voicePrivacyNote: 'Recording. When you seal, the audio is bound to the same immutable original record.',
     },
     draftKey: productionDraftKey(user?.id),
 
     async createRecord(input) {
-      // The submission id is the record id, so a double-tap or a retry after a
-      // slow network can only ever write the same row — never a duplicate.
+      if (user?.id && await getCanonicalActivation(user.id)) {
+        const row = await canonicalCaptureRepository.seal({
+          id: input.submissionId,
+          ownerId: user.id,
+          kind: input.recordType === 'daily' ? 'daily' : 'incident',
+          text: input.text,
+          capturedAt: input.capturedAt,
+          sealedAt: input.sealedAt,
+          media: input.media,
+        });
+        canonicalIds.current.add(row.id);
+        return { recordId: row.id, sealedAt: row.sealed_at, mediaStored: true, storageState: 'local_only' };
+      }
+
       const row = await createIncident.mutateAsync({
         id: input.submissionId,
         raw_narrative: input.text,
@@ -58,10 +64,12 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
         original_created_at: input.sealedAt,
         created_at: input.sealedAt,
       } as Parameters<typeof createIncident.mutateAsync>[0]);
-      return { recordId: row.id, sealedAt: row.original_created_at ?? row.created_at };
+      return { recordId: row.id, sealedAt: row.original_created_at ?? row.created_at, mediaStored: false };
     },
 
     async saveMedia(recordId: string, items: CaptureMediaItem[]) {
+      // Canonical Capture never calls this: its media was committed atomically by createRecord.
+      // Keeping the legacy uploader here preserves the pre-activation production path.
       const failures: MediaFailure[] = [];
       for (const item of items) {
         try {
@@ -81,6 +89,21 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
     },
 
     async saveDetails(recordId: string, details: ReviewDetails) {
+      if (user?.id && await getCanonicalActivation(user.id)) {
+        const record = await canonicalLocalRepository.get(user.id, recordId);
+        if (!record) throw new Error('Canonical record not found.');
+        await canonicalEntryWriter.updateDetails(user.id, record, {
+          category_id: details.category,
+          context: details.context,
+          event_date: details.eventDate ? { kind: 'exact', date: details.eventDate } : record.details.event_date,
+          event_time: details.eventTime,
+        });
+        for (const name of details.people) {
+          const person = await canonicalPersonWriter.ensure(user.id, name);
+          await canonicalRelationshipWriter.add(user.id, recordId, 'person', person.id);
+        }
+        return;
+      }
       await updateIncident.mutateAsync({
         id: recordId,
         category: details.category,
@@ -92,7 +115,7 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
       });
     },
 
-    detailsPath: (id: string) => `/record/details/${id}`,
+    detailsPath: (id: string) => canonicalIds.current.has(id) ? `/incident/${id}?editDetails=1` : `/record/details/${id}`,
     recordPath: (id: string) => `/incident/${id}`,
     notebookPath: '/timeline',
   }), [user?.id, createIncident, updateIncident, uploadEvidence]);
