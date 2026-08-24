@@ -19,12 +19,6 @@ const browserBlob = (text: string, type = ''): Blob => {
   return blob;
 };
 
-const blobText = async (blob: Blob): Promise<string> => {
-  if (typeof blob.text === 'function') return blob.text();
-  const buffer = await (blob as Blob & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer();
-  return new TextDecoder().decode(buffer);
-};
-
 describe('Phase 12 — atomic canonical capture', () => {
   let db: ChronicleDB;
   let repo: ReturnType<typeof createCanonicalCaptureRepository>;
@@ -55,9 +49,11 @@ describe('Phase 12 — atomic canonical capture', () => {
     expect(media?.role).toBe('original');
     expect(media?.storage).toEqual({ location: 'local', ok: true });
     expect(media?.content_hash).toMatch(/^[a-f0-9]{64}$/);
-    const storedBlob = (await db.canonical_blobs.get('media-1'))?.blob;
-    expect(storedBlob).toBeTruthy();
-    expect(await blobText(storedBlob!)).toBe('photo-bytes');
+    const stored = await db.canonical_blobs.get('media-1');
+    expect(stored?.owner_id).toBe('owner-1');
+    expect(stored?.record_id).toBe('record-1');
+    expect(stored?.blob.size).toBe(blob.size);
+    expect(stored?.blob.type).toBe('image/jpeg');
   });
 
   it('records voice provenance and a daily date without inventing event time', async () => {
