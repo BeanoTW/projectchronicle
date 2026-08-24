@@ -1,7 +1,7 @@
 import { computeSha256 } from '@/lib/attachments/integrity';
 import { ChronicleDB, localDB } from '@/local/db';
 import { V2MediaSchema, V2RecordSchema } from './contracts';
-import { V2_SCHEMA_VERSION, type CaptureSource, type MediaKind, type V2Media, type V2Record, type V2RecordEvent } from './schema';
+import { V2_SCHEMA_VERSION, type CaptureSource, type MediaKind, type V2Record, type V2RecordEvent } from './schema';
 
 export interface CanonicalCaptureMediaInput {
   id: string;
@@ -44,16 +44,19 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
     const ids = input.media.map(item => item.id);
     if (new Set(ids).size !== ids.length || ids.some(id => !id)) throw new Error('Original media ids must be unique and non-empty.');
 
+    // Read each browser Blob before entering the IndexedDB transaction. The raw
+    // bytes are what Chronicle persists; Blob is only a presentation/runtime wrapper.
     const prepared = await Promise.all(input.media.map(async item => {
-      const hash = await computeSha256(item.blob);
+      const [hash, bytes] = await Promise.all([computeSha256(item.blob), item.blob.arrayBuffer()]);
+      const mime = item.mime || 'application/octet-stream';
       const media = V2MediaSchema.parse({
         id: item.id, record_id: input.id, owner_id: input.ownerId, kind: mediaKind(item), role: 'original',
-        name: item.name, mime: item.mime || 'application/octet-stream', size: item.blob.size,
+        name: item.name, mime, size: bytes.byteLength,
         duration_ms: item.duration_ms ?? null, description: item.description?.trim() || null,
         added_at: input.sealedAt, inclusion: { state: 'included' }, storage: { location: 'local', ok: true },
         content_hash: hash, sync: sync(),
       });
-      return { item, media };
+      return { media, bytes, mime };
     }));
 
     const record = V2RecordSchema.parse({
@@ -70,9 +73,10 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
         if (!same(existing.original, record.original) || existing.owner_id !== input.ownerId || existing.kind !== input.kind || existing.captured_at !== input.capturedAt || existing.sealed_at !== input.sealedAt) {
           throw new Error('A sealed canonical capture cannot be replaced.');
         }
-        for (const { media } of prepared) {
-          const stored = await db.canonical_media.get(media.id);
-          if (!stored || stored.owner_id !== media.owner_id || stored.record_id !== media.record_id || stored.content_hash !== media.content_hash) {
+        for (const { media, bytes } of prepared) {
+          const storedMedia = await db.canonical_media.get(media.id);
+          const storedBytes = await db.canonical_blobs.get(media.id);
+          if (!storedMedia || storedMedia.owner_id !== media.owner_id || storedMedia.record_id !== media.record_id || storedMedia.content_hash !== media.content_hash || !storedBytes || storedBytes.owner_id !== media.owner_id || storedBytes.record_id !== media.record_id || storedBytes.size !== bytes.byteLength) {
             throw new Error('Canonical capture retry does not match its sealed original media.');
           }
         }
@@ -82,9 +86,9 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
       await db.canonical_records.add(record);
       const sealedEvent: V2RecordEvent = { id: idFactory(), record_id: record.id, owner_id: record.owner_id, at: record.sealed_at, action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user' };
       await db.canonical_history.add(sealedEvent);
-      for (const { item, media } of prepared) {
+      for (const { media, bytes, mime } of prepared) {
         await db.canonical_media.add(media);
-        await db.canonical_blobs.add({ id: media.id, owner_id: record.owner_id, record_id: record.id, blob: item.blob, stored_at: record.sealed_at });
+        await db.canonical_blobs.add({ id: media.id, owner_id: record.owner_id, record_id: record.id, bytes, mime, size: bytes.byteLength, stored_at: record.sealed_at });
         await db.canonical_history.add({ id: idFactory(), record_id: record.id, owner_id: record.owner_id, at: record.sealed_at, action: 'media_added', field: media.id, from_value: null, to_value: null, actor: 'user' });
       }
       return record;
