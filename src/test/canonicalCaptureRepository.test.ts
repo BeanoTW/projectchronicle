@@ -6,6 +6,25 @@ import { createCanonicalCaptureRepository } from '@/chronicle/model/canonicalCap
 const capturedAt = '2026-08-24T21:59:00.000Z';
 const sealedAt = '2026-08-24T22:00:00.000Z';
 
+// jsdom's Blob in this test environment predates the browser-standard
+// arrayBuffer() method. Chronicle runs in browsers where Blob.arrayBuffer()
+// exists, so make the fixture browser-faithful instead of weakening hashing.
+const browserBlob = (text: string, type = ''): Blob => {
+  const blob = new Blob([text], { type });
+  const bytes = new TextEncoder().encode(text);
+  Object.defineProperty(blob, 'arrayBuffer', {
+    configurable: true,
+    value: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+  });
+  return blob;
+};
+
+const blobText = async (blob: Blob): Promise<string> => {
+  if (typeof blob.text === 'function') return blob.text();
+  const buffer = await (blob as Blob & { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer();
+  return new TextDecoder().decode(buffer);
+};
+
 describe('Phase 12 — atomic canonical capture', () => {
   let db: ChronicleDB;
   let repo: ReturnType<typeof createCanonicalCaptureRepository>;
@@ -18,7 +37,7 @@ describe('Phase 12 — atomic canonical capture', () => {
   afterEach(async () => { db.close(); await db.delete(); });
 
   it('seals wording, original media metadata and bytes atomically without creating V1 rows', async () => {
-    const blob = new Blob(['photo-bytes'], { type: 'image/jpeg' });
+    const blob = browserBlob('photo-bytes', 'image/jpeg');
     const record = await repo.seal({
       id: 'record-1', ownerId: 'owner-1', kind: 'incident', text: '  Exact wording stays.  ', capturedAt, sealedAt,
       media: [{ id: 'media-1', kind: 'attachment', name: 'photo.jpg', mime: 'image/jpeg', blob, description: 'Doorway' }],
@@ -36,13 +55,15 @@ describe('Phase 12 — atomic canonical capture', () => {
     expect(media?.role).toBe('original');
     expect(media?.storage).toEqual({ location: 'local', ok: true });
     expect(media?.content_hash).toMatch(/^[a-f0-9]{64}$/);
-    expect(await (await db.canonical_blobs.get('media-1'))?.blob.text()).toBe('photo-bytes');
+    const storedBlob = (await db.canonical_blobs.get('media-1'))?.blob;
+    expect(storedBlob).toBeTruthy();
+    expect(await blobText(storedBlob!)).toBe('photo-bytes');
   });
 
   it('records voice provenance and a daily date without inventing event time', async () => {
     const record = await repo.seal({
       id: 'record-voice', ownerId: 'owner-1', kind: 'daily', text: '', capturedAt, sealedAt,
-      media: [{ id: 'voice-1', kind: 'voice', name: 'voice.webm', mime: 'audio/webm', blob: new Blob(['voice']), duration_ms: 1200 }],
+      media: [{ id: 'voice-1', kind: 'voice', name: 'voice.webm', mime: 'audio/webm', blob: browserBlob('voice', 'audio/webm'), duration_ms: 1200 }],
     });
     expect(record.original.source).toBe('voice');
     expect(record.details.event_date).toEqual({ kind: 'exact', date: '2026-08-24' });
@@ -51,7 +72,7 @@ describe('Phase 12 — atomic canonical capture', () => {
   });
 
   it('makes an exact retry idempotent and rejects replacement wording', async () => {
-    const input = { id: 'record-1', ownerId: 'owner-1', kind: 'incident' as const, text: 'Original', capturedAt, sealedAt, media: [{ id: 'media-1', kind: 'attachment' as const, name: 'a.txt', mime: 'text/plain', blob: new Blob(['same']) }] };
+    const input = { id: 'record-1', ownerId: 'owner-1', kind: 'incident' as const, text: 'Original', capturedAt, sealedAt, media: [{ id: 'media-1', kind: 'attachment' as const, name: 'a.txt', mime: 'text/plain', blob: browserBlob('same', 'text/plain') }] };
     const first = await repo.seal(input);
     const retry = await repo.seal(input);
     expect(retry).toEqual(first);
@@ -64,10 +85,10 @@ describe('Phase 12 — atomic canonical capture', () => {
   });
 
   it('rolls the whole seal back if any original blob cannot be stored', async () => {
-    await db.canonical_blobs.add({ id: 'media-1', owner_id: 'owner-1', record_id: 'other', blob: new Blob(['occupied']), stored_at: sealedAt });
+    await db.canonical_blobs.add({ id: 'media-1', owner_id: 'owner-1', record_id: 'other', blob: browserBlob('occupied'), stored_at: sealedAt });
     await expect(repo.seal({
       id: 'record-1', ownerId: 'owner-1', kind: 'incident', text: 'Original', capturedAt, sealedAt,
-      media: [{ id: 'media-1', kind: 'attachment', name: 'a.txt', mime: 'text/plain', blob: new Blob(['new']) }],
+      media: [{ id: 'media-1', kind: 'attachment', name: 'a.txt', mime: 'text/plain', blob: browserBlob('new', 'text/plain') }],
     })).rejects.toBeTruthy();
     expect(await db.canonical_records.count()).toBe(0);
     expect(await db.canonical_media.count()).toBe(0);
