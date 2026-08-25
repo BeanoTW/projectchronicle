@@ -82,13 +82,14 @@ describe('Phase 2 — immutable canonical Capture boundary', () => {
     expect(await db.canonical_records.count()).toBe(1);
   });
 
-  it('keeps a daily capture date without inventing an event time', async () => {
+  it('keeps a daily record event date unknown until the user records one', async () => {
     const adapter = createCanonicalCaptureAdapter(ownerId, store, async () => 'hash');
     await adapter.createRecord({ ...input(), recordType: 'daily' });
 
     const record = await store.get(ownerId, 'record-1');
-    expect(record?.details.event_date).toEqual({ kind: 'exact', date: '2026-08-23' });
+    expect(record?.details.event_date).toBeNull();
     expect(record?.details.event_time).toBeNull();
+    expect(record?.sealed_at).toBe(sealedAt);
   });
 
   it('rejects original replacement through the direct storage boundary', async () => {
@@ -115,7 +116,7 @@ describe('Phase 2 — immutable canonical Capture boundary', () => {
     const adapter = createCanonicalCaptureAdapter(ownerId, retryingStore, async () => 'hash-1');
     await adapter.createRecord(input([original.id]));
 
-    expect(await adapter.saveMedia('record-1', [original])).toHaveLength(1);
+    expect(await adapter.saveMedia('record-1', [original])).toMatchObject([{ reason: 'write' }]);
     expect((await store.get(ownerId, 'record-1'))?.original.text).toBe('  Exact original wording.  ');
     expect(await db.canonical_media.count()).toBe(0);
 
@@ -126,11 +127,39 @@ describe('Phase 2 — immutable canonical Capture boundary', () => {
     expect((await db.canonical_blobs.get(original.id))?.bytes.byteLength).toBe(original.blob.size);
   });
 
+  it('classifies quota exhaustion without losing the sealed record and permits retry after space is freed', async () => {
+    const original = mediaItem();
+    let full = true;
+    const quotaStore: CanonicalCaptureStore = {
+      ...store,
+      async storeOriginalMedia(value, bytes) {
+        if (full) {
+          const error = new Error('Storage quota exceeded');
+          error.name = 'QuotaExceededError';
+          throw error;
+        }
+        await store.storeOriginalMedia(value, bytes);
+      },
+    };
+    const adapter = createCanonicalCaptureAdapter(ownerId, quotaStore, async () => 'hash-1');
+    await adapter.createRecord(input([original.id]));
+
+    const failed = await adapter.saveMedia('record-1', [original]);
+    expect(failed).toMatchObject([{ reason: 'quota', message: expect.stringContaining('not enough local storage') }]);
+    expect((await store.get(ownerId, 'record-1'))?.original.text).toBe('  Exact original wording.  ');
+    expect(await db.canonical_media.count()).toBe(0);
+
+    full = false;
+    expect(await adapter.saveMedia('record-1', [original])).toEqual([]);
+    expect(await db.canonical_media.count()).toBe(1);
+    expect(await db.canonical_blobs.count()).toBe(1);
+  });
+
   it('never allows a retry path to introduce a new original-media id', async () => {
     const adapter = createCanonicalCaptureAdapter(ownerId, store, async () => 'hash-1');
     await adapter.createRecord(input());
     const failures = await adapter.saveMedia('record-1', [mediaItem()]);
-    expect(failures).toHaveLength(1);
+    expect(failures).toMatchObject([{ reason: 'integrity' }]);
     expect(await db.canonical_media.count()).toBe(0);
 
     const item = mediaItem();
