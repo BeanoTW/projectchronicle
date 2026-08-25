@@ -147,6 +147,14 @@ describe('production dossier adapter', () => {
     expect(media[1]).toMatchObject({ id: 'e2', role: 'later', kind: 'voice' });
   });
 
+  it('uses friendly attachment labels in reports while retaining meaningful filenames', () => {
+    const media = toDossierSourceMedia([
+      evidenceFile({ file_name: '1787483198797455197993196562465.jpg', upload_date: '2026-08-23T12:07:04.000Z', evidence_ref_number: 2 }),
+      evidenceFile({ id: 'e2', file_name: 'meeting-note.pdf', mime_type: 'application/pdf' }),
+    ], [incident()]);
+    expect(media.map(item => item.name)).toEqual(['meeting-note.pdf', 'Photo — 23 Aug 2026 (E02)']);
+  });
+
   it('ignores evidence not linked to a record', () => {
     expect(toDossierSourceMedia([evidenceFile({ incident_id: null })], [incident()])).toHaveLength(0);
   });
@@ -209,6 +217,16 @@ describe('scope filters', () => {
 /* ---------- Clarification + evidence inclusion ---------- */
 
 describe('document content inclusion', () => {
+  it('makes large contents lists identifiable by date, category and subject', () => {
+    const doc = buildDossierFromSource([sourceRecord({
+      title: 'Sick pay missing from final wage after repeated requests',
+      category: 'Pay / Benefits',
+      event_date: '2026-03-25',
+    })], cfg());
+    const recordLine = doc.contents.find(item => item.kind === 'record');
+    expect(recordLine?.label).toBe('Record 1 — 25 March 2026 · Pay / Benefits · Sick pay missing from final wage after repeated requests');
+  });
+
   const withClar = sourceRecord({
     clarifications: [{ id: 'c1', text: 'Added later', created_at: '2025-03-20T09:00:00.000Z' }],
   });

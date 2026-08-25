@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { monthCounts, type NotebookRecord } from '../shared/notebookModel';
+import { monthCounts, usefulNotebookPreview, type NotebookRecord } from '../shared/notebookModel';
 
 interface Props {
   month: string;                 // YYYY-MM
@@ -105,8 +105,10 @@ const MonthView = ({
                 weekday: 'long', day: 'numeric', month: 'long',
               })}
             </h2>
-            {dayEntries.map(e => (
-              <button
+            {dayEntries.map(e => {
+              const preview = usefulNotebookPreview(e.title, e.preview);
+              return (
+                <button
                 key={e.id}
                 className="proto-entry"
                 style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
@@ -114,19 +116,22 @@ const MonthView = ({
               >
                 <div className="proto-entry-meta">
                   <span>{new Date(e.recordedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="proto-chip">{e.recordType === 'daily' ? 'Daily record' : 'Incident'}</span>
                   {e.category && <span className="proto-chip">{e.category}</span>}
-                  {e.hasClarifications && <span className="proto-chip">Clarified</span>}
                   {e.inDossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
+                  {e.attachmentCount > 0 && <span className="proto-chip">{e.attachmentCount} attachment{e.attachmentCount === 1 ? '' : 's'}</span>}
+                  {e.hasClarifications && <span className="proto-chip">Clarified</span>}
                 </div>
                 {e.title && <div className="proto-serif" style={{ fontSize: 16, marginBottom: 4 }}>{e.title}</div>}
-                <div style={{
+                {preview && <div style={{
                   fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
                   display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                 }}>
-                  {e.preview}
-                </div>
-              </button>
-            ))}
+                  {preview}
+                </div>}
+                </button>
+              );
+            })}
           </>
         )}
       </div>

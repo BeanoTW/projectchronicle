@@ -120,7 +120,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }
         const ms = accumRef.current + (Date.now() - startedRef.current);
         setElapsed(ms);
         if (ms >= LIMITS.MAX_VOICE_MS) {
-          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
+          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} recording limit.`);
           stopTicker();
           accumRef.current = LIMITS.MAX_VOICE_MS;
           try { recorderRef.current?.stop(); } catch { /* ignore */ }
@@ -162,7 +162,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }
       const ms = accumRef.current + (Date.now() - startedRef.current);
       setElapsed(ms);
       if (ms >= LIMITS.MAX_VOICE_MS) {
-        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
+        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} recording limit.`);
         stopTicker();
         accumRef.current = LIMITS.MAX_VOICE_MS;
         try { recorderRef.current?.stop(); } catch { /* ignore */ }

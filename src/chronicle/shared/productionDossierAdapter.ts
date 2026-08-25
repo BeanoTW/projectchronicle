@@ -13,6 +13,7 @@
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
 import type { DossierSourceMedia, DossierSourceRecord } from '@/chronicle/shared/dossierModel';
+import { attachmentDisplayName } from '@/lib/attachmentName';
 
 export interface ProductionNote {
   id: string;
@@ -93,7 +94,7 @@ export const toDossierSourceMedia = (
         entry_id: f.incident_id as string,
         kind: mime.startsWith('audio/') ? 'voice' : 'attachment',
         role: isOriginal ? 'original' : 'later',
-        name: f.file_name,
+        name: attachmentDisplayName(f),
         mime: f.mime_type ?? '',
         size: Number(f.file_size ?? 0),
         duration_ms: null,
