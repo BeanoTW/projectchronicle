@@ -26,6 +26,10 @@ import {
 } from '@/chronicle/shared/SettingsView';
 import PrivacyShieldDisableGate from '@/components/chronicle/PrivacyShieldDisableGate';
 import { clearUserScopedState } from '@/chronicle/shared/sessionCleanup';
+import {
+  eraseConfirmedLocalAccount,
+  markConfirmedLocalAccountErasure,
+} from '@/chronicle/shared/accountErasure';
 import { APP_VERSION } from '@/lib/appVersion';
 import { requestAppUpdateCheck } from '@/lib/pwa/updateCoordinator';
 import { APP_LOCK_TIMEOUT_OPTIONS, validateLockPinSetup } from '@/lib/lock/lockSettings';
@@ -204,24 +208,48 @@ const SettingsScreen = () => {
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
+    let serverConfirmedDeletion = false;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('No active session');
+      const ownerId = session.user.id;
       const { error } = await supabase.functions.invoke('delete-account', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
+
+      // Only after the server confirms account deletion do we permit local
+      // erasure. Mark first so a tab/app crash between these steps is retried
+      // before the next Chronicle render.
+      serverConfirmedDeletion = true;
+      markConfirmedLocalAccountErasure(ownerId);
+      await eraseConfirmedLocalAccount(ownerId);
+
       clearUserScopedState();
       try { await supabase.auth.signOut(); } catch { /* ignore */ }
-      toast({ title: 'Your account has been deleted.' });
+      toast({ title: 'Your account and data have been deleted.' });
       setDeleteOpen(false);
       navigate('/', { replace: true });
     } catch (e) {
-      toast({
-        title: 'Unable to delete account right now. Please try again.',
-        description: e instanceof Error ? e.message : undefined,
-        variant: 'destructive',
-      });
+      if (serverConfirmedDeletion) {
+        // The cloud account is already gone. Keep the confirmed-erasure marker
+        // so startup retries the owner-scoped IndexedDB cleanup.
+        clearUserScopedState();
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
+        toast({
+          title: 'Your account was deleted. Local cleanup will retry.',
+          description: 'Chronicle could not finish removing this account from this device. Close and reopen Chronicle to retry before using this device for another account.',
+          variant: 'destructive',
+        });
+        setDeleteOpen(false);
+        navigate('/', { replace: true });
+      } else {
+        toast({
+          title: 'Unable to delete account right now. Please try again.',
+          description: e instanceof Error ? e.message : undefined,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setDeletingAccount(false);
     }
