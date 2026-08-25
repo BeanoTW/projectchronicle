@@ -134,6 +134,13 @@ export const createCanonicalLocalRepository = (
         id: idFactory(), record_id: validated.id, owner_id: validated.owner_id, at: validated.sealed_at,
         action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user',
       });
+      if (validated.original.suggestion_provenance?.accepted_into_original) {
+        await db.canonical_history.add({
+          id: idFactory(), record_id: validated.id, owner_id: validated.owner_id, at: validated.sealed_at,
+          action: 'suggestion_provenance_recorded', field: 'original.suggestion_provenance', from_value: null,
+          to_value: 'Accepted Input Helper suggestion(s) were included at seal time.', actor: 'system',
+        });
+      }
       return validated;
     });
   },

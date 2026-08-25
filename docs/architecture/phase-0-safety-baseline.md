@@ -35,7 +35,7 @@ Observed results must be recorded in the pull request or handoff that runs these
 ## Current limitations exposed, not fixed
 
 - Original-text immutability is a model and workflow rule; this pass does not prove a database-level write prohibition.
-- Production media role is inferred from a five-minute upload window. The exact boundary counts as original; invalid dates count as later; a missing timestamp currently falls back to the Unix epoch and can count as original. This is a heuristic, not provenance.
+- Production media role still uses a five-minute upload window when both timestamps are valid. Missing or invalid timing is now represented as unverified and is never presented as original or later. This remains a compatibility heuristic, not canonical provenance.
 - `V1Snapshot` edit-history rows do not carry old/new wording. The richer production history shape can retain those values, but incomplete legacy history must remain incomplete.
 - People are still largely represented as name strings. Case-folded merging cannot distinguish two different people with the same name.
 - Chronicle's current canonical date structure is primarily exact date/time or null. Approximate dates, ranges, dayparts, and explicit uncertainty are not yet first-class.

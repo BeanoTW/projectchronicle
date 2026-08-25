@@ -19,7 +19,7 @@ export type Uuid = string;
 
 /** Stable versions used by adapters, migrations and rebuildable derivations. */
 export const V2_SCHEMA_VERSION = 2;
-export const CANONICAL_CONTRACT_VERSION = 1;
+export const CANONICAL_CONTRACT_VERSION = 2;
 export const DERIVATION_CONTRACT_VERSION = 1;
 
 /* ---------------------------------------------------------------- record */
@@ -35,6 +35,26 @@ export type RecordKind = 'incident' | 'daily';
 
 /** Where the wording came from at seal time. */
 export type CaptureSource = 'written' | 'voice' | 'written_and_voice' | 'imported_v1';
+
+export interface SuggestionHelperIdentity {
+  helper: string;
+  helper_version: string;
+  model: string | null;
+}
+
+/**
+ * Immutable seal-time account of Input Helper involvement in the original wording.
+ * Absence means only that provenance was not recorded. It never proves that no
+ * helper was used. Per-span detail can later be added beside this record-level
+ * summary without changing the meaning of existing records.
+ */
+export interface SuggestionProvenance {
+  provenance_version: 1;
+  tracking_available: true;
+  interaction_occurred: boolean;
+  accepted_into_original: boolean;
+  helpers: readonly SuggestionHelperIdentity[];
+}
 
 export interface V2Record {
   readonly id: Uuid;              // stable; reused from V1 `incidents.id` on migration
@@ -67,6 +87,8 @@ export interface OriginalContent {
   readonly media_ids: readonly Uuid[];
   /** Set once, at seal. */
   readonly sealed_at: Iso;
+  /** Optional for backwards compatibility. Absence means "not recorded". */
+  readonly suggestion_provenance?: SuggestionProvenance;
 }
 
 export type EventDaypart = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -286,6 +308,11 @@ export interface V2ExportRun {
   format: ExportFormat;
   record_ids: Uuid[];             // exactly what was in the document
   preferences_snapshot: Omit<V2DossierPreferences, 'id' | 'owner_id' | 'updated_at'>;
+  assembly_metadata: {
+    ordering_policy: string;
+    ordering_policy_version: number;
+    suggestion_provenance_regime: 'not_recorded' | 'record_level_v1' | 'mixed';
+  };
   started_at: Iso;
   finished_at: Iso | null;
   outcome: ExportOutcome | null;
@@ -301,6 +328,7 @@ export interface V2RecordEvent {
   at: Iso;
   action:
     | 'sealed'
+    | 'suggestion_provenance_recorded'
     | 'details_updated'
     | 'clarification_added'
     | 'media_added'

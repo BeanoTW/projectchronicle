@@ -84,15 +84,18 @@ export const toDossierSourceMedia = (
     .filter(f => !!f.incident_id)
     .map(f => {
       const mime = (f.mime_type ?? '').toLowerCase();
-      const added = f.upload_date ?? f.capture_date ?? new Date(0).toISOString();
+      const rawAdded = f.upload_date ?? f.capture_date ?? null;
+      const addedMs = rawAdded ? Date.parse(rawAdded) : Number.NaN;
+      const added = Number.isFinite(addedMs) ? new Date(addedMs).toISOString() : null;
       const base = createdAt.get(f.incident_id as string);
-      const isOriginal =
-        base !== undefined && Date.parse(added) - base <= ORIGINAL_EVIDENCE_WINDOW_MS;
+      const role = base !== undefined && Number.isFinite(base) && added !== null
+        ? (addedMs - base <= ORIGINAL_EVIDENCE_WINDOW_MS ? 'original' : 'later')
+        : 'unverified';
       return {
         id: f.id,
         entry_id: f.incident_id as string,
         kind: mime.startsWith('audio/') ? 'voice' : 'attachment',
-        role: isOriginal ? 'original' : 'later',
+        role,
         name: f.file_name,
         mime: f.mime_type ?? '',
         size: Number(f.file_size ?? 0),
@@ -103,5 +106,5 @@ export const toDossierSourceMedia = (
         excluded_from_dossier: false,
       } satisfies DossierSourceMedia;
     })
-    .sort((a, b) => a.added_at.localeCompare(b.added_at));
+    .sort((a, b) => (a.added_at ?? '').localeCompare(b.added_at ?? ''));
 };
