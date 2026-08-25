@@ -33,6 +33,11 @@ export interface CanonicalRecordWriter {
   updateDetails(ownerId: Uuid, recordId: Uuid, expectedRevision: number, patch: Partial<Omit<OrganisationalDetails, 'revision_count'>>): Promise<V2Record>;
   appendClarification(value: V2Clarification): Promise<void>;
   setDossierMembership(ownerId: Uuid, recordId: Uuid, membership: DossierMembership): Promise<void>;
+  /**
+   * Completes storage for media whose id was committed inside the immutable
+   * original at seal time. It may never introduce a new original-media id.
+   */
+  storeOriginalMedia(value: V2Media, bytes: ArrayBuffer): Promise<void>;
   appendMedia(value: V2Media): Promise<void>;
   appendHistory(value: V2RecordEvent): Promise<void>;
 }

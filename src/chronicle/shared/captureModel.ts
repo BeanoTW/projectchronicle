@@ -25,7 +25,7 @@ export interface CaptureSealInput {
   sealedAt: string;
   hasVoice: boolean;
   recordType: CaptureRecordType;
-  /** Optional until the production Capture view switches to atomic canonical sealing. */
+  /** Media present at seal. Persistence may complete afterwards through retry. */
   media?: readonly CaptureMediaItem[];
 }
 export interface MediaFailure { item: CaptureMediaItem; message: string; }
