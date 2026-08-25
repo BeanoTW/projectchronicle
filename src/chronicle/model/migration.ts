@@ -1,10 +1,12 @@
-// Chronicle V2 (candidate) — V1 → V2 migration contract.
+// Chronicle V2 (candidate) — legacy migration contract/planner.
 //
-// STATUS: design only. Nothing here runs against production data. These are
-// the types and the deterministic rules the migration will follow, plus a
-// pure dry-run planner that can be unit tested with fixtures later.
+// This module predates the executable canonical migration pipeline. It remains
+// as the compact field-mapping contract and pure per-record planning utility.
+// The current deterministic projection/write implementation lives in
+// `canonicalMigration.ts`, with owner-specific cutover auditing in
+// `canonicalActivation.ts`.
 //
-// Guarantees the implementation must keep:
+// Guarantees all migration implementations must keep:
 //   * Idempotent — running twice produces the same result and no duplicates.
 //   * Deterministic — same input, same output, no timestamps invented.
 //   * Non-destructive — the V1 database is never written to or deleted.
