@@ -3,7 +3,7 @@
 // It writes only to the additive local canonical store. Network access is not
 // required to seal wording, save details or retain media bytes.
 import type { CanonicalRecordReader, CanonicalRecordWriter } from '@/chronicle/model/adapters';
-import type { MediaKind, V2Media } from '@/chronicle/model/schema';
+import type { MediaKind, OriginalContentProvenance, V2Media } from '@/chronicle/model/schema';
 import { computeSha256 } from '@/lib/attachments/integrity';
 import {
   productionDraftKey,
@@ -44,6 +44,7 @@ export const createCanonicalCaptureAdapter = (
     voice: true,
     attachments: true,
     recordTypes: true,
+    inputHelper: true,
     storageCopy: 'Your record and attached material are saved on this device first.',
     voicePrivacyNote: 'Recording. When you seal, the audio is saved on this device first.',
   },
@@ -56,6 +57,15 @@ export const createCanonicalCaptureAdapter = (
       throw new Error('Capture media ids must be unique and non-empty.');
     }
     const hasWrittenWords = input.text.trim().length > 0;
+    const provenance: OriginalContentProvenance = input.inputHelper ? {
+      schema_version: 1,
+      tracking_state: 'RECORDED',
+      input_helper: {
+        interaction_state: input.inputHelper.interactionState,
+        ...(input.inputHelper.acceptedSuggestionCount !== undefined ? { accepted_suggestion_count: input.inputHelper.acceptedSuggestionCount } : {}),
+        ...(input.inputHelper.helperVersion ? { helper_version: input.inputHelper.helperVersion } : {}),
+      },
+    } : { schema_version: 1, tracking_state: 'NOT_RECORDED' };
     const record = await store.seal({
       id: input.submissionId,
       owner_id: ownerId,
@@ -65,6 +75,7 @@ export const createCanonicalCaptureAdapter = (
         source: input.hasVoice ? (hasWrittenWords ? 'written_and_voice' : 'voice') : 'written',
         media_ids: originalMediaIds,
         sealed_at: input.sealedAt,
+        provenance,
       },
       captured_at: input.capturedAt,
       sealed_at: input.sealedAt,
