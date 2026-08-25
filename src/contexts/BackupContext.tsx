@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { liveQuery } from 'dexie';
 import { useAuth } from './AuthContext';
 import { isBackupEnabled, setBackupEnabled as persistBackupEnabled, localDB } from '@/local/db';
 import {
@@ -223,6 +224,39 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     })();
   }, [online, user, backupEnabled, refreshAuthority, refreshDiagnostics, refreshCloudCount, runCanonicalBackup]);
 
+  // Dexie liveQuery emits only after committed table changes. This makes
+  // automatic canonical backup react to ordinary online saves without firing
+  // from an uncommitted capture transaction. Backup-induced sync metadata
+  // writes may emit again, but the in-flight guard plus a fresh pending check
+  // prevents loops or duplicate uploads.
+  useEffect(() => {
+    if (!online || !user || !backupEnabled) return;
+    let cancelled = false;
+    const ownerId = user.id;
+    const subscription = liveQuery(async () => Promise.all([
+      localDB.canonical_records.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_clarifications.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_media.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_history.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_people.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_organisations.where('owner_id').equals(ownerId).count(),
+      localDB.canonical_relationships.where('owner_id').equals(ownerId).count(),
+    ])).subscribe({
+      next: () => {
+        void (async () => {
+          if (cancelled || canonicalBackupRef.current) return;
+          if (!(await refreshAuthority())) return;
+          const diagnostics = await getCanonicalLocalDiagnostics(ownerId);
+          if (diagnostics.pendingCount === 0 || diagnostics.conflictCount > 0) return;
+          try { await runCanonicalBackup(); } catch { /* surfaced by diagnostics */ }
+          if (!cancelled) { await refreshDiagnostics(); await refreshCloudCount(); }
+        })();
+      },
+      error: () => { /* diagnostics/manual retry remain available */ },
+    });
+    return () => { cancelled = true; subscription.unsubscribe(); };
+  }, [online, user, backupEnabled, refreshAuthority, runCanonicalBackup, refreshDiagnostics, refreshCloudCount]);
+
   const setBackupEnabled = useCallback(async (enabled: boolean) => {
     await persistBackupEnabled(enabled);
     setBackupEnabledState(enabled);
@@ -307,10 +341,6 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   } else if (cloudCount === null) {
     syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
   } else if (canonicalAuthority) {
-    // Canonical cloud success is an owner-wide transaction boundary covering
-    // records, append-only children and media. A record's remote updated_at may
-    // legitimately pre-date a later evidence-only backup, so never compare it
-    // to lastBackupAt to infer freshness.
     if (cloudCount === 0) syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
     else if (pendingCount > 0 || localCount > cloudCount) syncStatus = 'local_newer';
     else if (cloudCount > localCount) syncStatus = 'cloud_newer';
