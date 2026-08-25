@@ -2,14 +2,7 @@
 //
 // Legacy remains the default writer. Only an audited owner with the separate,
 // internal canonical Capture flag uses the additive canonical local store.
-// Legacy writes continue through the existing production hooks:
-//   - useCreateIncident  → local-first record creation (idempotent on the record id)
-//   - useUploadEvidence  → production evidence storage (same path as V1 capture)
-//   - useUpdateIncident  → optional review details
-//
-// This file must never import the preview (`chronicle_prototype`) database, and
-// must never write to Supabase directly from the UI.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateIncident, useUpdateIncident } from '@/hooks/useIncidents';
 import { useUploadEvidence } from '@/hooks/useEvidence';
@@ -26,8 +19,6 @@ import {
 } from './captureModel';
 import { createCanonicalCaptureAdapter, createCaptureWriteRouter } from './canonicalCaptureAdapter';
 
-// Internal database/storage detail must never reach the user; every failure is
-// mapped to a calm, safe message (diagnostics stay in dev-only logging).
 const failureMessage = (e: unknown): string => {
   logAttachmentDiagnostic('capture media', e);
   return toSafeAttachmentMessage(e);
@@ -38,6 +29,22 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
   const createIncident = useCreateIncident();
   const updateIncident = useUpdateIncident();
   const uploadEvidence = useUploadEvidence();
+  const [canonicalActive, setCanonicalActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const ownerId = user?.id ?? '';
+    if (!ownerId) {
+      setCanonicalActive(false);
+      return () => { cancelled = true; };
+    }
+    void isCanonicalCaptureEnabled(ownerId).then(active => {
+      if (!cancelled) setCanonicalActive(active);
+    }).catch(() => {
+      if (!cancelled) setCanonicalActive(false);
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   return useMemo<CaptureAdapter>(() => {
     const legacy: CaptureAdapter = {
@@ -54,8 +61,6 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
       draftKey: productionDraftKey(user?.id),
 
       async createRecord(input) {
-        // The submission id is the record id, so a double-tap or a retry after a
-        // slow network can only ever write the same row — never a duplicate.
         const row = await createIncident.mutateAsync({
           id: input.submissionId,
           raw_narrative: input.text,
@@ -107,7 +112,7 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
 
     const ownerId = user?.id ?? '';
     const canonical = createCanonicalCaptureAdapter(ownerId, canonicalLocalRepository);
-    return createCaptureWriteRouter({
+    const routed = createCaptureWriteRouter({
       legacy,
       canonical,
       canonicalEnabled: () => (
@@ -119,5 +124,12 @@ export const useProductionCaptureAdapter = (): CaptureAdapter => {
         return !!record && record.original.source !== 'imported_v1';
       },
     });
-  }, [user?.id, createIncident, updateIncident, uploadEvidence]);
+
+    // Input Helper is only visible when the audited canonical authority is
+    // currently active. Legacy Capture cannot persist its provenance.
+    return {
+      ...routed,
+      capabilities: canonicalActive ? canonical.capabilities : legacy.capabilities,
+    };
+  }, [user?.id, createIncident, updateIncident, uploadEvidence, canonicalActive]);
 };
