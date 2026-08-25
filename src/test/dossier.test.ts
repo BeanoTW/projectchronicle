@@ -20,7 +20,6 @@ import {
   productionEventDate,
   toDossierSourceMedia,
   toDossierSourceRecords,
-  ORIGINAL_EVIDENCE_WINDOW_MS,
 } from '@/chronicle/shared/productionDossierAdapter';
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
@@ -137,14 +136,13 @@ describe('production dossier adapter', () => {
     expect(r.clarifications.map(c => c.text)).toEqual(['First', 'Second']);
   });
 
-  it('maps evidence rows, classifying files by upload proximity to the record', () => {
-    const late = new Date(Date.parse('2025-03-14T10:00:00.000Z') + ORIGINAL_EVIDENCE_WINDOW_MS + 1000).toISOString();
+  it('keeps legacy evidence provenance unresolved instead of inferring originality from upload time', () => {
     const media = toDossierSourceMedia(
-      [evidenceFile(), evidenceFile({ id: 'e2', upload_date: late, mime_type: 'audio/webm', file_name: 'voice.webm' })],
+      [evidenceFile(), evidenceFile({ id: 'e2', upload_date: '2025-03-20T10:01:00.000Z', mime_type: 'audio/webm', file_name: 'voice.webm' })],
       [incident()],
     );
-    expect(media[0]).toMatchObject({ id: 'e1', role: 'original', kind: 'attachment', entry_id: 'i1' });
-    expect(media[1]).toMatchObject({ id: 'e2', role: 'later', kind: 'voice' });
+    expect(media[0]).toMatchObject({ id: 'e1', role: 'legacy_unresolved', kind: 'attachment', entry_id: 'i1' });
+    expect(media[1]).toMatchObject({ id: 'e2', role: 'legacy_unresolved', kind: 'voice' });
   });
 
   it('ignores evidence not linked to a record', () => {
@@ -194,8 +192,9 @@ describe('scope filters', () => {
     expect(doc.hiddenByFilters).toBe(1);
   });
 
-  it('falls back to the sealed date when no event date exists', () => {
-    expect(recordDate(sourceRecord({ event_date: null }))).toBe('2025-03-14');
+  it('keeps a missing event date unknown rather than substituting the sealed date', () => {
+    expect(recordDate(sourceRecord({ event_date: null }))).toBeNull();
+    expect(matchesScope(sourceRecord({ event_date: null }), cfg({ from: '2025-01-01' }))).toBe(false);
   });
 
   it('orders oldest-first or newest-first only', () => {
