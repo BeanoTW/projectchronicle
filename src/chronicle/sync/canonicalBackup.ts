@@ -13,7 +13,6 @@ export class CanonicalMediaIntegrityError extends Error {}
 
 type ChildKind = 'clarification' | 'media' | 'history' | 'person' | 'relationship' | 'organisation';
 type ChildRpcResult = { status: string; remote_revision?: number | null; payload?: unknown };
-export type RemoteMediaPayload = Omit<V2Media, 'sync'> & { storage: { location: 'remote_only'; remote_path: string }; _remote_uploaded_at: string };
 
 const syncedMeta = (sync: SyncMetadata, at: string, remoteVersion: number): SyncMetadata => ({
   remote_version: remoteVersion,
@@ -86,6 +85,9 @@ async function ensureRemoteMediaBytes(media: V2Media): Promise<string> {
   const uploaded = await bucket.upload(path, blob, { contentType: media.mime, upsert: false });
   if (!uploaded.error) return path;
 
+  // A previous attempt may have committed the immutable object before the app
+  // recorded success locally. Accept an existing object only if it hashes to
+  // the exact sealed content; never overwrite it.
   const existing = await bucket.download(path);
   if (existing.error || !existing.data) throw uploaded.error;
   const remoteHash = await computeSha256(existing.data);
@@ -97,13 +99,16 @@ async function backupMedia(value: V2Media, clock: () => string): Promise<void> {
   const attemptAt = clock();
   try {
     const remotePath = await ensureRemoteMediaBytes(value);
-    const uploadedAt = clock();
-    const remotePayload: RemoteMediaPayload = {
+    // Keep the remote identity payload deterministic across retries. A volatile
+    // upload timestamp here would turn "server committed, client crashed"
+    // into a false conflict on the next attempt. Restore uses the canonical
+    // child row's server updated_at as the upload timestamp instead.
+    const remotePayload = {
       ...stripSync(value),
-      storage: { location: 'remote_only', remote_path: remotePath },
-      _remote_uploaded_at: uploadedAt,
+      storage: { location: 'remote_only' as const, remote_path: remotePath },
     };
     const revision = await putChild({ kind: 'media', id: value.id, recordId: value.record_id, payload: remotePayload, expectedRemoteRevision: value.sync.remote_version });
+    const uploadedAt = clock();
     await localDB.canonical_media.put(V2MediaSchema.parse({
       ...value,
       storage: { location: 'local_and_remote', remote_path: remotePath, uploaded_at: uploadedAt },
