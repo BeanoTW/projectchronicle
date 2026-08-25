@@ -43,12 +43,19 @@ const owned = (record: V2Record | undefined, ownerId: string, recordId: string):
 };
 
 const active = (record: V2Record): V2Record => {
-  if (record.lifecycle.state !== 'sealed') throw new CanonicalLifecycleError(`Canonical record is ${record.lifecycle.state} and cannot be changed.`);
+  if (record.lifecycle.state !== 'sealed') {
+    throw new CanonicalLifecycleError(`Canonical record is ${record.lifecycle.state} and cannot be changed.`);
+  }
   return record;
 };
 
-const ensureChildIdentity = (parent: V2Record, child: { owner_id: string; record_id: string }): void => {
-  if (child.owner_id !== parent.owner_id || child.record_id !== parent.id) throw new CanonicalOwnershipError('Canonical child row does not match its owner and record.');
+const ensureChildIdentity = (
+  parent: V2Record,
+  child: { owner_id: string; record_id: string },
+): void => {
+  if (child.owner_id !== parent.owner_id || child.record_id !== parent.id) {
+    throw new CanonicalOwnershipError('Canonical child row does not match its owner and record.');
+  }
 };
 
 export const createCanonicalLocalRepository = (
@@ -64,15 +71,24 @@ export const createCanonicalLocalRepository = (
 
   async list(ownerId) {
     const records = await db.canonical_records.where('owner_id').equals(ownerId).toArray();
-    return records.map(record => V2RecordSchema.parse(record)).sort((a, b) => a.id.localeCompare(b.id));
+    return records
+      .map(record => V2RecordSchema.parse(record))
+      .sort((a, b) => a.id.localeCompare(b.id));
   },
 
   async seal(input: SealRecordInput) {
     return db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
       const existing = await db.canonical_records.get(input.id);
       if (existing) {
-        if (existing.owner_id !== input.owner_id) throw new CanonicalOwnershipError('Cannot reuse a canonical record id across owners.');
-        if (existing.kind !== input.kind || existing.captured_at !== input.captured_at || existing.sealed_at !== input.sealed_at || !same(existing.original, input.original)) {
+        if (existing.owner_id !== input.owner_id) {
+          throw new CanonicalOwnershipError('Cannot reuse a canonical record id across owners.');
+        }
+        if (
+          existing.kind !== input.kind
+          || existing.captured_at !== input.captured_at
+          || existing.sealed_at !== input.sealed_at
+          || !same(existing.original, input.original)
+        ) {
           throw new CanonicalImmutableConflictError('A sealed canonical record cannot be replaced.');
         }
         return V2RecordSchema.parse(existing);
@@ -90,7 +106,7 @@ export const createCanonicalLocalRepository = (
           context: null,
           person_ids: [],
           location: null,
-          // Record kind is not an event date. Missing event date remains unknown.
+          // Record kind does not establish when the underlying event happened.
           event_date: null,
           event_time: null,
           revision_count: 0,
@@ -101,77 +117,181 @@ export const createCanonicalLocalRepository = (
         sealed_at: input.sealed_at,
         created_at: input.sealed_at,
         updated_at: input.sealed_at,
-        sync: { remote_version: null, local_revision: 0, state: { state: 'local_only' }, last_attempt_at: null },
+        sync: {
+          remote_version: null,
+          local_revision: 0,
+          state: { state: 'local_only' },
+          last_attempt_at: null,
+        },
       };
 
       const validated = V2RecordSchema.parse(record);
       await db.canonical_records.add(validated);
-      await db.canonical_history.add({ id: idFactory(), record_id: validated.id, owner_id: validated.owner_id, at: validated.sealed_at, action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user' });
+      await db.canonical_history.add({
+        id: idFactory(), record_id: validated.id, owner_id: validated.owner_id, at: validated.sealed_at,
+        action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user',
+      });
       return validated;
     });
   },
 
   async updateDetails(ownerId, recordId, expectedRevision, patch) {
-    CanonicalRecordMutationSchema.parse({ kind: 'update_details', owner_id: ownerId, record_id: recordId, expected_revision: expectedRevision, patch });
+    CanonicalRecordMutationSchema.parse({
+      kind: 'update_details', owner_id: ownerId, record_id: recordId, expected_revision: expectedRevision, patch,
+    });
+
     return db.transaction('rw', db.canonical_records, async () => {
       const current = active(owned(await db.canonical_records.get(recordId), ownerId, recordId));
-      if (current.details.revision_count !== expectedRevision) throw new CanonicalRevisionConflictError(`Expected details revision ${expectedRevision}, found ${current.details.revision_count}.`);
-      const nextDetails: OrganisationalDetails = { ...current.details, ...structuredClone(patch), revision_count: current.details.revision_count + 1 };
-      const next: V2Record = { ...current, details: nextDetails, updated_at: clock(), sync: localOnlySync(current.sync) };
+      if (current.details.revision_count !== expectedRevision) {
+        throw new CanonicalRevisionConflictError(
+          `Expected details revision ${expectedRevision}, found ${current.details.revision_count}.`,
+        );
+      }
+
+      const nextDetails: OrganisationalDetails = {
+        ...current.details,
+        ...structuredClone(patch),
+        revision_count: current.details.revision_count + 1,
+      };
+      const next: V2Record = {
+        ...current,
+        original: structuredClone(current.original),
+        details: nextDetails,
+        updated_at: clock(),
+        sync: localOnlySync(current.sync),
+      };
       const validated = V2RecordSchema.parse(next);
       await db.canonical_records.put(validated);
       return validated;
     });
   },
 
-  async setDossierMembership(ownerId, recordId, expectedState, membership: DossierMembership) {
-    return db.transaction('rw', db.canonical_records, async () => {
-      const current = active(owned(await db.canonical_records.get(recordId), ownerId, recordId));
-      if (current.dossier.state !== expectedState) throw new CanonicalRevisionConflictError(`Expected dossier state ${expectedState}, found ${current.dossier.state}.`);
-      const next = V2RecordSchema.parse({ ...current, dossier: structuredClone(membership), updated_at: clock(), sync: localOnlySync(current.sync) });
-      await db.canonical_records.put(next);
-      return next;
+  async appendClarification(value: V2Clarification) {
+    CanonicalRecordMutationSchema.parse({
+      kind: 'append_clarification',
+      owner_id: value.owner_id,
+      record_id: value.record_id,
+      clarification_id: value.id,
+      clarification_kind: value.kind,
+      text: value.text,
+      created_at: value.created_at,
+    });
+
+    await db.transaction('rw', db.canonical_records, db.canonical_clarifications, async () => {
+      const parent = active(owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id));
+      ensureChildIdentity(parent, value);
+      const existing = await db.canonical_clarifications.get(value.id);
+      if (existing) {
+        if (!same(existing, value)) throw new CanonicalImmutableConflictError('Clarification id already has different content.');
+        return;
+      }
+      await db.canonical_clarifications.add(structuredClone(value));
     });
   },
 
-  async addClarification(value: V2Clarification) {
-    const parent = active(owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id));
-    ensureChildIdentity(parent, value);
-    const existing = await db.canonical_clarifications.get(value.id);
-    if (existing) {
-      if (!same(existing, value)) throw new CanonicalImmutableConflictError('Canonical clarification is append-only.');
-      return existing;
-    }
-    await db.canonical_clarifications.add(structuredClone(value));
-    return value;
+  async setDossierMembership(ownerId, recordId, membership: DossierMembership) {
+    CanonicalRecordMutationSchema.parse({
+      kind: 'set_dossier_membership', owner_id: ownerId, record_id: recordId, membership,
+    });
+
+    await db.transaction('rw', db.canonical_records, async () => {
+      const current = active(owned(await db.canonical_records.get(recordId), ownerId, recordId));
+      const next: V2Record = {
+        ...current,
+        original: structuredClone(current.original),
+        details: structuredClone(current.details),
+        dossier: structuredClone(membership),
+        updated_at: clock(),
+        sync: localOnlySync(current.sync),
+      };
+      await db.canonical_records.put(V2RecordSchema.parse(next));
+    });
   },
 
   async storeOriginalMedia(value: V2Media, bytes: ArrayBuffer) {
-    const parent = active(owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id));
-    ensureChildIdentity(parent, value);
-    if (!parent.original.media_ids.includes(value.id) || value.role !== 'original') throw new CanonicalImmutableConflictError('Original media must have been declared when the record was sealed.');
-    const parsed = V2MediaSchema.parse(value);
-    return db.transaction('rw', db.canonical_media, db.canonical_blobs, async () => {
-      const existing = await db.canonical_media.get(value.id);
-      if (existing) {
-        const blob = await db.canonical_blobs.get(value.id);
-        if (!same(existing, parsed) || !blob || blob.size !== bytes.byteLength) throw new CanonicalImmutableConflictError('Canonical original media cannot be replaced.');
-        return parsed;
+    const validated = V2MediaSchema.parse(value);
+    if (validated.role !== 'original') {
+      throw new CanonicalImmutableConflictError('Only media committed at seal may use original-media recovery.');
+    }
+    if (!validated.content_hash) {
+      throw new CanonicalImmutableConflictError('Original media must have an integrity hash before storage.');
+    }
+    if (bytes.byteLength !== validated.size) {
+      throw new CanonicalImmutableConflictError('Original media bytes do not match the committed size.');
+    }
+
+    await db.transaction('rw', db.canonical_records, db.canonical_media, db.canonical_blobs, async () => {
+      const parent = active(owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id));
+      ensureChildIdentity(parent, validated);
+      if (!parent.original.media_ids.includes(validated.id)) {
+        throw new CanonicalImmutableConflictError('Original media id was not committed when the record was sealed.');
       }
-      await db.canonical_media.add(parsed);
-      await db.canonical_blobs.add({ id: value.id, owner_id: value.owner_id, record_id: value.record_id, bytes, mime: value.mime, size: bytes.byteLength, stored_at: value.added_at });
-      return parsed;
+      if (validated.added_at !== parent.sealed_at) {
+        throw new CanonicalImmutableConflictError('Original media timestamp must equal the record seal timestamp.');
+      }
+
+      const existingMedia = await db.canonical_media.get(validated.id);
+      const existingBytes = await db.canonical_blobs.get(validated.id);
+      if (existingMedia && !same(existingMedia, validated)) {
+        throw new CanonicalImmutableConflictError('Original media id already has different metadata.');
+      }
+      if (existingBytes && (
+        existingBytes.owner_id !== validated.owner_id
+        || existingBytes.record_id !== validated.record_id
+        || existingBytes.size !== bytes.byteLength
+        || existingBytes.mime !== validated.mime
+      )) {
+        throw new CanonicalImmutableConflictError('Original media id already has different bytes.');
+      }
+
+      if (!existingMedia) await db.canonical_media.add(validated);
+      if (!existingBytes) {
+        await db.canonical_blobs.add({
+          id: validated.id,
+          owner_id: validated.owner_id,
+          record_id: validated.record_id,
+          bytes: bytes.slice(0),
+          mime: validated.mime,
+          size: bytes.byteLength,
+          stored_at: clock(),
+        });
+      }
     });
   },
 
-  async appendHistory(event: V2RecordEvent) {
-    const parent = owned(await db.canonical_records.get(event.record_id), event.owner_id, event.record_id);
-    ensureChildIdentity(parent, event);
-    const existing = await db.canonical_history.get(event.id);
-    if (existing) { if (!same(existing, event)) throw new CanonicalImmutableConflictError('Canonical history is append-only.'); return existing; }
-    await db.canonical_history.add(structuredClone(event));
-    return event;
+  async appendMedia(value: V2Media) {
+    const validated = V2MediaSchema.parse(value);
+    if (validated.role === 'original') {
+      throw new CanonicalImmutableConflictError(
+        'Original media must be part of the seal operation; it cannot be appended after seal.',
+      );
+    }
+
+    await db.transaction('rw', db.canonical_records, db.canonical_media, async () => {
+      const parent = active(owned(await db.canonical_records.get(validated.record_id), validated.owner_id, validated.record_id));
+      ensureChildIdentity(parent, validated);
+      const existing = await db.canonical_media.get(validated.id);
+      if (existing) {
+        if (!same(existing, validated)) throw new CanonicalImmutableConflictError('Media id already has different content.');
+        return;
+      }
+      await db.canonical_media.add(validated);
+    });
+  },
+
+  async appendHistory(value: V2RecordEvent) {
+    await db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
+      const parent = owned(await db.canonical_records.get(value.record_id), value.owner_id, value.record_id);
+      ensureChildIdentity(parent, value);
+      const existing = await db.canonical_history.get(value.id);
+      if (existing) {
+        if (!same(existing, value)) throw new CanonicalImmutableConflictError('History event id already has different content.');
+        return;
+      }
+      await db.canonical_history.add(structuredClone(value));
+    });
   },
 });
 
+/** Default Phase 3 repository. Nothing imports this into production flows yet. */
 export const canonicalLocalRepository = createCanonicalLocalRepository();
