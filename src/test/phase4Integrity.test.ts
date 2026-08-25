@@ -40,13 +40,17 @@ describe('Phase 4 chronological and integrity contract', () => {
   });
 
   it('uses event time when both records have it, then sealed timestamp and stable id', () => {
-    const base = { event_date: '2026-03-14', sealed_at: '2026-03-20T10:00:00.000Z' };
-    const laterTime = record({ ...base, id: 'z', event_time: '11:00' });
-    const earlierTime = record({ ...base, id: 'y', event_time: '09:00' });
+    const base = { event_date: '2026-03-14' };
+    const laterTime = record({ ...base, id: 'z', event_time: '11:00', sealed_at: '2026-03-20T10:00:00.000Z' });
+    const earlierTime = record({ ...base, id: 'y', event_time: '09:00', sealed_at: '2026-03-20T10:00:00.000Z' });
     expect([laterTime, earlierTime].sort(compareDossierRecords).map(item => item.id)).toEqual(['y', 'z']);
 
-    const sameA = record({ ...base, id: 'a', event_time: null });
-    const sameB = record({ ...base, id: 'b', event_time: null });
+    const laterSeal = record({ ...base, id: 'later-seal', event_time: null, sealed_at: '2026-03-20T11:00:00.000Z' });
+    const earlierSeal = record({ ...base, id: 'earlier-seal', event_time: null, sealed_at: '2026-03-20T10:00:00.000Z' });
+    expect([laterSeal, earlierSeal].sort(compareDossierRecords).map(item => item.id)).toEqual(['earlier-seal', 'later-seal']);
+
+    const sameA = record({ ...base, id: 'a', event_time: null, sealed_at: '2026-03-20T10:00:00.000Z' });
+    const sameB = record({ ...base, id: 'b', event_time: null, sealed_at: '2026-03-20T10:00:00.000Z' });
     expect([sameB, sameA].sort(compareDossierRecords).map(item => item.id)).toEqual(['a', 'b']);
   });
 
