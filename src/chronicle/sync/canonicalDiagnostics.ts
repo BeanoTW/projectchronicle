@@ -58,11 +58,18 @@ export async function getCanonicalLocalDiagnostics(ownerId: string): Promise<Omi
     ...organisations.map(row => row.created_at),
     ...relationships.map(row => row.created_at),
   ].filter(at => laterThan(at, lastBackupAt)).length;
-  const mediaMissingRemote = media.filter(row => row.storage.location === 'local').length;
+  // Media with local-only storage is pending even if stale metadata incorrectly
+  // claims a synced state. Count it once, not once for each condition.
+  const pendingMutableIds = new Set<string>();
+  records.forEach(row => { if (isPending(row.sync)) pendingMutableIds.add(`record:${row.id}`); });
+  clarifications.forEach(row => { if (isPending(row.sync)) pendingMutableIds.add(`clarification:${row.id}`); });
+  media.forEach(row => {
+    if (isPending(row.sync) || row.storage.location === 'local') pendingMutableIds.add(`media:${row.id}`);
+  });
 
   return {
     localCount: records.length,
-    pendingCount: mutableSync.filter(isPending).length + appendOnlyPending + mediaMissingRemote,
+    pendingCount: pendingMutableIds.size + appendOnlyPending,
     conflictCount: mutableSync.filter(isConflict).length,
     lastSyncAttemptAt: maxIso(mutableSync.map(sync => sync.last_attempt_at)),
     lastBackupAt,
