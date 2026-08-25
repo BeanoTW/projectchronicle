@@ -38,6 +38,21 @@ export const OriginalContentSchema = z.object({
   source: z.enum(['written', 'voice', 'written_and_voice', 'imported_v1']),
   media_ids: z.array(id),
   sealed_at: iso,
+  suggestion_provenance: z.object({
+    provenance_version: z.literal(1),
+    tracking_available: z.literal(true),
+    interaction_occurred: z.boolean(),
+    accepted_into_original: z.boolean(),
+    helpers: z.array(z.object({
+      helper: z.string().min(1),
+      helper_version: z.string().min(1),
+      model: z.string().nullable(),
+    }).strict()),
+  }).strict().superRefine((value, ctx) => {
+    if (value.accepted_into_original && !value.interaction_occurred) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['accepted_into_original'], message: 'Accepted suggestions require a recorded helper interaction.' });
+    }
+  }).optional(),
 }).strict();
 
 export const OrganisationalDetailsSchema = z.object({

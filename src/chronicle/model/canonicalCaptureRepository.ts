@@ -1,7 +1,7 @@
 import { computeSha256 } from '@/lib/attachments/integrity';
 import { ChronicleDB, localDB } from '@/local/db';
 import { V2MediaSchema, V2RecordSchema } from './contracts';
-import { V2_SCHEMA_VERSION, type CaptureSource, type MediaKind, type V2Record, type V2RecordEvent } from './schema';
+import { V2_SCHEMA_VERSION, type CaptureSource, type MediaKind, type SuggestionProvenance, type V2Record, type V2RecordEvent } from './schema';
 
 export interface CanonicalCaptureMediaInput {
   id: string;
@@ -20,6 +20,7 @@ export interface CanonicalCaptureInput {
   capturedAt: string;
   sealedAt: string;
   media: readonly CanonicalCaptureMediaInput[];
+  suggestionProvenance?: SuggestionProvenance;
 }
 
 const mediaKind = (item: CanonicalCaptureMediaInput): MediaKind => {
@@ -61,7 +62,7 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
 
     const record = V2RecordSchema.parse({
       id: input.id, owner_id: input.ownerId, kind: input.kind, schema_version: V2_SCHEMA_VERSION,
-      original: { text: input.text, source: captureSource(input.text, input.media), media_ids: ids, sealed_at: input.sealedAt },
+      original: { text: input.text, source: captureSource(input.text, input.media), media_ids: ids, sealed_at: input.sealedAt, ...(input.suggestionProvenance ? { suggestion_provenance: structuredClone(input.suggestionProvenance) } : {}) },
       details: { title: null, category_id: null, context: null, person_ids: [], location: null, event_date: input.kind === 'daily' ? { kind: 'exact', date: input.sealedAt.slice(0, 10) } : null, event_time: null, revision_count: 0 },
       lifecycle: { state: 'sealed' }, dossier: { state: 'not_included' },
       captured_at: input.capturedAt, sealed_at: input.sealedAt, created_at: input.sealedAt, updated_at: input.sealedAt, sync: sync(),
@@ -86,6 +87,9 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
       await db.canonical_records.add(record);
       const sealedEvent: V2RecordEvent = { id: idFactory(), record_id: record.id, owner_id: record.owner_id, at: record.sealed_at, action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user' };
       await db.canonical_history.add(sealedEvent);
+      if (record.original.suggestion_provenance?.accepted_into_original) {
+        await db.canonical_history.add({ id: idFactory(), record_id: record.id, owner_id: record.owner_id, at: record.sealed_at, action: 'suggestion_provenance_recorded', field: 'original.suggestion_provenance', from_value: null, to_value: 'Accepted Input Helper suggestion(s) were included at seal time.', actor: 'system' });
+      }
       for (const { media, bytes, mime } of prepared) {
         await db.canonical_media.add(media);
         await db.canonical_blobs.add({ id: media.id, owner_id: record.owner_id, record_id: record.id, bytes, mime, size: bytes.byteLength, stored_at: record.sealed_at });

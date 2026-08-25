@@ -1,4 +1,4 @@
-// Phase 8 — V2 performance harness.
+// Scale qualification harness for the Phase 9 performance release gate.
 //
 // Measures the pure data paths behind Notebook, Entry, Chronicle and the
 // report at 100 / 1,000 / 5,000 records. Timings are printed so a run can be
@@ -30,7 +30,7 @@ const asNotes = (d: ReturnType<typeof buildScaleDataset>) =>
   d.notes.map(n => ({ id: n.id, incident_id: n.incident_id, note_text: n.note_text, note_type: n.note_type, created_at: n.created_at })) as any[];
 const asEvidence = (d: ReturnType<typeof buildScaleDataset>) => d.evidence as any[];
 
-describe('Phase 8 — V2 performance at scale', () => {
+describe('Phase 9 gate — Chronicle performance at scale', () => {
   SIZES.forEach(size => {
     it(`notebook paths stay responsive at ${size} records`, () => {
       const data = buildScaleDataset(size);
@@ -119,7 +119,7 @@ describe('Phase 8 — V2 performance at scale', () => {
 
   it('prints the measured timings', () => {
     // eslint-disable-next-line no-console
-    console.log('\n--- Phase 8 performance ---\n' + results.join('\n') + '\n');
+    console.log('\n--- Phase 9 performance gate ---\n' + results.join('\n') + '\n');
     expect(results.length).toBeGreaterThan(0);
   });
 });

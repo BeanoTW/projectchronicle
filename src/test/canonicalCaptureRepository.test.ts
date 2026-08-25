@@ -68,6 +68,25 @@ describe('Phase 12 — atomic canonical capture', () => {
     expect((await db.canonical_media.get('voice-1'))?.kind).toBe('voice');
   });
 
+  it('stores accepted helper provenance inside the immutable original and surfaces a history event', async () => {
+    const record = await repo.seal({
+      id: 'record-assisted', ownerId: 'owner-1', kind: 'incident', text: 'Accepted wording', capturedAt, sealedAt,
+      media: [],
+      suggestionProvenance: {
+        provenance_version: 1, tracking_available: true, interaction_occurred: true,
+        accepted_into_original: true, helpers: [{ helper: 'input-helper', helper_version: '1', model: null }],
+      },
+    });
+
+    expect(record.original.suggestion_provenance?.accepted_into_original).toBe(true);
+    expect((await db.canonical_history.where('record_id').equals(record.id).toArray()).map(event => event.action))
+      .toEqual(['sealed', 'suggestion_provenance_recorded']);
+    await expect(repo.seal({
+      id: 'record-assisted', ownerId: 'owner-1', kind: 'incident', text: 'Accepted wording', capturedAt, sealedAt,
+      media: [],
+    })).rejects.toThrow('cannot be replaced');
+  });
+
   it('makes an exact retry idempotent and rejects replacement wording', async () => {
     const input = { id: 'record-1', ownerId: 'owner-1', kind: 'incident' as const, text: 'Original', capturedAt, sealedAt, media: [{ id: 'media-1', kind: 'attachment' as const, name: 'a.txt', mime: 'text/plain', blob: browserBlob('same', 'text/plain') }] };
     const first = await repo.seal(input);

@@ -28,13 +28,13 @@ export interface DossierSourceMedia {
   id: string;
   entry_id: string;
   kind: 'voice' | 'attachment';
-  role: 'original' | 'later';
+  role: 'original' | 'later' | 'unverified';
   name: string;
   mime: string;
   size: number;
   duration_ms: number | null;
   description: string | null;
-  added_at: string;
+  added_at: string | null;
   excluded_from_dossier: boolean;
 }
 
@@ -81,7 +81,7 @@ export interface DossierEvidenceItem {
   id: string;
   kind: 'voice' | 'attachment';
   type: AttachmentType;
-  role: 'original' | 'later';
+  role: 'original' | 'later' | 'unverified';
   name: string;
   mime: string;
   typeLabel: string;
@@ -158,9 +158,10 @@ export const evidenceForRecord = (
       return cfg.attachmentTypes.includes(attachmentType(m.mime, m.name));
     })
     .sort((a, b) => {
-      if (a.role !== b.role) return a.role === 'original' ? -1 : 1;
+      const roleRank = { original: 0, later: 1, unverified: 2 } as const;
+      if (a.role !== b.role) return roleRank[a.role] - roleRank[b.role];
       if (a.kind !== b.kind) return a.kind === 'voice' ? -1 : 1;
-      return a.added_at.localeCompare(b.added_at);
+      return (a.added_at ?? '').localeCompare(b.added_at ?? '');
     })
     .map(m => {
       const t: AttachmentType = m.kind === 'voice' ? 'audio' : attachmentType(m.mime, m.name);
@@ -175,8 +176,12 @@ export const evidenceForRecord = (
         sizeLabel: formatBytes(m.size),
         durationLabel: m.duration_ms ? formatDuration(m.duration_ms) : null,
         description: m.description,
-        addedLabel: fmtDateTime(m.added_at),
-        roleLabel: m.role === 'original' ? 'Present when the record was sealed' : 'Added after sealing',
+        addedLabel: m.added_at ? fmtDateTime(m.added_at) : 'Date added unavailable',
+        roleLabel: m.role === 'original'
+          ? 'Present when the record was sealed'
+          : m.role === 'later'
+            ? 'Added after sealing'
+            : 'Timing relative to sealing could not be verified',
       };
     });
 
@@ -265,7 +270,7 @@ export function buildDossierFromSource(
     'Records appear in chronological order by the date each one was sealed.',
     ...(hasEvidence
       ? [
-        'Voice records and attachments are listed with the record they belong to, showing when each file was added. Files present when a record was sealed are distinguished from files added afterwards.',
+        'Voice records and attachments are listed with the record they belong to. Timing relative to sealing is stated only where Chronicle can verify it; otherwise it is marked as unverified.',
         'Chronicle has not analysed, transcribed or independently verified the contents of any attached file.',
       ]
       : []),

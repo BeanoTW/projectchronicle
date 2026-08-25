@@ -82,6 +82,22 @@ describe('Phase 1 — canonical contracts', () => {
     expect(V2RecordSchema.safeParse(record).success).toBe(false);
   });
 
+  it('keeps seal-time suggestion provenance optional and never infers it for legacy records', () => {
+    const legacy = V2RecordSchema.parse(validRecord());
+    expect(legacy.original.suggestion_provenance).toBeUndefined();
+
+    const tracked = validRecord();
+    tracked.original.suggestion_provenance = {
+      provenance_version: 1, tracking_available: true, interaction_occurred: true,
+      accepted_into_original: true, helpers: [{ helper: 'input-helper', helper_version: '1', model: null }],
+    };
+    expect(V2RecordSchema.parse(tracked).original.suggestion_provenance?.accepted_into_original).toBe(true);
+    expect(V2RecordSchema.safeParse({
+      ...tracked,
+      original: { ...tracked.original, suggestion_provenance: { ...tracked.original.suggestion_provenance, interaction_occurred: false } },
+    }).success).toBe(false);
+  });
+
   it('round-trips honest date forms and rejects reversed ranges', () => {
     const values = [
       { kind: 'exact', date: '2026-08-23' },

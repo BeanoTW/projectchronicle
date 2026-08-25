@@ -120,6 +120,18 @@ describe('production dossier adapter', () => {
     expect(r.sealed_at).toBe('2025-03-14T10:00:00.000Z');
   });
 
+  it('does not claim a sealing relationship when evidence timing is unavailable', () => {
+    const [mapped] = toDossierSourceMedia([
+      evidenceFile({ upload_date: null, capture_date: null }),
+    ], [incident()]);
+    expect(mapped.role).toBe('unverified');
+    expect(mapped.added_at).toBeNull();
+
+    const item = buildDossierFromSource([sourceRecord({ id: 'i1' })], cfg(), [mapped]).records[0].evidence[0];
+    expect(item.roleLabel).toBe('Timing relative to sealing could not be verified');
+    expect(item.addedLabel).toBe('Date added unavailable');
+  });
+
   it('uses record_date as the event date for daily records', () => {
     const daily = incident({ record_type: 'daily_record', record_date: '2025-04-01' } as Partial<LocalIncident>);
     expect(productionEventDate(daily)).toBe('2025-04-01');

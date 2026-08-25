@@ -1,5 +1,9 @@
 # V1 → V2 capability matrix
 
+**Document status:** Current parity reference. Historical phase labels in source
+comments describe when a surface was introduced; they are not the current
+0–9 architecture roadmap.
+
 Status values: **Complete**, **Partial**, **Missing**, **Retired** (deliberate).
 "Simulated" means the V2 screen shows the concept but no real implementation
 exists — never counted as parity.
@@ -25,9 +29,9 @@ exists — never counted as parity.
 | Export integrity timestamps | `export_timestamps`, `rfc3161-timestamp` function | Not implemented | **Missing** | Port or explicitly retire; affects trust claims | Medium |
 | Insights / patterns | `/insights`, `useInsightsEngine`, `summarise-patterns` | Not implemented | **Retired** (proposed) | Confirm with user before removal | Medium |
 | Support resources | `/support`, `rights_guidance` table | Not implemented | **Missing** | Reachable from V2 shell, or keep the V1 route alive | Low |
-| Settings | `/settings` | Not implemented | **Missing** | Needs a V2 settings surface (backup, lock, theme, account) | High |
-| Privacy controls | `PrivacyContext`, Privacy Shield masking, `LockContext` PIN/WebAuthn | Not implemented | **Missing** | Must exist before cutover — this is a core product promise | High |
-| Account / data deletion | `delete-account` edge function | Not implemented | **Missing** | Must also clear the V2 local database | High |
+| Settings | `/settings` | Implemented in the shared Chronicle shell with account, appearance, privacy, backup, recording, data and support groups | **Complete** | Re-qualify the surface at cutover; do not build a second settings system | Low |
+| Privacy controls | `PrivacyContext`, Privacy Shield masking, `LockContext` PIN/WebAuthn | Implemented across the current shell, sensitive previews and export gates | **Complete** | Extend coverage to each newly introduced surface | Medium |
+| Account / data deletion | `delete-account` edge function | Implemented from Settings with explicit confirmation | **Complete** | Canonical stores must be included before canonical cutover | Medium |
 | Import / export of own data | Export screens only | Dossier export only | **Partial** | Add a raw data export (JSON) for portability | Low |
 | Existing user data migration | n/a | Designed, not built (`src/v2/model/migration.ts`) | **Missing** | See migration-strategy.md | High |
 | Accessibility | shadcn/Radix primitives throughout | Hand-rolled controls; dialogs now accessible, focus + reduced motion added this phase | **Partial** | Full audit of FilterSheet, MonthView, Dossier config | Medium |
@@ -37,8 +41,7 @@ exists — never counted as parity.
 ## Headline gaps blocking cutover
 
 1. No authentication, ownership scoping or sync in V2.
-2. No privacy controls (Privacy Shield, app lock) — a stated product promise.
-3. No settings or account deletion surface.
-4. No migration of existing user data.
-5. Attachments are local-only; V1 users have files in cloud storage.
-6. No record history, and voice transcripts from V1 have no V2 home.
+2. No migration of existing user data has passed the production-snapshot gate.
+3. Canonical attachments and cloud media still need cutover qualification.
+4. Voice transcripts from V1 still need an explicit canonical home or retirement decision.
+5. Performance and accessibility gates have not yet been formally qualified.

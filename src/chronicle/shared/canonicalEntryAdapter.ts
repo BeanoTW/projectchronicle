@@ -14,6 +14,7 @@ const eventDateLabel = (value: CanonicalEntryBundle['record']['details']['event_
 
 const historyLabel = (action: CanonicalEntryBundle['history'][number]['action']): string => ({
   sealed: 'Record sealed', details_updated: 'Details updated', clarification_added: 'Clarification added',
+  suggestion_provenance_recorded: 'Input Helper use recorded',
   media_added: 'Attachment added', media_excluded: 'Attachment excluded', media_included: 'Attachment included',
   dossier_included: 'Added to Chronicle', dossier_excluded: 'Removed from Chronicle', archived: 'Record archived',
   restored: 'Record restored', migrated_from_v1: 'Moved to the current Chronicle format',

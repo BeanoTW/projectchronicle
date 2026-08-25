@@ -83,8 +83,8 @@ describe('Phase 0 architecture safety baseline', () => {
       inside: 'original',
       'exact-boundary': 'original',
       outside: 'later',
-      'invalid-time': 'later',
-      'missing-time': 'original',
+      'invalid-time': 'unverified',
+      'missing-time': 'unverified',
     });
   });
 
