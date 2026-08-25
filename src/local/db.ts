@@ -56,9 +56,7 @@ export class ChronicleDB extends Dexie {
     // v7 stores original/later media bytes locally. Metadata remains separate and independently auditable.
     this.version(7).stores({ canonical_blobs: 'id, owner_id, record_id, stored_at' });
 
-    const immutableRecordFields = new Set([
-      'id', 'owner_id', 'kind', 'schema_version', 'captured_at', 'sealed_at', 'created_at',
-    ]);
+    const immutableRecordFields = new Set(['id', 'owner_id', 'kind', 'schema_version', 'captured_at', 'sealed_at', 'created_at']);
     this.canonical_records.hook('updating', (changes, _key, previous) => {
       for (const [field, next] of Object.entries(changes)) {
         if (field === 'original' || field.startsWith('original.')) {
@@ -67,13 +65,9 @@ export class ChronicleDB extends Dexie {
             : field.slice('original.'.length).split('.').reduce<unknown>((value, part) => (
               value && typeof value === 'object' ? (value as Record<string, unknown>)[part] : undefined
             ), previous.original);
-          if (JSON.stringify(next) !== JSON.stringify(previousValue)) {
-            throw new CanonicalStorageBoundaryError('Sealed original content cannot be updated in storage.');
-          }
+          if (JSON.stringify(next) !== JSON.stringify(previousValue)) throw new CanonicalStorageBoundaryError('Sealed original content cannot be updated in storage.');
         }
-        if (immutableRecordFields.has(field) && JSON.stringify(next) !== JSON.stringify(previous[field as keyof V2Record])) {
-          throw new CanonicalStorageBoundaryError(`Canonical ${field} cannot be updated in storage.`);
-        }
+        if (immutableRecordFields.has(field) && JSON.stringify(next) !== JSON.stringify(previous[field as keyof V2Record])) throw new CanonicalStorageBoundaryError(`Canonical ${field} cannot be updated in storage.`);
       }
     });
     this.canonical_records.hook('deleting', (_key, _record, transaction) => {
@@ -82,12 +76,6 @@ export class ChronicleDB extends Dexie {
     });
   }
 
-  /**
-   * Permanently erase one account from this device after confirmed account deletion.
-   * This is deliberately the only exception to the canonical record deletion boundary.
-   * Every owner-scoped table is deleted in one IndexedDB transaction; other owners and
-   * device-global preferences are left untouched.
-   */
   async eraseOwnerData(ownerId: string): Promise<LocalOwnerErasureReport> {
     if (!ownerId) throw new Error('Owner id is required for local account erasure.');
     const tables = [
@@ -105,6 +93,8 @@ export class ChronicleDB extends Dexie {
           META_KEYS.hydratedFor(ownerId),
           META_KEYS.lastRestoreAt(ownerId),
           META_KEYS.lastBackupAt(ownerId),
+          META_KEYS.canonicalLastRestoreAt(ownerId),
+          META_KEYS.canonicalLastBackupAt(ownerId),
           `canonical_activation:${ownerId}`,
           `canonical_capture_enabled:${ownerId}`,
         ];
@@ -122,7 +112,6 @@ export class ChronicleDB extends Dexie {
           canonical_relationships: await this.canonical_relationships.where('owner_id').equals(ownerId).count(),
           meta_rows: (await this.meta.bulkGet(ownerMetaKeys)).filter(Boolean).length,
         };
-
         await this.canonical_blobs.where('owner_id').equals(ownerId).delete();
         await this.canonical_media.where('owner_id').equals(ownerId).delete();
         await this.canonical_clarifications.where('owner_id').equals(ownerId).delete();
@@ -144,7 +133,14 @@ export class ChronicleDB extends Dexie {
 }
 
 export const localDB = new ChronicleDB();
-export const META_KEYS = { backupEnabled: 'backup_enabled', hydratedFor: (userId: string) => `hydrated_for:${userId}`, lastRestoreAt: (userId: string) => `last_restore_at:${userId}`, lastBackupAt: (userId: string) => `last_backup_at:${userId}` } as const;
+export const META_KEYS = {
+  backupEnabled: 'backup_enabled',
+  hydratedFor: (userId: string) => `hydrated_for:${userId}`,
+  lastRestoreAt: (userId: string) => `last_restore_at:${userId}`,
+  lastBackupAt: (userId: string) => `last_backup_at:${userId}`,
+  canonicalLastRestoreAt: (userId: string) => `canonical_cloud_last_restore_at:${userId}`,
+  canonicalLastBackupAt: (userId: string) => `canonical_cloud_last_backup_at:${userId}`,
+} as const;
 export const getMeta = async (key: string): Promise<string | null> => (await localDB.meta.get(key))?.value ?? null;
 export const setMeta = async (key: string, value: string): Promise<void> => { await localDB.meta.put({ key, value }); };
 export const isBackupEnabled = async (): Promise<boolean> => (await getMeta(META_KEYS.backupEnabled)) === '1';
