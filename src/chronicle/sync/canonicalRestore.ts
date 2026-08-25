@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { localDB, META_KEYS, setMeta, type LocalCanonicalBlob } from '@/local/db';
 import { computeSha256 } from '@/lib/attachments/integrity';
 import { V2MediaSchema, V2RecordSchema } from '../model/contracts';
-import type { SyncMetadata, V2Clarification, V2Record } from '../model/schema';
+import type { SyncMetadata, V2Clarification, V2Media, V2Record } from '../model/schema';
 import {
   CANONICAL_MEDIA_BUCKET,
   CanonicalCloudConflictError,
@@ -19,14 +19,14 @@ type RemoteChildRow = {
   remote_revision: number;
 };
 
+type PreparedMedia = { media: V2Media; blob: LocalCanonicalBlob | null; hadMedia: boolean; hadBlob: boolean };
+
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
-const withoutRecordSync = (value: V2Record): Omit<V2Record, 'sync'> => {
-  const { sync: _sync, ...rest } = value;
-  return rest;
-};
-const restoredSync = (remoteVersion: number, at: string): SyncMetadata => ({
+const withoutRecordSync = (value: V2Record): Omit<V2Record, 'sync'> => { const { sync: _sync, ...rest } = value; return rest; };
+const withoutMediaTransport = (value: V2Media): Omit<V2Media, 'sync' | 'storage'> => { const { sync: _sync, storage: _storage, ...rest } = value; return rest; };
+const restoredSync = (remoteVersion: number, at: string, localRevision = 0): SyncMetadata => ({
   remote_version: remoteVersion,
-  local_revision: 0,
+  local_revision: localRevision,
   state: { state: 'synced', at, remote_version: remoteVersion },
   last_attempt_at: at,
 });
@@ -38,73 +38,75 @@ async function fetchRemoteRows(ownerId: string): Promise<{ records: V2Record[]; 
   if (childQuery.error) throw childQuery.error;
 
   const records = ((recordQuery.data ?? []) as unknown as RemoteRecordRow[]).map(row => V2RecordSchema.parse(row.payload));
-  for (const record of records) {
-    if (record.owner_id !== ownerId) throw new CanonicalCloudConflictError('Remote canonical record belongs to another owner.');
-  }
+  for (const record of records) if (record.owner_id !== ownerId) throw new CanonicalCloudConflictError('Remote canonical record belongs to another owner.');
   const children = (childQuery.data ?? []) as unknown as RemoteChildRow[];
-  for (const child of children) {
-    if (!Number.isInteger(child.remote_revision) || child.remote_revision < 1) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has an invalid revision.`);
-  }
+  for (const child of children) if (!Number.isInteger(child.remote_revision) || child.remote_revision < 1) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has an invalid revision.`);
   return { records, children };
 }
 
-function assertChildOwner(payload: unknown, ownerId: string, id: string): asserts payload is Record<string, unknown> {
-  if (!payload || typeof payload !== 'object') throw new CanonicalCloudConflictError(`Remote canonical child ${id} has no payload.`);
-  const row = payload as Record<string, unknown>;
-  if (row.owner_id !== ownerId || row.id !== id) throw new CanonicalCloudConflictError(`Remote canonical child ${id} has inconsistent identity.`);
+function assertChildIdentity(child: RemoteChildRow, ownerId: string): asserts child is RemoteChildRow & { payload: Record<string, unknown> } {
+  if (!child.payload || typeof child.payload !== 'object') throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has no payload.`);
+  const row = child.payload as Record<string, unknown>;
+  if (row.owner_id !== ownerId || row.id !== child.id) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has inconsistent identity.`);
+  const payloadRecordId = typeof row.record_id === 'string' ? row.record_id : null;
+  if (payloadRecordId !== child.record_id) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has inconsistent record membership.`);
+  if ((child.kind === 'person' || child.kind === 'organisation') && child.record_id !== null) throw new CanonicalCloudConflictError(`Remote ${child.kind} ${child.id} must not be attached to a record row.`);
+  if (child.kind !== 'person' && child.kind !== 'organisation' && child.record_id === null) throw new CanonicalCloudConflictError(`Remote ${child.kind} ${child.id} is missing its record id.`);
 }
 
-async function materialiseRemoteMedia(ownerId: string, child: RemoteChildRow, at: string): Promise<{ media: ReturnType<typeof V2MediaSchema.parse>; blob: LocalCanonicalBlob }> {
-  assertChildOwner(child.payload, ownerId, child.id);
+function localMediaFromRemote(child: RemoteChildRow & { payload: Record<string, unknown> }, at: string): V2Media {
   const raw = child.payload as unknown as RemoteMediaPayload;
   if (raw.storage?.location !== 'remote_only' || !raw.storage.remote_path) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no canonical object path.`);
   if (!raw.content_hash) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no recorded integrity hash.`);
   if (!raw._remote_uploaded_at) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no recorded upload timestamp.`);
-
-  const downloaded = await supabase.storage.from(CANONICAL_MEDIA_BUCKET).download(raw.storage.remote_path);
-  if (downloaded.error || !downloaded.data) throw downloaded.error ?? new Error(`Remote media ${child.id} could not be downloaded.`);
-  const hash = await computeSha256(downloaded.data);
-  if (hash.toLowerCase() !== raw.content_hash.toLowerCase()) throw new CanonicalMediaIntegrityError(`Downloaded media ${child.id} does not match its recorded SHA-256.`);
-  if (downloaded.data.size !== raw.size) throw new CanonicalMediaIntegrityError(`Downloaded media ${child.id} does not match its recorded size.`);
-
   const { _remote_uploaded_at, ...canonical } = raw;
-  const media = V2MediaSchema.parse({
+  return V2MediaSchema.parse({
     ...canonical,
     storage: { location: 'local_and_remote', remote_path: raw.storage.remote_path, uploaded_at: _remote_uploaded_at },
     sync: restoredSync(child.remote_revision, at),
   });
-  const blob: LocalCanonicalBlob = {
-    id: media.id,
-    owner_id: media.owner_id,
-    record_id: media.record_id,
-    bytes: await downloaded.data.arrayBuffer(),
-    mime: media.mime,
-    size: media.size,
-    stored_at: at,
-  };
-  return { media, blob };
 }
 
-export interface CanonicalRestoreReport {
-  recordsAdded: number;
-  recordsAlreadyLocal: number;
-  childrenAdded: number;
-  childrenAlreadyLocal: number;
-  mediaDownloaded: number;
+async function verifyLocalBlob(blob: LocalCanonicalBlob, media: V2Media): Promise<void> {
+  if (blob.owner_id !== media.owner_id || blob.record_id !== media.record_id || blob.size !== media.size) throw new CanonicalMediaIntegrityError(`Existing local media ${media.id} has inconsistent byte metadata.`);
+  if (!media.content_hash) throw new CanonicalMediaIntegrityError(`Existing local media ${media.id} has no integrity hash.`);
+  const hash = await computeSha256(new Blob([blob.bytes], { type: blob.mime || media.mime }));
+  if (hash.toLowerCase() !== media.content_hash.toLowerCase()) throw new CanonicalMediaIntegrityError(`Existing local media ${media.id} fails its recorded integrity hash.`);
 }
 
-/**
- * Non-destructive new-device hydration. Remote rows may fill local gaps but
- * never replace a divergent local canonical row. Any divergence stops restore
- * and leaves the local copy authoritative for later conflict resolution.
- */
+async function downloadRemoteBlob(media: V2Media, at: string): Promise<LocalCanonicalBlob> {
+  if (media.storage.location !== 'local_and_remote') throw new CanonicalMediaIntegrityError(`Remote media ${media.id} has no downloadable canonical path.`);
+  const downloaded = await supabase.storage.from(CANONICAL_MEDIA_BUCKET).download(media.storage.remote_path);
+  if (downloaded.error || !downloaded.data) throw downloaded.error ?? new Error(`Remote media ${media.id} could not be downloaded.`);
+  if (!media.content_hash) throw new CanonicalMediaIntegrityError(`Remote media ${media.id} has no recorded integrity hash.`);
+  const hash = await computeSha256(downloaded.data);
+  if (hash.toLowerCase() !== media.content_hash.toLowerCase()) throw new CanonicalMediaIntegrityError(`Downloaded media ${media.id} does not match its recorded SHA-256.`);
+  if (downloaded.data.size !== media.size) throw new CanonicalMediaIntegrityError(`Downloaded media ${media.id} does not match its recorded size.`);
+  return { id: media.id, owner_id: media.owner_id, record_id: media.record_id, bytes: await downloaded.data.arrayBuffer(), mime: media.mime, size: media.size, stored_at: at };
+}
+
+async function prepareMedia(ownerId: string, child: RemoteChildRow, at: string): Promise<PreparedMedia> {
+  assertChildIdentity(child, ownerId);
+  const remoteMedia = localMediaFromRemote(child, at);
+  const [existingMediaRaw, existingBlob] = await Promise.all([localDB.canonical_media.get(child.id), localDB.canonical_blobs.get(child.id)]);
+  const existingMedia = existingMediaRaw ? V2MediaSchema.parse(existingMediaRaw) : null;
+  if (existingMedia && (existingMedia.owner_id !== ownerId || !same(withoutMediaTransport(existingMedia), withoutMediaTransport(remoteMedia)))) {
+    throw new CanonicalCloudConflictError(`Local media ${child.id} differs from its remote metadata; restore will not overwrite it.`);
+  }
+  if (existingBlob) await verifyLocalBlob(existingBlob, remoteMedia);
+  const blob = existingBlob ?? await downloadRemoteBlob(remoteMedia, at);
+  return { media: remoteMedia, blob: existingBlob ? null : blob, hadMedia: !!existingMedia, hadBlob: !!existingBlob };
+}
+
+export interface CanonicalRestoreReport { recordsAdded: number; recordsAlreadyLocal: number; childrenAdded: number; childrenAlreadyLocal: number; mediaDownloaded: number; }
+
 export async function restoreCanonicalOwner(ownerId: string, clock: () => string = () => new Date().toISOString()): Promise<CanonicalRestoreReport> {
   if (!ownerId) throw new Error('Owner id is required for canonical restore.');
   const at = clock();
   const { records, children } = await fetchRemoteRows(ownerId);
   const remoteRecordIds = new Set(records.map(record => record.id));
   for (const child of children) {
-    assertChildOwner(child.payload, ownerId, child.id);
+    assertChildIdentity(child, ownerId);
     if (child.record_id && !remoteRecordIds.has(child.record_id)) throw new CanonicalCloudConflictError(`Remote child ${child.id} points to a missing canonical record.`);
   }
 
@@ -114,25 +116,12 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
     const local = await localDB.canonical_records.get(remote.id);
     if (!local) continue;
     const parsed = V2RecordSchema.parse(local);
-    if (parsed.owner_id !== ownerId || !same(withoutRecordSync(parsed), withoutRecordSync(remote))) {
-      throw new CanonicalCloudConflictError(`Local canonical record ${remote.id} differs from its remote copy; restore will not overwrite it.`);
-    }
+    if (parsed.owner_id !== ownerId || !same(withoutRecordSync(parsed), withoutRecordSync(remote))) throw new CanonicalCloudConflictError(`Local canonical record ${remote.id} differs from its remote copy; restore will not overwrite it.`);
     recordsAlreadyLocal++;
   }
 
-  const preparedMedia = new Map<string, Awaited<ReturnType<typeof materialiseRemoteMedia>>>();
-  for (const child of children.filter(value => value.kind === 'media')) {
-    const existingMedia = await localDB.canonical_media.get(child.id);
-    const existingBlob = await localDB.canonical_blobs.get(child.id);
-    if (existingMedia && existingBlob) {
-      const blob = new Blob([existingBlob.bytes], { type: existingBlob.mime });
-      if (!existingMedia.content_hash || (await computeSha256(blob)).toLowerCase() !== existingMedia.content_hash.toLowerCase()) {
-        throw new CanonicalMediaIntegrityError(`Existing local media ${child.id} fails its recorded integrity hash.`);
-      }
-      continue;
-    }
-    preparedMedia.set(child.id, await materialiseRemoteMedia(ownerId, child, at));
-  }
+  const preparedMedia = new Map<string, PreparedMedia>();
+  for (const child of children.filter(value => value.kind === 'media')) preparedMedia.set(child.id, await prepareMedia(ownerId, child, at));
 
   let childrenAdded = 0;
   let childrenAlreadyLocal = 0;
@@ -142,18 +131,16 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
   ], async () => {
     for (const remote of records) {
       if (await localDB.canonical_records.get(remote.id)) continue;
-      await localDB.canonical_records.add(remote);
-      recordsAdded++;
+      await localDB.canonical_records.add(remote); recordsAdded++;
     }
 
     for (const child of children) {
       const payload = child.payload as Record<string, unknown>;
       if (child.kind === 'media') {
-        const prepared = preparedMedia.get(child.id);
-        if (!prepared) { childrenAlreadyLocal++; continue; }
-        await localDB.canonical_media.add(prepared.media);
-        await localDB.canonical_blobs.add(prepared.blob);
-        childrenAdded++;
+        const prepared = preparedMedia.get(child.id)!;
+        if (!prepared.hadMedia) childrenAdded++; else childrenAlreadyLocal++;
+        await localDB.canonical_media.put(prepared.media);
+        if (prepared.blob) await localDB.canonical_blobs.put(prepared.blob);
         continue;
       }
       if (child.kind === 'clarification') {
@@ -162,25 +149,34 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
         if (existing) {
           const { sync: _a, ...existingBody } = existing; const { sync: _b, ...remoteBody } = restored;
           if (!same(existingBody, remoteBody)) throw new CanonicalCloudConflictError(`Local clarification ${child.id} differs from remote.`);
-          childrenAlreadyLocal++; continue;
-        }
-        await localDB.canonical_clarifications.add(restored); childrenAdded++; continue;
+          childrenAlreadyLocal++;
+        } else { await localDB.canonical_clarifications.add(restored); childrenAdded++; }
+        continue;
       }
-
-      const table = child.kind === 'history' ? localDB.canonical_history
-        : child.kind === 'person' ? localDB.canonical_people
-          : child.kind === 'organisation' ? localDB.canonical_organisations
-            : localDB.canonical_relationships;
-      const existing = await table.get(child.id as never) as unknown;
-      if (existing) {
-        if (!same(existing, payload)) throw new CanonicalCloudConflictError(`Local ${child.kind} ${child.id} differs from remote.`);
-        childrenAlreadyLocal++; continue;
+      if (child.kind === 'history') {
+        const existing = await localDB.canonical_history.get(child.id);
+        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local history ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_history.add(payload as never); childrenAdded++; }
+        continue;
       }
-      await (table as unknown as { add(value: unknown): Promise<unknown> }).add(payload);
-      childrenAdded++;
+      if (child.kind === 'person') {
+        const existing = await localDB.canonical_people.get(child.id);
+        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local person ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_people.add(payload as never); childrenAdded++; }
+        continue;
+      }
+      if (child.kind === 'organisation') {
+        const existing = await localDB.canonical_organisations.get(child.id);
+        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local organisation ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_organisations.add(payload as never); childrenAdded++; }
+        continue;
+      }
+      const existing = await localDB.canonical_relationships.get(child.id);
+      if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local relationship ${child.id} differs from remote.`);
+      if (existing) childrenAlreadyLocal++; else { await localDB.canonical_relationships.add(payload as never); childrenAdded++; }
     }
   });
 
   await setMeta(META_KEYS.lastRestoreAt(ownerId), at);
-  return { recordsAdded, recordsAlreadyLocal, childrenAdded, childrenAlreadyLocal, mediaDownloaded: preparedMedia.size };
+  return { recordsAdded, recordsAlreadyLocal, childrenAdded, childrenAlreadyLocal, mediaDownloaded: Array.from(preparedMedia.values()).filter(value => !value.hadBlob).length };
 }
