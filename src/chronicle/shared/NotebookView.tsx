@@ -18,6 +18,7 @@ import {
   recordMatchesFilters,
   recordMatchesSearch,
   sortByRecency,
+  usefulNotebookPreview,
   uniqueCategories,
   uniquePeople,
   type NotebookRecord,
@@ -175,8 +176,12 @@ const NotebookView = ({
         </ChronicleEmptyState>
       ) : (
         <div className="proto-list">
-        {filtered.map(r => (
-          <button
+        {filtered.map(r => {
+          const preview = usefulNotebookPreview(r.title, r.preview);
+          const recordType = r.recordType === 'daily' ? 'Daily record' : 'Incident';
+          const statusChips = r.chips.filter(c => c !== 'Incident' && c !== 'Daily record' && c !== r.category);
+          return (
+            <button
             key={r.id}
             onClick={() => onOpenRecord(r.id)}
             className="proto-entry"
@@ -184,28 +189,30 @@ const NotebookView = ({
           >
             <div className="proto-entry-meta">
               <span>{fmtDate(r.recordedAt)} · {fmtTime(r.recordedAt)}</span>
-              {r.chips.map(c => <span key={c} className="proto-chip">{c}</span>)}
-              {r.hasClarifications && <span className="proto-chip">Clarification added</span>}
-              {r.hasVoice && <span className="proto-chip">Voice</span>}
+              <span className="proto-chip">{recordType}</span>
+              {r.category && <span className="proto-chip">{r.category}</span>}
+              {statusChips.map(c => <span key={c} className="proto-chip">{c}</span>)}
+              {r.inDossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
               {r.attachmentCount > 0 && (
                 <span className="proto-chip">
                   {r.attachmentCount} attachment{r.attachmentCount === 1 ? '' : 's'}
                 </span>
               )}
-              {r.inDossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
-              {r.category && <span className="proto-chip">{r.category}</span>}
+              {r.hasClarifications && <span className="proto-chip">Clarification added</span>}
+              {r.hasVoice && <span className="proto-chip">Voice</span>}
             </div>
             {r.title && (
               <div className="proto-serif" style={{ fontSize: 17, marginBottom: 4 }}>{r.title}</div>
             )}
-            <div style={{
+            {preview && <div style={{
               fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
               display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
             }}>
-              {r.preview}
-            </div>
-          </button>
-        ))}
+              {preview}
+            </div>}
+            </button>
+          );
+        })}
         </div>
       )}
 
