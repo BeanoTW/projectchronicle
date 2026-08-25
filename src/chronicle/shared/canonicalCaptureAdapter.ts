@@ -15,6 +15,7 @@ import {
 export type CanonicalCaptureStore = CanonicalRecordReader & CanonicalRecordWriter;
 
 export class CanonicalCapturePeopleDeferredError extends Error {}
+export class CaptureHelperAuthorityChangedError extends Error {}
 
 const readBlobBytes = async (blob: Blob): Promise<ArrayBuffer> => {
   if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
@@ -154,7 +155,13 @@ export const createCaptureWriteRouter = (options: {
   capabilities: options.legacy.capabilities,
   draftKey: options.legacy.draftKey,
   async createRecord(input) {
-    return (await options.canonicalEnabled() ? options.canonical : options.legacy).createRecord(input);
+    const canonicalEnabled = await options.canonicalEnabled();
+    if (input.inputHelper && !canonicalEnabled) {
+      throw new CaptureHelperAuthorityChangedError(
+        'Capture mode changed before sealing. Nothing was sealed; review the draft and try again.',
+      );
+    }
+    return (canonicalEnabled ? options.canonical : options.legacy).createRecord(input);
   },
   async saveMedia(recordId, items) {
     return (await options.canonicalRecordExists(recordId) ? options.canonical : options.legacy).saveMedia(recordId, items);
