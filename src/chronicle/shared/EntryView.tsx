@@ -6,6 +6,8 @@ import '../styles.css';
 export interface SharedClarification { id: string; text: string; created_at: string; kind?: ClarificationKind; }
 export interface SharedEntryView {
   id: string; title: string | null; original_text: string; sealed_at: string;
+  /** Canonical integrity metadata. Omitted by legacy adapters that do not expose provenance. */
+  provenance_label?: string;
   clarifications: SharedClarification[]; in_dossier: boolean; details: Array<[string, string]>;
 }
 export interface EntryViewProps {
@@ -41,11 +43,12 @@ const EntryView = ({ entry, onBack, onAddClarification, onToggleDossier, onEditD
   const body = <><div>
     <button className="proto-btn" data-variant="ghost" onClick={onBack} style={{ padding: '4px 8px', marginBottom: 8, minHeight: 32 }}>{backLabel}</button>
     <h1 className="proto-h1">{entry.title || 'Original record'}</h1>
-    <div className="proto-entry-meta" style={{ marginBottom: 12 }}>
+    <div className="proto-entry-meta" style={{ marginBottom: entry.provenance_label ? 4 : 12 }}>
       <span>Sealed {new Date(entry.sealed_at).toLocaleString()}</span><span className="proto-chip">Sealed</span>
       {clarifications.length > 0 && <span className="proto-chip">{clarifications.length} clarification{clarifications.length === 1 ? '' : 's'}</span>}
       {entry.in_dossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
     </div>
+    {entry.provenance_label && <p className="proto-help" style={{ marginTop: 0, marginBottom: 12 }}>{entry.provenance_label}</p>}
     {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
     <div className="proto-entrylayout"><div>
       <div className="proto-sealed-note"><div className="proto-sealed-label">Written record — unchanged</div>

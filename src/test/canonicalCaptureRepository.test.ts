@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ChronicleDB } from '@/local/db';
-import { createCanonicalCaptureRepository } from '@/chronicle/model/canonicalCaptureRepository';
+import { createCanonicalCaptureRepository, provenanceLabel } from '@/chronicle/model/canonicalCaptureRepository';
 
 const capturedAt = '2026-08-24T21:59:00.000Z';
 const sealedAt = '2026-08-24T22:00:00.000Z';
@@ -19,12 +19,12 @@ const browserBlob = (text: string, type = ''): Blob => {
   return blob;
 };
 
-describe('Phase 12 — atomic canonical capture', () => {
+describe('Phase 4 — atomic canonical capture integrity', () => {
   let db: ChronicleDB;
   let repo: ReturnType<typeof createCanonicalCaptureRepository>;
 
   beforeEach(() => {
-    db = new ChronicleDB(`chronicle_phase12_${crypto.randomUUID()}`);
+    db = new ChronicleDB(`chronicle_phase4_${crypto.randomUUID()}`);
     let n = 0;
     repo = createCanonicalCaptureRepository(db, () => `history-${++n}`);
   });
@@ -40,6 +40,7 @@ describe('Phase 12 — atomic canonical capture', () => {
     expect(record.original.text).toBe('  Exact wording stays.  ');
     expect(record.original.media_ids).toEqual(['media-1']);
     expect(record.original.source).toBe('written');
+    expect(record.original.provenance).toEqual({ schema_version: 1, tracking_state: 'NOT_RECORDED' });
     expect(await db.incidents.count()).toBe(0);
     expect(await db.canonical_records.count()).toBe(1);
     expect(await db.canonical_media.count()).toBe(1);
@@ -57,15 +58,56 @@ describe('Phase 12 — atomic canonical capture', () => {
     expect(new TextDecoder().decode(stored?.bytes)).toBe('photo-bytes');
   });
 
-  it('records voice provenance and a daily date without inventing event time', async () => {
+  it('does not invent an event date from the seal timestamp', async () => {
     const record = await repo.seal({
       id: 'record-voice', ownerId: 'owner-1', kind: 'daily', text: '', capturedAt, sealedAt,
       media: [{ id: 'voice-1', kind: 'voice', name: 'voice.webm', mime: 'audio/webm', blob: browserBlob('voice', 'audio/webm'), duration_ms: 1200 }],
     });
     expect(record.original.source).toBe('voice');
-    expect(record.details.event_date).toEqual({ kind: 'exact', date: '2026-08-24' });
+    expect(record.details.event_date).toBeNull();
     expect(record.details.event_time).toBeNull();
     expect((await db.canonical_media.get('voice-1'))?.kind).toBe('voice');
+  });
+
+  it('freezes accepted Input Helper provenance and creates one neutral acceptance history event', async () => {
+    const provenance = {
+      schema_version: 1 as const,
+      tracking_state: 'RECORDED' as const,
+      input_helper: {
+        interaction_state: 'SUGGESTION_ACCEPTED' as const,
+        accepted_suggestion_count: 2,
+        helper_version: 'structure-helper/1.0',
+      },
+    };
+    const record = await repo.seal({ id: 'helper-1', ownerId: 'owner-1', kind: 'incident', text: 'Original', capturedAt, sealedAt, media: [], provenance });
+    expect(record.original.provenance).toEqual(provenance);
+    const history = await db.canonical_history.where('record_id').equals('helper-1').toArray();
+    expect(history.map(event => event.action)).toEqual(['sealed', 'input_helper_accepted']);
+    expect(history[1].to_value).toBe(JSON.stringify({ acceptedSuggestionCount: 2, helperVersion: 'structure-helper/1.0' }));
+
+    await expect(repo.seal({
+      id: 'helper-1', ownerId: 'owner-1', kind: 'incident', text: 'Original', capturedAt, sealedAt, media: [],
+      provenance: { ...provenance, input_helper: { ...provenance.input_helper, helper_version: 'structure-helper/2.0' } },
+    })).rejects.toThrow('cannot be replaced');
+    expect((await db.canonical_records.get('helper-1'))?.original.provenance).toEqual(provenance);
+  });
+
+  it('does not create acceptance history when suggestions were ignored', async () => {
+    await repo.seal({
+      id: 'helper-ignored', ownerId: 'owner-1', kind: 'incident', text: 'Original', capturedAt, sealedAt, media: [],
+      provenance: {
+        schema_version: 1,
+        tracking_state: 'RECORDED',
+        input_helper: { interaction_state: 'SHOWN_NO_INTERACTION', helper_version: 'structure-helper/1.0' },
+      },
+    });
+    const history = await db.canonical_history.where('record_id').equals('helper-ignored').toArray();
+    expect(history.map(event => event.action)).toEqual(['sealed']);
+  });
+
+  it('renders legacy provenance absence as not recorded, never helper unused', () => {
+    expect(provenanceLabel(undefined)).toBe('Provenance not recorded');
+    expect(provenanceLabel({ schema_version: 1, tracking_state: 'NOT_RECORDED' })).toBe('Provenance not recorded');
   });
 
   it('makes an exact retry idempotent and rejects replacement wording', async () => {

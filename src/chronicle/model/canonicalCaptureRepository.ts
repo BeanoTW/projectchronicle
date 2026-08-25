@@ -1,7 +1,14 @@
 import { computeSha256 } from '@/lib/attachments/integrity';
 import { ChronicleDB, localDB } from '@/local/db';
-import { V2MediaSchema, V2RecordSchema } from './contracts';
-import { V2_SCHEMA_VERSION, type CaptureSource, type MediaKind, type V2Record, type V2RecordEvent } from './schema';
+import { V2MediaSchema, V2RecordSchema, OriginalContentProvenanceSchema } from './contracts';
+import {
+  V2_SCHEMA_VERSION,
+  type CaptureSource,
+  type MediaKind,
+  type OriginalContentProvenance,
+  type V2Record,
+  type V2RecordEvent,
+} from './schema';
 
 export interface CanonicalCaptureMediaInput {
   id: string;
@@ -20,6 +27,11 @@ export interface CanonicalCaptureInput {
   capturedAt: string;
   sealedAt: string;
   media: readonly CanonicalCaptureMediaInput[];
+  /**
+   * Seal-time only. If omitted Chronicle records that provenance was not
+   * recorded; omission must never be interpreted as "no helper was used".
+   */
+  provenance?: OriginalContentProvenance;
 }
 
 const mediaKind = (item: CanonicalCaptureMediaInput): MediaKind => {
@@ -37,12 +49,27 @@ const captureSource = (text: string, media: readonly CanonicalCaptureMediaInput[
 };
 const sync = () => ({ remote_version: null, local_revision: 0, state: { state: 'local_only' as const }, last_attempt_at: null });
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const notRecordedProvenance = (): OriginalContentProvenance => ({ schema_version: 1, tracking_state: 'NOT_RECORDED' });
+
+export const provenanceLabel = (provenance: OriginalContentProvenance | undefined): string => {
+  if (!provenance || provenance.tracking_state === 'NOT_RECORDED') return 'Provenance not recorded';
+  const helper = provenance.input_helper;
+  if (!helper) return 'Provenance recorded';
+  switch (helper.interaction_state) {
+    case 'NOT_SHOWN': return 'Input Helper not shown';
+    case 'SHOWN_NO_INTERACTION': return 'Input Helper shown; no interaction recorded';
+    case 'INTERACTED_NO_ACCEPTANCE': return 'Input Helper interaction recorded; no suggestion acceptance recorded';
+    case 'SUGGESTION_ACCEPTED': return `Structure assistance accepted before sealing${helper.accepted_suggestion_count ? ` (${helper.accepted_suggestion_count})` : ''}`;
+  }
+};
 
 export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFactory: () => string = () => crypto.randomUUID()) => ({
   async seal(input: CanonicalCaptureInput): Promise<V2Record> {
     if (!input.id || !input.ownerId) throw new Error('Capture identity is required.');
     const ids = input.media.map(item => item.id);
     if (new Set(ids).size !== ids.length || ids.some(id => !id)) throw new Error('Original media ids must be unique and non-empty.');
+
+    const provenance = OriginalContentProvenanceSchema.parse(input.provenance ?? notRecordedProvenance());
 
     // Read each browser Blob before entering the IndexedDB transaction. The raw
     // bytes are what Chronicle persists; Blob is only a presentation/runtime wrapper.
@@ -61,8 +88,14 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
 
     const record = V2RecordSchema.parse({
       id: input.id, owner_id: input.ownerId, kind: input.kind, schema_version: V2_SCHEMA_VERSION,
-      original: { text: input.text, source: captureSource(input.text, input.media), media_ids: ids, sealed_at: input.sealedAt },
-      details: { title: null, category_id: null, context: null, person_ids: [], location: null, event_date: input.kind === 'daily' ? { kind: 'exact', date: input.sealedAt.slice(0, 10) } : null, event_time: null, revision_count: 0 },
+      original: {
+        text: input.text,
+        source: captureSource(input.text, input.media),
+        media_ids: ids,
+        sealed_at: input.sealedAt,
+        provenance,
+      },
+      details: { title: null, category_id: null, context: null, person_ids: [], location: null, event_date: null, event_time: null, revision_count: 0 },
       lifecycle: { state: 'sealed' }, dossier: { state: 'not_included' },
       captured_at: input.capturedAt, sealed_at: input.sealedAt, created_at: input.sealedAt, updated_at: input.sealedAt, sync: sync(),
     });
@@ -86,6 +119,26 @@ export const createCanonicalCaptureRepository = (db: ChronicleDB = localDB, idFa
       await db.canonical_records.add(record);
       const sealedEvent: V2RecordEvent = { id: idFactory(), record_id: record.id, owner_id: record.owner_id, at: record.sealed_at, action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user' };
       await db.canonical_history.add(sealedEvent);
+
+      const helper = provenance.tracking_state === 'RECORDED' ? provenance.input_helper : undefined;
+      if (helper?.interaction_state === 'SUGGESTION_ACCEPTED') {
+        const acceptedEvent: V2RecordEvent = {
+          id: idFactory(),
+          record_id: record.id,
+          owner_id: record.owner_id,
+          at: record.sealed_at,
+          action: 'input_helper_accepted',
+          field: 'structure_assistance',
+          from_value: null,
+          to_value: JSON.stringify({
+            acceptedSuggestionCount: helper.accepted_suggestion_count,
+            helperVersion: helper.helper_version,
+          }),
+          actor: 'user',
+        };
+        await db.canonical_history.add(acceptedEvent);
+      }
+
       for (const { media, bytes, mime } of prepared) {
         await db.canonical_media.add(media);
         await db.canonical_blobs.add({ id: media.id, owner_id: record.owner_id, record_id: record.id, bytes, mime, size: bytes.byteLength, stored_at: record.sealed_at });

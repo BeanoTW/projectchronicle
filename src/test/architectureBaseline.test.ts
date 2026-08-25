@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { PrivacyProvider, usePrivacy } from '@/contexts/PrivacyContext';
 import { planMigration, KNOWN_UNMAPPED_FIELDS } from '@/chronicle/model/migrationPlan';
 import { buildDossierFromSource, defaultDossierConfig, type DossierSourceMedia } from '@/chronicle/shared/dossierModel';
-import { ORIGINAL_EVIDENCE_WINDOW_MS, toDossierSourceMedia } from '@/chronicle/shared/productionDossierAdapter';
+import { toDossierSourceMedia } from '@/chronicle/shared/productionDossierAdapter';
 import { toHistoryItems, wordingWasChanged } from '@/chronicle/shared/recordHistoryModel';
 import {
   canonicalRecord,
@@ -74,17 +74,16 @@ describe('Phase 0 architecture safety baseline', () => {
     localStorage.removeItem('chronicle-privacy-shield');
   });
 
-  it('records the current five-minute media heuristic without endorsing it', () => {
-    expect(ORIGINAL_EVIDENCE_WINDOW_MS).toBe(300_000);
+  it('keeps legacy media unresolved when no authoritative seal-time provenance exists', () => {
     const roles = Object.fromEntries(
       toDossierSourceMedia(evidenceAtCurrentBoundaries, [productionIncident]).map(item => [item.id, item.role]),
     );
     expect(roles).toEqual({
-      inside: 'original',
-      'exact-boundary': 'original',
-      outside: 'later',
-      'invalid-time': 'later',
-      'missing-time': 'original',
+      inside: 'legacy_unresolved',
+      'exact-boundary': 'legacy_unresolved',
+      outside: 'legacy_unresolved',
+      'invalid-time': 'legacy_unresolved',
+      'missing-time': 'legacy_unresolved',
     });
   });
 
@@ -110,4 +109,3 @@ describe('Phase 0 architecture safety baseline', () => {
     expect(elapsed).toBeLessThan(8_000);
   });
 });
-

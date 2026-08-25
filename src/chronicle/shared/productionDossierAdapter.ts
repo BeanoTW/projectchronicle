@@ -22,7 +22,11 @@ export interface ProductionNote {
   created_at: string;
 }
 
-/** Attachments uploaded within this window of record creation count as "present when sealed". */
+/**
+ * Retained for source compatibility only. Phase 4 forbids using upload
+ * proximity to infer whether legacy evidence was present when a record was
+ * sealed. Legacy evidence remains unresolved unless explicit provenance exists.
+ */
 export const ORIGINAL_EVIDENCE_WINDOW_MS = 5 * 60 * 1000;
 
 const isDaily = (i: LocalIncident) => (i as { record_type?: string }).record_type === 'daily_record';
@@ -65,7 +69,7 @@ export const toDossierSourceRecords = ({ incidents, notes }: DossierAdapterInput
       people: [...(i.people_involved ?? [])],
       clarifications: (byIncident.get(i.id) ?? [])
         .slice()
-        .sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
         .map(n => ({ id: n.id, text: n.note_text, created_at: n.created_at })),
       in_dossier: mapInclusion(i.excluded_from_rep),
     } satisfies DossierSourceRecord;
@@ -75,33 +79,27 @@ export const toDossierSourceRecords = ({ incidents, notes }: DossierAdapterInput
 /** Normalise production evidence rows into source media. Voice notes are attachments here. */
 export const toDossierSourceMedia = (
   evidence: EvidenceFile[],
-  incidents: LocalIncident[],
-): DossierSourceMedia[] => {
-  const createdAt = new Map<string, number>();
-  incidents.forEach(i => createdAt.set(i.id, Date.parse(i.original_created_at ?? i.created_at)));
-
-  return evidence
-    .filter(f => !!f.incident_id)
-    .map(f => {
-      const mime = (f.mime_type ?? '').toLowerCase();
-      const added = f.upload_date ?? f.capture_date ?? new Date(0).toISOString();
-      const base = createdAt.get(f.incident_id as string);
-      const isOriginal =
-        base !== undefined && Date.parse(added) - base <= ORIGINAL_EVIDENCE_WINDOW_MS;
-      return {
-        id: f.id,
-        entry_id: f.incident_id as string,
-        kind: mime.startsWith('audio/') ? 'voice' : 'attachment',
-        role: isOriginal ? 'original' : 'later',
-        name: f.file_name,
-        mime: f.mime_type ?? '',
-        size: Number(f.file_size ?? 0),
-        duration_ms: null,
-        description: f.description ?? null,
-        added_at: added,
-        // Production has no per-file dossier exclusion; inclusion follows the record.
-        excluded_from_dossier: false,
-      } satisfies DossierSourceMedia;
-    })
-    .sort((a, b) => a.added_at.localeCompare(b.added_at));
-};
+  _incidents: LocalIncident[],
+): DossierSourceMedia[] => evidence
+  .filter(f => !!f.incident_id)
+  .map(f => {
+    const mime = (f.mime_type ?? '').toLowerCase();
+    const added = f.upload_date ?? f.capture_date ?? new Date(0).toISOString();
+    return {
+      id: f.id,
+      entry_id: f.incident_id as string,
+      kind: mime.startsWith('audio/') ? 'voice' : 'attachment',
+      // Legacy EvidenceFile has no authoritative field proving whether the file
+      // was present at seal. Missing metadata must never become ORIGINAL.
+      role: 'legacy_unresolved',
+      name: f.file_name,
+      mime: f.mime_type ?? '',
+      size: Number(f.file_size ?? 0),
+      duration_ms: null,
+      description: f.description ?? null,
+      added_at: added,
+      // Production has no per-file dossier exclusion; inclusion follows the record.
+      excluded_from_dossier: false,
+    } satisfies DossierSourceMedia;
+  })
+  .sort((a, b) => a.added_at.localeCompare(b.added_at) || a.id.localeCompare(b.id));

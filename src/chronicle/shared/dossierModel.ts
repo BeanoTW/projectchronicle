@@ -28,7 +28,8 @@ export interface DossierSourceMedia {
   id: string;
   entry_id: string;
   kind: 'voice' | 'attachment';
-  role: 'original' | 'later';
+  /** Legacy media remains unresolved unless Chronicle has positive provenance. */
+  role: 'original' | 'later' | 'legacy_unresolved';
   name: string;
   mime: string;
   size: number;
@@ -81,7 +82,7 @@ export interface DossierEvidenceItem {
   id: string;
   kind: 'voice' | 'attachment';
   type: AttachmentType;
-  role: 'original' | 'later';
+  role: 'original' | 'later' | 'legacy_unresolved';
   name: string;
   mime: string;
   typeLabel: string;
@@ -95,7 +96,7 @@ export interface DossierEvidenceItem {
 export interface DossierRecord {
   id: string;
   index: number;              // 1-based position in the document
-  heading: string;            // "Record 1 — 14 March 2025"
+  heading: string;
   title: string | null;
   dateLabel: string;
   sealedLabel: string;
@@ -124,23 +125,59 @@ export interface DossierDocumentModel {
 }
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 
-/** Effective date of a record: user-set event date, else the sealed date. */
-export const recordDate = (r: DossierSourceRecord): string =>
-  r.event_date ?? r.sealed_at.slice(0, 10);
+/** The event date exactly as recorded. A seal timestamp is never substituted. */
+export const recordDate = (r: DossierSourceRecord): string | null => r.event_date;
+
+/** Month used only to place records whose event date is unknown. */
+export const recordPlacementMonth = (r: DossierSourceRecord): string =>
+  (r.event_date ?? r.sealed_at.slice(0, 10)).slice(0, 7);
+
+const compareStable = (a: DossierSourceRecord, b: DossierSourceRecord, order: 'asc' | 'desc'): number => {
+  const direction = order === 'asc' ? 1 : -1;
+  const month = recordPlacementMonth(a).localeCompare(recordPlacementMonth(b));
+  if (month) return month * direction;
+
+  const aKnown = a.event_date !== null;
+  const bKnown = b.event_date !== null;
+  // Unknown dates always follow dated records inside their placement month.
+  if (aKnown !== bKnown) return aKnown ? -1 : 1;
+
+  if (aKnown && bKnown) {
+    const date = a.event_date!.localeCompare(b.event_date!);
+    if (date) return date * direction;
+    // A recorded time is used only when both records actually have one.
+    if (a.event_time !== null && b.event_time !== null) {
+      const time = a.event_time.localeCompare(b.event_time);
+      if (time) return time * direction;
+    }
+  }
+
+  const seal = a.sealed_at.localeCompare(b.sealed_at);
+  if (seal) return seal * direction;
+  return a.id.localeCompare(b.id) * direction;
+};
+
+export const compareDossierRecords = (
+  a: DossierSourceRecord,
+  b: DossierSourceRecord,
+  order: 'asc' | 'desc' = 'asc',
+): number => compareStable(a, b, order);
 
 export const matchesScope = (r: DossierSourceRecord, c: DossierConfig): boolean => {
   if (c.category && r.category !== c.category) return false;
   if (c.person && !r.people.includes(c.person)) return false;
-  const d = recordDate(r);
-  if (c.from && d < c.from) return false;
-  if (c.to && d > c.to) return false;
+  // Date-range filters are event-date filters. Unknown event dates cannot be
+  // asserted to fall inside a requested event-date range.
+  if ((c.from || c.to) && !r.event_date) return false;
+  if (c.from && r.event_date! < c.from) return false;
+  if (c.to && r.event_date! > c.to) return false;
   return true;
 };
 
@@ -158,9 +195,12 @@ export const evidenceForRecord = (
       return cfg.attachmentTypes.includes(attachmentType(m.mime, m.name));
     })
     .sort((a, b) => {
-      if (a.role !== b.role) return a.role === 'original' ? -1 : 1;
+      const roleRank = (role: DossierSourceMedia['role']) => role === 'original' ? 0 : role === 'later' ? 1 : 2;
+      const rank = roleRank(a.role) - roleRank(b.role);
+      if (rank) return rank;
       if (a.kind !== b.kind) return a.kind === 'voice' ? -1 : 1;
-      return a.added_at.localeCompare(b.added_at);
+      const added = a.added_at.localeCompare(b.added_at);
+      return added || a.id.localeCompare(b.id);
     })
     .map(m => {
       const t: AttachmentType = m.kind === 'voice' ? 'audio' : attachmentType(m.mime, m.name);
@@ -176,7 +216,11 @@ export const evidenceForRecord = (
         durationLabel: m.duration_ms ? formatDuration(m.duration_ms) : null,
         description: m.description,
         addedLabel: fmtDateTime(m.added_at),
-        roleLabel: m.role === 'original' ? 'Present when the record was sealed' : 'Added after sealing',
+        roleLabel: m.role === 'original'
+          ? 'Present when the record was sealed'
+          : m.role === 'later'
+            ? 'Added after sealing'
+            : 'When this file joined the record was not recorded',
       };
     });
 
@@ -189,14 +233,10 @@ export function buildDossierFromSource(
   const members = all.filter(e => e.in_dossier);
   const scoped = members
     .filter(e => matchesScope(e, cfg))
-    .sort((a, b) =>
-      cfg.order === 'asc'
-        ? a.sealed_at.localeCompare(b.sealed_at)
-        : b.sealed_at.localeCompare(a.sealed_at),
-    );
+    .sort((a, b) => compareDossierRecords(a, b, cfg.order));
 
   const records: DossierRecord[] = scoped.map((e, i) => {
-    const dateLabel = fmtDate(recordDate(e));
+    const dateLabel = e.event_date ? fmtDate(e.event_date) : 'Date not recorded';
     const details: Array<{ label: string; value: string }> = [];
     if (e.event_date) details.push({ label: 'Date of event', value: fmtDate(e.event_date) + (e.event_time ? `, ${e.event_time}` : '') });
     if (e.category) details.push({ label: 'Category', value: e.category });
@@ -207,7 +247,7 @@ export function buildDossierFromSource(
       `Writing started ${fmtDateTime(e.captured_at)}`,
       `Record sealed ${fmtDateTime(e.sealed_at)}`,
       ...[...e.clarifications]
-        .sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
         .map((c, ci) => `Clarification ${ci + 1} added ${fmtDateTime(c.created_at)}`),
     ];
 
@@ -222,7 +262,7 @@ export function buildDossierFromSource(
       details,
       text: e.original_text,
       clarifications: [...e.clarifications]
-        .sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
         .map((c, ci) => ({
           id: c.id,
           label: `Clarification ${ci + 1} · added ${fmtDateTime(c.created_at)}`,
@@ -233,9 +273,10 @@ export function buildDossierFromSource(
     };
   });
 
-  const dates = scoped.map(recordDate).sort();
+  const dates = scoped.map(recordDate).filter((date): date is string => date !== null).sort();
+  const unknownCount = scoped.length - dates.length;
   const rangeLabel = dates.length === 0
-    ? 'No records in range'
+    ? (unknownCount ? 'Event dates not recorded' : 'No records in range')
     : dates.length === 1 || dates[0] === dates[dates.length - 1]
       ? fmtDate(dates[0])
       : `${fmtDate(dates[0])} to ${fmtDate(dates[dates.length - 1])}`;
@@ -262,10 +303,10 @@ export function buildDossierFromSource(
     'The wording of each record is reproduced exactly as it was written and sealed. Nothing has been rewritten, corrected or summarised.',
     'Clarifications are additions made after a record was sealed. They are shown separately, with the date they were added, and never merged into the original wording.',
     'Organisational details such as category, context and people are labels added by the author for organisation. They are kept apart from the original wording.',
-    'Records appear in chronological order by the date each one was sealed.',
+    'Records are ordered primarily by the date or time attributed to the event. Where multiple records share the same event date, their sealing time determines their order unless both have a recorded event time. Records for which no event date was recorded appear after dated records within the month in which they were sealed. A sealing date is not treated as an event date.',
     ...(hasEvidence
       ? [
-        'Voice records and attachments are listed with the record they belong to, showing when each file was added. Files present when a record was sealed are distinguished from files added afterwards.',
+        'Voice records and attachments are listed with the record they belong to, showing when each file was added where that information was recorded. Legacy files with no reliable provenance remain identified as not recorded rather than being treated as original.',
         'Chronicle has not analysed, transcribed or independently verified the contents of any attached file.',
       ]
       : []),

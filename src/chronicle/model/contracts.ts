@@ -33,11 +33,40 @@ export const EventDateValueSchema = z.union([
   z.object({ kind: z.literal('unknown') }).strict(),
 ]);
 
+const InputHelperProvenanceSchema = z.object({
+  interaction_state: z.enum(['NOT_SHOWN', 'SHOWN_NO_INTERACTION', 'INTERACTED_NO_ACCEPTANCE', 'SUGGESTION_ACCEPTED']),
+  accepted_suggestion_count: z.number().int().positive().optional(),
+  helper_version: z.string().min(1).optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.interaction_state === 'SUGGESTION_ACCEPTED') {
+    if (value.accepted_suggestion_count === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['accepted_suggestion_count'], message: 'Accepted suggestion count is required when a suggestion was accepted.' });
+    }
+    if (!value.helper_version) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['helper_version'], message: 'Helper version is required when a suggestion was accepted.' });
+    }
+  }
+});
+
+export const OriginalContentProvenanceSchema = z.discriminatedUnion('tracking_state', [
+  z.object({
+    schema_version: z.literal(1),
+    tracking_state: z.literal('NOT_RECORDED'),
+  }).strict(),
+  z.object({
+    schema_version: z.literal(1),
+    tracking_state: z.literal('RECORDED'),
+    input_helper: InputHelperProvenanceSchema,
+  }).strict(),
+]);
+
 export const OriginalContentSchema = z.object({
   text: z.string(),
   source: z.enum(['written', 'voice', 'written_and_voice', 'imported_v1']),
   media_ids: z.array(id),
   sealed_at: iso,
+  /** Optional so records sealed before Phase 4 remain readable without backfill. */
+  provenance: OriginalContentProvenanceSchema.optional(),
 }).strict();
 
 export const OrganisationalDetailsSchema = z.object({

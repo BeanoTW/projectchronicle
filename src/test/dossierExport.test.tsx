@@ -88,6 +88,25 @@ describe('Chronicle export delivery', () => {
     expect(doc.records.length).toBe(2);
   });
 
+  it('passes the same deterministic chronological order to PDF and Word exports', async () => {
+    const unknown = { ...record('3'), event_date: null, sealed_at: '2026-01-03T09:00:00.000Z' };
+    const datedLaterSeal = { ...record('2'), event_date: '2026-01-01', sealed_at: '2026-01-20T09:00:00.000Z' };
+    const datedLaterEvent = { ...record('1'), event_date: '2026-01-02', sealed_at: '2026-01-02T09:00:00.000Z' };
+    renderView([unknown, datedLaterEvent, datedLaterSeal]);
+    await openPreview();
+
+    await click(/Export PDF report/);
+    await waitFor(() => expect(pdfSpy).toHaveBeenCalledTimes(1));
+    const [pdfDoc] = pdfSpy.mock.calls[0] as unknown as [{ records: Array<{ id: string }> }];
+    expect(pdfDoc.records.map(item => item.id)).toEqual(['2', '1', '3']);
+
+    await click(/Export Word report/);
+    await waitFor(() => expect(docxSpy).toHaveBeenCalledTimes(1));
+    const [docxDoc] = docxSpy.mock.calls[0] as unknown as [{ records: Array<{ id: string }> }];
+    expect(docxDoc.records.map(item => item.id)).toEqual(['2', '1', '3']);
+    expect(docxDoc.records.map(item => item.id)).toEqual(pdfDoc.records.map(item => item.id));
+  });
+
   it('Print invokes the print path against the rendered report', async () => {
     const printSpy = vi.fn();
     // Printing happens in a cloned iframe; stub its window print.
