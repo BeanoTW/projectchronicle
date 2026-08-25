@@ -7,6 +7,7 @@ import {
   sortByRecency,
   uniqueCategories,
   uniquePeople,
+  usefulNotebookPreview,
 } from '@/chronicle/shared/notebookModel';
 import { cloneFilters, emptyFilters } from '@/chronicle/filters';
 import type { LocalIncident } from '@/local/db';
@@ -99,6 +100,20 @@ describe('production notebook adapter', () => {
   });
 });
 
+describe('notebook card preview', () => {
+  it('suppresses a preview that merely repeats the title', () => {
+    expect(usefulNotebookPreview('Something happened', 'Something happened')).toBeNull();
+  });
+
+  it('shows the remaining body when the first line supplied the title', () => {
+    expect(usefulNotebookPreview('First line', 'First line\nUseful detail follows.')).toBe('Useful detail follows.');
+  });
+
+  it('keeps distinct original wording unchanged', () => {
+    expect(usefulNotebookPreview('Meeting', 'A separate account of the meeting.')).toBe('A separate account of the meeting.');
+  });
+});
+
 describe('notebook filtering', () => {
   const records = build([
     inc({ id: 'a', category: 'Communication', people_involved: ['Alex'], incident_date: '2026-01-10', raw_narrative: 'shouting in the corridor', created_at: '2026-01-10T09:00:00.000Z', original_created_at: '2026-01-10T09:00:00.000Z' }),
@@ -136,4 +151,3 @@ describe('notebook filtering', () => {
     expect(counts.get('2026-02-15')).toBeUndefined();
   });
 });
-

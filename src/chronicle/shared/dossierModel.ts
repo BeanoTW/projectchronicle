@@ -97,6 +97,7 @@ export interface DossierRecord {
   id: string;
   index: number;              // 1-based position in the document
   heading: string;
+  contentsLabel: string;
   title: string | null;
   dateLabel: string;
   sealedLabel: string;
@@ -131,6 +132,11 @@ const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
+
+const compactContentsText = (value: string, max = 56): string => {
+  const compacted = value.trim().replace(/\s+/g, ' ');
+  return compacted.length > max ? `${compacted.slice(0, max - 1).trimEnd()}…` : compacted;
+};
 
 /** The event date exactly as recorded. A seal timestamp is never substituted. */
 export const recordDate = (r: DossierSourceRecord): string | null => r.event_date;
@@ -237,6 +243,10 @@ export function buildDossierFromSource(
 
   const records: DossierRecord[] = scoped.map((e, i) => {
     const dateLabel = e.event_date ? fmtDate(e.event_date) : 'Date not recorded';
+    const heading = `Record ${i + 1} — ${dateLabel}`;
+    const fallbackTitle = e.original_text.split(/\r?\n/).find(line => line.trim()) ?? '';
+    const subject = compactContentsText(e.title?.trim() || fallbackTitle);
+    const contentsLabel = [heading, e.category, subject].filter(Boolean).join(' · ');
     const details: Array<{ label: string; value: string }> = [];
     if (e.event_date) details.push({ label: 'Date of event', value: fmtDate(e.event_date) + (e.event_time ? `, ${e.event_time}` : '') });
     if (e.category) details.push({ label: 'Category', value: e.category });
@@ -254,7 +264,8 @@ export function buildDossierFromSource(
     return {
       id: e.id,
       index: i + 1,
-      heading: `Record ${i + 1} — ${dateLabel}`,
+      heading,
+      contentsLabel,
       title: e.title,
       dateLabel,
       sealedLabel: fmtDateTime(e.sealed_at),
@@ -289,7 +300,7 @@ export function buildDossierFromSource(
   const contents: DossierDocumentModel['contents'] = [
     { label: 'Overview', kind: 'section' },
     { label: 'Chronological record', kind: 'section' },
-    ...records.map(r => ({ label: r.heading, kind: 'record' as const })),
+    ...records.map(r => ({ label: r.contentsLabel, kind: 'record' as const })),
   ];
   if (cfg.includeClarifications && hasClarifications) {
     contents.push({ label: 'Appendix A — Clarifications', kind: 'section' });
@@ -337,25 +348,3 @@ export const safeFileName = (title: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 60) || 'dossier';
-
-/* ---------- Adapter contract ---------- */
-
-/**
- * Everything the shared Dossier view needs from a data source.
- * Implementations own loading, inclusion persistence and blob retrieval.
- */
-export interface DossierAdapter {
-  records: DossierSourceRecord[];
-  media: DossierSourceMedia[];
-  loading: boolean;
-  /** Persist inclusion for one record. Never called by scope filters. */
-  setIncluded: (id: string, included: boolean) => Promise<void>;
-  /** Resolve the bytes of an evidence item for embedding in an export. */
-  loadBlob?: (mediaId: string) => Promise<Blob | null>;
-  /** Optional on-screen preview URL for image/audio evidence. */
-  useMediaUrl?: (item: DossierEvidenceItem) => string | null;
-  /** Where "Open record" should navigate. */
-  recordHref?: (id: string) => string;
-  /** Copy shown under the Evidence configuration group. */
-  evidenceNote?: string;
-}

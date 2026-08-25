@@ -13,6 +13,7 @@
 import type { LocalIncident } from '@/local/db';
 import type { EvidenceFile } from '@/hooks/useEvidence';
 import type { DossierSourceMedia, DossierSourceRecord } from '@/chronicle/shared/dossierModel';
+import { attachmentDisplayName } from '@/lib/attachmentName';
 
 export interface ProductionNote {
   id: string;
@@ -92,7 +93,7 @@ export const toDossierSourceMedia = (
       // Legacy EvidenceFile has no authoritative field proving whether the file
       // was present at seal. Missing metadata must never become ORIGINAL.
       role: 'legacy_unresolved',
-      name: f.file_name,
+      name: attachmentDisplayName(f),
       mime: f.mime_type ?? '',
       size: Number(f.file_size ?? 0),
       duration_ms: null,

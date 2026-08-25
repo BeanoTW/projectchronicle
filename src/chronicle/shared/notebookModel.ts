@@ -31,6 +31,25 @@ export interface NotebookRecord {
   chips: string[];
 }
 
+const compact = (value: string): string => value.trim().replace(/\s+/g, ' ');
+
+/** Avoids repeating a derived title as the list preview while preserving original wording. */
+export const usefulNotebookPreview = (title: string | null, preview: string): string | null => {
+  const body = preview.trim();
+  if (!body) return null;
+  const heading = compact(title ?? '');
+  if (!heading) return body;
+  if (compact(body) === heading) return null;
+
+  const lines = body.split(/\r?\n/);
+  const firstContentLine = lines.findIndex(line => line.trim().length > 0);
+  if (firstContentLine >= 0 && compact(lines[firstContentLine]) === heading) {
+    const remainder = lines.slice(firstContentLine + 1).join('\n').trim();
+    return remainder || null;
+  }
+  return body;
+};
+
 export const recordMatchesSearch = (r: NotebookRecord, term: string): boolean => {
   const t = term.trim().toLowerCase();
   if (!t) return true;
