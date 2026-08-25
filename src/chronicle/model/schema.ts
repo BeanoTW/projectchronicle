@@ -36,6 +36,23 @@ export type RecordKind = 'incident' | 'daily';
 /** Where the wording came from at seal time. */
 export type CaptureSource = 'written' | 'voice' | 'written_and_voice' | 'imported_v1';
 
+export type InputHelperInteractionState =
+  | 'NOT_SHOWN'
+  | 'SHOWN_NO_INTERACTION'
+  | 'INTERACTED_NO_ACCEPTANCE'
+  | 'SUGGESTION_ACCEPTED';
+
+/** Immutable seal-time metadata. Absence means provenance was not recorded. */
+export interface OriginalContentProvenance {
+  readonly schema_version: 1;
+  readonly tracking_state: 'RECORDED' | 'NOT_RECORDED';
+  readonly input_helper?: {
+    readonly interaction_state: InputHelperInteractionState;
+    readonly accepted_suggestion_count?: number;
+    readonly helper_version?: string;
+  };
+}
+
 export interface V2Record {
   readonly id: Uuid;              // stable; reused from V1 `incidents.id` on migration
   readonly owner_id: Uuid;        // auth user id
@@ -67,6 +84,8 @@ export interface OriginalContent {
   readonly media_ids: readonly Uuid[];
   /** Set once, at seal. */
   readonly sealed_at: Iso;
+  /** Optional for legacy compatibility. Absence never means "no helper used". */
+  readonly provenance?: OriginalContentProvenance;
 }
 
 export type EventDaypart = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -301,6 +320,7 @@ export interface V2RecordEvent {
   at: Iso;
   action:
     | 'sealed'
+    | 'input_helper_accepted'
     | 'details_updated'
     | 'clarification_added'
     | 'media_added'
