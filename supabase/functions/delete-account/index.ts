@@ -12,93 +12,64 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+async function removeOwnerFolder(admin: ReturnType<typeof createClient>, bucket: string, ownerId: string) {
+  const queue = [ownerId];
+  const paths: string[] = [];
+  while (queue.length > 0) {
+    const prefix = queue.shift()!;
+    const { data, error } = await admin.storage.from(bucket).list(prefix, { limit: 1000 });
+    if (error) throw error;
+    for (const item of data ?? []) {
+      const path = `${prefix}/${item.name}`;
+      // Storage folders have no object id/metadata; recurse into them.
+      if (!item.id && !item.metadata) queue.push(path);
+      else paths.push(path);
+    }
   }
+  for (let i = 0; i < paths.length; i += 1000) {
+    const { error } = await admin.storage.from(bucket).remove(paths.slice(i, i + 1000));
+    if (error) throw error;
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (!authHeader) return new Response(JSON.stringify({ error: "Missing Authorization header" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    // Validate the caller's JWT by reading their user from the anon-key client
-    // bound to the request's Authorization header.
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { global: { headers: { Authorization: authHeader } } });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) {
-      console.error("[delete-account] invalid session", userErr?.message);
-      return new Response(JSON.stringify({ error: "Invalid session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (userErr || !userData?.user) return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const userId = userData.user.id;
-    console.info("[delete-account] deleting", { userId });
+    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    // Service-role client for privileged operations.
-    const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    // 1. Remove storage objects from the evidence bucket scoped to this user.
-    try {
-      const { data: files } = await admin.storage
-        .from("evidence")
-        .list(userId, { limit: 1000 });
-      if (files && files.length > 0) {
-        const paths = files.map((f) => `${userId}/${f.name}`);
-        await admin.storage.from("evidence").remove(paths);
-      }
-    } catch (e) {
-      console.warn("[delete-account] storage cleanup warning", e);
+    // Cloud media must be removed before auth deletion because storage objects
+    // do not cascade through the canonical table foreign keys.
+    for (const bucket of ["evidence", "canonical-media"]) {
+      try { await removeOwnerFolder(admin, bucket, userId); }
+      catch (e) { console.warn(`[delete-account] ${bucket} cleanup warning`, e); }
     }
 
-    // 2. Delete user-owned rows. RLS would also restrict this, but using the
-    //    service role guarantees a clean sweep.
+    // Legacy rows do not all cascade from auth.users, so retain the explicit sweep.
     const tables = ["edit_history", "follow_up_notes", "evidence_files", "incidents"];
     for (const t of tables) {
       const { error } = await admin.from(t).delete().eq("user_id", userId);
-      if (error) {
-        console.error(`[delete-account] failed to clear ${t}`, error.message);
-        return new Response(
-          JSON.stringify({ error: `Failed to delete ${t}: ${error.message}` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
+      if (error) return new Response(JSON.stringify({ error: `Failed to delete ${t}: ${error.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // 3. Finally delete the auth user. This invalidates all their sessions.
+    // canonical_records / canonical_children are owner FK cascades from auth.users.
     const { error: delErr } = await admin.auth.admin.deleteUser(userId);
-    if (delErr) {
-      console.error("[delete-account] auth delete failed", delErr.message);
-      return new Response(
-        JSON.stringify({ error: `Failed to delete account: ${delErr.message}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (delErr) return new Response(JSON.stringify({ error: `Failed to delete account: ${delErr.message}` }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    console.info("[delete-account] success", { userId });
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[delete-account] unexpected", e);
-    return new Response(
-      JSON.stringify({ error: "Unable to delete your account right now. Please try again." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "Unable to delete your account right now. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
