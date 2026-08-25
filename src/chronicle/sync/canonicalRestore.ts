@@ -1,14 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import { localDB, META_KEYS, setMeta, type LocalCanonicalBlob } from '@/local/db';
+import { localDB, type LocalCanonicalBlob } from '@/local/db';
 import { computeSha256 } from '@/lib/attachments/integrity';
 import { V2MediaSchema, V2RecordSchema } from '../model/contracts';
 import type { SyncMetadata, V2Clarification, V2Media, V2Record } from '../model/schema';
-import {
-  CANONICAL_MEDIA_BUCKET,
-  CanonicalCloudConflictError,
-  CanonicalMediaIntegrityError,
-  type RemoteMediaPayload,
-} from './canonicalBackup';
+import { CANONICAL_MEDIA_BUCKET, CanonicalCloudConflictError, CanonicalMediaIntegrityError } from './canonicalBackup';
 
 type RemoteRecordRow = { payload: unknown };
 type RemoteChildRow = {
@@ -17,8 +12,9 @@ type RemoteChildRow = {
   record_id: string | null;
   payload: unknown;
   remote_revision: number;
+  updated_at: string;
 };
-
+type RemoteMediaPayload = Omit<V2Media, 'sync' | 'storage'> & { storage: { location: 'remote_only'; remote_path: string } };
 type PreparedMedia = { media: V2Media; blob: LocalCanonicalBlob | null; hadMedia: boolean; hadBlob: boolean };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
@@ -34,13 +30,16 @@ const restoredSync = (remoteVersion: number, at: string, localRevision = 0): Syn
 async function fetchRemoteRows(ownerId: string): Promise<{ records: V2Record[]; children: RemoteChildRow[] }> {
   const recordQuery = await supabase.from('canonical_records' as never).select('payload').eq('owner_id' as never, ownerId as never);
   if (recordQuery.error) throw recordQuery.error;
-  const childQuery = await supabase.from('canonical_children' as never).select('kind,id,record_id,payload,remote_revision').eq('owner_id' as never, ownerId as never);
+  const childQuery = await supabase.from('canonical_children' as never).select('kind,id,record_id,payload,remote_revision,updated_at').eq('owner_id' as never, ownerId as never);
   if (childQuery.error) throw childQuery.error;
 
   const records = ((recordQuery.data ?? []) as unknown as RemoteRecordRow[]).map(row => V2RecordSchema.parse(row.payload));
   for (const record of records) if (record.owner_id !== ownerId) throw new CanonicalCloudConflictError('Remote canonical record belongs to another owner.');
   const children = (childQuery.data ?? []) as unknown as RemoteChildRow[];
-  for (const child of children) if (!Number.isInteger(child.remote_revision) || child.remote_revision < 1) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has an invalid revision.`);
+  for (const child of children) {
+    if (!Number.isInteger(child.remote_revision) || child.remote_revision < 1) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has an invalid revision.`);
+    if (!child.updated_at || Number.isNaN(new Date(child.updated_at).getTime())) throw new CanonicalCloudConflictError(`Remote canonical child ${child.id} has an invalid server timestamp.`);
+  }
   return { records, children };
 }
 
@@ -58,11 +57,9 @@ function localMediaFromRemote(child: RemoteChildRow & { payload: Record<string, 
   const raw = child.payload as unknown as RemoteMediaPayload;
   if (raw.storage?.location !== 'remote_only' || !raw.storage.remote_path) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no canonical object path.`);
   if (!raw.content_hash) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no recorded integrity hash.`);
-  if (!raw._remote_uploaded_at) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no recorded upload timestamp.`);
-  const { _remote_uploaded_at, ...canonical } = raw;
   return V2MediaSchema.parse({
-    ...canonical,
-    storage: { location: 'local_and_remote', remote_path: raw.storage.remote_path, uploaded_at: _remote_uploaded_at },
+    ...raw,
+    storage: { location: 'local_and_remote', remote_path: raw.storage.remote_path, uploaded_at: child.updated_at },
     sync: restoredSync(child.remote_revision, at),
   });
 }
@@ -177,6 +174,5 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
     }
   });
 
-  await setMeta(META_KEYS.lastRestoreAt(ownerId), at);
   return { recordsAdded, recordsAlreadyLocal, childrenAdded, childrenAlreadyLocal, mediaDownloaded: Array.from(preparedMedia.values()).filter(value => !value.hadBlob).length };
 }
