@@ -88,9 +88,6 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     }
     const active = !!(await getCanonicalActivation(user.id));
     setCanonicalAuthority(active);
-    // #48/#49 provide the canonical backup/restore authority. The old guard is
-    // retained in the API for older UI consumers, but it no longer blocks an
-    // activated owner once this stacked cutover lands.
     setCanonicalCloudBlocked(false);
     return active;
   }, [user]);
@@ -305,16 +302,28 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   }, [refreshAuthority, refreshDiagnostics, refreshCloudCount]);
 
   let syncStatus: SyncStatus = 'unknown';
-  if (canonicalCloudBlocked) syncStatus = 'canonical_cloud_unavailable';
-  else if (cloudCount === null) syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
-  else if (cloudCount === 0) syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
-  else if (localCount === cloudCount && pendingCount === 0) {
+  if (canonicalCloudBlocked) {
+    syncStatus = 'canonical_cloud_unavailable';
+  } else if (cloudCount === null) {
+    syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
+  } else if (canonicalAuthority) {
+    // Canonical cloud success is an owner-wide transaction boundary covering
+    // records, append-only children and media. A record's remote updated_at may
+    // legitimately pre-date a later evidence-only backup, so never compare it
+    // to lastBackupAt to infer freshness.
+    if (cloudCount === 0) syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
+    else if (pendingCount > 0 || localCount > cloudCount) syncStatus = 'local_newer';
+    else if (cloudCount > localCount) syncStatus = 'cloud_newer';
+    else syncStatus = lastBackupAt ? 'in_sync' : 'unknown';
+  } else if (cloudCount === 0) {
+    syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
+  } else if (localCount === cloudCount && pendingCount === 0) {
     if (cloudLastUpdatedAt && lastBackupAt) {
       const cloudT = new Date(cloudLastUpdatedAt).getTime(); const localT = new Date(lastBackupAt).getTime();
       if (Math.abs(cloudT - localT) < 60_000) syncStatus = 'in_sync';
       else if (cloudT > localT) syncStatus = 'cloud_newer';
       else syncStatus = 'local_newer';
-    } else syncStatus = lastBackupAt ? 'in_sync' : 'unknown';
+    } else syncStatus = 'in_sync';
   } else if (localCount > cloudCount || pendingCount > 0) syncStatus = 'local_newer';
   else syncStatus = 'cloud_newer';
 
