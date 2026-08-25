@@ -73,6 +73,7 @@ describe('Phase 3 — canonical local repository', () => {
     expect(first.original.text).toBe('  Exact original wording.  ');
     expect(retry).toEqual(first);
     expect(await db.canonical_records.count()).toBe(1);
+    expect((await db.canonical_history.toArray()).filter(row => row.action === 'sealed')).toHaveLength(1);
 
     await expect(repository.seal({
       ...input,
@@ -152,7 +153,7 @@ describe('Phase 3 — canonical local repository', () => {
 
     expect(await db.canonical_clarifications.count()).toBe(1);
     expect(await db.canonical_media.count()).toBe(1);
-    expect(await db.canonical_history.count()).toBe(1);
+    expect(await db.canonical_history.count()).toBe(2);
 
     await expect(repository.appendClarification({ ...clarification, text: 'Different text' }))
       .rejects.toBeInstanceOf(CanonicalImmutableConflictError);

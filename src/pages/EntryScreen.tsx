@@ -85,8 +85,8 @@ const EntryScreenV2 = () => {
   if (!view) return <div className="p-6"><p className="text-muted-foreground mb-3">Record not found.</p><button className="underline" onClick={() => navigate('/timeline')}>Back to timeline</button></div>;
 
   return <EntryView entry={view} backLabel="← Timeline" onBack={() => navigate('/timeline')}
-    onAddClarification={async text => {
-      if (canonicalActive && bundle && user?.id) { await canonicalEntryWriter.addClarification(user.id, bundle.record.id, text); await refreshCanonical(); return; }
+    onAddClarification={async (text, kind) => {
+      if (canonicalActive && bundle && user?.id) { await canonicalEntryWriter.addClarification(user.id, bundle.record.id, text, kind); await refreshCanonical(); return; }
       if (!legacyIncident) throw new Error('Record not found.');
       await createNote.mutateAsync({ incident_id: legacyIncident.id, note_text: text, note_type: 'Update' });
     }}
@@ -96,6 +96,7 @@ const EntryScreenV2 = () => {
     }}
     onEditDetails={canonicalActive ? () => setEditingDetails(true) : undefined}
     allowMutations
+    allowClarificationKinds={canonicalActive}
     evidenceSlot={canonicalActive && bundle && user?.id
       ? <CanonicalEvidenceList ownerId={user.id} recordId={bundle.record.id} files={bundle.media} onChanged={refreshCanonical} />
       : legacyIncident ? <LegacyEvidenceList incidentId={legacyIncident.id} /> : undefined}

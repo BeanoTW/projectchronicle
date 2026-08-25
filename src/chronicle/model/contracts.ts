@@ -187,6 +187,8 @@ export const CanonicalRecordMutationSchema = z.discriminatedUnion('kind', [
     record_id: id,
     membership: dossierMembership,
   }).strict(),
+  z.object({ kind: z.literal('archive_record'), owner_id: id, record_id: id, reason: z.string().optional() }).strict(),
+  z.object({ kind: z.literal('restore_record'), owner_id: id, record_id: id }).strict(),
 ]);
 
 export const MigrationRowOutcomeSchema = z.object({

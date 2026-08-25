@@ -61,6 +61,7 @@ const ensureChildIdentity = (
 export const createCanonicalLocalRepository = (
   db: ChronicleDB = localDB,
   clock: () => string = () => new Date().toISOString(),
+  idFactory: () => string = () => crypto.randomUUID(),
 ): CanonicalRecordReader & CanonicalRecordWriter => ({
   async get(ownerId, recordId) {
     const record = await db.canonical_records.get(recordId);
@@ -76,7 +77,7 @@ export const createCanonicalLocalRepository = (
   },
 
   async seal(input: SealRecordInput) {
-    return db.transaction('rw', db.canonical_records, async () => {
+    return db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
       const existing = await db.canonical_records.get(input.id);
       if (existing) {
         if (existing.owner_id !== input.owner_id) {
@@ -129,6 +130,10 @@ export const createCanonicalLocalRepository = (
 
       const validated = V2RecordSchema.parse(record);
       await db.canonical_records.add(validated);
+      await db.canonical_history.add({
+        id: idFactory(), record_id: validated.id, owner_id: validated.owner_id, at: validated.sealed_at,
+        action: 'sealed', field: null, from_value: null, to_value: null, actor: 'user',
+      });
       return validated;
     });
   },

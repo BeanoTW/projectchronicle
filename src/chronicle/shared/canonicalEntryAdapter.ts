@@ -31,11 +31,13 @@ export const canonicalEntryToSharedView = (bundle: CanonicalEntryBundle): Shared
   if (bundle.organisations.length) details.push(['Organisations', bundle.organisations.map(item => item.display_name).join(', ')]);
   return {
     id: record.id, title: record.details.title, original_text: record.original.text, sealed_at: record.sealed_at,
-    clarifications: bundle.clarifications.map(row => ({ id: row.id, text: row.text, created_at: row.created_at })),
+    clarifications: bundle.clarifications.map(row => ({ id: row.id, text: row.text, created_at: row.created_at, kind: row.kind })),
     in_dossier: record.dossier.state === 'included', details,
   };
 };
 
+const fieldLabel: Record<string, string> = { title: 'Title', category_id: 'Category', context: 'Context', person_ids: 'People', location: 'Location', event_date: 'Event date', event_time: 'Event time' };
+
 export const canonicalHistoryToItems = (bundle: CanonicalEntryBundle): RecordHistoryItem[] => bundle.history
   .filter(event => event.action !== 'sealed')
-  .map(event => ({ id: event.id, label: historyLabel(event.action), at: event.at, note: event.field ? `${event.field.replaceAll('_', ' ')} changed` : null }));
+  .map(event => ({ id: event.id, label: historyLabel(event.action), at: event.at, note: event.field ? `${fieldLabel[event.field] ?? 'Details'} changed` : null }));

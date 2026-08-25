@@ -6,7 +6,7 @@ import {
   CanonicalOwnershipError,
   CanonicalRevisionConflictError,
 } from './canonicalLocalRepository';
-import type { DossierMembership, OrganisationalDetails, SyncMetadata, V2Clarification, V2Record, V2RecordEvent } from './schema';
+import type { ClarificationKind, DossierMembership, OrganisationalDetails, SyncMetadata, V2Clarification, V2Record, V2RecordEvent } from './schema';
 import { ChronicleDB, localDB } from '@/local/db';
 
 export class CanonicalWriteNotActiveError extends Error {}
@@ -25,6 +25,8 @@ const ownedActive = (record: V2Record | undefined, ownerId: string, recordId: st
   return record;
 };
 
+const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
 export const createCanonicalEntryWriter = (
   db: ChronicleDB = localDB,
   activationFor: (ownerId: string) => Promise<CanonicalActivationReceipt | null> = ownerId => getCanonicalActivation(ownerId, db),
@@ -40,13 +42,13 @@ export const createCanonicalEntryWriter = (
   });
 
   return {
-    async addClarification(ownerId: string, recordId: string, text: string): Promise<V2Clarification> {
+    async addClarification(ownerId: string, recordId: string, text: string, kind: ClarificationKind = 'clarification'): Promise<V2Clarification> {
       await requireActivation(ownerId);
       const body = text.trim();
       if (!body) throw new Error('Clarification cannot be empty.');
       const at = clock();
       const clarification: V2Clarification = {
-        id: idFactory(), record_id: recordId, owner_id: ownerId, kind: 'clarification', text: body, created_at: at,
+        id: idFactory(), record_id: recordId, owner_id: ownerId, kind, text: body, created_at: at,
         sync: { remote_version: null, local_revision: 0, state: { state: 'local_only' }, last_attempt_at: null },
       };
       CanonicalRecordMutationSchema.parse({ kind: 'append_clarification', owner_id: ownerId, record_id: recordId, clarification_id: clarification.id, clarification_kind: clarification.kind, text: clarification.text, created_at: at });
@@ -65,6 +67,7 @@ export const createCanonicalEntryWriter = (
       CanonicalRecordMutationSchema.parse({ kind: 'set_dossier_membership', owner_id: ownerId, record_id: recordId, membership });
       await db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
         const current = ownedActive(await db.canonical_records.get(recordId), ownerId, recordId);
+        if ((included && current.dossier.state === 'included') || (!included && current.dossier.state !== 'included')) return;
         const next = V2RecordSchema.parse({ ...current, original: structuredClone(current.original), details: structuredClone(current.details), dossier: membership, updated_at: at, sync: localOnlySync(current.sync) });
         await db.canonical_records.put(next);
         await db.canonical_history.add(history(ownerId, recordId, included ? 'dossier_included' : 'dossier_excluded', at));
@@ -80,15 +83,51 @@ export const createCanonicalEntryWriter = (
         if (current.details.revision_count !== record.details.revision_count) {
           throw new CanonicalRevisionConflictError(`Expected details revision ${record.details.revision_count}, found ${current.details.revision_count}.`);
         }
+        const changedPatch = Object.fromEntries(Object.entries(patch).filter(([key, value]) => !same(current.details[key as keyof OrganisationalDetails], value))) as Partial<Omit<OrganisationalDetails, 'revision_count'>>;
+        if (Object.keys(changedPatch).length === 0) return current;
         const next = V2RecordSchema.parse({
           ...current,
           original: structuredClone(current.original),
-          details: { ...current.details, ...structuredClone(patch), revision_count: current.details.revision_count + 1 },
+          details: { ...current.details, ...structuredClone(changedPatch), revision_count: current.details.revision_count + 1 },
           updated_at: at,
           sync: localOnlySync(current.sync),
         });
         await db.canonical_records.put(next);
-        for (const field of Object.keys(patch).sort()) await db.canonical_history.add(history(ownerId, record.id, 'details_updated', at, field));
+        for (const field of Object.keys(changedPatch).sort()) await db.canonical_history.add(history(ownerId, record.id, 'details_updated', at, field));
+        return next;
+      });
+    },
+
+    async archive(ownerId: string, recordId: string, reason?: string): Promise<V2Record> {
+      await requireActivation(ownerId);
+      const at = clock();
+      CanonicalRecordMutationSchema.parse({ kind: 'archive_record', owner_id: ownerId, record_id: recordId, reason });
+      return db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
+        const current = await db.canonical_records.get(recordId);
+        if (!current) throw new CanonicalNotFoundError(`Canonical record ${recordId} was not found.`);
+        if (current.owner_id !== ownerId) throw new CanonicalOwnershipError('Canonical record belongs to another owner.');
+        if (current.lifecycle.state === 'archived') return current;
+        if (current.lifecycle.state !== 'sealed') throw new CanonicalLifecycleError(`Canonical record is ${current.lifecycle.state} and cannot be archived.`);
+        const next = V2RecordSchema.parse({ ...current, original: structuredClone(current.original), details: structuredClone(current.details), lifecycle: { state: 'archived', archived_at: at, ...(reason ? { reason } : {}) }, updated_at: at, sync: localOnlySync(current.sync) });
+        await db.canonical_records.put(next);
+        await db.canonical_history.add(history(ownerId, recordId, 'archived', at));
+        return next;
+      });
+    },
+
+    async restore(ownerId: string, recordId: string): Promise<V2Record> {
+      await requireActivation(ownerId);
+      const at = clock();
+      CanonicalRecordMutationSchema.parse({ kind: 'restore_record', owner_id: ownerId, record_id: recordId });
+      return db.transaction('rw', db.canonical_records, db.canonical_history, async () => {
+        const current = await db.canonical_records.get(recordId);
+        if (!current) throw new CanonicalNotFoundError(`Canonical record ${recordId} was not found.`);
+        if (current.owner_id !== ownerId) throw new CanonicalOwnershipError('Canonical record belongs to another owner.');
+        if (current.lifecycle.state === 'sealed') return current;
+        if (current.lifecycle.state !== 'archived') throw new CanonicalLifecycleError(`Canonical record is ${current.lifecycle.state} and cannot be restored.`);
+        const next = V2RecordSchema.parse({ ...current, original: structuredClone(current.original), details: structuredClone(current.details), lifecycle: { state: 'sealed' }, updated_at: at, sync: localOnlySync(current.sync) });
+        await db.canonical_records.put(next);
+        await db.canonical_history.add(history(ownerId, recordId, 'restored', at));
         return next;
       });
     },

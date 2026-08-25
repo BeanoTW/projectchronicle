@@ -45,7 +45,7 @@ const RecordHistoryView = ({ sealedAt, items, originalWordingChanged = false, lo
         </p>
         <p className="proto-help" style={{ marginTop: 6, marginBottom: 0 }}>
           Saved {fmt(sealedAt)}.
-          {items.length > 0 && ` ${items.length} later change${items.length === 1 ? '' : 's'} to organisational details.`}
+          {items.length > 0 && ` ${items.length} later record change${items.length === 1 ? '' : 's'}.`}
         </p>
 
         {loading ? (

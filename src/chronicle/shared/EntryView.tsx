@@ -1,8 +1,9 @@
 // Shared source-agnostic record view.
 import { useState, type ReactNode } from 'react';
+import type { ClarificationKind } from '../model/schema';
 import '../styles.css';
 
-export interface SharedClarification { id: string; text: string; created_at: string; }
+export interface SharedClarification { id: string; text: string; created_at: string; kind?: ClarificationKind; }
 export interface SharedEntryView {
   id: string; title: string | null; original_text: string; sealed_at: string;
   clarifications: SharedClarification[]; in_dossier: boolean; details: Array<[string, string]>;
@@ -10,7 +11,7 @@ export interface SharedEntryView {
 export interface EntryViewProps {
   entry: SharedEntryView;
   onBack: () => void;
-  onAddClarification: (text: string) => Promise<void>;
+  onAddClarification: (text: string, kind: ClarificationKind) => Promise<void>;
   onToggleDossier: () => void | Promise<void>;
   onEditDetails?: () => void;
   evidenceSlot?: ReactNode;
@@ -20,16 +21,21 @@ export interface EntryViewProps {
   standalone?: boolean;
   /** False during a read cutover where the corresponding write authority has not moved yet. */
   allowMutations?: boolean;
+  /** Reveals optional plain-language clarification types only for canonical records. */
+  allowClarificationKinds?: boolean;
 }
 
-const EntryView = ({ entry, onBack, onAddClarification, onToggleDossier, onEditDetails, evidenceSlot, notice, footerSlot, backLabel = '← Notebook', standalone = true, allowMutations = true }: EntryViewProps) => {
+const kindLabel: Record<ClarificationKind, string> = { clarification: 'Clarification', follow_up: 'Follow-up', outcome: 'Outcome', correction: 'Correction' };
+
+const EntryView = ({ entry, onBack, onAddClarification, onToggleDossier, onEditDetails, evidenceSlot, notice, footerSlot, backLabel = '← Notebook', standalone = true, allowMutations = true, allowClarificationKinds = false }: EntryViewProps) => {
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
+  const [kind, setKind] = useState<ClarificationKind>('clarification');
   const clarifications = [...entry.clarifications].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const save = async () => {
     const body = text.trim(); if (!body || !allowMutations) return;
-    setSaving(true); try { await onAddClarification(body); setText(''); setAdding(false); } finally { setSaving(false); }
+    setSaving(true); try { await onAddClarification(body, kind); setText(''); setKind('clarification'); setAdding(false); } finally { setSaving(false); }
   };
 
   const body = <><div>
@@ -47,8 +53,8 @@ const EntryView = ({ entry, onBack, onAddClarification, onToggleDossier, onEditD
       </div>
       <section style={{ marginTop: 20 }}><h2 className="proto-h2">Clarifications</h2><p className="proto-help" style={{ marginBottom: 10 }}>A clarification adds context without changing your original record.</p>
         {clarifications.length === 0 && !adding && <div className="proto-empty">No clarifications added.</div>}
-        {clarifications.map((c, i) => <div key={c.id} className="proto-clar"><div className="proto-entry-meta"><span>Clarification {i + 1}</span><span>{new Date(c.created_at).toLocaleString()}</span></div><div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.text}</div></div>)}
-        {allowMutations && (adding ? <div style={{ marginTop: 10 }}><textarea className="proto-textarea" autoFocus placeholder="Add context, a correction of understanding, or what happened next." value={text} onChange={e => setText(e.target.value)} /><div className="proto-actions-row" style={{ marginTop: 8 }}><button className="proto-btn" data-variant="ghost" onClick={() => { setAdding(false); setText(''); }}>Cancel</button><button className="proto-btn" data-variant="primary" disabled={!text.trim() || saving} onClick={save}>Save clarification</button></div></div> : <button className="proto-btn" style={{ width: '100%', marginTop: 10 }} onClick={() => setAdding(true)}>Add clarification</button>)}
+        {clarifications.map((c, i) => <div key={c.id} className="proto-clar"><div className="proto-entry-meta"><span>{kindLabel[c.kind ?? 'clarification']} {i + 1}</span><span>{new Date(c.created_at).toLocaleString()}</span></div><div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{c.text}</div></div>)}
+        {allowMutations && (adding ? <div style={{ marginTop: 10 }}>{allowClarificationKinds && <label className="proto-field"><span>What are you adding?</span><select className="proto-input" value={kind} onChange={e => setKind(e.target.value as ClarificationKind)}><option value="clarification">More context</option><option value="follow_up">What happened next</option><option value="outcome">An outcome</option><option value="correction">A correction</option></select></label>}<textarea className="proto-textarea" autoFocus placeholder="Add context, a correction of understanding, or what happened next." value={text} onChange={e => setText(e.target.value)} /><div className="proto-actions-row" style={{ marginTop: 8 }}><button className="proto-btn" data-variant="ghost" onClick={() => { setAdding(false); setText(''); setKind('clarification'); }}>Cancel</button><button className="proto-btn" data-variant="primary" disabled={!text.trim() || saving} onClick={save}>Save clarification</button></div></div> : <button className="proto-btn" style={{ width: '100%', marginTop: 10 }} onClick={() => setAdding(true)}>Add clarification</button>)}
       </section>
     </div><div>{evidenceSlot}
       <section style={{ marginTop: 20 }}><h2 className="proto-h2">Organisational details</h2><div className="proto-entry">{entry.details.length === 0 ? <p className="proto-help" style={{ margin: 0 }}>No details added.</p> : <dl className="proto-deflist">{entry.details.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}{allowMutations && onEditDetails && <button className="proto-btn" style={{ marginTop: 10, width: '100%' }} onClick={onEditDetails}>Edit details</button>}</div><p className="proto-help" style={{ marginTop: 6 }}>Details are organisational only. Editing them never alters the sealed wording above.</p></section>
