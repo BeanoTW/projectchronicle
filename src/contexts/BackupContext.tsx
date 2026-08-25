@@ -23,9 +23,10 @@ import {
   type SyncResult,
 } from '@/local/syncEngine';
 import { hydrateFromCloudOnce } from '@/local/hydration';
+import { getCanonicalActivation } from '@/chronicle/model/canonicalActivation';
 import { useToast } from '@/hooks/use-toast';
 
-export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'local_only' | 'unknown';
+export type SyncStatus = 'in_sync' | 'local_newer' | 'cloud_newer' | 'cloud_unavailable' | 'local_only' | 'canonical_cloud_unavailable' | 'unknown';
 
 interface BackupContextType {
   backupEnabled: boolean;
@@ -34,13 +35,13 @@ interface BackupContextType {
   conflictCount: number;
   lastSyncAttemptAt: string | null;
   lastSyncResult: SyncResult | null;
-  // New: dataset state
   localCount: number;
   cloudCount: number | null;
   cloudLastUpdatedAt: string | null;
   lastBackupAt: string | null;
   lastRestoreAt: string | null;
   syncStatus: SyncStatus;
+  canonicalCloudBlocked: boolean;
   setBackupEnabled: (enabled: boolean) => Promise<void>;
   retrySyncNow: () => Promise<void>;
   backupNow: () => Promise<void>;
@@ -53,6 +54,7 @@ interface BackupContextType {
 }
 
 const BackupContext = createContext<BackupContextType | undefined>(undefined);
+const CANONICAL_CLOUD_UNAVAILABLE = 'Cloud backup for canonical records is not enabled yet. Your records remain safe on this device.';
 
 export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -68,12 +70,35 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
   const [cloudLastUpdatedAt, setCloudLastUpdatedAt] = useState<string | null>(null);
   const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   const [lastRestoreAt, setLastRestoreAt] = useState<string | null>(null);
+  const [canonicalCloudBlocked, setCanonicalCloudBlocked] = useState(false);
   const hydratedRef = useRef<string | null>(null);
+
+  const refreshAuthority = useCallback(async (): Promise<boolean> => {
+    if (!user) {
+      setCanonicalCloudBlocked(false);
+      return false;
+    }
+    const active = !!(await getCanonicalActivation(user.id));
+    setCanonicalCloudBlocked(active);
+    return active;
+  }, [user]);
 
   const refreshDiagnostics = useCallback(async () => {
     if (!user) {
       setPendingCount(0);
       setLocalCount(0);
+      setConflictCount(0);
+      setLastBackupAt(null);
+      setLastRestoreAt(null);
+      return;
+    }
+    const canonical = await refreshAuthority();
+    if (canonical) {
+      setLocalCount(await localDB.canonical_records.where('owner_id').equals(user.id).count());
+      setPendingCount(0);
+      setConflictCount(0);
+      setLastAt(null);
+      setLastRes(null);
       setLastBackupAt(null);
       setLastRestoreAt(null);
       return;
@@ -94,7 +119,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     setLastRes(getLastSyncResult());
     setLastBackupAt(await readLastBackupAt(user.id));
     setLastRestoreAt(await readLastRestoreAt(user.id));
-  }, [user]);
+  }, [user, refreshAuthority]);
 
   const refreshCloudCount = useCallback(async () => {
     if (!user || (typeof navigator !== 'undefined' && !navigator.onLine)) {
@@ -102,13 +127,17 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       setCloudLastUpdatedAt(null);
       return;
     }
+    const canonical = await refreshAuthority();
+    if (canonical) {
+      setCloudCount(null);
+      setCloudLastUpdatedAt(null);
+      return;
+    }
     const [c, t] = await Promise.all([getCloudCounts(), getCloudLastUpdatedAt()]);
     setCloudCount(c.incidents);
     setCloudLastUpdatedAt(t);
-  }, [user]);
+  }, [user, refreshAuthority]);
 
-  // Always-on cloud visibility: fetch cloud snapshot on user/online change,
-  // independent of the backup toggle. Read-only — never modifies local data.
   useEffect(() => {
     if (!user) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
@@ -135,6 +164,11 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     if (hydratedRef.current === user.id) return;
     hydratedRef.current = user.id;
     (async () => {
+      const canonical = await refreshAuthority();
+      if (canonical) {
+        await refreshDiagnostics();
+        return;
+      }
       try {
         await hydrateFromCloudOnce(user.id);
       } catch {
@@ -148,48 +182,54 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
         await refreshCloudCount();
       }
     })();
-  }, [user, refreshDiagnostics, refreshCloudCount]);
+  }, [user, refreshAuthority, refreshDiagnostics, refreshCloudCount]);
 
   useEffect(() => {
-    if (online && user && backupEnabled) {
+    if (online && user && backupEnabled && !canonicalCloudBlocked) {
       syncNow(user.id).then(() => {
         refreshDiagnostics();
         refreshCloudCount();
       });
     }
-  }, [online, user, backupEnabled, refreshDiagnostics, refreshCloudCount]);
+  }, [online, user, backupEnabled, canonicalCloudBlocked, refreshDiagnostics, refreshCloudCount]);
+
+  const assertLegacyCloudAuthority = useCallback(async () => {
+    if (await refreshAuthority()) throw new Error(CANONICAL_CLOUD_UNAVAILABLE);
+  }, [refreshAuthority]);
 
   const setBackupEnabled = useCallback(async (enabled: boolean) => {
+    if (enabled) await assertLegacyCloudAuthority();
     await persistBackupEnabled(enabled);
     setBackupEnabledState(enabled);
     if (!user) return;
     if (enabled) {
       await promoteAllLocalToQueued(user.id);
       toast({ title: 'Cloud backup enabled', description: 'Existing records have been queued for backup.' });
-      if (typeof navigator === 'undefined' || navigator.onLine) {
-        await syncNow(user.id);
-      }
+      if (typeof navigator === 'undefined' || navigator.onLine) await syncNow(user.id);
     } else {
-      await demoteQueuedToLocalOnly(user.id);
+      if (!canonicalCloudBlocked) await demoteQueuedToLocalOnly(user.id);
       toast({
         title: 'Cloud backup disabled',
-        description: 'New records will not be uploaded. Previously backed-up records remain in your cloud account until you delete them.',
+        description: canonicalCloudBlocked
+          ? 'Canonical records remain on this device. Any older legacy cloud copy is unchanged.'
+          : 'New records will not be uploaded. Previously backed-up records remain in your cloud account until you delete them.',
       });
     }
     await refreshDiagnostics();
     await refreshCloudCount();
-  }, [user, toast, refreshDiagnostics, refreshCloudCount]);
+  }, [user, toast, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority, canonicalCloudBlocked]);
 
   const retrySyncNow = useCallback(async () => {
     if (!user) return;
+    await assertLegacyCloudAuthority();
     await syncNow(user.id);
     await refreshDiagnostics();
     await refreshCloudCount();
-  }, [user, refreshDiagnostics, refreshCloudCount]);
+  }, [user, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
   const backupNow = useCallback(async () => {
     if (!user) return;
-    // One-shot push: queue any local-only records, then sync.
+    await assertLegacyCloudAuthority();
     await promoteAllLocalToQueued(user.id);
     const res = await syncNow(user.id, { force: true });
     await refreshDiagnostics();
@@ -199,49 +239,49 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       toast({ title: 'Backup complete', description: `${res.succeeded} record(s) uploaded to your cloud account.` });
     }
-  }, [user, toast, refreshDiagnostics, refreshCloudCount]);
+  }, [user, toast, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
   const restoreFromCloud = useCallback(async () => {
     if (!user) return { incidents: 0, notes: 0 };
+    await assertLegacyCloudAuthority();
     const res = await restoreFromCloudEngine(user.id);
     await refreshDiagnostics();
     await refreshCloudCount();
     return res;
-  }, [user, refreshDiagnostics, refreshCloudCount]);
+  }, [user, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
   const deleteCloudData = useCallback(async () => {
     if (!user) return { incidents: 0, notes: 0 };
+    await assertLegacyCloudAuthority();
     const res = await deleteCloudCopy(user.id);
     await refreshDiagnostics();
     await refreshCloudCount();
     return res;
-  }, [user, refreshDiagnostics, refreshCloudCount]);
+  }, [user, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
   const resolveConflictKeepLocal = useCallback(async (incidentId: string) => {
+    await assertLegacyCloudAuthority();
     await engineKeepLocal(incidentId);
     if (user) await syncNow(user.id);
     await refreshDiagnostics();
     await refreshCloudCount();
-  }, [user, refreshDiagnostics, refreshCloudCount]);
+  }, [user, refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
   const resolveConflictKeepCloud = useCallback(async (incidentId: string) => {
+    await assertLegacyCloudAuthority();
     await engineKeepCloud(incidentId);
     await refreshDiagnostics();
     await refreshCloudCount();
-  }, [refreshDiagnostics, refreshCloudCount]);
+  }, [refreshDiagnostics, refreshCloudCount, assertLegacyCloudAuthority]);
 
-  // Derived sync status. Uses incident counts and the most recent updated_at on
-  // each side as a coarse "newer than" signal. No automatic sync is implied —
-  // this is purely a label so users can decide whether to Backup or Restore.
   let syncStatus: SyncStatus = 'unknown';
-  if (cloudCount === null) {
-    // Online but failed → unavailable; offline → unknown.
+  if (canonicalCloudBlocked) {
+    syncStatus = 'canonical_cloud_unavailable';
+  } else if (cloudCount === null) {
     syncStatus = (typeof navigator !== 'undefined' && !navigator.onLine) ? 'unknown' : 'cloud_unavailable';
   } else if (cloudCount === 0) {
     syncStatus = localCount > 0 ? 'local_only' : 'in_sync';
   } else if (localCount === cloudCount && pendingCount === 0) {
-    // If we have a cloud timestamp and a last backup timestamp, prefer the
-    // newer one; otherwise count parity is enough to call it "in sync".
     if (cloudLastUpdatedAt && lastBackupAt) {
       const cloudT = new Date(cloudLastUpdatedAt).getTime();
       const localT = new Date(lastBackupAt).getTime();
@@ -271,6 +311,7 @@ export const BackupProvider = ({ children }: { children: React.ReactNode }) => {
       lastBackupAt,
       lastRestoreAt,
       syncStatus,
+      canonicalCloudBlocked,
       setBackupEnabled,
       retrySyncNow,
       backupNow,
