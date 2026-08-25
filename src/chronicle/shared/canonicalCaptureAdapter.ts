@@ -10,12 +10,14 @@ import {
   type CaptureAdapter,
   type CaptureMediaItem,
   type MediaFailure,
+  type MediaFailureReason,
 } from './captureModel';
 
 export type CanonicalCaptureStore = CanonicalRecordReader & CanonicalRecordWriter;
 
 export class CanonicalCapturePeopleDeferredError extends Error {}
 export class CaptureHelperAuthorityChangedError extends Error {}
+class CaptureMediaIntegrityError extends Error {}
 
 const readBlobBytes = async (blob: Blob): Promise<ArrayBuffer> => {
   if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
@@ -34,6 +36,30 @@ const mediaKind = (item: CaptureMediaItem): MediaKind => {
   if (item.mime.startsWith('audio/')) return 'audio';
   if (item.mime === 'application/pdf' || item.mime.startsWith('text/')) return 'document';
   return 'other';
+};
+
+export const isStorageQuotaError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+  const name = error.name.toLowerCase();
+  const message = error.message.toLowerCase();
+  return name === 'quotaexceedederror'
+    || name === 'ns_error_dom_quota_reached'
+    || message.includes('quota')
+    || message.includes('storage full')
+    || message.includes('not enough storage');
+};
+
+const mediaFailure = (item: CaptureMediaItem, error: unknown): MediaFailure => {
+  let reason: MediaFailureReason = 'write';
+  let message = 'This item could not be stored on this device. Please retry.';
+  if (error instanceof CaptureMediaIntegrityError) {
+    reason = 'integrity';
+    message = error.message;
+  } else if (isStorageQuotaError(error)) {
+    reason = 'quota';
+    message = 'There is not enough local storage available for this item.';
+  }
+  return { item, reason, message };
 };
 
 export const createCanonicalCaptureAdapter = (
@@ -86,13 +112,13 @@ export const createCanonicalCaptureAdapter = (
 
   async saveMedia(recordId, items) {
     const record = await store.get(ownerId, recordId);
-    if (!record) return items.map(item => ({ item, message: 'The sealed record could not be found.' }));
+    if (!record) return items.map(item => ({ item, reason: 'integrity' as const, message: 'The sealed record could not be found.' }));
 
     const failures: MediaFailure[] = [];
     for (const item of items) {
       try {
         if (!record.original.media_ids.includes(item.id)) {
-          throw new Error('This item was not part of the sealed capture.');
+          throw new CaptureMediaIntegrityError('This item was not part of the sealed capture, so Chronicle will not attach it as original evidence.');
         }
         const [contentHash, bytes] = await Promise.all([hash(item.blob), readBlobBytes(item.blob)]);
         const media: V2Media = {
@@ -118,8 +144,8 @@ export const createCanonicalCaptureAdapter = (
           },
         };
         await store.storeOriginalMedia(media, bytes);
-      } catch {
-        failures.push({ item, message: 'This item could not be stored on this device. Please retry.' });
+      } catch (error) {
+        failures.push(mediaFailure(item, error));
       }
     }
     return failures;
