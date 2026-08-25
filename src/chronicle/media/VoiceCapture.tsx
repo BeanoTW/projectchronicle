@@ -84,7 +84,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }
   }, [onChange]);
 
   const start = async () => {
-    if (active || disabled) return;                      // never two recordings at once
+    if (active || disabled) return;
     if (value) {
       const ok = await dialogs.confirm({
         title: 'Replace this recording?',
@@ -120,7 +120,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }
         const ms = accumRef.current + (Date.now() - startedRef.current);
         setElapsed(ms);
         if (ms >= LIMITS.MAX_VOICE_MS) {
-          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
+          setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} recording limit.`);
           stopTicker();
           accumRef.current = LIMITS.MAX_VOICE_MS;
           try { recorderRef.current?.stop(); } catch { /* ignore */ }
@@ -162,7 +162,7 @@ const VoiceCapture = ({ value, onChange, onActiveChange, disabled, privacyNote }
       const ms = accumRef.current + (Date.now() - startedRef.current);
       setElapsed(ms);
       if (ms >= LIMITS.MAX_VOICE_MS) {
-        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} V2 capture limit.`);
+        setMessage(`Recording stopped at the ${formatDuration(LIMITS.MAX_VOICE_MS)} recording limit.`);
         stopTicker();
         accumRef.current = LIMITS.MAX_VOICE_MS;
         try { recorderRef.current?.stop(); } catch { /* ignore */ }
