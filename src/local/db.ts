@@ -11,7 +11,25 @@ export interface LocalMeta { key: string; value: string; }
 export interface QuarantinedRow { key: string; owner_user_id: string; kind: 'incident' | 'note'; stored_at: string; payload: LocalIncident | LocalFollowUpNote; }
 /** Raw media bytes are stored separately from evidence metadata. A Blob can be reconstructed losslessly from bytes + mime. */
 export interface LocalCanonicalBlob { id: string; owner_id: string; record_id: string; bytes: ArrayBuffer; mime: string; size: number; stored_at: string; }
+export interface LocalOwnerErasureReport {
+  legacy_records: number;
+  legacy_notes: number;
+  quarantined_rows: number;
+  canonical_records: number;
+  canonical_clarifications: number;
+  canonical_media: number;
+  canonical_blobs: number;
+  canonical_history: number;
+  canonical_people: number;
+  canonical_organisations: number;
+  canonical_relationships: number;
+  meta_rows: number;
+}
 export class CanonicalStorageBoundaryError extends Error {}
+
+/** Only transactions explicitly created by eraseOwnerData may delete sealed canonical rows. */
+const canonicalErasureTransactions = new WeakSet<object>();
+
 /** Canonical stores remain parallel to legacy tables. Upgrade callbacks never rewrite V1 data. */
 export class ChronicleDB extends Dexie {
   incidents!: Table<LocalIncident, string>;
@@ -58,8 +76,69 @@ export class ChronicleDB extends Dexie {
         }
       }
     });
-    this.canonical_records.hook('deleting', () => {
+    this.canonical_records.hook('deleting', (_key, _record, transaction) => {
+      if (canonicalErasureTransactions.has(transaction)) return;
       throw new CanonicalStorageBoundaryError('Canonical records use lifecycle state and cannot be deleted directly.');
+    });
+  }
+
+  /**
+   * Permanently erase one account from this device after confirmed account deletion.
+   * This is deliberately the only exception to the canonical record deletion boundary.
+   * Every owner-scoped table is deleted in one IndexedDB transaction; other owners and
+   * device-global preferences are left untouched.
+   */
+  async eraseOwnerData(ownerId: string): Promise<LocalOwnerErasureReport> {
+    if (!ownerId) throw new Error('Owner id is required for local account erasure.');
+    const tables = [
+      this.incidents, this.follow_up_notes, this.quarantine,
+      this.canonical_records, this.canonical_clarifications, this.canonical_media,
+      this.canonical_blobs, this.canonical_history, this.canonical_people,
+      this.canonical_organisations, this.canonical_relationships, this.meta,
+    ];
+    return this.transaction('rw', tables, async () => {
+      const transaction = Dexie.currentTransaction;
+      if (!transaction) throw new Error('Local account erasure requires an active storage transaction.');
+      canonicalErasureTransactions.add(transaction);
+      try {
+        const ownerMetaKeys = [
+          META_KEYS.hydratedFor(ownerId),
+          META_KEYS.lastRestoreAt(ownerId),
+          META_KEYS.lastBackupAt(ownerId),
+          `canonical_activation:${ownerId}`,
+          `canonical_capture_enabled:${ownerId}`,
+        ];
+        const report: LocalOwnerErasureReport = {
+          legacy_records: await this.incidents.where('owner_user_id').equals(ownerId).count(),
+          legacy_notes: await this.follow_up_notes.where('owner_user_id').equals(ownerId).count(),
+          quarantined_rows: await this.quarantine.where('owner_user_id').equals(ownerId).count(),
+          canonical_records: await this.canonical_records.where('owner_id').equals(ownerId).count(),
+          canonical_clarifications: await this.canonical_clarifications.where('owner_id').equals(ownerId).count(),
+          canonical_media: await this.canonical_media.where('owner_id').equals(ownerId).count(),
+          canonical_blobs: await this.canonical_blobs.where('owner_id').equals(ownerId).count(),
+          canonical_history: await this.canonical_history.where('owner_id').equals(ownerId).count(),
+          canonical_people: await this.canonical_people.where('owner_id').equals(ownerId).count(),
+          canonical_organisations: await this.canonical_organisations.where('owner_id').equals(ownerId).count(),
+          canonical_relationships: await this.canonical_relationships.where('owner_id').equals(ownerId).count(),
+          meta_rows: (await this.meta.bulkGet(ownerMetaKeys)).filter(Boolean).length,
+        };
+
+        await this.canonical_blobs.where('owner_id').equals(ownerId).delete();
+        await this.canonical_media.where('owner_id').equals(ownerId).delete();
+        await this.canonical_clarifications.where('owner_id').equals(ownerId).delete();
+        await this.canonical_history.where('owner_id').equals(ownerId).delete();
+        await this.canonical_relationships.where('owner_id').equals(ownerId).delete();
+        await this.canonical_people.where('owner_id').equals(ownerId).delete();
+        await this.canonical_organisations.where('owner_id').equals(ownerId).delete();
+        await this.canonical_records.where('owner_id').equals(ownerId).delete();
+        await this.follow_up_notes.where('owner_user_id').equals(ownerId).delete();
+        await this.incidents.where('owner_user_id').equals(ownerId).delete();
+        await this.quarantine.where('owner_user_id').equals(ownerId).delete();
+        await this.meta.bulkDelete(ownerMetaKeys);
+        return report;
+      } finally {
+        canonicalErasureTransactions.delete(transaction);
+      }
     });
   }
 }
