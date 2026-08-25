@@ -11,6 +11,7 @@ vi.mock('@/chronicle/model/canonicalActivation', async importOriginal => {
 
 const at = '2026-08-24T12:00:00.000Z';
 const sync = { remote_version: null, local_revision: 0, state: { state: 'local_only' as const }, last_attempt_at: null };
+const laterHistoryCount = async () => (await localDB.canonical_history.toArray()).filter(row => row.action !== 'sealed').length;
 
 describe('Phase 10 — canonical evidence metadata', () => {
   beforeEach(async () => {
@@ -26,7 +27,7 @@ describe('Phase 10 — canonical evidence metadata', () => {
     expect(media?.inclusion.state).toBe('excluded_from_dossier');
     expect(media?.name).toBe('photo.jpg');
     expect(media?.content_hash).toBe('hash');
-    expect(await localDB.canonical_history.count()).toBe(1);
+    expect(await laterHistoryCount()).toBe(1);
   });
 
   it('allows description metadata to change without rewriting bytes metadata', async () => {
@@ -35,6 +36,6 @@ describe('Phase 10 — canonical evidence metadata', () => {
     expect(media?.description).toBe('Doorway photo');
     expect(media?.size).toBe(42);
     expect(media?.content_hash).toBe('hash');
-    expect(await localDB.canonical_history.count()).toBe(1);
+    expect(await laterHistoryCount()).toBe(1);
   });
 });

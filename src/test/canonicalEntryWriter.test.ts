@@ -46,8 +46,7 @@ describe('Phase 9 — canonical entry writer', () => {
     const history = await db.canonical_history.toArray();
     expect(clarification).toHaveLength(1);
     expect(clarification[0].text).toBe('Remembered later.');
-    expect(history).toHaveLength(1);
-    expect(history[0].action).toBe('clarification_added');
+    expect(history.filter(row => row.action === 'clarification_added')).toHaveLength(1);
   });
 
   it('updates Chronicle membership and history atomically without touching original wording', async () => {
@@ -55,7 +54,7 @@ describe('Phase 9 — canonical entry writer', () => {
     const record = await repository.get('owner-1', 'record-1');
     expect(record?.dossier.state).toBe('included');
     expect(record?.original.text).toBe('Immutable wording');
-    expect((await db.canonical_history.toArray())[0].action).toBe('dossier_included');
+    expect((await db.canonical_history.toArray()).filter(row => row.action === 'dossier_included')).toHaveLength(1);
   });
 
   it('updates organisational details, preserves uncertainty and records each changed field', async () => {
@@ -68,7 +67,7 @@ describe('Phase 9 — canonical entry writer', () => {
     expect(next.details.revision_count).toBe(1);
     expect(next.details.event_date).toEqual({ kind: 'approximate', date: '2026-08-20', daypart: 'morning' });
     expect(next.original.text).toBe('Immutable wording');
-    expect((await db.canonical_history.toArray()).map(row => row.field)).toEqual(['event_date', 'event_time', 'title']);
+    expect((await db.canonical_history.toArray()).filter(row => row.action === 'details_updated').map(row => row.field)).toEqual(['event_date', 'title']);
   });
 
   it('rejects stale detail writes without partial history', async () => {
@@ -78,5 +77,33 @@ describe('Phase 9 — canonical entry writer', () => {
     await expect(writer.updateDetails('owner-1', stale, { title: 'Stale' })).rejects.toBeInstanceOf(CanonicalRevisionConflictError);
     expect(await db.canonical_history.count()).toBe(historyBefore);
     expect((await repository.get('owner-1', 'record-1'))?.details.title).toBe('First');
+  });
+
+  it('keeps clarification meaning while a correction remains additive', async () => {
+    await writer.addClarification('owner-1', 'record-1', 'The meeting was Tuesday, not Monday.', 'correction');
+    const clarification = (await db.canonical_clarifications.toArray())[0];
+    expect(clarification.kind).toBe('correction');
+    expect((await repository.get('owner-1', 'record-1'))?.original.text).toBe('Immutable wording');
+  });
+
+  it('does not create history or revisions for unchanged actions', async () => {
+    const record = (await repository.get('owner-1', 'record-1'))!;
+    const historyBefore = await db.canonical_history.count();
+    const unchanged = await writer.updateDetails('owner-1', record, { title: null, event_time: null });
+    await writer.setChronicleMembership('owner-1', record.id, false);
+    expect(unchanged.details.revision_count).toBe(0);
+    expect(await db.canonical_history.count()).toBe(historyBefore);
+  });
+
+  it('records archive and restore once without changing original wording', async () => {
+    await writer.archive('owner-1', 'record-1', 'Finished for now');
+    await writer.archive('owner-1', 'record-1', 'Finished for now');
+    await writer.restore('owner-1', 'record-1');
+    await writer.restore('owner-1', 'record-1');
+    const record = await repository.get('owner-1', 'record-1');
+    expect(record?.lifecycle.state).toBe('sealed');
+    expect(record?.original.text).toBe('Immutable wording');
+    expect((await db.canonical_history.toArray()).filter(row => row.action === 'archived')).toHaveLength(1);
+    expect((await db.canonical_history.toArray()).filter(row => row.action === 'restored')).toHaveLength(1);
   });
 });
