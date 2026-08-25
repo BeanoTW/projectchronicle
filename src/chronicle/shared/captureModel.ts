@@ -1,4 +1,6 @@
 // Source-agnostic capture contract. Persistence belongs to the injected adapter.
+import type { InputHelperInteractionState } from '@/chronicle/model/schema';
+
 export interface CaptureCapabilities {
   voice: boolean;
   attachments: boolean;
@@ -6,6 +8,8 @@ export interface CaptureCapabilities {
   storageCopy: string;
   voicePrivacyNote: string;
   recordTypes?: boolean;
+  /** Optional structure-only assistance before seal. */
+  inputHelper?: boolean;
 }
 export type CaptureRecordType = 'incident' | 'daily';
 export interface CaptureMediaItem {
@@ -18,6 +22,11 @@ export interface CaptureMediaItem {
   description?: string | null;
   duration_ms?: number | null;
 }
+export interface CaptureInputHelperState {
+  interactionState: InputHelperInteractionState;
+  acceptedSuggestionCount?: number;
+  helperVersion?: string;
+}
 export interface CaptureSealInput {
   submissionId: string;
   text: string;
@@ -25,6 +34,8 @@ export interface CaptureSealInput {
   sealedAt: string;
   hasVoice: boolean;
   recordType: CaptureRecordType;
+  /** Actual pre-seal helper participation, frozen by the canonical seal. */
+  inputHelper?: CaptureInputHelperState;
   /** Media present at seal. Persistence may complete afterwards through retry. */
   media?: readonly CaptureMediaItem[];
 }
