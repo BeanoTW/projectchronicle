@@ -10,6 +10,7 @@ vi.mock('@/chronicle/model/canonicalActivation', async importOriginal => {
 });
 
 const sealedAt = '2026-08-24T12:00:00.000Z';
+const laterHistoryCount = async () => (await localDB.canonical_history.toArray()).filter(row => row.action !== 'sealed').length;
 
 describe('Phase 10/11 — canonical relationships', () => {
   beforeEach(async () => {
@@ -23,7 +24,7 @@ describe('Phase 10/11 — canonical relationships', () => {
     const record = await canonicalLocalRepository.get('owner-1', 'record-1');
     expect(relation.role_note).toBe('Manager');
     expect(await localDB.canonical_relationships.count()).toBe(1);
-    expect(await localDB.canonical_history.count()).toBe(1);
+    expect(await laterHistoryCount()).toBe(1);
     expect(record?.details.person_ids).toEqual(['person-1']);
     expect(record?.details.revision_count).toBe(1);
     expect(record?.original.text).toBe('Original wording.');
@@ -34,7 +35,7 @@ describe('Phase 10/11 — canonical relationships', () => {
     const second = await canonicalRelationshipWriter.add('owner-1', 'record-1', 'person', 'person-1');
     expect(second.id).toBe(first.id);
     expect(await localDB.canonical_relationships.count()).toBe(1);
-    expect(await localDB.canonical_history.count()).toBe(1);
+    expect(await laterHistoryCount()).toBe(1);
     expect((await canonicalLocalRepository.get('owner-1', 'record-1'))?.details.revision_count).toBe(1);
   });
 
@@ -45,7 +46,7 @@ describe('Phase 10/11 — canonical relationships', () => {
     const record = await canonicalLocalRepository.get('owner-1', 'record-1');
     expect(stored?.removed_at).toBeTruthy();
     expect(await localDB.canonical_relationships.count()).toBe(1);
-    expect(await localDB.canonical_history.count()).toBe(2);
+    expect(await laterHistoryCount()).toBe(2);
     expect(record?.details.person_ids).toEqual([]);
     expect(record?.details.revision_count).toBe(2);
     expect(record?.original.text).toBe('Original wording.');

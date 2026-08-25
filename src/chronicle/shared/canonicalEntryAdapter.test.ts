@@ -32,6 +32,6 @@ describe('canonical entry adapter', () => {
 
   it('maps canonical history without exposing raw values', () => {
     const items = canonicalHistoryToItems(bundle());
-    expect(items).toEqual([{ id: 'h1', label: 'Details updated', at: '2026-08-03T10:00:00Z', note: 'location changed' }]);
+    expect(items).toEqual([{ id: 'h1', label: 'Details updated', at: '2026-08-03T10:00:00Z', note: 'Location changed' }]);
   });
 });
