@@ -83,8 +83,6 @@ export const createCanonicalLocalRepository = (
         if (existing.owner_id !== input.owner_id) {
           throw new CanonicalOwnershipError('Cannot reuse a canonical record id across owners.');
         }
-        // Safe retry: the exact same seal operation is idempotent. A retry that
-        // attempts different original content is rejected rather than replacing it.
         if (
           existing.kind !== input.kind
           || existing.captured_at !== input.captured_at
@@ -108,9 +106,8 @@ export const createCanonicalLocalRepository = (
           context: null,
           person_ids: [],
           location: null,
-          event_date: input.kind === 'daily'
-            ? { kind: 'exact', date: input.sealed_at.slice(0, 10) }
-            : null,
+          // Record kind does not establish when the underlying event happened.
+          event_date: null,
           event_time: null,
           revision_count: 0,
         },

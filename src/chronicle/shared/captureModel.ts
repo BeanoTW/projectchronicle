@@ -39,7 +39,8 @@ export interface CaptureSealInput {
   /** Media present at seal. Persistence may complete afterwards through retry. */
   media?: readonly CaptureMediaItem[];
 }
-export interface MediaFailure { item: CaptureMediaItem; message: string; }
+export type MediaFailureReason = 'quota' | 'write' | 'integrity';
+export interface MediaFailure { item: CaptureMediaItem; message: string; reason?: MediaFailureReason; }
 export interface ReviewDetails { category: string | null; context: string | null; people: string[]; eventDate: string | null; eventTime: string | null; }
 export interface CaptureAdapter {
   capabilities: CaptureCapabilities;
@@ -59,5 +60,9 @@ export const parsePeople = (raw: string): string[] => raw.split(',').map(p => p.
 export const describeFailures = (failures: MediaFailure[]): string => {
   if (!failures.length) return '';
   const first = failures[0];
-  return `The record was sealed and your wording is safe. ${failures.length} item${failures.length === 1 ? '' : 's'} could not be saved: “${first.item.name}” — ${first.message}${failures.length > 1 ? ` (and ${failures.length - 1} more).` : ''} You can retry below — nothing written has been lost.`;
+  const quota = failures.some(f => f.reason === 'quota');
+  const recovery = quota
+    ? 'Your device appears to be short of local storage. Free some space without closing this capture, then retry the item below.'
+    : 'You can retry below — nothing written has been lost.';
+  return `The record was sealed and your wording is safe. ${failures.length} item${failures.length === 1 ? '' : 's'} could not be saved: “${first.item.name}” — ${first.message}${failures.length > 1 ? ` (and ${failures.length - 1} more).` : ''} ${recovery}`;
 };
