@@ -13,6 +13,7 @@ export class CanonicalMediaIntegrityError extends Error {}
 
 type ChildKind = 'clarification' | 'media' | 'history' | 'person' | 'relationship' | 'organisation';
 type ChildRpcResult = { status: string; remote_revision?: number | null; payload?: unknown };
+export type RemoteMediaPayload = Omit<V2Media, 'sync'> & { storage: { location: 'remote_only'; remote_path: string }; _remote_uploaded_at: string };
 
 const syncedMeta = (sync: SyncMetadata, at: string, remoteVersion: number): SyncMetadata => ({
   remote_version: remoteVersion,
@@ -52,9 +53,7 @@ async function putChild(options: {
   } as never);
   if (error) throw error;
   const result = data as unknown as ChildRpcResult;
-  if (result.status === 'conflict') {
-    throw new CanonicalCloudConflictError(`Canonical ${options.kind} ${options.id} conflicts with remote revision ${result.remote_revision ?? 'absent'}.`);
-  }
+  if (result.status === 'conflict') throw new CanonicalCloudConflictError(`Canonical ${options.kind} ${options.id} conflicts with remote revision ${result.remote_revision ?? 'absent'}.`);
   if (result.status !== 'ok' || typeof result.remote_revision !== 'number') throw new Error(`Canonical ${options.kind} sync returned an invalid response.`);
   return result.remote_revision;
 }
@@ -76,9 +75,7 @@ async function backupClarification(value: V2Clarification, clock: () => string):
 
 async function ensureRemoteMediaBytes(media: V2Media): Promise<string> {
   const localBlob = await localDB.canonical_blobs.get(media.id);
-  if (!localBlob || localBlob.owner_id !== media.owner_id || localBlob.record_id !== media.record_id) {
-    throw new CanonicalMediaIntegrityError(`Local bytes are missing for media ${media.id}.`);
-  }
+  if (!localBlob || localBlob.owner_id !== media.owner_id || localBlob.record_id !== media.record_id) throw new CanonicalMediaIntegrityError(`Local bytes are missing for media ${media.id}.`);
   if (!media.content_hash) throw new CanonicalMediaIntegrityError(`Integrity hash is not recorded for media ${media.id}.`);
   const blob = new Blob([localBlob.bytes], { type: localBlob.mime || media.mime });
   const localHash = await computeSha256(blob);
@@ -89,37 +86,32 @@ async function ensureRemoteMediaBytes(media: V2Media): Promise<string> {
   const uploaded = await bucket.upload(path, blob, { contentType: media.mime, upsert: false });
   if (!uploaded.error) return path;
 
-  // A retry may encounter an already-uploaded immutable object. Accept it only
-  // after downloading and proving it is byte-identical to the recorded hash.
   const existing = await bucket.download(path);
   if (existing.error || !existing.data) throw uploaded.error;
   const remoteHash = await computeSha256(existing.data);
-  if (remoteHash.toLowerCase() !== media.content_hash.toLowerCase()) {
-    throw new CanonicalMediaIntegrityError(`Remote media ${media.id} exists with different bytes.`);
-  }
+  if (remoteHash.toLowerCase() !== media.content_hash.toLowerCase()) throw new CanonicalMediaIntegrityError(`Remote media ${media.id} exists with different bytes.`);
   return path;
 }
 
 async function backupMedia(value: V2Media, clock: () => string): Promise<void> {
-  const at = clock();
+  const attemptAt = clock();
   try {
     const remotePath = await ensureRemoteMediaBytes(value);
-    const remotePayload = {
+    const uploadedAt = clock();
+    const remotePayload: RemoteMediaPayload = {
       ...stripSync(value),
-      storage: { location: 'remote_only' as const, remote_path: remotePath },
+      storage: { location: 'remote_only', remote_path: remotePath },
+      _remote_uploaded_at: uploadedAt,
     };
     const revision = await putChild({ kind: 'media', id: value.id, recordId: value.record_id, payload: remotePayload, expectedRemoteRevision: value.sync.remote_version });
     await localDB.canonical_media.put(V2MediaSchema.parse({
       ...value,
-      storage: { location: 'local_and_remote', remote_path: remotePath, uploaded_at: at },
-      sync: syncedMeta(value.sync, at, revision),
+      storage: { location: 'local_and_remote', remote_path: remotePath, uploaded_at: uploadedAt },
+      sync: syncedMeta(value.sync, uploadedAt, revision),
     }));
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Media backup failed.';
-    const nextSync = error instanceof CanonicalCloudConflictError
-      ? failedMeta(value.sync, at, message)
-      : failedMeta(value.sync, at, message);
-    await localDB.canonical_media.put(V2MediaSchema.parse({ ...value, sync: nextSync }));
+    await localDB.canonical_media.put(V2MediaSchema.parse({ ...value, sync: failedMeta(value.sync, attemptAt, message) }));
     throw error;
   }
 }
@@ -139,11 +131,6 @@ async function backupAppendOnlyOwnerRows(ownerId: string): Promise<void> {
 
 export interface CanonicalBackupReport { records: number; clarifications: number; media: number; appendOnlyRows: number; }
 
-/**
- * Back up one activated canonical owner without consulting legacy tables.
- * Record conflicts stop the operation before any child/media transfer, so a
- * mixed record generation is never presented as a complete backup.
- */
 export async function backupCanonicalOwner(ownerId: string, clock: () => string = () => new Date().toISOString()): Promise<CanonicalBackupReport> {
   if (!ownerId) throw new Error('Owner id is required for canonical backup.');
   const recordResults = await pushCanonicalOwner(ownerId);
