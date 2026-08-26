@@ -1,6 +1,7 @@
--- Canonical IDs are opaque strings in Chronicle, not guaranteed UUIDs.
--- Migration deliberately creates stable ids such as legacy-person:... and
--- legacy-relationship:..., so the cloud authority must preserve them exactly.
+-- Canonical IDs are opaque strings in Chronicle, not guaranteed UUIDs and not
+-- globally unique across accounts. Migration deliberately creates stable ids
+-- such as legacy-person:... and legacy-relationship:..., so the cloud authority
+-- must preserve them exactly and scope identity by owner.
 
 -- Remove UUID-signature RPCs before changing the backing id columns.
 drop function if exists public.sync_upsert_canonical_child(text, uuid, uuid, jsonb, integer);
@@ -11,6 +12,13 @@ alter table public.canonical_records
 alter table public.canonical_children
   alter column id type text using id::text,
   alter column record_id type text using record_id::text;
+
+-- Chronicle identity is owner-scoped. Do not make two accounts compete for the
+-- same opaque id merely because an id happens to be reused across owners.
+alter table public.canonical_records drop constraint if exists canonical_records_pkey;
+alter table public.canonical_records add constraint canonical_records_pkey primary key (owner_id, id);
+alter table public.canonical_children drop constraint if exists canonical_children_pkey;
+alter table public.canonical_children add constraint canonical_children_pkey primary key (owner_id, kind, id);
 
 create or replace function public.sync_upsert_canonical_record(
   row_id text,
