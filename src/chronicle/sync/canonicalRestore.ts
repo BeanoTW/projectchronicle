@@ -60,6 +60,15 @@ function assertChildIdentity(child: RemoteChildRow, ownerId: string): asserts ch
   if (child.kind !== 'person' && child.kind !== 'organisation' && child.record_id === null) throw new CanonicalCloudConflictError(`Remote ${child.kind} ${child.id} is missing its record id.`);
 }
 
+function validateRemoteChildPayload(child: RemoteChildRow): void {
+  if (child.kind === 'media') return;
+  if (child.kind === 'clarification') { RemoteClarificationBodySchema.parse(child.payload); return; }
+  if (child.kind === 'history') { RemoteRecordEventSchema.parse(child.payload); return; }
+  if (child.kind === 'person') { RemotePersonSchema.parse(child.payload); return; }
+  if (child.kind === 'organisation') { RemoteOrganisationSchema.parse(child.payload); return; }
+  RemoteRelationshipSchema.parse(child.payload);
+}
+
 function localMediaFromRemote(child: RemoteChildRow & { payload: Record<string, unknown> }, at: string): V2Media {
   const raw = child.payload as unknown as RemoteMediaPayload;
   if (raw.storage?.location !== 'remote_only' || !raw.storage.remote_path) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no canonical object path.`);
@@ -111,9 +120,18 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
   const at = clock();
   const { records, children } = await fetchRemoteRows(ownerId);
   const remoteRecordIds = new Set(records.map(record => record.id));
+  const remoteEntities = new Set(children.filter(child => child.kind === 'person' || child.kind === 'organisation').map(child => `${child.kind}:${child.id}`));
+
   for (const child of children) {
     assertChildIdentity(child, ownerId);
+    validateRemoteChildPayload(child);
     if (child.record_id && !remoteRecordIds.has(child.record_id)) throw new CanonicalCloudConflictError(`Remote child ${child.id} points to a missing canonical record.`);
+    if (child.kind === 'relationship') {
+      const relationship = RemoteRelationshipSchema.parse(child.payload);
+      if (!remoteEntities.has(`${relationship.entity_type}:${relationship.entity_id}`)) {
+        throw new CanonicalCloudConflictError(`Remote relationship ${child.id} points to a missing ${relationship.entity_type}.`);
+      }
+    }
   }
 
   let recordsAdded = 0;
