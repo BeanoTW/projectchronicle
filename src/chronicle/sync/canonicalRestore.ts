@@ -4,6 +4,13 @@ import { computeSha256 } from '@/lib/attachments/integrity';
 import { V2MediaSchema, V2RecordSchema } from '../model/contracts';
 import type { SyncMetadata, V2Clarification, V2Media, V2Record } from '../model/schema';
 import { CANONICAL_MEDIA_BUCKET, CanonicalCloudConflictError, CanonicalMediaIntegrityError } from './canonicalBackup';
+import {
+  RemoteClarificationBodySchema,
+  RemoteOrganisationSchema,
+  RemotePersonSchema,
+  RemoteRecordEventSchema,
+  RemoteRelationshipSchema,
+} from './canonicalRemoteContracts';
 
 type RemoteRecordRow = { payload: unknown };
 type RemoteChildRow = {
@@ -57,6 +64,8 @@ function localMediaFromRemote(child: RemoteChildRow & { payload: Record<string, 
   const raw = child.payload as unknown as RemoteMediaPayload;
   if (raw.storage?.location !== 'remote_only' || !raw.storage.remote_path) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no canonical object path.`);
   if (!raw.content_hash) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has no recorded integrity hash.`);
+  const expectedPath = `${raw.owner_id}/${raw.record_id}/${raw.id}`;
+  if (raw.storage.remote_path !== expectedPath) throw new CanonicalMediaIntegrityError(`Remote media ${child.id} has an inconsistent canonical object path.`);
   return V2MediaSchema.parse({
     ...raw,
     storage: { location: 'local_and_remote', remote_path: raw.storage.remote_path, uploaded_at: child.updated_at },
@@ -142,7 +151,8 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
       }
       if (child.kind === 'clarification') {
         const existing = await localDB.canonical_clarifications.get(child.id);
-        const restored = { ...(payload as unknown as Omit<V2Clarification, 'sync'>), sync: restoredSync(child.remote_revision, at) } as V2Clarification;
+        const body = RemoteClarificationBodySchema.parse(payload);
+        const restored: V2Clarification = { ...body, sync: restoredSync(child.remote_revision, at) };
         if (existing) {
           const { sync: _a, ...existingBody } = existing; const { sync: _b, ...remoteBody } = restored;
           if (!same(existingBody, remoteBody)) throw new CanonicalCloudConflictError(`Local clarification ${child.id} differs from remote.`);
@@ -151,26 +161,30 @@ export async function restoreCanonicalOwner(ownerId: string, clock: () => string
         continue;
       }
       if (child.kind === 'history') {
+        const remote = RemoteRecordEventSchema.parse(payload);
         const existing = await localDB.canonical_history.get(child.id);
-        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local history ${child.id} differs from remote.`);
-        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_history.add(payload as never); childrenAdded++; }
+        if (existing && !same(existing, remote)) throw new CanonicalCloudConflictError(`Local history ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_history.add(remote); childrenAdded++; }
         continue;
       }
       if (child.kind === 'person') {
+        const remote = RemotePersonSchema.parse(payload);
         const existing = await localDB.canonical_people.get(child.id);
-        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local person ${child.id} differs from remote.`);
-        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_people.add(payload as never); childrenAdded++; }
+        if (existing && !same(existing, remote)) throw new CanonicalCloudConflictError(`Local person ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_people.add(remote); childrenAdded++; }
         continue;
       }
       if (child.kind === 'organisation') {
+        const remote = RemoteOrganisationSchema.parse(payload);
         const existing = await localDB.canonical_organisations.get(child.id);
-        if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local organisation ${child.id} differs from remote.`);
-        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_organisations.add(payload as never); childrenAdded++; }
+        if (existing && !same(existing, remote)) throw new CanonicalCloudConflictError(`Local organisation ${child.id} differs from remote.`);
+        if (existing) childrenAlreadyLocal++; else { await localDB.canonical_organisations.add(remote); childrenAdded++; }
         continue;
       }
+      const remote = RemoteRelationshipSchema.parse(payload);
       const existing = await localDB.canonical_relationships.get(child.id);
-      if (existing && !same(existing, payload)) throw new CanonicalCloudConflictError(`Local relationship ${child.id} differs from remote.`);
-      if (existing) childrenAlreadyLocal++; else { await localDB.canonical_relationships.add(payload as never); childrenAdded++; }
+      if (existing && !same(existing, remote)) throw new CanonicalCloudConflictError(`Local relationship ${child.id} differs from remote.`);
+      if (existing) childrenAlreadyLocal++; else { await localDB.canonical_relationships.add(remote); childrenAdded++; }
     }
   });
 
