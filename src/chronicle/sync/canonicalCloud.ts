@@ -7,9 +7,32 @@ export type CanonicalPushResult =
   | { status: 'ok'; remoteRevision: number; record: V2Record }
   | { status: 'conflict'; remoteRevision: number | null; remoteRecord: V2Record | null };
 
-const attempted = (record: V2Record, at: string): V2Record => V2RecordSchema.parse({
+export const markCanonicalQueued = (record: V2Record, at: string): V2Record => V2RecordSchema.parse({
   ...record,
-  sync: { ...record.sync, state: { state: 'syncing' }, last_attempt_at: at },
+  sync: { ...record.sync, state: { state: 'queued', since: at }, last_attempt_at: at },
+});
+
+export const markCanonicalFailed = (record: V2Record, at: string, message: string): V2Record => {
+  const attempts = record.sync.state.state === 'failed' ? record.sync.state.attempts + 1 : 1;
+  return V2RecordSchema.parse({
+    ...record,
+    sync: { ...record.sync, state: { state: 'failed', at, attempts, message }, last_attempt_at: at },
+  });
+};
+
+export const markCanonicalConflict = (record: V2Record, at: string, remoteVersion: number): V2Record => V2RecordSchema.parse({
+  ...record,
+  sync: { ...record.sync, state: { state: 'conflict', detected_at: at, remote_version: remoteVersion }, last_attempt_at: at },
+});
+
+export const markCanonicalSynced = (record: V2Record, at: string, remoteVersion: number): V2Record => V2RecordSchema.parse({
+  ...record,
+  sync: {
+    remote_version: remoteVersion,
+    local_revision: record.sync.local_revision,
+    state: { state: 'synced', at, remote_version: remoteVersion },
+    last_attempt_at: at,
+  },
 });
 
 /**
@@ -26,7 +49,7 @@ export async function pushCanonicalRecord(
   if (!raw || raw.owner_id !== ownerId) throw new Error('Canonical record was not found for this owner.');
   const record = V2RecordSchema.parse(raw);
   const at = clock();
-  await localDB.canonical_records.put(attempted(record, at));
+  await localDB.canonical_records.put(markCanonicalQueued(record, at));
 
   const { data, error } = await supabase.rpc('sync_upsert_canonical_record' as never, {
     row_id: record.id,
@@ -36,40 +59,32 @@ export async function pushCanonicalRecord(
   } as never);
 
   if (error) {
-    await localDB.canonical_records.put(V2RecordSchema.parse({
-      ...record,
-      sync: { ...record.sync, state: { state: 'error', message: error.message }, last_attempt_at: at },
-    }));
+    await localDB.canonical_records.put(markCanonicalFailed(record, at, error.message));
     throw error;
   }
 
   const result = data as unknown as { status: string; remote_revision?: number | null; payload?: unknown };
   if (result.status === 'conflict') {
     const remoteRecord = result.payload ? V2RecordSchema.parse(result.payload) : null;
-    await localDB.canonical_records.put(V2RecordSchema.parse({
-      ...record,
-      sync: {
-        ...record.sync,
-        state: { state: 'conflict' },
-        last_attempt_at: at,
-      },
-    }));
-    return { status: 'conflict', remoteRevision: result.remote_revision ?? null, remoteRecord };
+    const remoteRevision = result.remote_revision ?? null;
+    if (remoteRevision === null) {
+      // The local contract deliberately has no fake numeric version for a missing
+      // remote row. Preserve that fact as a failed sync and return the explicit
+      // conflict to the caller rather than inventing version 0.
+      await localDB.canonical_records.put(markCanonicalFailed(record, at, 'Remote canonical row was unexpectedly absent.'));
+    } else {
+      await localDB.canonical_records.put(markCanonicalConflict(record, at, remoteRevision));
+    }
+    return { status: 'conflict', remoteRevision, remoteRecord };
   }
 
   if (result.status !== 'ok' || typeof result.remote_revision !== 'number') {
-    throw new Error('Canonical sync returned an invalid response.');
+    const message = 'Canonical sync returned an invalid response.';
+    await localDB.canonical_records.put(markCanonicalFailed(record, at, message));
+    throw new Error(message);
   }
 
-  const synced = V2RecordSchema.parse({
-    ...record,
-    sync: {
-      remote_version: result.remote_revision,
-      local_revision: record.sync.local_revision,
-      state: { state: 'synced' },
-      last_attempt_at: at,
-    },
-  });
+  const synced = markCanonicalSynced(record, at, result.remote_revision);
   await localDB.canonical_records.put(synced);
   return { status: 'ok', remoteRevision: result.remote_revision, record: synced };
 }
