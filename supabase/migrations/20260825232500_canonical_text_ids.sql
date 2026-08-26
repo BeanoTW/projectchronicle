@@ -66,10 +66,16 @@ begin
     raise exception 'sealed canonical record fields are immutable';
   end if;
 
+  -- Crash-safe acknowledgement: if the server has already committed exactly
+  -- this local revision/body, return its actual remote revision regardless of
+  -- the stale expected version supplied by a client that died before storing
+  -- the prior acknowledgement. Transport-only sync metadata is excluded.
+  if current_row.local_revision = row_local_revision
+     and (current_row.payload - 'sync') = (row_payload - 'sync') then
+    return jsonb_build_object('status', 'ok', 'remote_revision', current_remote_revision);
+  end if;
+
   if expected_remote_revision is null then
-    if current_row.local_revision = row_local_revision and (current_row.payload - 'sync') = (row_payload - 'sync') then
-      return jsonb_build_object('status', 'ok', 'remote_revision', current_remote_revision);
-    end if;
     return jsonb_build_object('status', 'conflict', 'remote_revision', current_remote_revision, 'payload', current_row.payload);
   end if;
 
