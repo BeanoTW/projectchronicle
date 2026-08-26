@@ -104,7 +104,7 @@ describe('Phase 5 — canonical activation guard', () => {
     await applyCanonicalMigration(build, db);
     await db.canonical_organisations.add({
       id: 'extra-org', owner_id: 'owner-1', display_name: 'Example Ltd', normalised_name: 'example ltd',
-      role_note: null, created_at: at(0), merged_into_id: null,
+      note: null, created_at: at(0), merged_into_id: null,
     });
 
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
@@ -123,7 +123,7 @@ describe('Phase 5 — canonical activation guard', () => {
 
     await db.canonical_organisations.add({
       id: 'post-old-receipt-org', owner_id: 'owner-1', display_name: 'Later Org', normalised_name: 'later org',
-      role_note: null, created_at: at(1), merged_into_id: null,
+      note: null, created_at: at(1), merged_into_id: null,
     });
     expect(await getCanonicalActivation('owner-1', db)).toBeNull();
   });
