@@ -27,24 +27,49 @@ const BackupRecoveryScreen = () => {
   const [deleteCloudOpen, setDeleteCloudOpen] = useState(false);
   const [deleteCloudConfirm, setDeleteCloudConfirm] = useState('');
   const [conflictBusy, setConflictBusy] = useState<string | null>(null);
+  const [authorityReady, setAuthorityReady] = useState(!user);
 
   const conflicts = useLiveQuery(
     async () => {
-      if (!user || canonicalAuthority) return [];
+      if (!user || !authorityReady || canonicalAuthority) return [];
       return localDB.incidents.where('owner_user_id').equals(user.id).filter(record => record.sync_state === 'conflict').toArray();
     },
-    [user?.id, conflictCount, canonicalAuthority],
+    [user?.id, conflictCount, canonicalAuthority, authorityReady],
     [],
   );
 
-  useEffect(() => { void refreshDiagnostics(); void refreshCloudCount(); }, [refreshDiagnostics, refreshCloudCount]);
+  useEffect(() => {
+    let active = true;
+    setAuthorityReady(!user);
+    if (!user) return () => { active = false; };
+    void Promise.all([refreshDiagnostics(), refreshCloudCount()]).finally(() => {
+      if (active) setAuthorityReady(true);
+    });
+    return () => { active = false; };
+  }, [user, refreshDiagnostics, refreshCloudCount]);
 
   const status = useMemo(() => backupStatusLabel({ backupEnabled, online, pendingCount, conflictCount, syncStatus, lastBackupAt }), [backupEnabled, online, pendingCount, conflictCount, syncStatus, lastBackupAt]);
+
+  if (user && !authorityReady) {
+    return (
+      <AppSurface>
+        <div className="proto-page" data-testid="backup-recovery">
+          <ChroniclePageHeader title="Backup & recovery" eyebrow="Record safety" subtitle="See what is protected, back up changes and recover records on this device." />
+          <div className="proto-settings-grid">
+            <SettingsSection title="Protection status">
+              <SettingsRow label="Current status" value="Checking backup authority…" help="Chronicle is confirming which storage authority protects this account before showing backup or recovery controls." />
+              <SettingsRow label="Connection" value={online ? 'Online' : 'Offline'} />
+            </SettingsSection>
+          </div>
+        </div>
+      </AppSurface>
+    );
+  }
 
   const handleBackupToggle = async (enabled: boolean) => {
     setOperation('toggle');
     try { await setBackupEnabled(enabled); }
-    catch { toast({ title: enabled ? 'Cloud backup could not be turned on' : 'Cloud backup could not be turned off', description: 'Your records have not been changed. Check your connection and try again.', variant: 'destructive' }); }
+    catch { toast({ title: 'Backup setting could not be changed', description: 'Your records have not been removed. Check the protection status before trying again.', variant: 'destructive' }); }
     finally { setOperation(null); }
   };
 
