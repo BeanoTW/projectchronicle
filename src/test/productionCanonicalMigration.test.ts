@@ -4,6 +4,7 @@ import { ChronicleDB, type LocalFollowUpNote, type LocalIncident } from '@/local
 import {
   loadProductionV1Snapshot,
   migrateProductionOwnerToCanonical,
+  preflightProductionCanonicalMigration,
   ProductionCanonicalMigrationError,
   type ProductionLegacySourceAdapter,
 } from '@/chronicle/model/productionCanonicalMigration';
@@ -114,32 +115,73 @@ describe('production canonical migration', () => {
       .rejects.toMatchObject({ code: 'source_conflict' });
   });
 
-  it('does not activate when deterministic source validation requires handling', async () => {
+  it('reports deterministic source blockers before any canonical write', async () => {
     const bad = incident('bad-time');
     bad.incident_time = 'after lunch';
     await db.incidents.add(bad);
+    const adapter = source(['bad-time']);
 
-    await expect(migrateProductionOwnerToCanonical(owner, { db, source: source(['bad-time']) }))
-      .rejects.toBeInstanceOf(ProductionCanonicalMigrationError);
+    const preflight = await preflightProductionCanonicalMigration(owner, { db, source: adapter });
+    expect(preflight.blockers).toContain('incident:bad-time:malformed_event_time');
+    expect(await db.canonical_records.count()).toBe(0);
+
+    await expect(migrateProductionOwnerToCanonical(owner, {
+      db,
+      source: adapter,
+      expectedSourceFingerprint: preflight.fingerprint,
+    })).rejects.toMatchObject({ code: 'activation_blocked' });
+    expect(await getCanonicalActivation(owner, db)).toBeNull();
+    expect(await db.canonical_records.count()).toBe(0);
+  });
+
+  it('refuses execution when the source changes after approved preflight', async () => {
+    await db.incidents.add(incident('record-1'));
+    const adapter = source(['record-1']);
+    const preflight = await preflightProductionCanonicalMigration(owner, { db, source: adapter });
+    expect(preflight.blockers).toEqual([]);
+
+    await db.incidents.update('record-1', { raw_narrative: 'Changed after approval', local_updated_at: '2026-08-26T04:31:00.000Z' });
+    await expect(migrateProductionOwnerToCanonical(owner, {
+      db,
+      source: adapter,
+      expectedSourceFingerprint: preflight.fingerprint,
+    })).rejects.toMatchObject({ code: 'source_changed' });
+    expect(await db.canonical_records.count()).toBe(0);
     expect(await getCanonicalActivation(owner, db)).toBeNull();
   });
 
-  it('writes and activates a clean explicitly selected owner without deleting legacy rows', async () => {
+  it('writes and activates a clean explicitly selected owner only after matching preflight', async () => {
     await db.incidents.add(incident('record-1'));
     const localNote = note('note-1', 'record-1');
     await db.follow_up_notes.add(localNote);
+    const adapter = source(['record-1'], [localNote]);
+    const preflight = await preflightProductionCanonicalMigration(owner, { db, source: adapter });
+    expect(preflight.blockers).toEqual([]);
+    expect(preflight.fingerprint).toMatch(/^[a-f0-9]{64}$/);
 
     const report = await migrateProductionOwnerToCanonical(owner, {
       db,
-      source: source(['record-1'], [localNote]),
+      source: adapter,
+      expectedSourceFingerprint: preflight.fingerprint,
       clock: () => at,
     });
 
     expect(report.source).toEqual({ localIncidents: 1, localNotes: 1, cloudEvidence: 0, cloudHistory: 0 });
+    expect(report.sourceFingerprint).toBe(preflight.fingerprint);
     expect(report.activation.owner_id).toBe(owner);
     expect(await getCanonicalActivation(owner, db)).not.toBeNull();
     expect(await db.canonical_records.where('owner_id').equals(owner).count()).toBe(1);
     expect(await db.incidents.where('owner_user_id').equals(owner).count()).toBe(1);
     expect(await db.follow_up_notes.where('owner_user_id').equals(owner).count()).toBe(1);
+  });
+
+  it('requires a preflight fingerprint for production execution', async () => {
+    await db.incidents.add(incident('record-1'));
+    await expect(migrateProductionOwnerToCanonical(owner, {
+      db,
+      source: source(['record-1']),
+      expectedSourceFingerprint: '',
+    })).rejects.toBeInstanceOf(ProductionCanonicalMigrationError);
+    expect(await db.canonical_records.count()).toBe(0);
   });
 });
