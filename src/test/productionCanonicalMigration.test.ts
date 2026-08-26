@@ -27,6 +27,8 @@ const incident = (id: string): LocalIncident => ({
   excluded_from_rep: false,
   people_involved: [],
   witnesses: [],
+  version: 1,
+  cloud_version: null,
   sync_state: 'local_only',
   last_sync_attempt_at: null,
   last_sync_error: null,
@@ -46,9 +48,18 @@ const note = (id: string, recordId: string): LocalFollowUpNote => ({
   local_updated_at: at,
 } as LocalFollowUpNote);
 
-const source = (cloudIncidentIds: string[], cloudNoteIds: string[] = []): ProductionLegacySourceAdapter => ({
+const source = (
+  incidentIds: string[],
+  notes: LocalFollowUpNote[] = [],
+  versions: Record<string, number> = {},
+): ProductionLegacySourceAdapter => ({
   async loadCloudSources() {
-    return { evidence: [], history: [], cloudIncidentIds, cloudNoteIds };
+    return {
+      evidence: [],
+      history: [],
+      cloudIncidents: incidentIds.map(id => ({ id, version: versions[id] ?? 1, updated_at: at })),
+      cloudNotes: notes.map(row => ({ id: row.id, incident_id: row.incident_id, note_text: row.note_text, note_type: row.note_type, created_at: row.created_at })),
+    };
   },
 });
 
@@ -68,6 +79,7 @@ describe('production canonical migration', () => {
     expect(raw.owner_user_id).toBeUndefined();
     expect(raw.sync_state).toBeUndefined();
     expect(raw.local_updated_at).toBeUndefined();
+    expect(raw.cloud_version).toBeUndefined();
   });
 
   it('blocks cutover when the cloud knows about a legacy row missing from this device', async () => {
@@ -75,6 +87,31 @@ describe('production canonical migration', () => {
     await expect(loadProductionV1Snapshot(owner, db, source(['local-present', 'cloud-missing'])))
       .rejects.toMatchObject({ code: 'local_source_incomplete' });
     expect(await getCanonicalActivation(owner, db)).toBeNull();
+  });
+
+  it('blocks rather than choosing a winner for a known or cloud-newer incident', async () => {
+    const conflicted = incident('conflict');
+    conflicted.sync_state = 'conflict';
+    conflicted.cloud_version = 2;
+    await db.incidents.add(conflicted);
+    await expect(loadProductionV1Snapshot(owner, db, source(['conflict'], [], { conflict: 2 })))
+      .rejects.toMatchObject({ code: 'source_conflict' });
+
+    await db.incidents.clear();
+    const stale = incident('stale');
+    stale.cloud_version = 1;
+    await db.incidents.add(stale);
+    await expect(loadProductionV1Snapshot(owner, db, source(['stale'], [], { stale: 2 })))
+      .rejects.toMatchObject({ code: 'source_conflict' });
+  });
+
+  it('blocks a same-id follow-up note whose cloud content differs', async () => {
+    await db.incidents.add(incident('record-1'));
+    const localNote = note('note-1', 'record-1');
+    await db.follow_up_notes.add(localNote);
+    const remoteNote = { ...localNote, note_text: 'Different cloud wording' };
+    await expect(loadProductionV1Snapshot(owner, db, source(['record-1'], [remoteNote])))
+      .rejects.toMatchObject({ code: 'source_conflict' });
   });
 
   it('does not activate when deterministic source validation requires handling', async () => {
@@ -89,11 +126,12 @@ describe('production canonical migration', () => {
 
   it('writes and activates a clean explicitly selected owner without deleting legacy rows', async () => {
     await db.incidents.add(incident('record-1'));
-    await db.follow_up_notes.add(note('note-1', 'record-1'));
+    const localNote = note('note-1', 'record-1');
+    await db.follow_up_notes.add(localNote);
 
     const report = await migrateProductionOwnerToCanonical(owner, {
       db,
-      source: source(['record-1'], ['note-1']),
+      source: source(['record-1'], [localNote]),
       clock: () => at,
     });
 
