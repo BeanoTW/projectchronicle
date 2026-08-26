@@ -58,11 +58,11 @@ describe('Phase 5 — canonical activation guard', () => {
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit).toEqual({
       ok: true,
-      counts: { records: 1, clarifications: 1, media: 1, history: 1, people: 1, relationships: 1 },
+      counts: { records: 1, clarifications: 1, media: 1, history: 1, people: 1, organisations: 0, relationships: 1 },
     });
 
     const receipt = await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
-    expect(receipt).toMatchObject({ owner_id: 'owner-1', state: 'canonical', activated_at: at(10) });
+    expect(receipt).toMatchObject({ owner_id: 'owner-1', state: 'canonical', activated_at: at(10), counts: { organisations: 0 } });
     expect(await getCanonicalActivation('owner-1', db)).toEqual(receipt);
   });
 
@@ -97,6 +97,35 @@ describe('Phase 5 — canonical activation guard', () => {
     audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit.ok).toBe(false);
     if (!audit.ok) expect(audit.reasons).toContain('person:extra-person is unexpected before activation');
+  });
+
+  it('blocks activation when an unaudited organisation row exists', async () => {
+    const build = buildCanonicalMigration(cleanSnapshot());
+    await applyCanonicalMigration(build, db);
+    await db.canonical_organisations.add({
+      id: 'extra-org', owner_id: 'owner-1', display_name: 'Example Ltd', normalised_name: 'example ltd',
+      note: null, created_at: at(0), merged_into_id: null,
+    });
+
+    const audit = await auditCanonicalActivation(build, 'owner-1', db);
+    expect(audit.ok).toBe(false);
+    if (!audit.ok) expect(audit.reasons).toContain('organisation:extra-org is unexpected before activation');
+  });
+
+  it('accepts an old receipt only while no unaudited organisation rows exist', async () => {
+    const oldReceipt = {
+      version: 1, owner_id: 'owner-1', state: 'canonical', activated_at: at(0),
+      counts: { records: 1, clarifications: 1, media: 1, history: 1, people: 1, relationships: 1 },
+      inspected: { incidents: 1, notes: 1, evidence: 1, history: 1 },
+    };
+    await db.meta.put({ key: canonicalActivationKey('owner-1'), value: JSON.stringify(oldReceipt) });
+    expect(await getCanonicalActivation('owner-1', db)).not.toBeNull();
+
+    await db.canonical_organisations.add({
+      id: 'post-old-receipt-org', owner_id: 'owner-1', display_name: 'Later Org', normalised_name: 'later org',
+      note: null, created_at: at(1), merged_into_id: null,
+    });
+    expect(await getCanonicalActivation('owner-1', db)).toBeNull();
   });
 
   it('treats malformed or foreign activation receipts as inactive', async () => {

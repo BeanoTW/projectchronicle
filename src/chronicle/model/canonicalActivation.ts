@@ -22,6 +22,7 @@ export interface CanonicalActivationReceipt {
     media: number;
     history: number;
     people: number;
+    organisations?: number;
     relationships: number;
   };
   inspected: CanonicalMigrationBuild['inspected'];
@@ -64,6 +65,10 @@ const checkTable = async <T extends { id: string; owner_id: string }>(
  * Audits one owner against a migration build. `requires_handling` is treated as
  * activation-blocking: rows may remain safely in V1, but Chronicle must not
  * switch the account to a canonical-only read path while they are unresolved.
+ *
+ * Legacy migration builds do not create organisations, so the expected set is
+ * deliberately empty. Any pre-activation organisation row is therefore
+ * unexpected and blocks cutover instead of silently escaping the audit.
  */
 export const auditCanonicalActivation = async (
   build: CanonicalMigrationBuild,
@@ -80,6 +85,7 @@ export const auditCanonicalActivation = async (
     media: ownerRows(build.media, ownerId),
     history: ownerRows(build.history, ownerId),
     people: ownerRows(build.people, ownerId),
+    organisations: [] as const,
     relationships: ownerRows(build.relationships, ownerId),
   };
 
@@ -89,6 +95,7 @@ export const auditCanonicalActivation = async (
     media: await db.canonical_media.where('owner_id').equals(ownerId).toArray(),
     history: await db.canonical_history.where('owner_id').equals(ownerId).toArray(),
     people: await db.canonical_people.where('owner_id').equals(ownerId).toArray(),
+    organisations: await db.canonical_organisations.where('owner_id').equals(ownerId).toArray(),
     relationships: await db.canonical_relationships.where('owner_id').equals(ownerId).toArray(),
   };
 
@@ -97,6 +104,7 @@ export const auditCanonicalActivation = async (
   reasons.push(...await checkTable('media', expected.media, actual.media));
   reasons.push(...await checkTable('history', expected.history, actual.history));
   reasons.push(...await checkTable('person', expected.people, actual.people));
+  reasons.push(...await checkTable('organisation', expected.organisations, actual.organisations));
   reasons.push(...await checkTable('relationship', expected.relationships, actual.relationships));
 
   if (reasons.length > 0) return { ok: false, reasons: [...new Set(reasons)].sort() };
@@ -109,6 +117,7 @@ export const auditCanonicalActivation = async (
       media: expected.media.length,
       history: expected.history.length,
       people: expected.people.length,
+      organisations: expected.organisations.length,
       relationships: expected.relationships.length,
     },
   };
@@ -152,6 +161,14 @@ export const getCanonicalActivation = async (
       || !value.counts
       || !value.inspected
     ) return null;
+
+    // Receipts written before organisation auditing did not record this count.
+    // They remain valid only when no organisation rows currently exist for the
+    // owner; otherwise Chronicle cannot prove those rows were part of cutover.
+    if (typeof value.counts.organisations !== 'number') {
+      const organisations = await db.canonical_organisations.where('owner_id').equals(ownerId).count();
+      if (organisations !== 0) return null;
+    }
     return value as CanonicalActivationReceipt;
   } catch {
     return null;
