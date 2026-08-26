@@ -26,15 +26,10 @@ begin
   if row_payload ->> 'owner_id' is distinct from uid::text then raise exception 'canonical record owner mismatch'; end if;
   if row_payload -> 'original' is null then raise exception 'canonical original content required'; end if;
 
-  select * into current_row
-  from public.canonical_records
-  where id = row_id and owner_id = uid
-  for update;
+  select * into current_row from public.canonical_records where id = row_id and owner_id = uid for update;
 
   if not found then
-    if expected_remote_revision is not null then
-      return jsonb_build_object('status', 'conflict', 'remote_revision', null);
-    end if;
+    if expected_remote_revision is not null then return jsonb_build_object('status', 'conflict', 'remote_revision', null); end if;
     next_remote_revision := 1;
     stored_payload := jsonb_set(row_payload, '{sync}', jsonb_build_object(
       'remote_version', next_remote_revision,
@@ -42,15 +37,12 @@ begin
       'state', jsonb_build_object('state', 'synced', 'at', sync_at, 'remote_version', next_remote_revision),
       'last_attempt_at', sync_at
     ), true);
-    insert into public.canonical_records(id, owner_id, payload, local_revision)
-    values (row_id, uid, stored_payload, row_local_revision);
+    insert into public.canonical_records(id, owner_id, payload, local_revision) values (row_id, uid, stored_payload, row_local_revision);
     return jsonb_build_object('status', 'ok', 'remote_revision', next_remote_revision);
   end if;
 
   current_remote_revision := coalesce((current_row.payload #>> '{sync,remote_version}')::integer, 1);
 
-  -- Stable identity and sealed source fields can never change after first cloud
-  -- commit, regardless of the revision supplied by the client.
   if current_row.payload -> 'original' is distinct from row_payload -> 'original'
      or current_row.payload ->> 'id' is distinct from row_payload ->> 'id'
      or current_row.payload ->> 'owner_id' is distinct from row_payload ->> 'owner_id'
@@ -63,8 +55,7 @@ begin
   end if;
 
   if expected_remote_revision is null then
-    if current_row.local_revision = row_local_revision
-       and (current_row.payload - 'sync') = (row_payload - 'sync') then
+    if current_row.local_revision = row_local_revision and (current_row.payload - 'sync') = (row_payload - 'sync') then
       return jsonb_build_object('status', 'ok', 'remote_revision', current_remote_revision);
     end if;
     return jsonb_build_object('status', 'conflict', 'remote_revision', current_remote_revision, 'payload', current_row.payload);
@@ -81,12 +72,7 @@ begin
     'state', jsonb_build_object('state', 'synced', 'at', sync_at, 'remote_version', next_remote_revision),
     'last_attempt_at', sync_at
   ), true);
-  update public.canonical_records
-  set payload = stored_payload,
-      local_revision = row_local_revision,
-      updated_at = sync_at
-  where id = row_id and owner_id = uid;
-
+  update public.canonical_records set payload = stored_payload, local_revision = row_local_revision, updated_at = sync_at where id = row_id and owner_id = uid;
   return jsonb_build_object('status', 'ok', 'remote_revision', next_remote_revision);
 end;
 $$;
@@ -105,6 +91,7 @@ as $$
 declare
   uid uuid := auth.uid();
   current_row public.canonical_children%rowtype;
+  expected_media_path text;
 begin
   if uid is null then raise exception 'authentication required'; end if;
   if row_kind not in ('clarification', 'media', 'history', 'person', 'relationship', 'organisation') then raise exception 'invalid canonical child kind'; end if;
@@ -121,29 +108,27 @@ begin
     if not exists (select 1 from public.canonical_records where id = row_record_id and owner_id = uid) then raise exception 'canonical parent record not found'; end if;
   end if;
 
-  select * into current_row
-  from public.canonical_children
-  where kind = row_kind and id = row_id and owner_id = uid
-  for update;
+  if row_kind = 'media' then
+    expected_media_path := uid::text || '/' || row_record_id::text || '/' || row_id::text;
+    if row_payload #>> '{storage,location}' is distinct from 'remote_only' then raise exception 'canonical media must reference remote-only cloud storage'; end if;
+    if row_payload #>> '{storage,remote_path}' is distinct from expected_media_path then raise exception 'canonical media path mismatch'; end if;
+    if coalesce(row_payload ->> 'content_hash', '') = '' then raise exception 'canonical media integrity hash required'; end if;
+  end if;
+
+  select * into current_row from public.canonical_children where kind = row_kind and id = row_id and owner_id = uid for update;
 
   if not found then
     if expected_remote_revision is not null then return jsonb_build_object('status', 'conflict', 'remote_revision', null); end if;
-    insert into public.canonical_children(kind, id, owner_id, record_id, payload, remote_revision)
-    values (row_kind, row_id, uid, row_record_id, row_payload, 1);
+    insert into public.canonical_children(kind, id, owner_id, record_id, payload, remote_revision) values (row_kind, row_id, uid, row_record_id, row_payload, 1);
     return jsonb_build_object('status', 'ok', 'remote_revision', 1);
   end if;
 
-  -- Current canonical children are append-only/create-once objects. A retry of
-  -- the exact payload is idempotent; any different payload is a conflict. This
-  -- can be deliberately widened later for a specifically versioned child type.
   if current_row.record_id is distinct from row_record_id or current_row.payload is distinct from row_payload then
     return jsonb_build_object('status', 'conflict', 'remote_revision', current_row.remote_revision, 'payload', current_row.payload);
   end if;
-
   if expected_remote_revision is not null and expected_remote_revision <> current_row.remote_revision then
     return jsonb_build_object('status', 'conflict', 'remote_revision', current_row.remote_revision, 'payload', current_row.payload);
   end if;
-
   return jsonb_build_object('status', 'ok', 'remote_revision', current_row.remote_revision);
 end;
 $$;
