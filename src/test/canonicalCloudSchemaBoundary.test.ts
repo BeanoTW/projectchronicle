@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const readMigration = (name: string) => readFileSync(new URL(`../../supabase/migrations/${name}`, import.meta.url), 'utf8');
+const readMigration = (name: string) => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8');
 
 describe('canonical cloud SQL authority boundary', () => {
   const writeBoundary = readMigration('20260825232300_canonical_cloud_write_boundary.sql');
@@ -26,18 +26,18 @@ describe('canonical cloud SQL authority boundary', () => {
 
   it('binds media metadata to the exact owner/record/media storage path and integrity hash', () => {
     expect(textIds).toContain("expected_media_path := uid::text || '/' || row_record_id || '/' || row_id");
-    expect(textIds).toContain("canonical media path mismatch");
-    expect(textIds).toContain("canonical media integrity hash required");
+    expect(textIds).toContain('canonical media path mismatch');
+    expect(textIds).toContain('canonical media integrity hash required');
   });
 
   it('enforces sealed-original immutability and relationship entity existence server-side', () => {
     expect(textIds).toContain("current_row.payload -> 'original' is distinct from row_payload -> 'original'");
-    expect(textIds).toContain("sealed canonical record fields are immutable");
-    expect(textIds).toContain("canonical relationship entity not found");
+    expect(textIds).toContain('sealed canonical record fields are immutable');
+    expect(textIds).toContain('canonical relationship entity not found');
   });
 
   it('keeps record acknowledgement retries idempotent after a committed server update', () => {
-    expect(textIds).toContain("current_row.local_revision = row_local_revision");
+    expect(textIds).toContain('current_row.local_revision = row_local_revision');
     expect(textIds).toContain("(current_row.payload - 'sync') = (row_payload - 'sync')");
     expect(textIds).toContain("return jsonb_build_object('status', 'ok', 'remote_revision', current_remote_revision)");
   });
