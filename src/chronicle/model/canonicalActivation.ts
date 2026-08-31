@@ -58,11 +58,24 @@ const checkTable = async <T extends { id: string; owner_id: string }>(
   return reasons;
 };
 
+/**
+ * The audit result is a discriminated union. It is expressed as a named type
+ * with an explicit guard because this project compiles without
+ * `strictNullChecks`, where boolean-discriminant narrowing is unavailable.
+ */
+export type CanonicalActivationAudit =
+  | { ok: true; counts: CanonicalActivationReceipt['counts'] }
+  | { ok: false; reasons: readonly string[] };
+
+export const canonicalActivationBlocked = (
+  audit: CanonicalActivationAudit,
+): audit is { ok: false; reasons: readonly string[] } => !audit.ok;
+
 export const auditCanonicalActivation = async (
   build: CanonicalMigrationBuild,
   ownerId: string,
   db: ChronicleDB = localDB,
-): Promise<{ ok: true; counts: CanonicalActivationReceipt['counts'] } | { ok: false; reasons: readonly string[] }> => {
+): Promise<CanonicalActivationAudit> => {
   const reasons: string[] = [];
   build.issues.filter(issue => issue.severity !== 'safe').forEach(issue => reasons.push(`${issue.source}:${issue.source_id}:${issue.code}`));
   const expected = {
@@ -99,7 +112,7 @@ export const activateCanonicalOwner = async (
   clock: () => string = () => new Date().toISOString(),
 ): Promise<CanonicalActivationReceipt> => {
   const audit = await auditCanonicalActivation(build, ownerId, db);
-  if (!audit.ok) throw new CanonicalActivationBlockedError(audit.reasons);
+  if (canonicalActivationBlocked(audit)) throw new CanonicalActivationBlockedError(audit.reasons);
   const receipt: CanonicalActivationReceipt = { version: CANONICAL_ACTIVATION_VERSION, owner_id: ownerId, state: 'canonical', activated_at: clock(), counts: audit.counts, inspected: structuredClone(build.inspected) };
   await db.meta.put({ key: canonicalActivationKey(ownerId), value: JSON.stringify(receipt) });
   return receipt;

@@ -34,8 +34,8 @@ describe('canonicalRecordsToNotebookRecords', () => {
   });
 
   it('recognises voice sources without reading legacy record_method', () => {
-    const value = record();
-    value.original = { ...value.original, source: 'voice' };
+    const base = record();
+    const value = { ...base, original: { ...base.original, source: 'voice' as const } };
     expect(canonicalRecordsToNotebookRecords([value])[0].hasVoice).toBe(true);
   });
 });
