@@ -47,10 +47,9 @@ export async function registerServiceWorker() {
 
     const updateSW = registerSW({
       immediate: true,
-      registrationOptions: {
-        // Never reuse an HTTP-cached worker script when checking for a release.
-        updateViaCache: 'none',
-      },
+      // Never reuse an HTTP-cached worker script when checking for a release.
+      // `registrationOptions` is honoured by the plugin but absent from its types.
+      ...({ registrationOptions: { updateViaCache: 'none' } } as Record<string, unknown>),
       onRegisteredSW(swUrl, registration) {
         if (!registration) return;
 

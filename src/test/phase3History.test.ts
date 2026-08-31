@@ -14,7 +14,7 @@ describe('Phase 3/4 — plain Record History and provenance projection', () => {
       event('details', 'details_updated', 'category_id'),
       event('clarification', 'clarification_added'),
       event('membership', 'dossier_included'),
-    ] } as CanonicalEntryBundle;
+    ] } as unknown as CanonicalEntryBundle;
 
     expect(canonicalHistoryToItems(bundle)).toEqual([
       { id: 'details', label: 'Details updated', at: '2026-08-25T08:00:00.000Z', note: 'Category changed' },
@@ -26,7 +26,7 @@ describe('Phase 3/4 — plain Record History and provenance projection', () => {
   it('describes accepted structure assistance neutrally with frozen metadata', () => {
     const bundle = { history: [
       event('helper', 'input_helper_accepted', 'structure_assistance', JSON.stringify({ acceptedSuggestionCount: 2, helperVersion: 'structure-helper/1.0' })),
-    ] } as CanonicalEntryBundle;
+    ] } as unknown as CanonicalEntryBundle;
     expect(canonicalHistoryToItems(bundle)).toEqual([
       {
         id: 'helper',

@@ -416,12 +416,14 @@ export const applyCanonicalMigration = async (
 
   return db.transaction(
     'rw',
-    db.canonical_records,
-    db.canonical_clarifications,
-    db.canonical_media,
-    db.canonical_history,
-    db.canonical_people,
-    db.canonical_relationships,
+    [
+      db.canonical_records,
+      db.canonical_clarifications,
+      db.canonical_media,
+      db.canonical_history,
+      db.canonical_people,
+      db.canonical_relationships,
+    ],
     async () => {
       const recordResult = await writeRows('canonical_records', db.canonical_records, build.records);
       const clarificationResult = await writeRows('canonical_clarifications', db.canonical_clarifications, build.clarifications);
