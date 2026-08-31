@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ChronicleDB, CanonicalStorageBoundaryError, type LocalIncident } from '@/local/db';
+import { ChronicleDB, CanonicalStorageBoundaryError, META_KEYS, type LocalIncident } from '@/local/db';
 import { applyCanonicalMigration, buildCanonicalMigration } from '@/chronicle/model/canonicalMigration';
 import type { V1Snapshot } from '@/chronicle/model/migrationPlan';
 import {
@@ -54,7 +54,10 @@ describe('confirmed account erasure', () => {
     await db.meta.bulkPut([
       { key: `canonical_activation:${A}`, value: '{}' },
       { key: `canonical_capture_enabled:${A}`, value: '{}' },
+      { key: META_KEYS.canonicalLastBackupAt(A), value: at },
+      { key: META_KEYS.canonicalLastRestoreAt(A), value: at },
       { key: `canonical_activation:${B}`, value: '{}' },
+      { key: META_KEYS.canonicalLastBackupAt(B), value: at },
       { key: 'backup_enabled', value: '1' },
     ]);
   });
@@ -76,7 +79,7 @@ describe('confirmed account erasure', () => {
     expect(report.canonical_records).toBe(1);
     expect(report.canonical_clarifications).toBe(1);
     expect(report.quarantined_rows).toBe(1);
-    expect(report.meta_rows).toBe(2);
+    expect(report.meta_rows).toBe(4);
 
     expect(await db.incidents.where('owner_user_id').equals(A).count()).toBe(0);
     expect(await db.canonical_records.where('owner_id').equals(A).count()).toBe(0);
@@ -86,6 +89,8 @@ describe('confirmed account erasure', () => {
     expect(await db.quarantine.where('owner_user_id').equals(A).count()).toBe(0);
     expect(await db.meta.get(`canonical_activation:${A}`)).toBeUndefined();
     expect(await db.meta.get(`canonical_capture_enabled:${A}`)).toBeUndefined();
+    expect(await db.meta.get(META_KEYS.canonicalLastBackupAt(A))).toBeUndefined();
+    expect(await db.meta.get(META_KEYS.canonicalLastRestoreAt(A))).toBeUndefined();
 
     expect(await db.incidents.where('owner_user_id').equals(B).count()).toBe(1);
     expect(await db.canonical_records.where('owner_id').equals(B).count()).toBe(1);
@@ -93,6 +98,7 @@ describe('confirmed account erasure', () => {
     expect(await db.canonical_people.where('owner_id').equals(B).count()).toBeGreaterThan(0);
     expect(await db.quarantine.where('owner_user_id').equals(B).count()).toBe(1);
     expect(await db.meta.get(`canonical_activation:${B}`)).toBeDefined();
+    expect(await db.meta.get(META_KEYS.canonicalLastBackupAt(B))).toBeDefined();
     expect(await db.meta.get('backup_enabled')).toEqual({ key: 'backup_enabled', value: '1' });
   });
 
