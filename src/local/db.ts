@@ -105,6 +105,8 @@ export class ChronicleDB extends Dexie {
           META_KEYS.hydratedFor(ownerId),
           META_KEYS.lastRestoreAt(ownerId),
           META_KEYS.lastBackupAt(ownerId),
+          META_KEYS.canonicalLastRestoreAt(ownerId),
+          META_KEYS.canonicalLastBackupAt(ownerId),
           `canonical_activation:${ownerId}`,
           `canonical_capture_enabled:${ownerId}`,
         ];
@@ -144,7 +146,14 @@ export class ChronicleDB extends Dexie {
 }
 
 export const localDB = new ChronicleDB();
-export const META_KEYS = { backupEnabled: 'backup_enabled', hydratedFor: (userId: string) => `hydrated_for:${userId}`, lastRestoreAt: (userId: string) => `last_restore_at:${userId}`, lastBackupAt: (userId: string) => `last_backup_at:${userId}` } as const;
+export const META_KEYS = {
+  backupEnabled: 'backup_enabled',
+  hydratedFor: (userId: string) => `hydrated_for:${userId}`,
+  lastRestoreAt: (userId: string) => `last_restore_at:${userId}`,
+  lastBackupAt: (userId: string) => `last_backup_at:${userId}`,
+  canonicalLastRestoreAt: (userId: string) => `canonical_cloud_last_restore_at:${userId}`,
+  canonicalLastBackupAt: (userId: string) => `canonical_cloud_last_backup_at:${userId}`,
+} as const;
 export const getMeta = async (key: string): Promise<string | null> => (await localDB.meta.get(key))?.value ?? null;
 export const setMeta = async (key: string, value: string): Promise<void> => { await localDB.meta.put({ key, value }); };
 export const isBackupEnabled = async (): Promise<boolean> => (await getMeta(META_KEYS.backupEnabled)) === '1';
