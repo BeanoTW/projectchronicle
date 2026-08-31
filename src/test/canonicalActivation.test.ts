@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { canonicalActivationBlocked, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CanonicalRecordReader } from '@/chronicle/model/adapters';
 import {
   activateCanonicalOwner,
@@ -38,7 +38,7 @@ describe('Phase 5 — canonical activation guard', () => {
     const build = buildCanonicalMigration(cleanSnapshot());
     const before = await auditCanonicalActivation(build, 'owner-1', db);
     expect(before.ok).toBe(false);
-    if (!before.ok) expect(before.reasons).toEqual(expect.arrayContaining([expect.stringContaining('is missing')]));
+    if (canonicalActivationBlocked(before)) expect(before.reasons).toEqual(expect.arrayContaining([expect.stringContaining('is missing')]));
     expect(await getCanonicalActivation('owner-1', db)).toBeNull();
     await applyCanonicalMigration(build, db);
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
@@ -53,7 +53,7 @@ describe('Phase 5 — canonical activation guard', () => {
     const build = buildCanonicalMigration(source); await applyCanonicalMigration(build, db);
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit.ok).toBe(false);
-    if (!audit.ok) expect(audit.reasons).toContain('incident:record-1:malformed_event_time');
+    if (canonicalActivationBlocked(audit)) expect(audit.reasons).toContain('incident:record-1:malformed_event_time');
     await expect(activateCanonicalOwner(build, 'owner-1', db)).rejects.toBeInstanceOf(CanonicalActivationBlockedError);
     expect(await getCanonicalActivation('owner-1', db)).toBeNull();
   });
@@ -64,12 +64,12 @@ describe('Phase 5 — canonical activation guard', () => {
     await db.canonical_records.put({ ...stored!, details: { ...stored!.details, title: 'Changed behind audit' } });
     let audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit.ok).toBe(false);
-    if (!audit.ok) expect(audit.reasons).toContain('record:record-1 differs from the audited migration build');
+    if (canonicalActivationBlocked(audit)) expect(audit.reasons).toContain('record:record-1 differs from the audited migration build');
     await db.canonical_records.put(build.records[0]);
     await db.canonical_people.add({ id: 'extra-person', owner_id: 'owner-1', display_name: 'Extra', normalised_name: 'extra', role_note: null, created_at: at(0), merged_into_id: null });
     audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit.ok).toBe(false);
-    if (!audit.ok) expect(audit.reasons).toContain('person:extra-person is unexpected before activation');
+    if (canonicalActivationBlocked(audit)) expect(audit.reasons).toContain('person:extra-person is unexpected before activation');
   });
 
   it('blocks activation when an unaudited organisation row exists', async () => {
@@ -77,7 +77,7 @@ describe('Phase 5 — canonical activation guard', () => {
     await db.canonical_organisations.add({ id: 'extra-org', owner_id: 'owner-1', display_name: 'Example Ltd', normalised_name: 'example ltd', note: null, created_at: at(0), merged_into_id: null });
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit.ok).toBe(false);
-    if (!audit.ok) expect(audit.reasons).toContain('organisation:extra-org is unexpected before activation');
+    if (canonicalActivationBlocked(audit)) expect(audit.reasons).toContain('organisation:extra-org is unexpected before activation');
   });
 
   it('accepts an old receipt only while no unaudited organisation rows exist', async () => {
