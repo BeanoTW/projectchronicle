@@ -118,7 +118,7 @@ const syncMetadata = z.object({
   last_attempt_at: iso.nullable(),
 }).strict();
 
-export const V2RecordSchema = z.object({
+export const V2RecordSchema = (z.object({
   id,
   owner_id: id,
   kind: z.enum(['incident', 'daily']),
@@ -136,9 +136,9 @@ export const V2RecordSchema = z.object({
   if (record.original.sealed_at !== record.sealed_at) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['original', 'sealed_at'], message: 'Original and record seal timestamps must agree.' });
   }
-});
+})) as unknown as Validator<V2Record>;
 
-export const V2MediaSchema = z.object({
+export const V2MediaSchema = (z.object({
   id,
   record_id: id,
   owner_id: id,
@@ -162,9 +162,9 @@ export const V2MediaSchema = z.object({
   ]),
   content_hash: z.string().nullable(),
   sync: syncMetadata,
-}).strict();
+}).strict()) as unknown as Validator<V2Media>;
 
-export const V2ProposalSchema = z.object({
+export const V2ProposalSchema = (z.object({
   id,
   owner_id: id,
   record_id: id,
@@ -178,9 +178,9 @@ export const V2ProposalSchema = z.object({
     z.object({ state: z.literal('dismissed'), resolved_at: iso }).strict(),
     z.object({ state: z.literal('superseded'), resolved_at: iso, superseded_by_id: id }).strict(),
   ]),
-}).strict();
+}).strict()) as unknown as Validator<V2Proposal>;
 
-export const V2RecordRelationshipSchema = z.object({
+export const V2RecordRelationshipSchema = (z.object({
   id,
   owner_id: id,
   record_id: id,
@@ -190,9 +190,9 @@ export const V2RecordRelationshipSchema = z.object({
   source: z.enum(['user', 'accepted_proposal', 'migration']),
   created_at: iso,
   removed_at: iso.nullable(),
-}).strict();
+}).strict()) as unknown as Validator<V2RecordRelationship>;
 
-export const V2DerivedObjectSchema = z.object({
+export const V2DerivedObjectSchema = (z.object({
   id,
   owner_id: id,
   record_id: id,
@@ -201,7 +201,7 @@ export const V2DerivedObjectSchema = z.object({
   derivation_version: z.literal(DERIVATION_CONTRACT_VERSION),
   created_at: iso,
   value: jsonValue,
-}).strict();
+}).strict()) as unknown as Validator<V2DerivedObject>;
 
 /** Only these operations may mutate a sealed canonical record. */
 export const CanonicalRecordMutationSchema = z.discriminatedUnion('kind', [
