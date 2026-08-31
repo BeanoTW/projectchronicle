@@ -8,6 +8,17 @@ import {
   DERIVATION_CONTRACT_VERSION,
   V2_SCHEMA_VERSION,
 } from './schema';
+import type {
+  V2Record, V2Media, V2Proposal, V2RecordRelationship, V2DerivedObject,
+} from './schema';
+
+/**
+ * The project compiles with `strictNullChecks: false`, under which zod's own
+ * output inference marks every key optional. Domain schemas are therefore
+ * annotated with the hand-written interfaces in `./schema`, so `parse` returns
+ * the real canonical type. Validation behaviour is unchanged.
+ */
+type Validator<T> = z.ZodType<T, z.ZodTypeDef, unknown>;
 
 const id = z.string().min(1);
 const iso = z.string().datetime({ offset: true });
