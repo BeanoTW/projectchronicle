@@ -1,9 +1,10 @@
 import 'fake-indexeddb/auto';
-import { canonicalActivationBlocked, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CanonicalRecordReader } from '@/chronicle/model/adapters';
 import {
   activateCanonicalOwner,
   auditCanonicalActivation,
+  canonicalActivationBlocked,
   canonicalActivationKey,
   CanonicalActivationBlockedError,
   createCanonicalReadRouter,
