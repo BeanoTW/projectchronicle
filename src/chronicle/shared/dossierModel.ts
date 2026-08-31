@@ -39,6 +39,25 @@ export interface DossierSourceMedia {
   excluded_from_dossier: boolean;
 }
 
+/**
+ * What a screen must supply for `DossierView` to render and export. Both the V2
+ * local adapter and the production adapter satisfy this contract; the view
+ * itself stays free of Dexie, Supabase and React-query specifics.
+ */
+export interface DossierAdapter {
+  loading: boolean;
+  records: DossierSourceRecord[];
+  media: DossierSourceMedia[];
+  /** Inclusion membership only; never alters sealed original wording. */
+  setIncluded: (recordId: string, included: boolean) => Promise<void>;
+  /** Resolves raw bytes for one media item at export time, or null if absent. */
+  loadBlob: (mediaId: string) => Promise<Blob | null>;
+  /** React hook used inside the preview to resolve a displayable media URL. */
+  useMediaUrl?: (item: DossierEvidenceItem) => string | null;
+  /** Optional plain note shown when evidence availability is limited. */
+  evidenceNote?: string | null;
+}
+
 /* ---------- Configuration ---------- */
 
 export interface DossierConfig {
