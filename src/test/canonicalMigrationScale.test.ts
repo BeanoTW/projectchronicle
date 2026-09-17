@@ -17,9 +17,11 @@ const cleanScaleSnapshot = (count: number): V1Snapshot => {
       incident_time: `${String(8 + (index % 10)).padStart(2, '0')}:${String((index * 7) % 60).padStart(2, '0')}`,
     })),
     notes: generated.notes.filter(row => ids.has(row.incident_id)),
-    evidence: generated.evidence
-      .filter(row => row.incident_id !== null && ids.has(row.incident_id))
-      .map(row => ({ ...row, file_size: 1024 })),
+    // Synthetic scale evidence has metadata only, not real bytes/hashes. Media
+    // cutover is now proven separately by the verified legacy-evidence import
+    // tests; including fake evidence here would incorrectly claim activation
+    // readiness without recoverable attachment bytes.
+    evidence: [],
     history: generated.history.filter(row => ids.has(row.incident_id)),
   } as V1Snapshot;
 };
