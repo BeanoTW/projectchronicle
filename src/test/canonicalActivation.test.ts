@@ -20,7 +20,12 @@ const LEGACY_MEDIA_BYTES = new TextEncoder().encode('photo-bytes');
 const LEGACY_MEDIA_SHA256 = 'dac6f451810bc38390a3b6e278d686b332a77cf21b2ea95145ad73722b77035d';
 const legacyMediaDownload = async (path: string): Promise<Blob> => {
   expect(path).toBe('owner-1/photo.jpg');
-  return new Blob([LEGACY_MEDIA_BYTES], { type: 'image/jpeg' });
+  const bytes = LEGACY_MEDIA_BYTES.slice();
+  return {
+    size: bytes.byteLength,
+    type: 'image/jpeg',
+    arrayBuffer: async () => bytes.buffer,
+  } as Blob;
 };
 
 const cleanSnapshot = (): V1Snapshot => ({
