@@ -66,9 +66,10 @@ const assertExistingBlob = async (media: V2Media, existing: LocalCanonicalBlob):
   ) {
     throw new CanonicalMigrationMediaError(media.id, 'local_conflict', `Existing local bytes for evidence ${media.id} have inconsistent identity or metadata.`);
   }
-  const bytes = existing.bytes instanceof ArrayBuffer
-    ? existing.bytes
-    : existing.bytes.buffer.slice(existing.bytes.byteOffset, existing.bytes.byteOffset + existing.bytes.byteLength);
+  const bytes = existing.bytes;
+  if (!(bytes instanceof ArrayBuffer)) {
+    throw new CanonicalMigrationMediaError(media.id, 'local_conflict', `Existing local bytes for evidence ${media.id} are not stored as an ArrayBuffer.`);
+  }
   const expectedHash = sha256Recorded(media);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   const actualHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
