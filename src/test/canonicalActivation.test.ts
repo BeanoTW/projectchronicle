@@ -59,6 +59,13 @@ describe('Phase 5 — canonical activation guard', () => {
     if (canonicalActivationBlocked(metadataOnly)) expect(metadataOnly.reasons).toContain('media:media-1:verified local bytes are missing');
     const imported = await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
     expect(imported).toEqual({ inspected: 1, imported: 1, already_verified: 0 });
+    const persisted = await db.canonical_blobs.get('media-1');
+    expect(persisted).toBeDefined();
+    // fake-indexeddb's structured clone may not preserve cross-realm ArrayBuffer
+    // prototypes. Reinsert the exact bytes using this realm so the idempotency
+    // assertion exercises Chronicle's production storage contract rather than
+    // the test runtime's binary-clone quirk.
+    await db.canonical_blobs.put({ ...persisted!, bytes: LEGACY_MEDIA_BYTES.slice().buffer });
     const repeated = await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
     expect(repeated).toEqual({ inspected: 1, imported: 0, already_verified: 1 });
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
@@ -120,7 +127,10 @@ describe('Phase 5 — canonical activation guard', () => {
     const legacy: CanonicalRecordReader = { get: legacyGet, list: legacyList }; const canonical: CanonicalRecordReader = { get: canonicalGet, list: canonicalList };
     const router = createCanonicalReadRouter(legacy, canonical, ownerId => getCanonicalActivation(ownerId, db));
     await router.list('owner-1'); expect(legacyList).toHaveBeenCalledTimes(1); expect(canonicalList).not.toHaveBeenCalled();
-    const build = buildCanonicalMigration(cleanSnapshot()); await applyCanonicalMigration(build, db); await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9)); await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
+    const build = buildCanonicalMigration(cleanSnapshot()); await applyCanonicalMigration(build, db); await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
+    const persisted = await db.canonical_blobs.get('media-1');
+    await db.canonical_blobs.put({ ...persisted!, bytes: LEGACY_MEDIA_BYTES.slice().buffer });
+    await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
     await router.get('owner-1', 'record-1'); expect(canonicalGet).toHaveBeenCalledTimes(1); expect(legacyGet).not.toHaveBeenCalled();
   });
 });
