@@ -57,6 +57,33 @@ const blobFor = async (media: V2Media, blob: Blob, storedAt: string): Promise<Lo
   };
 };
 
+const persistedBytes = (value: unknown): ArrayBuffer | null => {
+  if (value instanceof ArrayBuffer) return value;
+  if (ArrayBuffer.isView(value)) {
+    const view = value as ArrayBufferView;
+    return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+  }
+  // fake-indexeddb/jsdom can expose structured-cloned ArrayBuffers with a
+  // different realm prototype. Accept only objects that still have the exact
+  // byteLength/slice contract; arbitrary objects remain rejected.
+  if (value && typeof value === 'object') {
+    const candidate = value as { byteLength?: unknown; slice?: unknown };
+    if (typeof candidate.byteLength === 'number' && typeof candidate.slice === 'function') {
+      try {
+        const copy = (candidate.slice as (start?: number, end?: number) => unknown).call(value, 0);
+        if (copy instanceof ArrayBuffer) return copy;
+        if (ArrayBuffer.isView(copy)) {
+          const view = copy as ArrayBufferView;
+          return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+        }
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+};
+
 const assertExistingBlob = async (media: V2Media, existing: LocalCanonicalBlob): Promise<void> => {
   if (
     existing.owner_id !== media.owner_id
@@ -66,9 +93,9 @@ const assertExistingBlob = async (media: V2Media, existing: LocalCanonicalBlob):
   ) {
     throw new CanonicalMigrationMediaError(media.id, 'local_conflict', `Existing local bytes for evidence ${media.id} have inconsistent identity or metadata.`);
   }
-  const bytes = existing.bytes;
-  if (!(bytes instanceof ArrayBuffer)) {
-    throw new CanonicalMigrationMediaError(media.id, 'local_conflict', `Existing local bytes for evidence ${media.id} are not stored as an ArrayBuffer.`);
+  const bytes = persistedBytes(existing.bytes);
+  if (!bytes) {
+    throw new CanonicalMigrationMediaError(media.id, 'local_conflict', `Existing local bytes for evidence ${media.id} are not stored in a supported binary form.`);
   }
   const expectedHash = sha256Recorded(media);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
