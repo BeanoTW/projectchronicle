@@ -11,7 +11,8 @@
 
 :root .proto-root,
 .proto-dialog-backdrop,
-.proto-drawer-overlay {
+.proto-drawer-overlay,
+.proto-public {
   /* Neutrals */
   --p-paper: #f6f8f9;
   --p-paper-2: #edf1f3;
@@ -61,7 +62,8 @@
 
 :root.dark .proto-root,
 :root.dark .proto-dialog-backdrop,
-:root.dark .proto-drawer-overlay {
+:root.dark .proto-drawer-overlay,
+:root.dark .proto-public {
   --p-paper: #0c1016;
   --p-paper-2: #121821;
   --p-surface: #161d27;
@@ -767,4 +769,99 @@
 @media (min-width: 640px) {
   .proto-root .proto-sealed-actions { grid-template-columns: 1.4fr 1fr 1fr; }
   .proto-root .proto-sealed-actions .proto-btn[data-variant="primary"] { grid-column: auto; }
+}
+
+/* ── 13. Public pages (About, FAQ, Privacy, How it works, Guides) ───────── */
+
+.proto-public {
+  background: var(--p-paper);
+  color: var(--p-ink);
+  font-family: var(--p-font-text);
+}
+.proto-public > header,
+.proto-public > footer,
+.proto-public hr {
+  border-color: var(--p-line) !important;
+}
+/* Individual pages set Urbanist inline on their h1; the brand face wins here. */
+.proto-public article :is(h1, h2, h3) {
+  font-family: var(--p-font-display) !important;
+  font-weight: 400 !important;
+  font-synthesis: none;
+  color: var(--p-ink) !important;
+  letter-spacing: -0.005em;
+}
+.proto-public article h1 { line-height: 1.05 !important; }
+.proto-public article :is(p, li) { color: var(--p-ink-2) !important; }
+.proto-public article strong { color: var(--p-ink) !important; }
+.proto-public article li::marker { color: var(--p-accent); }
+.proto-public article a,
+.proto-public .proto-public-link {
+  color: var(--p-accent) !important;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--p-accent) 35%, transparent);
+  text-underline-offset: 3px;
+}
+.proto-public article a:hover,
+.proto-public .proto-public-link:hover { text-decoration-color: var(--p-accent); }
+.proto-public nav a { color: var(--p-muted); }
+.proto-public nav a:hover { color: var(--p-ink); }
+.proto-public .proto-public-aside {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--p-radius-m);
+  box-shadow: var(--p-shadow-1);
+}
+.proto-public .proto-public-aside-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-ink-2);
+  margin-bottom: 4px;
+}
+
+/* ── 14. Start-up screen ────────────────────────────────────────────────── */
+
+.proto-root.proto-boot {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--p-paper);
+}
+.proto-boot-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--p-muted);
+  font-size: 13.5px;
+}
+.proto-boot-spine {
+  position: relative;
+  width: 2px;
+  height: 46px;
+  border-radius: 2px;
+  background: var(--p-line-strong);
+}
+.proto-boot-spine i {
+  position: absolute;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 999px;
+  background: var(--p-paper);
+  border: 2px solid var(--p-line-strong);
+  animation: proto-boot-node 1.5s ease-in-out infinite;
+}
+.proto-boot-spine i:nth-child(1) { top: 0; }
+.proto-boot-spine i:nth-child(2) { top: 18px; animation-delay: 0.25s; }
+.proto-boot-spine i:nth-child(3) { top: 36px; animation-delay: 0.5s; }
+@keyframes proto-boot-node {
+  0%, 60%, 100% { background: var(--p-paper); border-color: var(--p-line-strong); }
+  25% { background: var(--p-accent); border-color: var(--p-accent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .proto-boot-spine i { animation: none; }
+  .proto-boot-spine i:nth-child(3) { background: var(--p-accent); border-color: var(--p-accent); }
 }
