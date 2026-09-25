@@ -74,11 +74,21 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
+/** Quiet start-up screen: three record nodes light in turn along the spine. */
+const BootScreen = () => (
+  <div className="proto-root proto-boot" role="status" aria-live="polite">
+    <div className="proto-boot-inner">
+      <span className="proto-boot-spine" aria-hidden="true"><i /><i /><i /></span>
+      <span aria-hidden="true">Opening Chronicle</span>
+      <span className="proto-sr">Loading...</span>
+    </div>
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const { isLocked, isLockConfigured } = useLock();
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  if (loading) return <BootScreen />;
   if (!user) {
     // Preserve the intended destination; PublicRoute honours a safe `next`.
     const intended = window.location.pathname + window.location.search;
@@ -90,7 +100,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
+  if (loading) return <BootScreen />;
   if (user) return <Navigate to={nextOrDefault()} replace />;
   return <>{children}</>;
 };

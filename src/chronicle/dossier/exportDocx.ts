@@ -1,34 +1,75 @@
 // Chronicle V2 (candidate). Word export. Mirrors the on-screen preview and the PDF.
+//
+// Georgia for headings (installed with Word, Google Docs and LibreOffice),
+// Arial for text. The Chronicle spine appears as a paragraph border: green
+// beside original sealed wording, grey beside clarifications added later.
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-  Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition, ImageRun,
+  Header, Footer, PageNumber, PageBreak, BorderStyle, TabStopType, TabStopPosition, ImageRun, LineRuleType,
 } from 'docx';
 import type { DossierConfig, DossierDocumentModel } from '../shared/dossierModel';
 import { safeFileName } from '../shared/dossierModel';
 import { prepareEvidenceImages, type LoadBlob } from './evidenceImages';
 import { deliverBlob, type Delivery } from './deliver';
 
-const body = (text: string, opts: Partial<{ size: number; bold: boolean; italics: boolean; color: string; indent: number; after: number }> = {}) =>
+const INK = '111821';
+const INK_2 = '3A4551';
+const MUTED = '5F6B77';
+const LINE = 'DDE3E8';
+const ACCENT = '1F6A53';
+const SPINE_SOFT = 'C3CCD4';
+const DISPLAY = 'Georgia';
+const TEXT = 'Arial';
+
+type Spine = 'original' | 'added' | undefined;
+
+const spineBorder = (spine: Spine) =>
+  spine
+    ? {
+        left: {
+          style: BorderStyle.SINGLE,
+          size: spine === 'original' ? 18 : 10,
+          color: spine === 'original' ? ACCENT : SPINE_SOFT,
+          space: 10,
+        },
+      }
+    : undefined;
+
+const body = (
+  text: string,
+  opts: Partial<{
+    size: number; bold: boolean; italics: boolean; color: string; indent: number; after: number;
+    font: string; spine: Spine; keepNext: boolean;
+  }> = {},
+) =>
   new Paragraph({
-    indent: opts.indent ? { left: opts.indent } : undefined,
-    spacing: { after: opts.after ?? 120 },
+    indent: opts.indent || opts.spine ? { left: (opts.indent ?? 0) + (opts.spine ? 220 : 0) } : undefined,
+    spacing: { after: opts.after ?? 120, line: 300, lineRule: LineRuleType.AUTO },
+    keepNext: opts.keepNext,
+    border: spineBorder(opts.spine),
     children: [new TextRun({
       text,
       size: opts.size ?? 22,
       bold: opts.bold,
       italics: opts.italics,
-      color: opts.color ?? '1A1A1A',
-      font: 'Arial',
+      color: opts.color ?? INK,
+      font: opts.font ?? TEXT,
     })],
   });
+
+const label = (text: string, color = MUTED, spine?: Spine, indent = 0) =>
+  body(text, { size: 16, bold: true, color, after: 60, spine, indent, keepNext: true });
 
 const sectionHeading = (text: string) =>
   new Paragraph({
     heading: HeadingLevel.HEADING_1,
-    spacing: { before: 320, after: 200 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: 'BFBFBF', space: 6 } },
-    children: [new TextRun({ text, size: 26, bold: true, font: 'Arial' })],
+    keepNext: true,
+    spacing: { before: 120, after: 280 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: ACCENT, space: 8 } },
+    children: [new TextRun({ text, size: 40, font: DISPLAY, color: INK })],
   });
+
+const pageBreak = () => new Paragraph({ children: [new PageBreak()] });
 
 export async function exportDossierDocx(
   doc: DossierDocumentModel,
@@ -42,27 +83,55 @@ export async function exportDossierDocx(
   /* Cover */
   children.push(
     new Paragraph({
-      spacing: { before: 720, after: 40 },
-      children: [new TextRun({ text: 'CHRONICLE', size: 30, bold: true, color: '1F1C17', font: 'Arial' })],
+      spacing: { before: 240, after: 20 },
+      children: [
+        new TextRun({ text: '● ', size: 26, color: ACCENT, font: TEXT }),
+        new TextRun({ text: 'Chronicle', size: 34, color: INK, font: DISPLAY }),
+      ],
     }),
     new Paragraph({
-      spacing: { after: 900 },
-      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '8A6A2B', space: 8 } },
-      children: [new TextRun({ text: 'A CHRONOLOGICAL RECORD', size: 15, color: '7A7367', font: 'Arial' })],
+      spacing: { after: 2400 },
+      children: [new TextRun({ text: 'A chronological record', size: 17, color: MUTED, font: TEXT })],
     }),
-    new Paragraph({ spacing: { before: 900, after: 240 }, alignment: AlignmentType.LEFT,
-      children: [new TextRun({ text: doc.title, size: 52, bold: true, font: 'Arial' })] }),
-    body(doc.rangeLabel, { size: 24, color: '5A5A5A' }),
-    body(`${doc.records.length} record${doc.records.length === 1 ? '' : 's'}`, { size: 24, color: '5A5A5A', after: 480 }),
-    body(`Generated ${doc.generatedLabel}`, { size: 19, color: '767676' }),
-    body('Original wording preserved. Clarifications shown separately.', { size: 19, color: '767676' }),
-    new Paragraph({ children: [new PageBreak()] }),
+    new Paragraph({
+      spacing: { after: 200, line: 250, lineRule: LineRuleType.AUTO },
+      alignment: AlignmentType.LEFT,
+      border: { left: { style: BorderStyle.SINGLE, size: 24, color: ACCENT, space: 14 } },
+      indent: { left: 280 },
+      children: [new TextRun({ text: doc.title, size: 68, font: DISPLAY, color: INK })],
+    }),
+    body(doc.rangeLabel, { size: 25, color: INK_2, after: 600 }),
+    new Paragraph({
+      spacing: { after: 2600 },
+      border: {
+        top: { style: BorderStyle.SINGLE, size: 6, color: LINE, space: 8 },
+        bottom: { style: BorderStyle.SINGLE, size: 6, color: LINE, space: 8 },
+      },
+      children: [
+        new TextRun({ text: `${doc.records.length} record${doc.records.length === 1 ? '' : 's'}`, size: 22, color: INK, font: TEXT }),
+        new TextRun({ text: `   ·   ${doc.people.length} ${doc.people.length === 1 ? 'person' : 'people'} named`, size: 22, color: INK_2, font: TEXT }),
+        new TextRun({ text: `   ·   Generated ${doc.generatedLabel}`, size: 22, color: INK_2, font: TEXT }),
+      ],
+    }),
+    new Paragraph({
+      spacing: { after: 60 },
+      border: { top: { style: BorderStyle.SINGLE, size: 12, color: ACCENT, space: 10 } },
+      children: [new TextRun({ text: 'Original wording preserved. Clarifications shown separately.', size: 19, color: INK_2, font: TEXT })],
+    }),
+    body(`Generated ${doc.generatedLabel}`, { size: 17, color: MUTED }),
+    pageBreak(),
   );
 
   /* Contents */
   children.push(sectionHeading('Contents'));
-  doc.contents.forEach(c => children.push(body(c.label, { indent: c.kind === 'record' ? 360 : 0, after: 60 })));
-  children.push(new Paragraph({ children: [new PageBreak()] }));
+  doc.contents.forEach(c =>
+    children.push(
+      c.kind === 'record'
+        ? body(c.label, { size: 20, color: INK_2, indent: 360, after: 60 })
+        : body(c.label, { size: 21, bold: true, after: 80 }),
+    ),
+  );
+  children.push(pageBreak());
 
   /* Overview */
   children.push(sectionHeading('Overview'));
@@ -72,10 +141,14 @@ export async function exportDossierDocx(
     ['People named', doc.people.length ? doc.people.join(', ') : 'None recorded'],
     ['Categories', doc.categories.length ? doc.categories.join(', ') : 'None recorded'],
   ] as Array<[string, string]>).forEach(([k, v]) => {
-    children.push(body(k, { size: 18, bold: true, color: '6E6E6E', after: 40 }));
-    children.push(body(v, { after: 180 }));
+    children.push(body(k, { size: 17, color: MUTED, after: 30, keepNext: true }));
+    children.push(new Paragraph({
+      spacing: { after: 200 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 6 } },
+      children: [new TextRun({ text: v, size: 22, color: INK, font: TEXT })],
+    }));
   });
-  children.push(new Paragraph({ children: [new PageBreak()] }));
+  children.push(pageBreak());
 
   /* Chronological record */
   children.push(sectionHeading('Chronological record'));
@@ -86,30 +159,43 @@ export async function exportDossierDocx(
     children.push(new Paragraph({
       heading: HeadingLevel.HEADING_2,
       keepNext: true,
-      spacing: { before: 320, after: 60 },
-      children: [new TextRun({ text: r.heading, size: 28, bold: true, font: 'Arial', color: '1A1A1A' })],
+      spacing: { before: 440, after: 60 },
+      children: [
+        new TextRun({ text: '● ', size: 22, color: ACCENT, font: TEXT }),
+        new TextRun({ text: r.heading, size: 32, font: DISPLAY, color: INK }),
+      ],
     }));
-    if (r.title) children.push(body(r.title, { italics: true, after: 60 }));
-    children.push(body(`Sealed ${r.sealedLabel}`, { size: 17, color: '767676', after: 120 }));
+    if (r.title) children.push(body(r.title, { bold: true, after: 40, keepNext: true }));
+    children.push(body(`Sealed ${r.sealedLabel}`, { size: 17, color: MUTED, after: 140, keepNext: true }));
 
     if (cfg.includeDetails && r.details.length) {
-      r.details.forEach(d => children.push(body(`${d.label}: ${d.value}`, { size: 18, color: '5A5A5A', after: 40 })));
-      children.push(body('', { after: 60 }));
+      r.details.forEach(d => children.push(new Paragraph({
+        spacing: { after: 30 },
+        keepNext: true,
+        tabStops: [{ type: TabStopType.LEFT, position: 1800 }],
+        children: [
+          new TextRun({ text: d.label, size: 17, color: MUTED, font: TEXT }),
+          new TextRun({ text: `\t${d.value}`, size: 18, color: INK_2, font: TEXT }),
+        ],
+      })));
+      children.push(body('', { after: 80 }));
     }
 
-    children.push(body('Original record', { size: 17, bold: true, color: '767676', after: 60 }));
-    r.text.split('\n').forEach(p => children.push(body(p, { after: 100 })));
+    children.push(label('Original record', ACCENT, 'original'));
+    r.text.split('\n').forEach(p => children.push(body(p, { after: 100, spine: 'original' })));
 
     if (cfg.includeClarifications && r.clarifications.length) {
-      children.push(body('Clarifications added later', { size: 17, bold: true, color: '767676', after: 60 }));
+      children.push(body('', { after: 40 }));
+      children.push(label('Clarifications added later', MUTED, 'added'));
       r.clarifications.forEach(c => {
-        children.push(body(c.label, { size: 17, color: '767676', indent: 360, after: 40 }));
-        children.push(body(c.text, { size: 21, indent: 360, after: 120 }));
+        children.push(body(c.label, { size: 17, color: MUTED, after: 40, spine: 'added', keepNext: true }));
+        children.push(body(c.text, { size: 21, color: INK_2, after: 120, spine: 'added' }));
       });
     }
 
     if (r.evidence.length) {
-      children.push(body('Evidence', { size: 17, bold: true, color: '767676', after: 60 }));
+      children.push(body('', { after: 40 }));
+      children.push(label('Evidence'));
       r.evidence.forEach(e => {
         const img = e.type === 'image' ? images.get(e.id) : undefined;
         if (img) {
@@ -132,51 +218,66 @@ export async function exportDossierDocx(
           }
         }
         const meta = [e.typeLabel, e.name, e.sizeLabel, e.durationLabel].filter(Boolean).join(' · ');
-        children.push(body(meta, { size: 17, color: '6E6E6E', indent: 360, after: 40 }));
+        children.push(body(meta, { size: 17, color: INK_2, indent: 360, after: 40 }));
         if (e.description) children.push(body(e.description, { size: 20, indent: 360, after: 40 }));
-        children.push(body(`${e.roleLabel} · added ${e.addedLabel}`, { size: 16, color: '8C8C8C', indent: 360, after: 120 }));
+        children.push(body(`${e.roleLabel} · added ${e.addedLabel}`, { size: 16, color: MUTED, indent: 360, after: 120 }));
       });
-      children.push(body('File contents have not been analysed or verified.', { size: 16, italics: true, color: '8C8C8C', indent: 360, after: 120 }));
+      children.push(body('File contents have not been analysed or verified.', { size: 16, italics: true, color: MUTED, indent: 360, after: 120 }));
     }
+
+    children.push(new Paragraph({
+      spacing: { before: 120, after: 0 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 4 } },
+      children: [],
+    }));
   });
 
   /* Appendices */
   if (cfg.includeClarifications && doc.hasClarifications) {
-    children.push(new Paragraph({ children: [new PageBreak()] }), sectionHeading('Appendix A — Clarifications'));
-    children.push(body('Every clarification in this document, listed with the record it belongs to.', { size: 19, color: '6E6E6E' }));
+    children.push(pageBreak(), sectionHeading('Appendix A — Clarifications'));
+    children.push(body('Every clarification in this document, listed with the record it belongs to.', { size: 19, color: MUTED, after: 200 }));
     doc.records.filter(r => r.clarifications.length).forEach(r => {
-      children.push(body(r.heading, { bold: true, after: 60 }));
+      children.push(body(r.heading, { size: 26, font: DISPLAY, after: 60, keepNext: true }));
       r.clarifications.forEach(c => {
-        children.push(body(c.label, { size: 17, color: '767676', indent: 360, after: 40 }));
+        children.push(body(c.label, { size: 17, color: MUTED, indent: 360, after: 40, keepNext: true }));
         children.push(body(c.text, { size: 21, indent: 360, after: 160 }));
       });
     });
   }
 
   if (cfg.includeHistory && doc.records.length > 0) {
-    children.push(new Paragraph({ children: [new PageBreak()] }), sectionHeading('Appendix B — Record history'));
-    children.push(body('When each record was written, sealed and added to.', { size: 19, color: '6E6E6E' }));
+    children.push(pageBreak(), sectionHeading('Appendix B — Record history'));
+    children.push(body('When each record was written, sealed and added to.', { size: 19, color: MUTED, after: 200 }));
     doc.records.forEach(r => {
-      children.push(body(r.heading, { bold: true, after: 60 }));
-      r.history.forEach(h => children.push(body(h, { size: 19, indent: 360, after: 40 })));
+      children.push(body(r.heading, { size: 26, font: DISPLAY, after: 60, keepNext: true }));
+      r.history.forEach(h => children.push(body(h, { size: 19, color: INK_2, indent: 360, after: 40 })));
       children.push(body('', { after: 80 }));
     });
   }
 
   /* Integrity */
-  children.push(new Paragraph({ children: [new PageBreak()] }), sectionHeading('How this document was assembled'));
-  doc.integrity.forEach(p => children.push(body(p, { after: 160 })));
+  children.push(pageBreak(), sectionHeading('How this document was assembled'));
+  doc.integrity.forEach((p, i) => children.push(new Paragraph({
+    spacing: { after: 160, line: 300, lineRule: LineRuleType.AUTO },
+    indent: { left: 440, hanging: 440 },
+    tabStops: [{ type: TabStopType.LEFT, position: 440 }],
+    children: [
+      new TextRun({ text: `${i + 1}`, size: 24, color: ACCENT, font: DISPLAY }),
+      new TextRun({ text: `\t${p}`, size: 21, color: INK, font: TEXT }),
+    ],
+  })));
 
+  const running = { size: 16, color: MUTED, font: TEXT };
   const wordDocument = new Document({
     styles: {
-      default: { document: { run: { font: 'Arial', size: 22, color: '1A1A1A' } } },
+      default: { document: { run: { font: TEXT, size: 22, color: INK } } },
       paragraphStyles: [
         { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 26, bold: true, font: 'Arial', color: '1A1A1A' },
-          paragraph: { spacing: { before: 320, after: 200 }, outlineLevel: 0 } },
+          run: { size: 40, font: DISPLAY, color: INK },
+          paragraph: { spacing: { before: 120, after: 280 }, outlineLevel: 0 } },
         { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 28, bold: true, font: 'Arial', color: '1A1A1A' },
-          paragraph: { spacing: { before: 320, after: 60 }, outlineLevel: 1 } },
+          run: { size: 32, font: DISPLAY, color: INK },
+          paragraph: { spacing: { before: 440, after: 60 }, outlineLevel: 1 } },
       ],
     },
     sections: [{
@@ -192,7 +293,13 @@ export async function exportDossierDocx(
         default: new Header({
           children: [new Paragraph({
             spacing: { after: 200 },
-            children: [new TextRun({ text: `Chronicle · ${doc.title}`, size: 16, color: '8C8C8C', font: 'Arial' })],
+            tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+            border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 6 } },
+            children: [
+              new TextRun({ text: '● ', ...running, color: ACCENT }),
+              new TextRun({ text: `Chronicle · ${doc.title}`, ...running }),
+              new TextRun({ text: `\t${doc.rangeLabel}`, ...running }),
+            ],
           })],
         }),
       },
@@ -201,12 +308,13 @@ export async function exportDossierDocx(
         default: new Footer({
           children: [new Paragraph({
             tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+            border: { top: { style: BorderStyle.SINGLE, size: 4, color: LINE, space: 6 } },
             children: [
-              new TextRun({ text: `Generated ${doc.generatedLabel}`, size: 16, color: '8C8C8C', font: 'Arial' }),
-              new TextRun({ text: '\tPage ', size: 16, color: '8C8C8C', font: 'Arial' }),
-              new TextRun({ children: [PageNumber.CURRENT], size: 16, color: '8C8C8C', font: 'Arial' }),
-              new TextRun({ text: ' of ', size: 16, color: '8C8C8C', font: 'Arial' }),
-              new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: '8C8C8C', font: 'Arial' }),
+              new TextRun({ text: `Generated ${doc.generatedLabel}`, ...running }),
+              new TextRun({ text: '\tPage ', ...running }),
+              new TextRun({ children: [PageNumber.CURRENT], ...running }),
+              new TextRun({ text: ' of ', ...running }),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES], ...running }),
             ],
           })],
         }),
