@@ -1,19 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { Paperclip, Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock, Pencil, Check, X } from 'lucide-react';
+import { Image, FileText, Music, Mail, Plus, Link2, ArrowRight, Eye, Trash2, Lock, Pencil, Check, X } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useEvidence, useUploadEvidence, useLinkEvidenceToIncident, useRenameEvidence, useDeleteEvidence, useIsTranscriptSource, type EvidenceFile } from '@/hooks/useEvidence';
 import { toSafeAttachmentMessage } from '@/lib/evidenceErrors';
 import { useIncidents } from '@/hooks/useIncidents';
-import EmptyState from '@/components/chronicle/EmptyState';
-import PageHeader from '@/components/chronicle/PageHeader';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import EvidencePreview from '@/components/chronicle/EvidencePreview';
 import { displayTitle } from '@/lib/displayTitle';
 import { useAttachmentReveal } from '@/contexts/AttachmentRevealContext';
 import { attachmentDisplayName, hasCustomAttachmentName } from '@/lib/attachmentName';
 import DeleteAttachmentDialog from '@/components/chronicle/DeleteAttachmentDialog';
+import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
+import ChronicleEmptyState from '@/chronicle/brand/ChronicleEmptyState';
+import AppSurface from '@/chronicle/shared/AppSurface';
+import '@/chronicle/styles.css';
 
 const filterTabs = [
   { label: 'All', value: 'all' },
@@ -33,21 +34,12 @@ const typeIcons: Record<string, typeof FileText> = {
   Other: FileText,
 };
 
-const typeAccentClass: Record<string, string> = {
-  Photo: 'evidence-accent-photo',
-  Screenshot: 'evidence-accent-photo',
-  Document: 'evidence-accent-document',
-  Audio: 'evidence-accent-audio',
-  Email: 'evidence-accent-email',
-};
-
-const typeTintBg: Record<string, string> = {
-  Photo: 'bg-primary/[0.06]',
-  Screenshot: 'bg-primary/[0.06]',
-  Document: 'bg-info-light',
-  Audio: 'bg-warm-accent-light',
-  Email: 'bg-rep',
-};
+const UploadButton = ({ onChange, inputRef }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; inputRef?: React.Ref<HTMLInputElement> }) => (
+  <label className="proto-btn proto-evi-upload" data-variant="primary">
+    <Plus aria-hidden="true" /> Upload
+    <input type="file" className="proto-sr" ref={inputRef} onChange={onChange} />
+  </label>
+);
 
 const EvidenceScreen = () => {
   const [previewFile, setPreviewFile] = useState<{ filePath: string; fileName: string; mimeType: string | null; fileHash: string | null; captureDate: string | null; uploadDate: string | null; incidentId: string | null } | null>(null);
@@ -149,209 +141,191 @@ const EvidenceScreen = () => {
     }
   };
 
+  const header = (
+    <ChroniclePageHeader
+      title="Attachments"
+      eyebrow="Evidence"
+      subtitle="Files linked to your records."
+      actions={<UploadButton onChange={handleUpload} inputRef={fileInputRef} />}
+    />
+  );
+
   if (isLoading) {
-    return <div className="min-h-screen bg-background pb-24 flex items-center justify-center"><p className="text-muted-foreground text-[14px]">Loading...</p></div>;
+    return (
+      <AppSurface>
+        {header}
+        <div aria-busy="true">
+          <span className="proto-sr">Loading...</span>
+          {[0, 1].map(i => (
+            <div className="proto-skeleton-card" key={i} aria-hidden="true">
+              <div className="proto-skeleton-line" data-w="title" />
+              <div className="proto-skeleton-line" data-w="meta" />
+              <div className="proto-skeleton-line" data-w="short" />
+            </div>
+          ))}
+        </div>
+      </AppSurface>
+    );
   }
 
   if (allEvidence.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <PageHeader title="Attachments" subtitle="Files linked to your records">
-          <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-primary-foreground text-[12px] font-medium rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-transform">
-            <Plus className="h-3.5 w-3.5" /> Upload
-            <input type="file" className="hidden" onChange={handleUpload} />
-          </label>
-        </PageHeader>
-        <EmptyState
-          icon={<Paperclip className="h-10 w-10" />}
-          heading="No attachments added yet"
-          body="You can upload screenshots, photos, or documents — these files can be linked to records to support your documentation."
-        />
-      </div>
+      <AppSurface>
+        {header}
+        <ChronicleEmptyState>
+          <strong style={{ display: 'block', color: 'var(--p-ink)', marginBottom: 4 }}>No attachments added yet</strong>
+          You can upload screenshots, photos or documents. Each file can then be linked to a record to support your documentation.
+        </ChronicleEmptyState>
+      </AppSurface>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 page-enter">
-      <PageHeader title="Attachments" subtitle="Files linked to your records">
-        <label className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground text-[12px] font-semibold rounded-lg cursor-pointer shadow-[var(--shadow-elevated)] active:scale-[0.97] transition-all duration-150 hover:shadow-[var(--shadow-card-hover)]">
-          <Plus className="h-3.5 w-3.5" /> Upload
-          <input type="file" className="hidden" ref={fileInputRef} onChange={handleUpload} />
-        </label>
-      </PageHeader>
+    <AppSurface>
+      {header}
 
       {unlinkedCount > 0 && (
-        <div className="mx-5 mb-4 px-4 py-2.5 rounded-lg bg-warm-accent-light border border-warm-accent/15 text-warm-accent-foreground text-[12px] font-medium">
-          {unlinkedCount} item{unlinkedCount > 1 ? 's' : ''} awaiting connection
-        </div>
+        <p className="proto-evi-notice" role="status">
+          {unlinkedCount} attachment{unlinkedCount > 1 ? 's are' : ' is'} not linked to a record yet.
+        </p>
       )}
 
-      <div className="px-5 pb-3 overflow-x-auto">
-        <div className="flex gap-1 min-w-max">
-          {filterTabs.map(tab => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveFilter(tab.value)}
-              className={`px-3 py-1.5 rounded text-[12px] font-medium transition-all duration-150 ${
-                activeFilter === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted/60'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="proto-evi-tabs" role="tablist" aria-label="Attachment type">
+        {filterTabs.map(tab => (
+          <button
+            key={tab.value}
+            role="tab"
+            aria-selected={activeFilter === tab.value}
+            data-active={activeFilter === tab.value}
+            onClick={() => setActiveFilter(tab.value)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="mx-5 space-y-2.5">
+      {filtered.length === 0 && (
+        <ChronicleEmptyState>No attachments of this type.</ChronicleEmptyState>
+      )}
+
+      <ul className="proto-evi-list">
         {filtered.map((ev) => {
           const Icon = typeIcons[ev.file_type || 'Other'] || FileText;
           const displayName = attachmentDisplayName(ev);
           const hasCustomName = hasCustomAttachmentName(ev);
           const linkedIncident = incidents.find(inc => inc.id === ev.incident_id);
           const isLinking = linkingId === ev.id;
-          const accentClass = typeAccentClass[ev.file_type || ''] || 'evidence-accent-default';
-          const tintBg = typeTintBg[ev.file_type || ''] || '';
-          const iconTint = ev.file_type === 'Photo' || ev.file_type === 'Screenshot'
-            ? 'text-primary/70' : ev.file_type === 'Audio'
-            ? 'text-warm-accent' : ev.file_type === 'Email'
-            ? 'text-rep-foreground' : 'text-muted-foreground';
+          const ref = `E${String(ev.evidence_ref_number || '?').padStart(2, '0')}`;
 
           return (
-            <div
-              key={ev.id}
-              className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-all duration-200 hover:shadow-[var(--shadow-card-hover)] cursor-pointer ${accentClass}`}
-              onClick={() => openPreview(ev)}
-            >
-              <div className="flex gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${tintBg || 'bg-muted/50'}`}>
-                  <Icon className={`h-4 w-4 ${iconTint}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/8 text-primary border border-primary/12">
-                        E{String(ev.evidence_ref_number || '?').padStart(2, '0')}
-                      </span>
-                      <p className="text-[13px] font-medium text-foreground truncate">{displayName}</p>
-                    </div>
-                    {linkedIncident ? (
-                      <Badge variant="default" className="text-[10px] px-2 py-0.5 bg-primary/15 text-primary border-primary/20 hover:bg-primary/15 flex-shrink-0">
-                        Linked
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] px-2 py-0.5 text-warm-accent-foreground border-warm-accent/25 bg-warm-accent-light flex-shrink-0">
-                        Unlinked
-                      </Badge>
-                    )}
+            <li key={ev.id} className="proto-evi-card" data-linked={!!linkedIncident}>
+              <div className="proto-evi-top">
+                <span className="proto-evi-icon" aria-hidden="true"><Icon /></span>
+                <div className="proto-evi-main">
+                  <div className="proto-evi-titlerow">
+                    <span className="proto-evi-ref" title="Exhibit reference">{ref}</span>
+                    <button type="button" className="proto-evi-name" onClick={() => openPreview(ev)}>{displayName}</button>
                   </div>
                   {hasCustomName && (
-                    <p className="text-[11px] text-muted-foreground/60 mt-0.5 truncate" title={ev.file_name}>Original: {ev.file_name}</p>
+                    <p className="proto-evi-meta proto-evi-original" title={ev.file_name}>Original file: {ev.file_name}</p>
                   )}
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                  <p className="proto-evi-meta">
                     {ev.file_type || 'File'} · {format(parseISO(ev.upload_date), 'dd MMM yyyy')} · Stored securely
                   </p>
-                  {linkedIncident ? (
-                    <p className="text-[12px] text-primary mt-1.5 truncate">
-                      → {displayTitle(linkedIncident)}
-                    </p>
-                  ) : (
-                    <div className="mt-2" onClick={e => e.stopPropagation()}>
-                      {!isLinking ? (
-                        <button
-                          onClick={() => setLinkingId(ev.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-primary bg-primary/[0.06] border border-primary/12 hover:bg-primary/10 active:scale-[0.97] transition-all duration-150"
-                        >
-                          <Link2 className="h-3 w-3" />
-                          Link to incident
-                          <ArrowRight className="h-3 w-3 opacity-50" />
-                        </button>
-                      ) : (
-                        <div className="flex gap-2 items-center">
-                          <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
-                            <SelectTrigger className="bg-card text-[12px] h-8 flex-1 rounded-lg">
-                              <SelectValue placeholder="Select incident" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {incidents.slice(0, 20).map(inc => (
-                                <SelectItem key={inc.id} value={inc.id}>
-                                  {inc.title || format(parseISO(inc.incident_date), 'dd MMM yyyy')}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <button onClick={() => selectedIncidentId && handleLinkEvidence(ev.id, selectedIncidentId)} disabled={!selectedIncidentId} className="text-[12px] text-primary font-medium disabled:opacity-40">Link</button>
-                          <button onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }} className="text-[12px] text-muted-foreground">Cancel</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {ev.description && <p className="text-[12px] text-body mt-1.5 leading-relaxed">{ev.description}</p>}
-                  
-                  {/* Actions row */}
-                  <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/50" onClick={e => e.stopPropagation()}>
+                </div>
+                <span className="proto-chip" data-tone={linkedIncident ? 'brass' : undefined}>
+                  {linkedIncident ? 'Linked' : 'Not linked'}
+                </span>
+              </div>
+
+              {ev.description && <p className="proto-evi-desc">{ev.description}</p>}
+
+              {linkedIncident ? (
+                <p className="proto-evi-linked">
+                  <Link2 aria-hidden="true" /> {displayTitle(linkedIncident)}
+                </p>
+              ) : !isLinking ? (
+                <button type="button" className="proto-btn proto-evi-linkbtn" onClick={() => setLinkingId(ev.id)}>
+                  <Link2 aria-hidden="true" /> Link to a record <ArrowRight aria-hidden="true" className="proto-evi-arrow" />
+                </button>
+              ) : (
+                <div className="proto-evi-linkrow">
+                  <Select value={selectedIncidentId} onValueChange={setSelectedIncidentId}>
+                    <SelectTrigger className="proto-evi-select" aria-label="Choose a record">
+                      <SelectValue placeholder="Choose a record" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {incidents.slice(0, 20).map(inc => (
+                        <SelectItem key={inc.id} value={inc.id}>
+                          {inc.title || format(parseISO(inc.incident_date), 'dd MMM yyyy')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <button
+                    type="button"
+                    className="proto-btn"
+                    data-variant="primary"
+                    onClick={() => selectedIncidentId && handleLinkEvidence(ev.id, selectedIncidentId)}
+                    disabled={!selectedIncidentId}
+                  >
+                    Link
+                  </button>
+                  <button type="button" className="proto-btn" data-variant="ghost" onClick={() => { setLinkingId(null); setSelectedIncidentId(''); }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              <div className="proto-evi-actions">
+                <button type="button" onClick={() => openPreview(ev)}>
+                  {gateActive ? <Lock aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                  {gateActive ? 'Unlock to view' : 'View'}
+                </button>
+                <button type="button" onClick={() => { setRenamingId(ev.id); setRenameValue(displayName); }}>
+                  <Pencil aria-hidden="true" /> Rename
+                </button>
+                <button type="button" data-tone="danger" onClick={() => { void requestDeleteEvidence(ev); }}>
+                  <Trash2 aria-hidden="true" /> Remove
+                </button>
+              </div>
+
+              {renamingId === ev.id && (
+                <div className="proto-evi-rename">
+                  <label htmlFor={`rename-${ev.id}`} className="proto-flabel">Attachment name</label>
+                  <div className="proto-evi-renamerow">
+                    <input
+                      id={`rename-${ev.id}`}
+                      className="proto-input"
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      maxLength={120}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && renameValue.trim()) handleRenameEvidence(ev.id);
+                        if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
+                      }}
+                    />
                     <button
-                      onClick={() => openPreview(ev)}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary/80 active:scale-[0.97] transition-all"
+                      type="button"
+                      className="proto-btn"
+                      data-variant="primary"
+                      onClick={() => handleRenameEvidence(ev.id)}
+                      disabled={!renameValue.trim() || renameEvidence.isPending}
                     >
-                      {gateActive ? <Lock className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                      {gateActive ? 'Unlock to view' : 'View'}
+                      <Check aria-hidden="true" /> {renameEvidence.isPending ? 'Saving…' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => { setRenamingId(ev.id); setRenameValue(displayName); }}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary active:scale-[0.97] transition-all"
-                    >
-                      <Pencil className="h-3 w-3" /> Rename
-                    </button>
-                    <button
-                      onClick={() => { void requestDeleteEvidence(ev); }}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-destructive active:scale-[0.97] transition-all"
-                    >
-                      <Trash2 className="h-3 w-3" /> Remove
+                    <button type="button" className="proto-btn" data-variant="ghost" onClick={() => { setRenamingId(null); setRenameValue(''); }}>
+                      <X aria-hidden="true" /> Cancel
                     </button>
                   </div>
-                  {renamingId === ev.id && (
-                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/[0.04] p-3" onClick={e => e.stopPropagation()}>
-                      <label htmlFor={`rename-${ev.id}`} className="block text-[11px] font-semibold text-foreground mb-1.5">Attachment name</label>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          id={`rename-${ev.id}`}
-                          value={renameValue}
-                          onChange={e => setRenameValue(e.target.value)}
-                          maxLength={120}
-                          autoFocus
-                          className="h-9 flex-1 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                          onKeyDown={e => {
-                            if (e.key === 'Enter' && renameValue.trim()) handleRenameEvidence(ev.id);
-                            if (e.key === 'Escape') { setRenamingId(null); setRenameValue(''); }
-                          }}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleRenameEvidence(ev.id)}
-                            disabled={!renameValue.trim() || renameEvidence.isPending}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-[12px] font-semibold text-primary-foreground disabled:opacity-50"
-                          >
-                            <Check className="h-3.5 w-3.5" /> {renameEvidence.isPending ? 'Saving…' : 'Save'}
-                          </button>
-                          <button
-                            onClick={() => { setRenamingId(null); setRenameValue(''); }}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border px-3 text-[12px] font-medium text-muted-foreground"
-                          >
-                            <X className="h-3.5 w-3.5" /> Cancel
-                          </button>
-                        </div>
-                      </div>
-                      <p className="mt-1.5 text-[10px] text-muted-foreground">The original file and its integrity record will not change.</p>
-                    </div>
-                  )}
+                  <p className="proto-help" style={{ margin: '6px 0 0' }}>The original file and its integrity record will not change.</p>
                 </div>
-              </div>
-            </div>
+              )}
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <DeleteAttachmentDialog
         open={!!pendingDelete}
@@ -374,7 +348,7 @@ const EvidenceScreen = () => {
           onClose={() => setPreviewFile(null)}
         />
       )}
-    </div>
+    </AppSurface>
   );
 };
 
