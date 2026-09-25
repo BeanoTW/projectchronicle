@@ -3,6 +3,10 @@
 // Receives already-normalised NotebookRecords plus UI state and callbacks.
 // It has no data access of its own: preview (Dexie) and production (local-first
 // incidents) adapters both render this component.
+//
+// The list view is the Chronicle spine: records grouped by month along one
+// continuous line, a node for every record, the most recent node in the
+// accent colour. It shows the record exactly as written; nothing is inferred.
 import FilterSheet from '../components/FilterSheet';
 import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
 import MonthView from '../components/MonthView';
@@ -31,6 +35,31 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(undefined, {
   hour: '2-digit', minute: '2-digit',
 });
+const fmtMonth = (iso: string) => new Date(iso).toLocaleDateString(undefined, {
+  month: 'long', year: 'numeric',
+});
+const monthKey = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? 'undated' : `${d.getFullYear()}-${d.getMonth()}`;
+};
+
+interface MonthGroup {
+  key: string;
+  label: string;
+  records: NotebookRecord[];
+}
+
+/** Consecutive records that share a month, in the order they are shown. */
+function groupByMonth(records: NotebookRecord[]): MonthGroup[] {
+  const groups: MonthGroup[] = [];
+  for (const record of records) {
+    const key = monthKey(record.recordedAt);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.records.push(record);
+    else groups.push({ key, label: key === 'undated' ? 'Undated' : fmtMonth(record.recordedAt), records: [record] });
+  }
+  return groups;
+}
 
 export interface NotebookViewProps {
   title?: string;
@@ -89,6 +118,9 @@ const NotebookView = ({
 
   const searched = useMemo(() => sorted.filter(r => recordMatchesSearch(r, q)), [sorted, q]);
   const filtered = useMemo(() => searched.filter(r => recordMatchesFilters(r, filters)), [searched, filters]);
+  const groups = useMemo(() => groupByMonth(filtered), [filtered]);
+  // The accent node marks the most recent record overall, not merely the first match.
+  const latestId = sorted[0]?.id;
 
   const chips = buildChips(filters);
   const count = activeFilterCount(filters);
@@ -109,25 +141,26 @@ const NotebookView = ({
       {notice && <p className="proto-help" role="status" style={{ marginBottom: 10 }}>{notice}</p>}
 
       <div className="proto-toolbar">
-      <div className="proto-controls">
-        <input
-          className="proto-input"
-          placeholder="Search records"
-          aria-label="Search records"
-          value={q}
-          onChange={e => onQChange(e.target.value)}
-        />
-        <div className="proto-viewswitch" role="group" aria-label="View">
-          <button data-active={view === 'list'} onClick={() => onViewChange('list')}>List</button>
-          <button data-active={view === 'month'} onClick={() => onViewChange('month')}>Month</button>
+        <div className="proto-controls">
+          <input
+            className="proto-input"
+            type="search"
+            placeholder="Search records"
+            aria-label="Search records"
+            value={q}
+            onChange={e => onQChange(e.target.value)}
+          />
+          <div className="proto-viewswitch" role="group" aria-label="View">
+            <button data-active={view === 'list'} aria-pressed={view === 'list'} onClick={() => onViewChange('list')}>List</button>
+            <button data-active={view === 'month'} aria-pressed={view === 'month'} onClick={() => onViewChange('month')}>Month</button>
+          </div>
         </div>
-      </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <button className="proto-btn proto-filterbtn" onClick={() => setSheetOpen(true)} style={{ width: '100%' }}>
-          Filters{count > 0 ? ` · ${count}` : ''}
-        </button>
-      </div>
+        <div style={{ marginBottom: 10 }}>
+          <button className="proto-btn proto-filterbtn" onClick={() => setSheetOpen(true)} style={{ width: '100%' }}>
+            Filters{count > 0 ? ` · ${count}` : ''}
+          </button>
+        </div>
       </div>
 
       {chips.length > 0 && (
@@ -153,9 +186,19 @@ const NotebookView = ({
       )}
 
       {error ? (
-        <div className="proto-empty" role="alert">{error}</div>
+        <div className="proto-state-error" role="alert">{error}</div>
       ) : loading ? (
-        <div className="proto-empty">Loading records…</div>
+        <div aria-busy="true" className="proto-spine">
+          <span className="proto-sr">Loading records…</span>
+          {[0, 1, 2].map(i => (
+            <div className="proto-skeleton-card" key={i} aria-hidden="true">
+              <div className="proto-skeleton-line" data-w="meta" />
+              <div className="proto-skeleton-line" data-w="title" />
+              <div className="proto-skeleton-line" />
+              <div className="proto-skeleton-line" data-w="short" />
+            </div>
+          ))}
+        </div>
       ) : view === 'month' ? (
         <MonthView
           month={month}
@@ -175,44 +218,57 @@ const NotebookView = ({
             : emptyMessage}
         </ChronicleEmptyState>
       ) : (
-        <div className="proto-list">
-        {filtered.map(r => {
-          const preview = usefulNotebookPreview(r.title, r.preview);
-          const recordType = r.recordType === 'daily' ? 'Daily record' : 'Incident';
-          const statusChips = r.chips.filter(c => c !== 'Incident' && c !== 'Daily record' && c !== r.category);
-          return (
-            <button
-            key={r.id}
-            onClick={() => onOpenRecord(r.id)}
-            className="proto-entry"
-            style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
-          >
-            <div className="proto-entry-meta">
-              <span>{fmtDate(r.recordedAt)} · {fmtTime(r.recordedAt)}</span>
-              <span className="proto-chip">{recordType}</span>
-              {r.category && <span className="proto-chip">{r.category}</span>}
-              {statusChips.map(c => <span key={c} className="proto-chip">{c}</span>)}
-              {r.inDossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
-              {r.attachmentCount > 0 && (
-                <span className="proto-chip">
-                  {r.attachmentCount} attachment{r.attachmentCount === 1 ? '' : 's'}
+        <div className="proto-spine">
+          {groups.map(group => (
+            <section className="proto-spine-month" key={group.key} aria-label={group.label}>
+              <h2 className="proto-spine-monthlabel">
+                {group.label}
+                <span className="proto-spine-monthcount">
+                  {group.records.length} {group.records.length === 1 ? 'record' : 'records'}
                 </span>
-              )}
-              {r.hasClarifications && <span className="proto-chip">Clarification added</span>}
-              {r.hasVoice && <span className="proto-chip">Voice</span>}
-            </div>
-            {r.title && (
-              <div className="proto-serif" style={{ fontSize: 17, marginBottom: 4 }}>{r.title}</div>
-            )}
-            {preview && <div style={{
-              fontSize: 14, lineHeight: 1.5, color: 'var(--p-ink-2)',
-              display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {preview}
-            </div>}
-            </button>
-          );
-        })}
+              </h2>
+              <ol className="proto-spine-list">
+                {group.records.map(r => {
+                  const preview = usefulNotebookPreview(r.title, r.preview);
+                  const recordType = r.recordType === 'daily' ? 'Daily record' : 'Incident';
+                  const statusChips = r.chips.filter(c => c !== 'Incident' && c !== 'Daily record' && c !== r.category);
+                  const hasChips =
+                    !!r.category || statusChips.length > 0 || r.inDossier || r.attachmentCount > 0 || r.hasClarifications || r.hasVoice;
+                  return (
+                    <li className="proto-spine-item" key={r.id} data-latest={r.id === latestId}>
+                      <span className="proto-spine-node" aria-hidden="true" />
+                      <button
+                        onClick={() => onOpenRecord(r.id)}
+                        className="proto-entry"
+                        style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                      >
+                        <div className="proto-entry-when">
+                          <span>{fmtDate(r.recordedAt)} · {fmtTime(r.recordedAt)}</span>
+                          <span className="proto-entry-type">{recordType}</span>
+                        </div>
+                        {r.title && <div className="proto-entry-title">{r.title}</div>}
+                        {preview && <div className="proto-entry-preview">{preview}</div>}
+                        {hasChips && (
+                          <div className="proto-entry-meta">
+                            {r.inDossier && <span className="proto-chip" data-tone="brass">In Chronicle</span>}
+                            {r.category && <span className="proto-chip">{r.category}</span>}
+                            {statusChips.map(c => <span key={c} className="proto-chip">{c}</span>)}
+                            {r.attachmentCount > 0 && (
+                              <span className="proto-chip">
+                                {r.attachmentCount} attachment{r.attachmentCount === 1 ? '' : 's'}
+                              </span>
+                            )}
+                            {r.hasClarifications && <span className="proto-chip">Clarification added</span>}
+                            {r.hasVoice && <span className="proto-chip">Voice</span>}
+                          </div>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          ))}
         </div>
       )}
 

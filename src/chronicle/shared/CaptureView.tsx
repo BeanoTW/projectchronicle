@@ -2,6 +2,7 @@
 // Persistence is entirely owned by the injected adapter. This file must not
 // import Dexie, Supabase, or production hooks.
 import ChroniclePageHeader from '@/chronicle/brand/ChroniclePageHeader';
+import SealedReceipt from '@/chronicle/brand/SealedReceipt';
 import { useEffect, useRef, useState } from 'react';
 import VoiceCapture, { type VoiceDraft } from '../media/VoiceCapture';
 import AttachmentPicker from '../media/AttachmentPicker';
@@ -121,14 +122,39 @@ const CaptureView = ({ adapter, onNavigate, notice }: Props) => {
   };
 
   if (sealed) return (
-    <div>
+    <div className="proto-sealed-screen">
       <h1 className="proto-h1" tabIndex={-1} ref={sealedHeadingRef}>Record sealed.</h1>
-      <div className="proto-sealed-note"><div style={{ fontSize: 12, color: 'var(--p-muted)', marginBottom: 4 }}>Sealed {new Date(sealed.sealedAt).toLocaleString()}</div>{sealed.text ? <div style={{ whiteSpace: 'pre-wrap', fontSize: 15, lineHeight: 1.5 }}>{sealed.text}</div> : <div className="proto-help" style={{ margin: 0 }}>Voice record only — no written wording.</div>}</div>
-      <p className="proto-help" role="status" style={{ marginTop: 8 }}>{sealedOffline ? 'You were offline, so this record is saved on this device. It will be backed up automatically the next time you are online.' : 'This record is saved on this device and backed up to your private Chronicle storage.'}</p>
+      <SealedReceipt
+        animate
+        sealedAt={sealed.sealedAt}
+        status={
+          <span role="status">
+            {sealedOffline
+              ? 'You were offline, so this record is saved on this device. It will be backed up automatically the next time you are online.'
+              : 'This record is saved on this device and backed up to your private Chronicle storage.'}
+          </span>
+        }
+      />
+      <article className="proto-record-page" aria-label="Your sealed wording">
+        <div className="proto-sealed-label">Your original wording</div>
+        {sealed.text
+          ? <div className="proto-record-text">{sealed.text}</div>
+          : <div className="proto-help" style={{ margin: 0 }}>Voice record only — no written wording.</div>}
+      </article>
       {error && <p className="proto-media-error" role="alert">{error}</p>}
-      {failures.length > 0 && <div className="proto-actions-row" style={{ marginBottom: 12 }}><button type="button" className="proto-btn" onClick={retryMedia} disabled={retrying}>{retrying ? 'Retrying…' : `Retry ${failures.length} item${failures.length === 1 ? '' : 's'}`}</button></div>}
-      <p className="proto-help" style={{ marginBottom: 12 }}>Sealing preserves your original wording and timestamp. Media declared at seal stays bound to this record, but any item that failed to store must be retried before leaving this screen if you want Chronicle to retain its bytes.</p>
-      <div className="proto-actions-row"><button type="button" className="proto-btn" data-variant="primary" onClick={() => navigateAfterSeal(adapter.detailsPath(sealed.id))}>Add details</button><button type="button" className="proto-btn" onClick={() => navigateAfterSeal(adapter.recordPath(sealed.id))}>Open record</button><button type="button" className="proto-btn" data-variant="ghost" onClick={() => navigateAfterSeal(adapter.notebookPath)}>Finish</button></div>
+      {failures.length > 0 && (
+        <div className="proto-actions-row" style={{ marginBottom: 12 }}>
+          <button type="button" className="proto-btn" onClick={retryMedia} disabled={retrying}>
+            {retrying ? 'Retrying…' : `Retry ${failures.length} item${failures.length === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      )}
+      <p className="proto-help">Sealing preserves your original wording and timestamp. Media declared at seal stays bound to this record, but any item that failed to store must be retried before leaving this screen if you want Chronicle to retain its bytes.</p>
+      <div className="proto-sealed-actions">
+        <button type="button" className="proto-btn" data-variant="primary" onClick={() => navigateAfterSeal(adapter.detailsPath(sealed.id))}>Add details</button>
+        <button type="button" className="proto-btn" onClick={() => navigateAfterSeal(adapter.recordPath(sealed.id))}>Open record</button>
+        <button type="button" className="proto-btn" data-variant="ghost" onClick={() => navigateAfterSeal(adapter.notebookPath)}>Finish</button>
+      </div>
     </div>
   );
 

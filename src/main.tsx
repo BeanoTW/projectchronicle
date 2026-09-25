@@ -2,6 +2,8 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "./App.tsx";
 import "./index.css";
+// Chronicle design-system layer; deliberately self-contained (no remote font requests).
+import "./chronicle/premium.css";
 import { registerServiceWorker } from "./registerSW";
 import { cleanupObsoleteClientState } from "./lib/clientStateCleanup";
 import { analytics } from "./lib/analytics/analytics";
