@@ -5,6 +5,7 @@
 // the preflighted migration build and no unresolved migration issue remains.
 import type { CanonicalRecordReader } from './adapters';
 import type { CanonicalMigrationBuild } from './canonicalMigration';
+import { auditCanonicalMigrationMediaReadiness } from './canonicalMigrationMedia';
 import { canonicalLocalRepository } from './canonicalLocalRepository';
 import { legacyCompatibilityReader } from './legacyReader';
 import { ChronicleDB, localDB } from '@/local/db';
@@ -71,6 +72,15 @@ export const canonicalActivationBlocked = (
   audit: CanonicalActivationAudit,
 ): audit is { ok: false; reasons: readonly string[] } => !audit.ok;
 
+/**
+ * Legacy migration builds do not create organisations, so the expected set is
+ * deliberately empty. Any pre-activation organisation row is therefore
+ * unexpected and blocks cutover instead of silently escaping the audit.
+ *
+ * Migrated evidence must also have verified local bytes before authority moves.
+ * Metadata-only migration is not sufficient because canonical reads must never
+ * make a previously accessible legacy attachment disappear.
+ */
 export const auditCanonicalActivation = async (
   build: CanonicalMigrationBuild,
   ownerId: string,
@@ -100,6 +110,7 @@ export const auditCanonicalActivation = async (
   reasons.push(...await checkTable('person', expected.people, actual.people));
   reasons.push(...await checkTable('organisation', expected.organisations, actual.organisations));
   reasons.push(...await checkTable('relationship', expected.relationships, actual.relationships));
+  reasons.push(...await auditCanonicalMigrationMediaReadiness(build, ownerId, db));
   if (reasons.length > 0) return { ok: false, reasons: [...new Set(reasons)].sort() };
   return { ok: true, counts: {
     records: expected.records.length, clarifications: expected.clarifications.length, media: expected.media.length,

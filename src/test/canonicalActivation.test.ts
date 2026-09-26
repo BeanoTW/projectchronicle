@@ -11,10 +11,22 @@ import {
   getCanonicalActivation,
 } from '@/chronicle/model/canonicalActivation';
 import { applyCanonicalMigration, buildCanonicalMigration } from '@/chronicle/model/canonicalMigration';
+import { hydrateCanonicalMigrationMedia } from '@/chronicle/model/canonicalMigrationMedia';
 import type { V1Snapshot } from '@/chronicle/model/migrationPlan';
 import { ChronicleDB } from '@/local/db';
 
 const at = (minute: number) => new Date(Date.parse('2026-08-23T18:00:00.000Z') + minute * 60_000).toISOString();
+const LEGACY_MEDIA_BYTES = new TextEncoder().encode('photo-bytes');
+const LEGACY_MEDIA_SHA256 = 'dac6f451810bc38390a3b6e278d686b332a77cf21b2ea95145ad73722b77035d';
+const legacyMediaDownload = async (path: string): Promise<Blob> => {
+  expect(path).toBe('owner-1/photo.jpg');
+  const bytes = LEGACY_MEDIA_BYTES.slice();
+  return {
+    size: bytes.byteLength,
+    type: 'image/jpeg',
+    arrayBuffer: async () => bytes.buffer,
+  } as Blob;
+};
 
 const cleanSnapshot = (): V1Snapshot => ({
   incidents: [{
@@ -26,7 +38,7 @@ const cleanSnapshot = (): V1Snapshot => ({
     voided_at: null, void_reason: null,
   } as V1Snapshot['incidents'][number]],
   notes: [{ id: 'note-1', incident_id: 'record-1', note_text: 'Follow-up.', note_type: 'Update', created_at: at(2) }],
-  evidence: [{ id: 'media-1', incident_id: 'record-1', file_name: 'photo.jpg', file_path: 'owner-1/photo.jpg', file_hash: 'sha256-photo', mime_type: 'image/jpeg', upload_date: at(3), file_size: 123 } as V1Snapshot['evidence'][number]],
+  evidence: [{ id: 'media-1', incident_id: 'record-1', file_name: 'photo.jpg', file_path: 'owner-1/photo.jpg', file_hash: LEGACY_MEDIA_SHA256, mime_type: 'image/jpeg', upload_date: at(3), file_size: LEGACY_MEDIA_BYTES.byteLength } as V1Snapshot['evidence'][number]],
   history: [{ id: 'history-1', incident_id: 'record-1', field_changed: 'title', changed_at: at(4), edit_source: 'user', old_value: 'Old', new_value: 'Meeting' } as V1Snapshot['history'][number]],
 });
 
@@ -35,13 +47,27 @@ describe('Phase 5 — canonical activation guard', () => {
   beforeEach(() => { db = new ChronicleDB(`chronicle_phase5_${crypto.randomUUID()}`); });
   afterEach(async () => { db.close(); await db.delete(); });
 
-  it('stays unactivated until every expected canonical row exists exactly', async () => {
+  it('stays unactivated until every expected canonical row and evidence byte is verified', async () => {
     const build = buildCanonicalMigration(cleanSnapshot());
     const before = await auditCanonicalActivation(build, 'owner-1', db);
     expect(before.ok).toBe(false);
     if (canonicalActivationBlocked(before)) expect(before.reasons).toEqual(expect.arrayContaining([expect.stringContaining('is missing')]));
     expect(await getCanonicalActivation('owner-1', db)).toBeNull();
     await applyCanonicalMigration(build, db);
+    const metadataOnly = await auditCanonicalActivation(build, 'owner-1', db);
+    expect(metadataOnly.ok).toBe(false);
+    if (canonicalActivationBlocked(metadataOnly)) expect(metadataOnly.reasons).toContain('media:media-1:verified local bytes are missing');
+    const imported = await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
+    expect(imported).toEqual({ inspected: 1, imported: 1, already_verified: 0 });
+    const persisted = await db.canonical_blobs.get('media-1');
+    expect(persisted).toBeDefined();
+    // fake-indexeddb's structured clone may not preserve cross-realm ArrayBuffer
+    // prototypes. Reinsert the exact bytes using this realm so the idempotency
+    // assertion exercises Chronicle's production storage contract rather than
+    // the test runtime's binary-clone quirk.
+    await db.canonical_blobs.put({ ...persisted!, bytes: LEGACY_MEDIA_BYTES.slice().buffer });
+    const repeated = await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
+    expect(repeated).toEqual({ inspected: 1, imported: 0, already_verified: 1 });
     const audit = await auditCanonicalActivation(build, 'owner-1', db);
     expect(audit).toEqual({ ok: true, counts: { records: 1, clarifications: 1, media: 1, history: 1, people: 1, organisations: 0, relationships: 1 } });
     const receipt = await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
@@ -101,7 +127,10 @@ describe('Phase 5 — canonical activation guard', () => {
     const legacy: CanonicalRecordReader = { get: legacyGet, list: legacyList }; const canonical: CanonicalRecordReader = { get: canonicalGet, list: canonicalList };
     const router = createCanonicalReadRouter(legacy, canonical, ownerId => getCanonicalActivation(ownerId, db));
     await router.list('owner-1'); expect(legacyList).toHaveBeenCalledTimes(1); expect(canonicalList).not.toHaveBeenCalled();
-    const build = buildCanonicalMigration(cleanSnapshot()); await applyCanonicalMigration(build, db); await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
+    const build = buildCanonicalMigration(cleanSnapshot()); await applyCanonicalMigration(build, db); await hydrateCanonicalMigrationMedia(build, 'owner-1', db, legacyMediaDownload, () => at(9));
+    const persisted = await db.canonical_blobs.get('media-1');
+    await db.canonical_blobs.put({ ...persisted!, bytes: LEGACY_MEDIA_BYTES.slice().buffer });
+    await activateCanonicalOwner(build, 'owner-1', db, () => at(10));
     await router.get('owner-1', 'record-1'); expect(canonicalGet).toHaveBeenCalledTimes(1); expect(legacyGet).not.toHaveBeenCalled();
   });
 });
